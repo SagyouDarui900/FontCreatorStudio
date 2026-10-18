@@ -1,0 +1,6 @@
+{
+  "summary": "巨大ファイル（約8,767行のGlyphCanvas.tsx）の責務別サブコンポーネントおよびレイヤー分離計画。作図エンジンの動作・イベントハンドラ・視覚的デザインを100%維持したまま、SVGコントロール層（BezierNodeControlsLayer, ActivePenPreviewLayer, SmartSnapGuidesLayer）およびモバイル補助UI層（MobileAuxMenuDrawer, MobilePartTransformSheet, MobileBrushSettingsSheet, CanvasTouchLoupe）へ安全に分割・リファクタリングを実施します。",
+  "updatedAt": "2026-10-18T07:24:11.179214108Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
