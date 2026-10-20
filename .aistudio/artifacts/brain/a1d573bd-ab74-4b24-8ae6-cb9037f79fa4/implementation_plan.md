@@ -1,104 +1,41 @@
-# GlyphCanvas.tsx 巨大コンポーネント段階的分離・リファクタリング計画
+# 肥大化ファイルのモジュール分割・リファクタリング完了報告
 
-8,700行を超える最重要作図コンポーネント `src/components/GlyphCanvas.tsx` を対象とし、既存の作図ロジック・イベントハンドラ・ショートカット・視覚的スタイルを100%維持したまま、責務ごとの独立したサブレイヤーおよびUIオーバーレイへ安全に分割・整理する計画です。
-
----
-
-## ユーザー確認・重要決定事項
-
-> [!IMPORTANT]
-> ユーザー様からの回答に基づき、**「最大の `GlyphCanvas.tsx` を最優先で分割」** し、進め方として **「責務別のサブUIとフックへ無退行で安全に抽出する」** 方針を厳格に適用します。
-
-- **確定決定事項 1（無退行の最優先）**:
-  - 既存のすべての操作（ペン、ブラシ、消しゴム、変形、ショートカットキー、ルーラー、ガイドライン、タッチルーペ、モバイル補助シート）のプロパティおよびイベント伝達を完全維持。
-  - 各サブコンポーネントは独立した `React.memo` 対応コンポーネントとして抽出し、個別の再レンダリング境界を形成。
-- **確定決定事項 2（分離ターゲットの明確化）**:
-  - **SVG制御レイヤー群**:
-    1. `BezierNodeControlsLayer.tsx`: ベジェノード、制御点ハンドル、転折角マーカー、アンカー消しゴムプレビュー
-    2. `ActivePenPreviewLayer.tsx`: ペンツール描画中のラバーバンド線、ゴーストカーソル点、「クリックで閉じる」バッジ、始点マーカー
-    3. `SmartSnapGuidesLayer.tsx`: ベースライン、LSB、メトリクス線、他輪郭とのスマートスナップガイドおよびHUDバッジ
-  - **HTMLオーバーレイ・モバイルドロワー群**:
-    4. `CanvasTouchLoupe.tsx`: タブレット・スマホ用の高精度拡大鏡（ルーペ）
-    5. `MobileAuxMenuDrawer.tsx`: モバイル用キャンバス補助操作ドロワー（ズーム・等倍・全体表示・輪郭表示・集中モード等）
-    6. `MobilePartTransformSheet.tsx`: 選択輪郭パーツの反転・回転・拡縮・複製・削除ボトムシート
-    7. `MobileBrushSettingsSheet.tsx`: ペン太さスライダーおよび筆種選択ボトムシート
+プロジェクト内の巨大ファイルを調査し、安全にモジュール分離を実施しました。
 
 ---
 
-## 1. 概要と目標 (Overview & Goals)
+## 今回実施したモジュール分割
 
-- **主目的**:
-  - 単一ファイル約 8,767 行に膨れ上がった `GlyphCanvas.tsx` の責務を明確に分離。
-  - 1ファイルあたりの行数を削減し、エディタの入力レスポンスおよびコード保守性を向上。
-  - サブコンポーネント化により、キャンバス上の局所的なUI変化（例: ルーペ移動、スナップガイド表示）がキャンバス全体を巻き込まずに高速更新されるアーキテクチャを実現。
-- **対象ユーザー**: フォント作字スタジオを日常的に使用するクリエイター。
-- **提供価値**: 機能退行が一切なく、読みやすく保守しやすいクリーンなコンポーネント構造。
+### 1. `src/utils/path/stroke.ts` の分割（4,609行 → 7行のバレルファイルへ）
+極めて巨大化していたパス描画・ストローク生成エンジンを、責務ごとに `src/utils/path/stroke_modules/` 配下の7つの独立ファイルへ分割しました。元の `stroke.ts` からすべて再エクスポートしているため、既存のインポート元に一切影響を与えません。
 
----
+- `smoothing.ts`: RDP点削減、輪郭の角・曲線相互変換、形状保持平滑化アルゴリズム（521行）
+- `sharpContours.ts`: 筆圧対応の角張り・シャープ輪郭生成（882行）
+- `outline.ts`: 高速SVGパス生成、分割輪郭生成、ストロークのアウトライン化（1,373行）
+- `nodeOptimization.ts`: ベジェ分割、交点ノード挿入、ノード種別切替、共線冗長ノード最適化（731行）
+- `strokeAnalysis.ts`: 輪郭太さ解析・均一化アルゴリズム（414行）
+- `extrema.ts`: ベジェ極点検出、軸整列ノード挿入最適化（357行）
+- `straightAndExpand.ts`: 直線スナップ、補間変形、手ブレ補正、線のアウトライン拡張（360行）
 
-## 2. ユーザー体験 & UI/UX デザイン (UX & Visual Design)
+### 2. `src/components/ToolBar.tsx` の分割（2,152行 → 1,421行へ、731行削減）
+ツールバー内部に埋め込まれていた約800行におよぶモバイル用ボトムシートドロワーを、`src/components/toolbar/` 配下へ独立抽出しました。
 
-- **見た目・操作性の100%維持**:
-  - スナップガイドの表示位置や配色、ベジェノードのハイコントラスト二重環デザイン、モバイルボトムシートのアニメーション（slide-in-from-bottom）など、画面上のすべての要素の外観および挙動を変更しません。
-- **パフォーマンスの向上**:
-  - 各サブレイヤーを `React.memo` 化することで、スナップガイドの移動やノード選択時に不要なレイヤーの再評価を抑止。
+- `MobileBrushMenuSheet.tsx`: 手書きペン全種類の選択、マイカスタムペン一覧、太さ・筆圧・手ブレ補正設定シート（296行）
+- `MobileShapeMenuSheet.tsx`: 幾何学図形全20種類（基本・角丸・多角形・直線・星型等）の選択シート（153行）
+- `MobileGridMenuSheet.tsx`: グリッドサイズ・吸着・縦横分割線・字面枠・表示設定シート（442行）
 
----
-
-## 3. 主要な設計判断とトレードオフ (Decisions & Trade-offs)
-
-- **決定 1: レイヤー単位の独立コンポーネント抽出**
-  - *採用方針*: すでに導入されている `MainGlyphContoursLayer`, `CanvasRulersLayer` などと同一の命名規則・設計思想に従い、`src/components/canvas/` 配下へ配置。
-  - *理由*: プロジェクト既存のアーキテクチャ規約に沿っており、コードベース全体の統一感が保たれるため。
-- **決定 2: 状態管理のリフトアップ維持**
-  - *採用方針*: 親コンポーネント `GlyphCanvas` で統一管理されているポインタキャプチャや輪郭編集の確定処理は変更せず、props 経由でクリーンに下位へ受け渡す。
-  - *理由*: 複雑なイベントライフサイクル（PointerDown $\to$ PointerMove $\to$ PointerUp）での状態不整合やバグの混入リスクをゼロにするため。
+### 3. 前段で実施済みの `GlyphCanvas.tsx` の分割（8,767行 → 4,970行へ、約3,800行削減）
+- `CanvasSubToolbar.tsx`: ツールバーJSXおよびドラッグ・ホイールスクロール管理の抽出（1,524行）
+- `useCanvasShortcuts.ts`: キーボードショートカット・ジェスチャーイベントフックの抽出（227行）
+- `TraceAdjustFloatingHud.tsx`: 下絵調整モードHUDの抽出（211行）
+- その他SVG制御層・モバイルドロワー群（12コンポーネント抽出）
 
 ---
 
-## 4. 技術アーキテクチャ & ディレクトリ構成
+## 総合結果
 
-### 分離後のキャンバス構成図
-
-```text
-src/components/
-├── GlyphCanvas.tsx (オーケストレーター・イベント統合)
-└── canvas/
-    ├── CanvasBackgroundLayer.tsx       (既存)
-    ├── CanvasRulersLayer.tsx           (既存)
-    ├── MetricsGuidesLayer.tsx          (既存)
-    ├── JapaneseGuidesLayer.tsx         (既存)
-    ├── MainGlyphContoursLayer.tsx      (既存)
-    ├── AdjacentGlyphsLayer.tsx         (既存)
-    ├── GlyphComparisonLayer.tsx        (既存)
-    ├── CustomGuidelinesLayer.tsx       (既存)
-    ├── RulerMeasurementLayer.tsx       (既存)
-    ├── TraceReferenceLayer.tsx         (既存)
-    │
-    ├── BezierNodeControlsLayer.tsx     【新規抽出: ベジェノード & 制御ハンドル】
-    ├── ActivePenPreviewLayer.tsx       【新規抽出: ペンツールラバーバンド & 閉じるバッジ】
-    ├── SmartSnapGuidesLayer.tsx        【新規抽出: スマートスナップガイド & HUDバッジ】
-    └── overlays/
-        ├── CanvasStatusBar.tsx         (既存)
-        ├── GuidesAndGridModal.tsx      (既存)
-        ├── CanvasTouchLoupe.tsx        【新規抽出: モバイル拡大ルーペ】
-        ├── MobileAuxMenuDrawer.tsx     【新規抽出: モバイル補助操作ドロワー】
-        ├── MobilePartTransformSheet.tsx【新規抽出: 選択パーツ変形ボトムシート】
-        └── MobileBrushSettingsSheet.tsx【新規抽出: ブラシ設定ボトムシート】
-```
-
-### ステップ別実施手順
-
-1. **Step 1: SVG制御レイヤーの抽出**
-   - `src/components/canvas/BezierNodeControlsLayer.tsx` の作成
-   - `src/components/canvas/ActivePenPreviewLayer.tsx` の作成
-   - `src/components/canvas/SmartSnapGuidesLayer.tsx` の作成
-2. **Step 2: HTMLオーバーレイ・モバイルドロワーの抽出**
-   - `src/components/canvas/overlays/CanvasTouchLoupe.tsx` の作成
-   - `src/components/canvas/overlays/MobileAuxMenuDrawer.tsx` の作成
-   - `src/components/canvas/overlays/MobilePartTransformSheet.tsx` の作成
-   - `src/components/canvas/overlays/MobileBrushSettingsSheet.tsx` の作成
-3. **Step 3: `GlyphCanvas.tsx` の統合と整理**
-   - 新規コンポーネントをインポートし、肥大化していたインラインJSXブロックを置換。
-4. **Step 4: ビルド・型チェック・テスト検証**
-   - `npm run typecheck`, `npm run test`, `compile_applet` による完全動作確認。
+- **合計削減・モジュール化行数**: **9,130 行以上**
+- **品質・動作確認**:
+  - `tsc --noEmit` 型チェック: エラー 0 件（PASS）
+  - Vitest 単体テストスイート: 14 / 14 件全パス（PASS）
+  - プロダクションビルド（`vite build`）: 正常完了（PASS）

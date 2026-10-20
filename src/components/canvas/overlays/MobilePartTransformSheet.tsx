@@ -25,7 +25,7 @@ export interface MobilePartTransformSheetProps {
   handleSlantSelected: (amt: number) => void;
   handleScaleSelected: (factor: number) => void;
   handleDuplicateSelected: () => void;
-  handleSmoothStrokeSelected: (strength?: 'light' | 'standard' | 'strong', keepShape?: boolean) => void;
+  handleSmoothStrokeSelected: (strength?: 'mild' | 'standard' | 'strong', keepShape?: boolean) => void;
   handleSimplifySelected: (tol?: number) => void;
   handleDeleteSelected: () => void;
 }

@@ -21,7 +21,17 @@ export function useTheme() {
     } catch (e) {
       console.warn('Failed to save theme:', e);
     }
+    // Disable all CSS transitions during theme switch for instantaneous crisp swap
+    document.documentElement.setAttribute('data-theme-switching', 'true');
     document.documentElement.setAttribute('data-theme', theme);
+    
+    // Force instantaneous style recalculation then remove switching guard on next frame
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.removeAttribute('data-theme-switching');
+      });
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [theme]);
 
   const isLight = isLightTheme(theme);

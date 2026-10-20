@@ -3,10 +3,11 @@ import { PathContour, BezierNode, Point, ToolMode, GridSettings } from '../../ty
 import { contoursToSvgPath } from '../../utils/pathUtils';
 
 export interface BezierNodeControlsLayerProps {
+  showNodes?: boolean;
   contours: PathContour[];
   contourSvgMap: Map<string, string>;
   toolMode: ToolMode;
-  eraserMode: 'point' | 'cut' | 'all' | 'node';
+  eraserMode: 'stroke' | 'cut' | 'all' | 'node' | 'point';
   eraserSize: number;
   hoverCanvasPos: Point | null;
   selectedContourId: string | null;
@@ -26,6 +27,7 @@ export interface BezierNodeControlsLayerProps {
 
 export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = React.memo(
   ({
+    showNodes = true,
     contours,
     contourSvgMap,
     toolMode,
@@ -41,6 +43,10 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     startNodeOrHandleDrag,
     handleToggleNodeType,
   }) => {
+    if (!showNodes && !(toolMode === 'eraser' && eraserMode === 'node')) {
+      return null;
+    }
+
     return (
       <g className="bezier-controls select-none">
         {/* When in Anchor Point Eraser Mode, render high-contrast path trajectory guide lines connecting all nodes */}

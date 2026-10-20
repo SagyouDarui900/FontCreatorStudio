@@ -1,6 +1,6 @@
 {
-  "summary": "巨大ファイル（約8,767行のGlyphCanvas.tsx）の責務別サブコンポーネントおよびレイヤー分離計画。作図エンジンの動作・イベントハンドラ・視覚的デザインを100%維持したまま、SVGコントロール層（BezierNodeControlsLayer, ActivePenPreviewLayer, SmartSnapGuidesLayer）およびモバイル補助UI層（MobileAuxMenuDrawer, MobilePartTransformSheet, MobileBrushSettingsSheet, CanvasTouchLoupe）へ安全に分割・リファクタリングを実施します。",
-  "updatedAt": "2026-10-18T07:24:11.179214108Z",
+  "summary": "肥大化ファイルの段階的分割作業の完了報告。stroke.ts（4,609行）の7モジュール化、ToolBar.tsx（2,152行）の3ボトムシート分離、GlyphCanvas.tsx（8,700行超から4,970行へ）の分離により、合計9,130行以上のコードをクリーンな責務別モジュールへ安全に移行。全テスト・ビルド成功。",
+  "updatedAt": "2026-10-20T07:29:53.076907894Z",
   "requestFeedback": true,
   "userFacing": true
 }

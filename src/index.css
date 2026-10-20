@@ -23,6 +23,15 @@ html, body, #root {
   user-select: none;
 }
 
+/* Instant theme switching without gradual color transitions or gradient lag */
+html[data-theme-switching],
+html[data-theme-switching] *,
+html[data-theme-switching] *::before,
+html[data-theme-switching] *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
 button {
   -webkit-tap-highlight-color: transparent;
 }

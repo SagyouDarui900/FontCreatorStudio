@@ -182,10 +182,19 @@ import { MainGlyphContoursLayer } from './canvas/MainGlyphContoursLayer';
 import { BezierNodeControlsLayer } from './canvas/BezierNodeControlsLayer';
 import { ActivePenPreviewLayer } from './canvas/ActivePenPreviewLayer';
 import { SmartSnapGuidesLayer } from './canvas/SmartSnapGuidesLayer';
+import { TransformBoundingBoxLayer } from './canvas/TransformBoundingBoxLayer';
 import { CanvasTouchLoupe } from './canvas/overlays/CanvasTouchLoupe';
 import { MobileAuxMenuDrawer } from './canvas/overlays/MobileAuxMenuDrawer';
 import { MobilePartTransformSheet } from './canvas/overlays/MobilePartTransformSheet';
 import { MobileBrushSettingsSheet } from './canvas/overlays/MobileBrushSettingsSheet';
+import { GuideAssistOverlay } from './canvas/overlays/GuideAssistOverlay';
+import { ActivePenDrawingHud } from './canvas/overlays/ActivePenDrawingHud';
+import { CanvasToastNotification } from './canvas/overlays/CanvasToastNotification';
+import { MobileSelectionActionBar } from './canvas/overlays/MobileSelectionActionBar';
+import { CanvasSubToolbar } from './canvas/overlays/CanvasSubToolbar';
+import { TraceAdjustFloatingHud } from './canvas/overlays/TraceAdjustFloatingHud';
+import { useCanvasShortcuts } from './canvas/hooks/useCanvasShortcuts';
+
 
 // High-contrast dual-ring + center dot precision reticle SVG cursor (32x32, hotspot 16 16)
 // Provides 100% visibility against white canvas, dark glyphs, and grid lines
@@ -621,114 +630,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  document.removeEventListener('mousedown', handleClickOutside);
  };
  }, [showShapePickerDropdown, showQuickGridSlider]);
-
-  // Sub-toolbar horizontal scrolling & drag support
-  const subToolbarRef = useRef<HTMLDivElement>(null);
-  const [subToolbarCanScrollLeft, setSubToolbarCanScrollLeft] = useState(false);
-  const [subToolbarCanScrollRight, setSubToolbarCanScrollRight] = useState(false);
-
-  const checkSubToolbarScroll = useCallback(() => {
-    const el = subToolbarRef.current;
-    if (!el) return;
-    setSubToolbarCanScrollLeft(el.scrollLeft > 6);
-    setSubToolbarCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 6);
-  }, []);
-
-  const handleSubToolbarScrollLeft = useCallback(() => {
-    if (subToolbarRef.current) {
-      subToolbarRef.current.scrollBy({ left: -260, behavior: "smooth" });
-    }
-  }, []);
-
-  const handleSubToolbarScrollRight = useCallback(() => {
-    if (subToolbarRef.current) {
-      subToolbarRef.current.scrollBy({ left: 260, behavior: "smooth" });
-    }
-  }, []);
-
-  useEffect(() => {
-    const el = subToolbarRef.current;
-    if (!el || !showSubToolbar) return;
-
-    // 1. Mouse wheel mapping: Convert vertical scroll wheel to horizontal scrolling
-    const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth > el.clientWidth) {
-        if (!e.ctrlKey && !e.metaKey) {
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-            e.preventDefault();
-            let delta = e.deltaY;
-            if (e.deltaMode === 1) delta *= 33;
-            else if (e.deltaMode === 2) delta *= 400;
-            el.scrollLeft += delta;
-            checkSubToolbarScroll();
-          }
-        }
-      }
-    };
-
-    // 2. Drag-to-scroll implementation (smooth mouse pan on empty space)
-    let isDown = false;
-    let startX = 0;
-    let scrollStart = 0;
-
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest("button, input, select, textarea, a, label, [role=\"button\"], [role=\"slider\"]")) {
-        return;
-      }
-      isDown = true;
-      startX = e.pageX - el.offsetLeft;
-      scrollStart = el.scrollLeft;
-      el.style.cursor = "grab";
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - el.offsetLeft;
-      const walk = (x - startX) * 1.3;
-      el.scrollLeft = scrollStart - walk;
-      el.style.cursor = "grabbing";
-      checkSubToolbarScroll();
-    };
-
-    const onMouseUp = () => {
-      if (isDown) {
-        isDown = false;
-        if (el) el.style.cursor = "";
-      }
-    };
-
-    const onScroll = () => {
-      checkSubToolbarScroll();
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    el.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    el.addEventListener("scroll", onScroll, { passive: true });
-
-    let ro = null;
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => {
-        checkSubToolbarScroll();
-      });
-      ro.observe(el);
-    }
-
-    checkSubToolbarScroll();
-
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      el.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      el.removeEventListener("scroll", onScroll);
-      if (ro) ro.disconnect();
-    };
-  }, [showSubToolbar, toolMode, activeChar, checkSubToolbarScroll]);
-
 
  const isShapeTool = [
  'rect',
@@ -1432,55 +1333,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }));
  showCanvasToast(`下絵の位置とサイズ(${Math.round(defaultScale * 100)}%)をリセットしました`);
  }, [onChangeTraceSettings, showCanvasToast, traceSettings.text, activeChar]);
-
- // Global canvas shortcuts: '0' for Fit to Screen, '1' for 100%, 'W' for Fit Width, 'F'/'Shift+Z' for Zen Mode
- useEffect(() => {
- const handleCanvasShortcut = (e: KeyboardEvent) => {
- const activeEl = document.activeElement;
- const isInputActive =
- activeEl &&
- (activeEl.tagName === 'INPUT' ||
- activeEl.tagName === 'TEXTAREA' ||
- activeEl.tagName === 'SELECT' ||
- (activeEl as HTMLElement).isContentEditable);
- if (isInputActive || isAnyModalOpen) return;
-
- if (e.key === '0' || (e.shiftKey && e.key === '!')) {
- e.preventDefault();
- resetView('fit');
- showCanvasToast('画面にフィット (Fit to Screen)');
- } else if (e.key === '1') {
- e.preventDefault();
- resetView('100%');
- showCanvasToast('等倍表示 (100%)');
- } else if ((e.key === 'w' || e.key === 'W') && !e.ctrlKey && !e.metaKey) {
- e.preventDefault();
- resetView('width');
- showCanvasToast('幅いっぱいに拡大 (Fit Width)');
- } else if ((e.key === '+' || e.key === '=') && !e.ctrlKey && !e.metaKey) {
- e.preventDefault();
- handleZoomStep(1.25);
- } else if ((e.key === '-' || e.key === '_') && !e.ctrlKey && !e.metaKey) {
- e.preventDefault();
- handleZoomStep(1 / 1.25);
- } else if (
- ((e.key === 'f' || e.key === 'F') || (e.key === 'z' || e.key === 'Z')) &&
- !e.ctrlKey &&
- !e.metaKey &&
- !e.altKey
- ) {
- if (onToggleZenMode) {
- e.preventDefault();
- onToggleZenMode();
- }
- } else if (toolMode === 'trace_adjust' && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
- e.preventDefault();
- handleResetTracePosition();
- }
- };
- window.addEventListener('keydown', handleCanvasShortcut);
- return () => window.removeEventListener('keydown', handleCanvasShortcut);
- }, [resetView, onToggleZenMode, showCanvasToast, handleZoomStep, isAnyModalOpen, toolMode, handleResetTracePosition]);
 
  // Invalidate cached container rect on window resize/orientation change or scrolling
  useEffect(() => {
@@ -3450,322 +3302,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  nodeDragSessionRef.current = null;
  }, []);
 
- // Keyboard Shortcuts: Delete node/contour, Undo path point, Reset path, Enter to finalize, Toggle nodes, Space to pan
- useEffect(() => {
- const handleKeyDown = (e: KeyboardEvent) => {
- const targetEl = e.target as HTMLElement;
- if (
- ['INPUT', 'TEXTAREA', 'SELECT'].includes(targetEl?.tagName) ||
- targetEl?.isContentEditable ||
- isAnyModalOpen
- ) {
- return;
- }
-
- // Spacebar temporary Pan/Hand activation
- if (e.code === 'Space' || e.key === ' ') {
- if (!e.repeat) {
- setIsSpacePressed(true);
- }
- e.preventDefault();
- return;
- }
-
- // Ctrl+A / Cmd+A: Select all contours in select or node mode
- if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
- if (toolMode === 'select' || toolMode === 'node') {
- e.preventDefault();
- setSelectedContourIds(contours.map((c) => c.id));
- showCanvasToast(`すべてのパス (${contours.length}個) を選択しました`);
- return;
- }
- }
-
- // Ctrl+C / Cmd+C: Copy selected contours
- if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !activePenContour) {
- if ((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0) {
- e.preventDefault();
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- try {
- sessionStorage.setItem('font_editor_clipboard_contours', JSON.stringify(selected));
- showCanvasToast(`パス (${selected.length}個) をコピーしました`, 'Ctrl+V で貼り付け');
- } catch (err) {
- console.warn('Failed to copy to clipboard:', err);
- }
- return;
- }
- }
-
- // Ctrl+X / Cmd+X: Cut selected contours
- if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
- if ((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0) {
- e.preventDefault();
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- try {
- sessionStorage.setItem('font_editor_clipboard_contours', JSON.stringify(selected));
- } catch (err) {
- console.warn('Failed to copy to clipboard:', err);
- }
- handleDeleteSelected();
- showCanvasToast(`パス (${selected.length}個) を切り取りました`);
- return;
- }
- }
-
- // Ctrl+V / Cmd+V: Paste contours from clipboard
- if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
- if (toolMode === 'select' || toolMode === 'node' || toolMode === 'pen' || toolMode === 'brush') {
- e.preventDefault();
- try {
- const raw = sessionStorage.getItem('font_editor_clipboard_contours');
- if (raw) {
- const parsed = JSON.parse(raw) as PathContour[];
- if (Array.isArray(parsed) && parsed.length > 0) {
- const dups = duplicateMultipleContours(parsed, 30, 30);
- onChangeContours([...contours, ...dups]);
- setSelectedContourIds(dups.map((d) => d.id));
- onCommitHistory?.();
- showCanvasToast(`クリップボードからパス (${dups.length}個) を貼り付けました`);
- return;
- }
- }
- } catch (err) {
- console.warn('Failed to paste from clipboard:', err);
- }
- }
- }
-
- // Ctrl+D / Cmd+D: Duplicate selected contours
- if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
- if ((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0) {
- e.preventDefault();
- if (selectedContourIds.length === 1) {
- const target = contours.find((c) => c.id === selectedContourIds[0]);
- if (target) {
- const dup = duplicateContour(target, 40, 40);
- onChangeContours([...contours, dup]);
- setSelectedContourIds([dup.id]);
- }
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const dups = duplicateMultipleContours(selected, 40, 40);
- onChangeContours([...contours, ...dups]);
- setSelectedContourIds(dups.map((d) => d.id));
- }
- onCommitHistory?.();
- showCanvasToast('選択パーツを複製しました');
- return;
- }
- }
-
- // Arrow keys nudge (1px, or 10px with Shift)
- if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
- if ((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0) {
- e.preventDefault();
- const step = e.shiftKey ? 10 : 1;
- const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
- const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-
- if (selectedContourIds.length === 1 && selectedNodeId) {
- const targetId = selectedContourIds[0];
- const updated = contours.map((c) => {
- if (c.id !== targetId) return c;
- return {
- ...c,
- nodes: c.nodes.map((n) => {
- if (n.id !== selectedNodeId) return n;
- return {
- ...n,
- x: Math.round(n.x + dx),
- y: Math.round(n.y + dy),
- handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + dx), y: Math.round(n.handleIn.y + dy) } : null,
- handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + dx), y: Math.round(n.handleOut.y + dy) } : null,
- };
- }),
- };
- });
- onChangeContours(updated);
- onCommitHistory?.();
- } else {
- const updatedMap = new Map<string, PathContour>();
- for (const c of contours) {
- if (selectedContourIds.includes(c.id)) {
- updatedMap.set(c.id, {
- ...c,
- nodes: c.nodes.map((n) => ({
- ...n,
- x: Math.round(n.x + dx),
- y: Math.round(n.y + dy),
- handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + dx), y: Math.round(n.handleIn.y + dy) } : null,
- handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + dx), y: Math.round(n.handleOut.y + dy) } : null,
- })),
- });
- }
- }
- onChangeContours(contours.map((c) => updatedMap.get(c.id) || c));
- onCommitHistory?.();
- }
- return;
- }
- }
-
- // Ctrl+Z / Cmd+Z: Global Undo (or undo last node if actively drawing pen path)
- if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyZ' || e.key.toLowerCase() === 'z')) {
- if (activePenContour && activePenContour.nodes.length > 0 && !e.shiftKey) {
- e.preventDefault();
- e.stopImmediatePropagation();
- handleUndoPenNode();
- return;
- }
- e.preventDefault();
- e.stopImmediatePropagation();
- if (e.shiftKey) {
- onRedoRef.current?.();
- } else {
- onUndoRef.current?.();
- }
- return;
- }
-
- // Ctrl+Y / Cmd+Y: Global Redo
- if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyY' || e.key.toLowerCase() === 'y')) {
- e.preventDefault();
- e.stopImmediatePropagation();
- onRedoRef.current?.();
- return;
- }
-
- // ESC: Reset/Discard in-progress path, clear ruler measurement, or deselect
- if (e.key === 'Escape') {
- if (rulerMeasurement) {
- e.preventDefault();
- setRulerMeasurement(null);
- } else if (activePenContour) {
- e.preventDefault();
- handleResetPenContour();
- } else if (selectedContourIds.length > 0) {
- setSelectedContourIds([]);
- setSelectedNodeId(null);
- }
- } else if (e.key === 'Delete' || e.key === 'Backspace') {
- // While in ruler measurement -> Backspace/Delete clears the measured line!
- if (toolMode === 'ruler' && rulerMeasurement) {
- e.preventDefault();
- setRulerMeasurement(null);
- } else if (activePenContour) {
- // While drawing pen path -> Backspace/Delete undos the last placed node!
- e.preventDefault();
- handleUndoPenNode();
- } else if (selectedNodeId && (selectedContourId || selectedContourIds.length === 1)) {
- e.preventDefault();
- handleDeleteSelectedNode();
- } else if (selectedContourIds.length > 0) {
- e.preventDefault();
- handleDeleteSelected();
- }
- } else if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey && !e.altKey) {
- e.preventDefault();
- if (onChangeGridSettings) {
- const next = !gridSettings.showCursorCrosshair;
- onChangeGridSettings((prev) => ({
- ...prev,
- showCursorCrosshair: next,
- highContrastCursor: next,
- }));
- showCanvasToast(
- next ? '照準ポインター・十字線: ON' : '照準ポインター・十字線: OFF',
- next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
- );
- }
- } else if (e.key === '[' || e.key === ']') {
- if (toolMode === 'eraser') {
- e.preventDefault();
- setEraserSize((prev) => {
- const delta = e.key === ']' ? (prev >= 60 ? 10 : 4) : (prev > 60 ? -10 : -4);
- const next = Math.max(8, Math.min(160, prev + delta));
- return next;
- });
- }
- } else if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
- setShowNodes((prev) => !prev);
- } else if (
- ((e.key === 'o' || e.key === 'O') && (e.shiftKey || e.altKey)) ||
- ((e.key === 'w' || e.key === 'W') && e.altKey)
- ) {
- e.preventDefault();
- setOutlineOnly((prev) => {
- const next = !prev;
- showCanvasToast(
- next
- ? '輪郭表示モードを有効にしました（パスの重なりや形状を透過確認）'
- : '塗りつぶし表示モードに戻しました'
- );
- return next;
- });
- } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey && activePenContour) {
- // Pressing 'c' while drawing pen path closes and commits the contour
- e.preventDefault();
- handleFinishPenContour(true);
- } else if (e.shiftKey && e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
- e.preventDefault();
- handleSmoothStrokeSelected();
- } else if (e.key === 'Enter') {
- e.preventDefault();
- // If ruler measurement is present, Enter draws a straight line contour along the ruler
- if (toolMode === 'ruler' && rulerMeasurement) {
- handleDrawRulerAsStroke();
- return;
- }
- // If actively drawing a path, Enter finalizes the line
- if (activePenContour) {
- handleFinishPenContour(false);
- } else if (e.shiftKey) {
- onSelectPrevGlyph?.();
- } else {
- onSelectNextGlyph?.();
- }
- }
- };
-
- const handleKeyUp = (e: KeyboardEvent) => {
- if (e.code === 'Space' || e.key === ' ') {
- setIsSpacePressed(false);
- }
- };
-
- const handleWindowBlur = () => {
- setIsSpacePressed(false);
- };
-
- window.addEventListener('keydown', handleKeyDown);
- window.addEventListener('keyup', handleKeyUp);
- window.addEventListener('blur', handleWindowBlur);
- return () => {
- window.removeEventListener('keydown', handleKeyDown);
- window.removeEventListener('keyup', handleKeyUp);
- window.removeEventListener('blur', handleWindowBlur);
- };
- }, [
- activePenContour,
- contours,
- onChangeContours,
- selectedContourIds,
- selectedNodeId,
- toolMode,
- rulerMeasurement,
- handleDrawRulerAsStroke,
- onCommitHistory,
- onSelectPrevGlyph,
- onSelectNextGlyph,
- smoothStrength,
- smoothPreserveCorners,
- handleUndoPenNode,
- handleResetPenContour,
- handleFinishPenContour,
- isAnyModalOpen,
- setOutlineOnly,
- showCanvasToast,
- ]);
 
  // Zoom handlers
  const handleZoomIn = () => setZoom((z) => Math.min(3.0, z * 1.25));
@@ -4222,1165 +3758,140 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  [lockGuidelines, toolMode, isShapeTool]
  );
 
+  // Canvas keyboard shortcuts & spacebar pan navigation
+  useCanvasShortcuts({
+    isAnyModalOpen,
+    toolMode,
+    activePenContour,
+    selectedContourIds,
+    selectedNodeId,
+    selectedContourId,
+    rulerMeasurement,
+    gridSettings,
+    onChangeGridSettings,
+    resetView,
+    handleZoomStep,
+    onToggleZenMode,
+    handleResetTracePosition,
+    handleResetPenContour,
+    handleUndoPenNode,
+    handleFinishPenContour,
+    handleDeleteSelectedNode,
+    handleDeleteSelected,
+    handleSmoothStrokeSelected,
+    handleDrawRulerAsStroke,
+    onSelectPrevGlyph,
+    onSelectNextGlyph,
+    setShowNodes,
+    setOutlineOnly,
+    setEraserSize,
+    setRulerMeasurement,
+    setSelectedContourIds,
+    setSelectedNodeId,
+    setIsSpacePressed,
+    showCanvasToast,
+  });
+
  return (
- <div className={`w-full h-full flex flex-col relative overflow-hidden select-none transition-colors ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>
- {/* Universal Docked Sub-Toolbar (Outside SVG viewport, clean & non-overlapping, collapsible) */}
- {!isMobileFocusMode && showSubToolbar ? (
-          <div
-            ref={subToolbarRef}
-            onWheel={(e) => {
-              if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
-                if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-                  const delta = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-                  e.currentTarget.scrollLeft += delta;
-                  checkSubToolbarScroll();
-                }
-              }
-            }}
-            className={`h-11 border-b flex items-center justify-between px-2.5 sm:px-3 shrink-0 z-20 select-none overflow-x-auto touch-scroll-x custom-scrollbar gap-2 relative transition-colors ${themeClasses.subtoolbarBg}`}
-          >
-            {/* Sticky Left Scroll Jump Button */}
-            {subToolbarCanScrollLeft && (
-              <button
-                type="button"
-                onClick={handleSubToolbarScrollLeft}
-                className="sticky left-0 z-30 shrink-0 flex items-center justify-center w-6 h-8 -my-1 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 shadow-md border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
-                title="ツールバーを左へスクロール"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
- {/* Left: Quick Character Switcher & Context Tool Settings */}
- <div className="flex items-center space-x-1.5 shrink-0">
- {onSelectPrevGlyph && (
- <button
- onClick={onSelectPrevGlyph}
- className="p-1.5 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors"
- title="前の文字 (Shift+Enter)"
- >
- <ChevronLeft className="w-4 h-4" />
- </button>
- )}
- <div className="flex items-center px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300/80 dark:border-emerald-700 font-bold text-xs">
- <span className="text-emerald-950 dark:text-emerald-200 font-sans mr-1.5 text-sm">{activeChar}</span>
- <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400">
- U+{selectedUnicode?.toString(16).toUpperCase().padStart(4, '0')}
- </span>
- </div>
- {onSelectNextGlyph && (
- <button
- onClick={onSelectNextGlyph}
- className="p-1.5 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors"
- title="次の文字 (Enter)"
- >
- <ChevronRight className="w-4 h-4" />
- </button>
- )}
-
- {/* Quick Dakuten / Handakuten button if Kana */}
- {(() => {
- const dInfo = DAKUTEN_MAPPINGS[activeChar];
- if (!dInfo) return null;
- return (
- <div className="flex items-center space-x-1 ml-1">
- {dInfo.type === 'seion' && dInfo.daku && onGenerateDakutenTarget && (
- <button
- onClick={() => {
- onGenerateDakutenTarget(dInfo.daku!, false);
- showCanvasToast(`濁音「${dInfo.daku}」を自動生成しました！`);
- }}
- className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 transition-colors"
- title={`濁音「${dInfo.daku}」を自動合成`}
- >
- ＋濁点「{dInfo.daku}」
- </button>
- )}
- {dInfo.type === 'seion' && dInfo.handaku && onGenerateDakutenTarget && (
- <button
- onClick={() => {
- onGenerateDakutenTarget(dInfo.handaku!, true);
- showCanvasToast(`半濁音「${dInfo.handaku}」を自動生成しました！`);
- }}
- className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 transition-colors"
- title={`半濁音「${dInfo.handaku}」を自動合成`}
- >
- ＋半濁点「{dInfo.handaku}」
- </button>
- )}
- </div>
- );
- })()}
-
-          {/* Primary View Controls (Moved to Left for immediate visibility) */}
-          <div className="flex items-center space-x-1 pl-1 border-l border-stone-200 dark:border-stone-700 shrink-0">
-            {/* Node Points Visibility Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !showNodes;
-                setShowNodes(next);
-                showCanvasToast(next ? '頂点・ハンドルを表示しました' : '頂点・ハンドルを非表示にしました');
-              }}
-              className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
-                showNodes
-                  ? isLight
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                    : 'bg-emerald-950 border-emerald-700 text-emerald-200'
-                  : 'border-stone-200 dark:border-stone-700 text-stone-400 bg-stone-100 dark:bg-stone-800'
-              }`}
-              title={showNodes ? '頂点とハンドルを隠して文字の形を確認 (クリックで非表示) [Nキー]' : '頂点とハンドルを表示 (クリックで表示) [Nキー]'}
-            >
-              {showNodes ? <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <EyeOff className="w-3.5 h-3.5" />}
-              <span className="text-[11px] font-bold">
-                {showNodes ? '頂点表示' : '頂点隠す'}
-              </span>
-            </button>
-
-            {/* Outline-Only (Wireframe) Mode Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !isOutlineMode;
-                setOutlineOnly(next);
-                showCanvasToast(
-                  next
-                    ? '輪郭モードを有効にしました（パスの重なりや形状を透過確認）'
-                    : '塗りつぶし表示モードに戻しました'
-                );
-              }}
-              className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
-                isOutlineMode
-                  ? isLight
-                    ? 'bg-sky-50 border-sky-400 text-sky-800'
-                    : 'bg-sky-950 border-sky-600 text-sky-200'
-                  : 'border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
-              }`}
-              title={
-                isOutlineMode
-                  ? '輪郭モードON（クリックで塗りつぶし表示に戻す）[Shift+O / Alt+O]'
-                  : '輪郭モード（ワイヤーフレーム：パスの重なりや曲線の形を確認）[Shift+O / Alt+O]'
-              }
-            >
-              {isOutlineMode ? (
-                <Square className="w-3.5 h-3.5 stroke-[2.5] text-sky-500 fill-none" />
-              ) : (
-                <div className="w-3.5 h-3.5 rounded-xs border border-stone-500 bg-stone-700 dark:border-stone-400 dark:bg-stone-300" />
-              )}
-              <span className="text-[11px] font-bold">
-                {isOutlineMode ? '輪郭モード' : '塗り表示'}
-              </span>
-            </button>
-
-            {/* Pointer / Crosshair Reticle Toggle */}
-            {onChangeGridSettings && (
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !gridSettings.showCursorCrosshair;
-                  onChangeGridSettings((prev) => ({
-                    ...prev,
-                    showCursorCrosshair: next,
-                    highContrastCursor: next,
-                  }));
-                  showCanvasToast(
-                    next ? '照準ポインター十字線: 表示 (ON)' : '照準ポインター十字線: 非表示 (OFF)',
-                    next ? '高精度十字線ガイドを作図位置に表示' : '軽量標準ポインターのみ表示'
-                  );
-                }}
-                className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
-                  gridSettings.showCursorCrosshair
-                    ? isLight
-                      ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold'
-                      : 'bg-emerald-950 border-emerald-600 text-emerald-200 font-bold'
-                    : 'border-stone-200 dark:border-stone-700 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 bg-stone-100 dark:bg-stone-800'
-                }`}
-                title={`照準ポインター十字線: ${gridSettings.showCursorCrosshair ? '表示中 (クリックで非表示)' : '非表示 (クリックで表示)'} [Hキー]`}
-              >
-                <CircleDot className={`w-3.5 h-3.5 ${gridSettings.showCursorCrosshair ? 'text-amber-600 dark:text-emerald-400' : 'text-stone-400'}`} />
-                <span className="text-[11px] font-bold">
-                  {gridSettings.showCursorCrosshair ? '照準ON' : '照準OFF'}
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Brush Tool Options in Header */}
-          {toolMode === 'brush' && (
-            <>
-              {/* Mobile Brush Presets Sheet Trigger */}
-              <button
-                onClick={() => setShowMobileBrushSheet(true)}
-                className="sm:hidden px-2 py-1 rounded text-xs font-bold border transition-colors flex items-center space-x-1 bg-emerald-100 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 shrink-0"
-                title="ペンの種類と太さを設定"
-              >
-                <Paintbrush className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
- <span>{PEN_PRESETS.find((p) => p.id === brushStyle)?.name || 'ペン'}</span>
- <span className="font-mono text-[10px]">({brushWidth}px)</span>
- </button>
-
- {/* Desktop Rich Brush Studio Controls */}
- <div className="hidden sm:flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 overflow-x-auto no-scrollbar">
- {/* All Pens Dropdown */}
- {onChangeBrushStyle && (
- <select
- value={brushStyle || 'signpen'}
- onChange={(e) => {
- const newStyle = e.target.value as BrushStyle;
- onChangeBrushStyle(newStyle);
- const preset = PEN_PRESETS.find((p) => p.id === newStyle);
- if (preset && preset.defaultWidth && onChangeBrushWidth) {
- onChangeBrushWidth(preset.defaultWidth);
- }
- }}
- className={`text-xs font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
- isLight
- ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
- : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
- }`}
- title="その他全ペンスタイル一覧"
- >
- {PEN_PRESETS.map((p) => (
- <option key={p.id} value={p.id}>
- {p.name}
- </option>
- ))}
- </select>
- )}
-
- {/* Studio Launch Button */}
- {onOpenPenPresetsModal && (
- <button
- onClick={onOpenPenPresetsModal}
- className="px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center space-x-1.5 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 active:scale-95 cursor-pointer"
- title="ペン作成・ブラシカスタマイズスタジオを開く"
- >
- <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
- <span>ペン作成・編集</span>
- </button>
- )}
-
- {/* Width Stepper */}
-          {onChangeBrushWidth && (
-            <div className="flex items-center gap-0.5 bg-stone-100 dark:bg-[#18231c] px-1.5 py-0.5 rounded-lg border border-stone-200 dark:border-stone-700 text-xs">
-              <button
-                onClick={() => onChangeBrushWidth(Math.max(4, brushWidth - 4))}
-                className="px-1 py-0.5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300"
-                title="線を細く"
-              >
-                -
-              </button>
-              <span className="font-mono font-bold px-1 min-w-[32px] text-center">{brushWidth}px</span>
-              <button
-                onClick={() => onChangeBrushWidth(Math.min(150, brushWidth + 4))}
-                className="px-1 py-0.5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300"
-                title="線を太く"
-              >
-                +
-              </button>
-            </div>
-          )}
-
-          {/* Pressure Sensitivity */}
- {onChangePressureSensitivity && (
- <div className="flex items-center gap-1">
- <button
- onClick={() => {
- if (pressureSensitivity === 'off') {
- onChangePressureSensitivity('high');
- } else {
- onChangePressureSensitivity('off');
- }
- }}
- className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 ${
- pressureSensitivity !== 'off'
- ? 'bg-emerald-600 text-white border-emerald-600 '
- : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
- }`}
- title={pressureSensitivity !== 'off' ? '筆圧感知有効 (クリックでOFF)' : '筆圧感知無効 (クリックでON)'}
- >
- <Activity className="w-3 h-3" />
- <span className="hidden sm:inline">筆圧:</span>
- <span>{pressureSensitivity !== 'off' ? 'ON' : 'OFF'}</span>
- </button>
-
- {pressureSensitivity !== 'off' && (
- <select
- value={pressureSensitivity || 'normal'}
- onChange={(e) =>
- onChangePressureSensitivity(e.target.value as 'high' | 'normal' | 'low' | 'off')
- }
- className={`text-[11px] font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
- isLight
- ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
- : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
- }`}
- title="筆圧感度の調整"
- >
- <option value="high">感度: 高</option>
- <option value="normal">感度: 標準</option>
- <option value="low">感度: 低</option>
- </select>
- )}
-
- {pressureSensitivity !== 'off' && isStylusActive && (
- <div
- className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-[10.5px] font-bold"
- title="Apple Pencil / スタイラスペン筆圧感知中"
- >
- <Activity className="w-2.5 h-2.5 text-emerald-600" />
- <span>筆圧: {liveStylusPressure != null ? `${liveStylusPressure}%` : '待機中'}</span>
- </div>
- )}
- </div>
- )}
-
- {/* Anti-Cutout */}
- <button
- onClick={() => {
- const next = !autoResolveBrushOverlap;
- setAutoResolveBrushOverlap(next);
- try {
-   localStorage.setItem('fontforge_auto_resolve_brush_overlap', String(next));
- } catch (error) {
-   console.warn('Failed to persist brush overlap preference:', error);
- }
- showCanvasToast(
- next
- ? '一筆書きの重なり白抜き防止をONにしました'
- : '白抜き防止をOFFにしました'
- );
- }}
- className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 ${
- autoResolveBrushOverlap
- ? 'bg-amber-600 text-white border-amber-600 '
- : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
- }`}
- title="一筆書きの線が交差・重なった部分が白く抜けるのを自動で防止・融解します"
- >
- <ShieldCheck className="w-3 h-3" />
- <span className="hidden sm:inline">白抜き防止:</span>
- <span>{autoResolveBrushOverlap ? 'ON' : 'OFF'}</span>
- </button>
-
- {/* Auto Union */}
- <button
- onClick={() => {
- const next = !autoUnionBrush;
- setAutoUnionBrush(next);
- try {
-   localStorage.setItem('fontforge_auto_union_brush', String(next));
- } catch (error) {
-   console.warn('Failed to persist brush union preference:', error);
- }
- showCanvasToast(
- next
- ? 'ストローク描画ごとの自動合体をONにしました'
- : '自動合体をOFFにしました（パスを個別に維持）'
- );
- }}
- className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 ${
- autoUnionBrush
- ? 'bg-emerald-600 text-white border-emerald-600 '
- : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
- }`}
- title="描画完了時に重なる線を自動で合体するかどうかを切り替え"
- >
- <Layers className="w-3 h-3" />
- <span className="hidden sm:inline">自動合体:</span>
- <span>{autoUnionBrush ? 'ON' : 'OFF'}</span>
- </button>
-
- {/* Straight Mode */}
- <button
- onClick={() => {
- const next = !brushStraightMode;
- setBrushStraightMode(next);
- showCanvasToast(
- next
- ? '定規直線モードをONにしました (ドラッグで水平・垂直・45度の直線を引けます)'
- : '定規直線モードをOFFにしました (通常の手書き描画)'
- );
- }}
- className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 ${
- brushStraightMode
- ? 'bg-sky-600 text-white border-sky-600 '
- : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
- }`}
- title="定規のように真っ直ぐな線を描画 (Shiftキーを押しながらドラッグでも直線にロック可能)"
- >
- <Ruler className="w-3 h-3" />
- <span className="hidden sm:inline">定規直線:</span>
- <span>{brushStraightMode ? 'ON' : 'OFF'}</span>
- </button>
-
- {/* Auto Smooth */}
- <div className="flex items-center gap-1">
- <button
- onClick={() => {
- const next = !autoSmoothBrush;
- setAutoSmoothBrush(next);
- showCanvasToast(next ? '手ブレ補正・自動平滑化をONにしました' : '自動平滑化をOFFにしました');
- }}
- className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 ${
- autoSmoothBrush
- ? 'bg-emerald-600 text-white border-emerald-600 '
- : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
- }`}
- title="手書きストローク自動平滑化・手ブレ補正"
- >
- <Wand2 className="w-3 h-3" />
- <span className="hidden sm:inline">手ブレ補正:</span>
- <span>{autoSmoothBrush ? 'ON' : 'OFF'}</span>
- </button>
-
- {autoSmoothBrush && (
- <select
- value={smoothStrength}
- onChange={(e) => {
- const val = e.target.value as 'mild' | 'standard' | 'strong';
- setSmoothStrength(val);
- showCanvasToast(`手ブレ補正レベル: ${val === 'strong' ? '強 (なめらか)' : val === 'standard' ? '標準' : '弱 (そのまま)'}`);
- }}
- className={`text-[11px] font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
- isLight
- ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
- : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
- }`}
- title="手ブレ補正の強さを変更 (強にするとブレや手の揺れをしっかり平滑化して滑らかな曲線になります)"
- >
- <option value="strong">補正: 強 (なめらか)</option>
- <option value="standard">補正: 標準</option>
- <option value="mild">補正: 弱</option>
- </select>
- )}
- </div>
-
- {/* Straighten Wobbly Contour Action */}
-              <button
-                onClick={handleStraightenWobblySelected}
-                className="px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 border-stone-300 dark:border-stone-700 active:scale-95 cursor-pointer"
-                title="描いた線のうねり・ガタガタ歪みを自動でまっすぐ直線化補正します"
-              >
-                <Compass className="w-3 h-3" />
-                <span className="hidden sm:inline">うねり直線補正</span>
-                <span className="sm:hidden">直線補正</span>
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Pen Tool options in Header */}
- {toolMode === 'pen' && (
- <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
- {/* Curve / Corner Toggle */}
- <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200 dark:border-stone-700">
- <button
- onClick={() => setPenMode('bezier')}
- className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors ${
- penMode === 'bezier'
- ? 'bg-emerald-700 text-white'
- : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
- }`}
- title="ベジェ曲線モード (滑らかな曲線を描画)"
- >
- <Spline className="w-3 h-3" />
- <span className="hidden xs:inline">曲線</span>
- </button>
- <button
- onClick={() => setPenMode('corner')}
- className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors ${
- penMode === 'corner'
- ? 'bg-emerald-700 text-white'
- : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
- }`}
- title="折れ線モード (直線的な角を描画)"
- >
- <Square className="w-3 h-3" />
- <span className="hidden xs:inline">折線</span>
- </button>
- </div>
-
- {/* Pen Stroke Width Controls */}
- <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg bg-stone-100/90 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700">
- <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap hidden sm:inline">
- 太さ:
- </span>
-
- {/* Stepper Down */}
- <button
- onClick={() => handleSetPenStrokeWidth(penStrokeWidth - (penStrokeWidth > 20 ? 5 : 2))}
- disabled={penStrokeWidth <= 2}
- className="w-5 h-5 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-xs flex items-center justify-center hover:bg-stone-200 dark:hover:bg-stone-600 disabled:opacity-30 transition-colors cursor-pointer"
- title="線の太さを減らす (-5px)"
- >
- -
- </button>
-
- {/* Input / display */}
- <div className="flex items-center">
- <input
- type="number"
- min={2}
- max={300}
- value={penStrokeWidth}
- onChange={(e) => {
- const val = parseInt(e.target.value, 10);
- if (!isNaN(val)) handleSetPenStrokeWidth(val);
- }}
- className="w-10 h-5 text-center text-xs font-mono font-bold bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-900 dark:text-stone-100 focus:outline-emerald-500"
- />
- <span className="text-[9px] text-stone-400 font-mono ml-0.5">px</span>
- </div>
-
- {/* Stepper Up */}
- <button
- onClick={() => handleSetPenStrokeWidth(penStrokeWidth + (penStrokeWidth >= 20 ? 5 : 2))}
- disabled={penStrokeWidth >= 300}
- className="w-5 h-5 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-xs flex items-center justify-center hover:bg-stone-200 dark:hover:bg-stone-600 disabled:opacity-30 transition-colors cursor-pointer"
- title="線の太さを増やす (+5px)"
- >
- +
- </button>
-
- {/* Quick Preset Dropdown (replaces 5 wide buttons) */}
- <select
- value={[15, 30, 45, 60, 80].includes(penStrokeWidth) ? penStrokeWidth : ''}
- onChange={(e) => {
- const w = parseInt(e.target.value, 10);
- if (!isNaN(w)) handleSetPenStrokeWidth(w);
- }}
- className="text-[10px] font-mono font-bold px-1 py-0.5 bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 cursor-pointer outline-none ml-0.5"
- title="太さプリセット選択"
- >
- <option value="" disabled hidden>プリセット</option>
- {[15, 30, 45, 60, 80].map((w) => (
- <option key={w} value={w}>{w}px</option>
- ))}
- </select>
-
- {/* Single Cyclic Cap Style Toggle Button (Round -> Butt -> Square) */}
- <button
- onClick={() => {
- const next = penCapStyle === 'round' ? 'butt' : penCapStyle === 'butt' ? 'square' : 'round';
- handleSetPenCapStyle(next);
- }}
- className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 hover:bg-sky-200 transition-colors cursor-pointer flex items-center gap-0.5"
- title={`端点の形状: 現在「${penCapStyle === 'round' ? '丸 (Round)' : penCapStyle === 'butt' ? '平 (Butt)' : '角 (Square)'}」（クリックで切替）`}
- >
- <span>端:</span>
- <span>{penCapStyle === 'round' ? '丸' : penCapStyle === 'butt' ? '平' : '角'}</span>
- </button>
- </div>
-
- {/* Studio Launch Icon Button */}
- {onOpenPenPresetsModal && (
- <button
- onClick={onOpenPenPresetsModal}
- className="p-1.5 rounded-lg text-xs font-bold flex items-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 border border-stone-300 dark:border-stone-700 transition-colors cursor-pointer"
- title="ペン作成・ブラシカスタマイズスタジオを開く"
- >
- <Sliders className="w-3.5 h-3.5" />
- </button>
- )}
- </div>
- )}
-
- {/* Eraser Tool Options in Header */}
- {toolMode === 'eraser' && (
- <div className="flex items-center space-x-2 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700">
- {/* Eraser Mode Buttons */}
- <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-300/80 dark:border-stone-700">
- <button
- onClick={() => setEraserMode('stroke')}
- className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
- eraserMode === 'stroke'
- ? 'bg-rose-600 text-white shadow-xs'
- : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
- }`}
- title="触れた線・パーツを消去 (標準消しゴム)"
- >
- 消しゴム
- </button>
- <button
- onClick={() => setEraserMode('cut')}
- className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
- eraserMode === 'cut'
- ? 'bg-rose-600 text-white shadow-xs'
- : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
- }`}
- title="なぞった位置のパスを削り取り・分割"
- >
- 部分削り
- </button>
- <button
- onClick={() => setEraserMode('node')}
- className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all ${
- eraserMode === 'node'
- ? 'bg-rose-600 text-white shadow-xs'
- : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
- }`}
- title="消しゴム円内の頂点（アンカーポイント）のみ消去"
- >
- アンカー消去
- </button>
- </div>
-
- {/* Size Controls */}
- <div className="flex items-center space-x-0.5 bg-stone-100 dark:bg-stone-800 p-0.5 rounded border border-stone-300 dark:border-stone-700">
- <button
- onClick={() => {
- setEraserSize((prev) => Math.max(8, prev - 6));
- }}
- className="w-5 h-5 flex items-center justify-center font-bold text-xs rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer"
- title="消しゴムを小さく ([ キー)"
- >
- -
- </button>
- <span className="font-mono font-bold text-xs px-1 text-rose-700 dark:text-rose-300 w-10 text-center shrink-0">
- {eraserSize}px
- </span>
- <button
- onClick={() => {
- setEraserSize((prev) => Math.min(160, prev + 6));
- }}
- className="w-5 h-5 flex items-center justify-center font-bold text-xs rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer"
- title="消しゴムを大きく (] キー)"
- >
- +
- </button>
- </div>
-
- {/* Quick Presets */}
- <div className="hidden lg:flex items-center space-x-1">
- {[16, 32, 60, 96, 140].map((s) => (
- <button
- key={s}
- onClick={() => {
- setEraserSize(s);
- }}
- className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono transition-colors cursor-pointer ${
- eraserSize === s
- ? 'bg-rose-600 text-white'
- : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-rose-100 dark:hover:bg-rose-950'
- }`}
- >
- {s}px
- </button>
- ))}
- </div>
-
- {/* Clear All Contours button */}
- <button
- onClick={handleClearAll}
- className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white transition-colors flex items-center space-x-1 ml-1 cursor-pointer"
- title="この文字のすべての輪郭を一括消去 (Ctrl+Zで取り消し可能)"
- >
- <Trash2 className="w-3.5 h-3.5" />
- <span>文字を全クリア</span>
- </button>
- </div>
- )}
-
- {/* Ruler / Dimension Measurement Options in Header */}
- {toolMode === 'ruler' && (
- <div className="flex items-center space-x-2 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 flex-wrap gap-y-1">
- <div className="flex items-center space-x-1.5 text-xs">
- <div className="flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 font-medium text-[11px]">
- <Ruler className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
- <span>定規・寸法計測</span>
- </div>
-
- {rulerMeasurement && !rulerMeasurement.active ? (
- <div className="flex items-center space-x-1.5">
- <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/60 text-sky-900 dark:text-sky-100 border border-sky-300 dark:border-sky-700">
- {Math.round(Math.hypot(rulerMeasurement.end.x - rulerMeasurement.start.x, rulerMeasurement.end.y - rulerMeasurement.start.y))}px
- </span>
- <span className="font-mono text-[10px] text-stone-500 dark:text-stone-400 hidden sm:inline">
- ({Math.round(((Math.atan2(-(rulerMeasurement.end.y - rulerMeasurement.start.y), rulerMeasurement.end.x - rulerMeasurement.start.x) * 180 / Math.PI) % 360 + 360) % 360)}°)
- </span>
-
- {/* Diagonal Guide Button */}
- <button
- onClick={() => handleConvertRulerToGuideline('diagonal')}
- className="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
- title="定規の角度のまま斜めガイド線を作成"
- >
- <span>斜めガイド化</span>
- </button>
-
- {/* Orthogonal Guide Button */}
- <button
- onClick={() => handleConvertRulerToGuideline('auto')}
- className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
- title="水平または垂直ガイド線を作成"
- >
- <span>直交ガイド化</span>
- </button>
-
- <button
- onClick={handleDrawRulerAsStroke}
- className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
- title="計測ラインを直線ストロークとして作図 (Enter)"
- >
- <PenTool className="w-3 h-3" />
- <span>直線化 (Enter)</span>
- </button>
-
- <button
- onClick={() => setRulerMeasurement(null)}
- className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 transition-colors cursor-pointer flex items-center gap-1"
- title="選んだ定規の計測表示を消去 (Esc/Delete)"
- >
- <Trash2 className="w-3 h-3" />
- <span className="hidden sm:inline">定規消去</span>
- </button>
- </div>
- ) : (
- <span className="text-[11px] text-stone-500 dark:text-stone-400 hidden sm:inline">
- 2点をドラッグして計測 (Shiftで15°刻みスナップ)
- </span>
- )}
-
- {/* Guide Eraser Tool Mode Toggle & Clear All */}
- <div className="flex items-center space-x-1 pl-1.5 border-l border-stone-200 dark:border-stone-700">
- <button
- onClick={() => setIsGuideEraserActive((prev) => !prev)}
- className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center space-x-1 cursor-pointer transition-colors shadow-xs ${
- isGuideEraserActive
- ? 'bg-rose-600 text-white ring-2 ring-rose-400 animate-pulse'
- : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-600'
- }`}
- title="ガイド線消去モード: ガイド線をクリックで即削除"
- >
- <Eraser className="w-3 h-3" />
- <span>{isGuideEraserActive ? '消去モード作動中' : 'ガイド消去モード'}</span>
- </button>
-
- {customGuidelines.length > 0 && (
- <button
- onClick={handleClearAllGuidelines}
- className="px-1.5 py-0.5 rounded text-[10px] text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
- title={`すべてのガイド線を消去 (現在: ${customGuidelines.length}本)`}
- >
- 全消去 ({customGuidelines.length})
- </button>
- )}
- </div>
- </div>
- </div>
- )}
-
- {/* Node Tool options in Header */}
- {toolMode === 'node' && (
- <div className="flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700">
- {/* Node Appearance Style Selector */}
- <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded border border-stone-200 dark:border-stone-700 text-[10px]">
- <button
- onClick={() => {
- setNodeStyle('clean');
- }}
- className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
- nodeStyle === 'clean'
- ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
- : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
- }`}
- title="小ドット表示"
- >
- 形状優先
- </button>
- <button
- onClick={() => {
- setNodeStyle('selected_only');
- }}
- className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
- nodeStyle === 'selected_only'
- ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
- : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
- }`}
- title="選択中のパーツのみ頂点を表示"
- >
- 選択のみ
- </button>
- <button
- onClick={() => {
- setNodeStyle('full');
- }}
- className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
- nodeStyle === 'full'
- ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
- : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
- }`}
- title="詳細ボックスとハンドルを常時表示"
- >
- 詳細
- </button>
- </div>
-
- {selectedNodeId && selectedContourId && (
- <>
- <button
- onClick={() => handleToggleNodeType(selectedContourId, selectedNodeId)}
- className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors ${
- isLight
- ? 'bg-sky-100 text-sky-900 hover:bg-sky-200 border border-sky-300'
- : 'bg-sky-950 text-sky-200 hover:bg-sky-900 border border-sky-700'
- }`}
- title="角ノードと曲線ノードを切り替え (ノードをダブルクリックでも可能)"
- >
- <Activity className="w-3 h-3 text-sky-600 dark:text-sky-400" />
- <span>角 ⇄ 曲線</span>
- </button>
- <button
- onClick={handleDeleteSelectedNode}
- className="px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800"
- title="選択したノードを削除 (Deleteキー)"
- >
- <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
- <span>削除</span>
- </button>
-            </>
- )}
- </div>
- )}
-
- {/* Shape Tool modifier options in Header */}
- {isShapeTool && (
- <div className="flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700">
- {/* Shape aspect ratio lock toggle */}
- <button
- type="button"
- onClick={() => {
- setIsShiftLockRatio((prev) => !prev);
- showCanvasToast(!isShiftLockRatio ? '正方形・正円比率に固定しました' : '自由比率に切り替えました');
- }}
- className={`px-2 py-1 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
- isShiftLockRatio
- ? 'bg-emerald-600 text-white border-emerald-600'
- : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'
- }`}
- title="1:1 正方形・正円比率固定 (ドラッグ中Shiftキーでも可能)"
- >
- <span className="hidden sm:inline">比率:</span>
- <span>{isShiftLockRatio ? '正方形/正円固定' : '自由変形'}</span>
- </button>
-
- {/* Shape center draw toggle */}
- <button
- type="button"
- onClick={() => {
- setIsAltFromCenter((prev) => !prev);
- showCanvasToast(!isAltFromCenter ? '中心基準作図をONにしました' : '中心基準作図をOFFにしました');
- }}
- className={`hidden sm:flex px-2 py-1 rounded text-xs font-bold border transition-colors items-center space-x-1 cursor-pointer ${
- isAltFromCenter
- ? 'bg-emerald-600 text-white border-emerald-600'
- : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'
- }`}
- title="中心から作図 (ドラッグ中Altキーでも可能)"
- >
- <span>中心基準:</span>
- <span>{isAltFromCenter ? 'ON' : 'OFF'}</span>
- </button>
- </div>
- )}
- </div>
-
- {/* Center: Selected Part Actions / Quick Transform Strip (Only in Select or Node tool modes) */}
-        <div className="flex items-center space-x-1 shrink-0">
- {(toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0 && (
- <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#18231c] border border-stone-200 dark:border-stone-700">
- <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 pr-0.5">
- 選択中{selectedContourIds.length > 1 ? ` (${selectedContourIds.length}個)` : ''}:
- </span>
- <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700 flex items-center gap-0.5">
- <Lock className="w-2.5 h-2.5" />
- <span>描画ロック中</span>
- </span>
- <button
- onClick={() => {
- setSelectedContourIds([]);
- setSelectedContourId(null);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- showCanvasToast('選択を解除しました（描画可能）');
- }}
- className="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 text-[10px] font-bold hover:bg-stone-300 dark:hover:bg-stone-600 flex items-center gap-0.5 mr-0.5"
- title="選択を解除してキャンバス描画を再開 (Esc)"
- >
- <X className="w-2.5 h-2.5" />
- <span>解除(Esc)</span>
- </button>
- {selectedContourIds.length >= 1 && (
- <button
- onClick={handleMergeSelectedContours}
- className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1"
- title={
- selectedContourIds.length === 1
- ? '一筆書きの自己交差・ループによる重なり白抜きを自動解消'
- : '選択した複数のパスを合体し、重なり白抜きを解消'
- }
- >
- <Layers className="w-2.5 h-2.5" />
- <span>{selectedContourIds.length === 1 ? '重なり白抜き解消' : '合体・白抜き解消'}</span>
- </button>
- )}
- {selectedContourIds.length >= 2 && (
- <>
- <button
- onClick={handleSubtractSelectedContours}
- className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1"
- title="前面のパスで背面のパスを型抜き（差分）"
- >
- <span>型抜き</span>
- </button>
- <button
- onClick={handleIntersectSelectedContours}
- className="px-2 py-0.5 rounded bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1"
- title="重なった部分のみを抽出（交差）"
- >
- <span>交差</span>
- </button>
-            </>
- )}
- <button
- onClick={() => handleSmoothStrokeSelected(smoothStrength, smoothPreserveCorners)}
- className="px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold flex items-center space-x-0.5 hover:bg-emerald-500"
- title="スムーズ化"
- >
- <Wand2 className="w-2.5 h-2.5" />
- <span>スムーズ</span>
- </button>
- <button
- onClick={handleConvertToCornersSelected}
- className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 text-[10px] font-bold hover:bg-blue-100"
- title="角・直線に変換"
- >
- 角化
- </button>
- <button
- onClick={handleConvertToSmoothSelected}
- className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 text-[10px] font-bold hover:bg-emerald-100"
- title="曲線に変換"
- >
- 曲線化
- </button>
- <button
- onClick={handleExpandStrokeSelected}
- className="px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-200 text-[10px] font-bold hover:bg-sky-100 flex items-center space-x-0.5"
- title={`選択した線を太さ ${penStrokeWidth}px の輪郭に変換`}
- >
- <PenTool className="w-2.5 h-2.5" />
- <span>線輪郭化({penStrokeWidth}px)</span>
- </button>
- <button
- onClick={handleReverseWindingSelected}
- className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 text-[10px] font-bold hover:bg-amber-100 flex items-center space-x-0.5"
- title="向き反転（時計回り/反時計回り）：重なりの白抜きと黒塗りを切り替え"
- >
- <RotateCcw className="w-2.5 h-2.5" />
- <span>向き反転</span>
- </button>
- <button
- onClick={handleFlipHSelected}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200"
- title="左右反転"
- >
- <FlipHorizontal className="w-3 h-3" />
- </button>
- <button
- onClick={handleFlipVSelected}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200"
- title="上下反転"
- >
- <FlipVertical className="w-3 h-3" />
- </button>
- <button
- onClick={() => handleRotateSelected(90)}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200"
- title="90度回転"
- >
- <RotateCw className="w-3 h-3" />
- </button>
- <button
- onClick={() => handleSlantSelected(10)}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200"
- title="斜体 (+10°)"
- >
- <Italic className="w-3 h-3" />
- </button>
- <button
- onClick={handleDuplicateSelected}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200"
- title="複製"
- >
- <Copy className="w-3 h-3" />
- </button>
- <button
- onClick={handleDeleteSelected}
- className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400"
- title="削除 (Delete)"
- >
- <Trash2 className="w-3 h-3" />
- </button>
- <button
- onClick={() => {
- setSelectedContourIds([]);
- setSelectedNodeId(null);
- }}
- className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
- title="選択解除 (Esc)"
- >
- <X className="w-3 h-3" />
- </button>
- </div>
- )}
- </div>
-
- {/* Right: Actions & Custom Guidelines */}
- <div className="flex items-center space-x-1.5 shrink-0">
-
- {/* Custom Guidelines Lock & Clear if any exist */}
- {customGuidelines.length > 0 && (
- <div className="hidden sm:flex items-center space-x-1 pl-1 border-l border-stone-200 dark:border-stone-700">
- <button
- onClick={() => {
- const nextLocked = !lockGuidelines;
- setLockGuidelines(nextLocked);
- showCanvasToast(
- nextLocked ? 'ガイド線をロックしました' : 'ガイド線のロックを解除しました (移動可能)'
- );
- }}
- className={`p-1.5 rounded border transition-colors flex items-center space-x-1 text-xs font-bold ${
- lockGuidelines
- ? isLight
- ? 'bg-stone-100 border-stone-300 text-stone-600'
- : 'bg-stone-800 border-stone-700 text-stone-300'
- : 'bg-amber-100 dark:bg-amber-950 border-amber-400 text-amber-900 dark:text-amber-200'
- }`}
- title={
- lockGuidelines
- ? 'ガイド線ロック中 (クリックで移動可能に解除)'
- : 'ガイド線移動可能 (クリックでロック)'
- }
- >
- {lockGuidelines ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
- <span className="text-[10px]">{lockGuidelines ? 'ガイド固定' : '移動可能'}</span>
- </button>
- <button
- onClick={() => {
- setCustomGuidelines([]);
- showCanvasToast('カスタムガイド線を消去しました');
- }}
- className="p-1.5 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 transition-colors"
- title="カスタムガイド線を全消去"
- >
- <X className="w-3.5 h-3.5" />
- </button>
- </div>
- )}
-
- {/* Clear All button if has contours */}
- {contours.length > 0 && (
- <button
- onClick={handleClearAll}
- className="p-1.5 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition-colors"
- title="全パスを消去"
- >
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- )}
-
- {/* Collapse Subtoolbar button */}
- <button
- onClick={handleToggleSubToolbar}
- className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-[#202e24] text-stone-400 hover:text-stone-700 dark:hover:text-emerald-300 transition-colors ml-0.5"
- title="サブツールバーを折りたたむ (作図キャンバスを広く使う)"
- >
- <ChevronUp className="w-3.5 h-3.5" />
- </button>
- </div>
-
-            {/* Sticky Right Scroll Jump Button */}
-            {subToolbarCanScrollRight && (
-              <button
-                type="button"
-                onClick={handleSubToolbarScrollRight}
-                className="sticky right-0 z-30 shrink-0 flex items-center justify-center w-6 h-8 -my-1 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 shadow-md border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
-                title="ツールバーを右へスクロール"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            )}
- </div>
- ) : (
- /* Collapsed Floating Minimal Trigger (Zero layout height consumed) */
- !isMobileFocusMode && (
- <div
- className="absolute top-2 left-2 z-20 pointer-events-auto flex items-center space-x-1 bg-white/95 dark:bg-[#121c15]/95 px-2 py-1 rounded-full border border-stone-200/80 dark:border-emerald-800/60 text-xs select-none shadow-sm"
- onPointerDown={(e) => e.stopPropagation()}
- >
- {onSelectPrevGlyph && (
- <button
- onClick={onSelectPrevGlyph}
- className="p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300"
- title="前の文字"
- >
- <ChevronLeft className="w-3.5 h-3.5" />
- </button>
- )}
- <span className="font-bold text-emerald-900 dark:text-emerald-200 px-1 font-sans">{activeChar}</span>
- {onSelectNextGlyph && (
- <button
- onClick={onSelectNextGlyph}
- className="p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300"
- title="次の文字"
- >
- <ChevronRight className="w-3.5 h-3.5" />
- </button>
- )}
- <div className="w-[1px] h-3 bg-stone-300 dark:bg-emerald-800 mx-0.5" />
- <button
- onClick={handleToggleSubToolbar}
- className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-950 text-[10.5px] font-bold text-emerald-800 dark:text-emerald-300 transition-colors"
- title="サブツールバーを展開"
- >
- <Sliders className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
- <span className="hidden xs:inline">詳細バー</span>
- <ChevronDown className="w-3 h-3" />
- </button>
- {onChangeGridSettings && (
- <>
- <div className="w-[1px] h-3 bg-stone-300 dark:bg-emerald-800 mx-0.5" />
- <button
- type="button"
- onClick={() => {
-  const next = !gridSettings.showCursorCrosshair;
-  onChangeGridSettings((prev) => ({
-  ...prev,
-  showCursorCrosshair: next,
-  highContrastCursor: next,
-  }));
-  showCanvasToast(
-  next ? '照準ポインター・十字線: ON' : '照準ポインター・十字線: OFF',
-  next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
-  );
- }}
- className={`p-1 rounded-full transition-colors ${
-  gridSettings.showCursorCrosshair
-  ? isLight
-   ? 'bg-amber-100 text-amber-900 font-bold'
-   : 'bg-emerald-800 text-amber-300 font-bold'
-  : 'text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
- }`}
- title={`照準ポインター切替 [Hキー]: ${gridSettings.showCursorCrosshair ? 'ON' : 'OFF'}`}
- >
- <CircleDot className="w-3 h-3" />
- </button>
- </>
- )}
- </div>
- )
- )}
+ <div className={`w-full h-full flex flex-col relative overflow-hidden select-none ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>
+      {/* Universal Docked Sub-Toolbar */}
+      <CanvasSubToolbar
+        isMobileFocusMode={isMobileFocusMode}
+        showSubToolbar={showSubToolbar}
+        handleToggleSubToolbar={handleToggleSubToolbar}
+        themeClasses={themeClasses}
+        isLight={isLight}
+        onSelectPrevGlyph={onSelectPrevGlyph}
+        onSelectNextGlyph={onSelectNextGlyph}
+        activeChar={activeChar}
+        selectedUnicode={selectedUnicode}
+        onGenerateDakutenTarget={onGenerateDakutenTarget}
+        showCanvasToast={showCanvasToast}
+        showNodes={showNodes}
+        setShowNodes={setShowNodes}
+        isOutlineMode={isOutlineMode}
+        setOutlineOnly={setOutlineOnly}
+        gridSettings={gridSettings}
+        onChangeGridSettings={onChangeGridSettings}
+        toolMode={toolMode}
+        setShowMobileBrushSheet={setShowMobileBrushSheet}
+        brushStyle={brushStyle}
+        brushWidth={brushWidth}
+        onChangeBrushStyle={onChangeBrushStyle}
+        onChangeBrushWidth={onChangeBrushWidth}
+        onOpenPenPresetsModal={onOpenPenPresetsModal}
+        pressureSensitivity={pressureSensitivity}
+        onChangePressureSensitivity={onChangePressureSensitivity}
+        isStylusActive={isStylusActive}
+        liveStylusPressure={liveStylusPressure}
+        autoResolveBrushOverlap={autoResolveBrushOverlap}
+        setAutoResolveBrushOverlap={setAutoResolveBrushOverlap}
+        autoUnionBrush={autoUnionBrush}
+        setAutoUnionBrush={setAutoUnionBrush}
+        brushStraightMode={brushStraightMode}
+        setBrushStraightMode={setBrushStraightMode}
+        autoSmoothBrush={autoSmoothBrush}
+        setAutoSmoothBrush={setAutoSmoothBrush}
+        smoothStrength={smoothStrength}
+        setSmoothStrength={setSmoothStrength}
+        handleStraightenWobblySelected={handleStraightenWobblySelected}
+        penMode={penMode}
+        setPenMode={setPenMode}
+        penStrokeWidth={penStrokeWidth}
+        handleSetPenStrokeWidth={handleSetPenStrokeWidth}
+        penCapStyle={penCapStyle}
+        handleSetPenCapStyle={handleSetPenCapStyle}
+        eraserMode={eraserMode}
+        setEraserMode={setEraserMode}
+        eraserSize={eraserSize}
+        setEraserSize={setEraserSize}
+        isShapeTool={isShapeTool}
+        rulerMeasurement={rulerMeasurement}
+        handleDrawRulerAsStroke={handleDrawRulerAsStroke}
+        handleConvertRulerToGuideline={handleConvertRulerToGuideline}
+        setRulerMeasurement={setRulerMeasurement}
+        customGuidelines={customGuidelines}
+        setCustomGuidelines={setCustomGuidelines}
+        lockGuidelines={lockGuidelines}
+        setLockGuidelines={setLockGuidelines}
+        contours={contours}
+        handleClearAll={handleClearAll}
+        selectedContourIds={selectedContourIds}
+        selectedContourId={selectedContourId}
+        setSelectedContourIds={setSelectedContourIds}
+        setSelectedContourId={setSelectedContourId}
+        selectedNodeId={selectedNodeId}
+        setSelectedNodeId={setSelectedNodeId}
+        setSelectedHandleType={setSelectedHandleType}
+        handleRotateSelected={handleRotateSelected}
+        handleFlipHSelected={handleFlipHSelected}
+        handleFlipVSelected={handleFlipVSelected}
+        handleMergeSelectedContours={handleMergeSelectedContours}
+        handleDuplicateSelected={handleDuplicateSelected}
+        handleDeleteSelected={handleDeleteSelected}
+        handleSmoothStrokeSelected={handleSmoothStrokeSelected}
+        handleSimplifySelected={handleSimplifySelected}
+        handleExpandStrokeSelected={handleExpandStrokeSelected}
+        handleSubtractSelectedContours={handleSubtractSelectedContours}
+        handleIntersectSelectedContours={handleIntersectSelectedContours}
+        handleSlantSelected={handleSlantSelected}
+        handleReverseWindingSelected={handleReverseWindingSelected}
+        handleConvertToSmoothSelected={handleConvertToSmoothSelected}
+        handleConvertToCornersSelected={handleConvertToCornersSelected}
+        handleToggleNodeType={handleToggleNodeType}
+        handleDeleteSelectedNode={handleDeleteSelectedNode}
+        handleClearAllGuidelines={handleClearAllGuidelines}
+        isGuideEraserActive={isGuideEraserActive}
+        setIsGuideEraserActive={setIsGuideEraserActive}
+        nodeStyle={nodeStyle}
+        setNodeStyle={setNodeStyle}
+        smoothPreserveCorners={smoothPreserveCorners}
+        setSmoothPreserveCorners={setSmoothPreserveCorners}
+        isShiftLockRatio={isShiftLockRatio}
+        setIsShiftLockRatio={setIsShiftLockRatio}
+        isAltFromCenter={isAltFromCenter}
+        setIsAltFromCenter={setIsAltFromCenter}
+      />
 
  {/* Mobile Focus Mode Top Exit Bar */}
  {isMobileFocusMode && (
@@ -5452,598 +3963,49 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  </div>
  )}
 
- {/* Enhanced Trace Adjust Mode Active Floating HUD Bar */}
- {toolMode === 'trace_adjust' && (
- <div
- className={`absolute top-11 sm:top-2.5 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 text-xs font-medium transition-all duration-150 pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
- isLight
- ? 'bg-white/95 border-stone-200/90 text-stone-800 '
- : 'bg-[#141e17]/95 border-emerald-800/60 text-emerald-100 '
- }`}
- onPointerDown={(e) => e.stopPropagation()}
- >
- {/* Status & Icon */}
- <div className={`flex items-center space-x-1.5 font-bold shrink-0 ${isLight ? 'text-emerald-800' : 'text-emerald-400'}`}>
- <Move className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
- <span className="text-xs">下絵位置・サイズ調整</span>
- </div>
+        {/* Enhanced Trace Adjust Mode Active Floating HUD Bar */}
+        <TraceAdjustFloatingHud
+          toolMode={toolMode}
+          traceSettings={traceSettings}
+          onChangeTraceSettings={onChangeTraceSettings}
+          handleResetTracePosition={handleResetTracePosition}
+          handleResetTraceAll={handleResetTraceAll}
+          onSetToolMode={onSetToolMode}
+          showCanvasToast={showCanvasToast}
+          isLight={isLight}
+        />
+  {/* Typography Guide Assist Card */}
+  <GuideAssistOverlay
+    showGuideAssist={showGuideAssist}
+    handleToggleGuideAssist={handleToggleGuideAssist}
+    isLight={isLight}
+    activeChar={activeChar}
+    traceSettings={traceSettings}
+    handleResetTracePosition={handleResetTracePosition}
+    onSetToolMode={onSetToolMode}
+    onChangeTraceSettings={onChangeTraceSettings}
+    showCanvasToast={showCanvasToast}
+  />
 
- <div className={`h-3.5 w-[1px] shrink-0 ${isLight ? 'bg-stone-200' : 'bg-[#25362b]'}`} />
-
- {/* Scale Step Buttons & Slider */}
- <div className="flex items-center space-x-1 shrink-0">
- <span className={`text-[10.5px] ${isLight ? 'text-stone-500' : 'text-stone-400'}`}>サイズ:</span>
- <button
- onClick={() => {
- const cur = traceSettings.scale ?? 1;
- const next = Math.round(Math.max(0.2, cur - 0.05) * 100) / 100;
- onChangeTraceSettings?.({ ...traceSettings, scale: next });
- }}
- className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
- isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-200'
- }`}
- title="縮小 (-5%)"
- >
- <Minus className="w-2.5 h-2.5" />
- </button>
- <input
- type="range"
- min="0.3"
- max="2.0"
- step="0.01"
- value={traceSettings.scale ?? 1}
- onChange={(e) => {
- onChangeTraceSettings?.({
- ...traceSettings,
- scale: parseFloat(e.target.value),
- });
- }}
- className={`w-16 sm:w-20 cursor-pointer h-1 rounded-lg ${
- isLight ? 'bg-stone-200 accent-emerald-600' : 'bg-[#25362b] accent-emerald-500'
- }`}
- title="下絵サイズ（青枠ハンドルやホイールでも調整可能）"
- />
- <button
- onClick={() => {
- const cur = traceSettings.scale ?? 1;
- const next = Math.round(Math.min(3.0, cur + 0.05) * 100) / 100;
- onChangeTraceSettings?.({ ...traceSettings, scale: next });
- }}
- className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
- isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-200'
- }`}
- title="拡大 (+5%)"
- >
- <Plus className="w-2.5 h-2.5" />
- </button>
- <span className={`font-mono text-[11px] w-9 text-right font-bold ${isLight ? 'text-emerald-800' : 'text-emerald-300'}`}>
- {Math.round((traceSettings.scale ?? 1) * 100)}%
- </span>
- </div>
-
- <div className={`h-3.5 w-[1px] shrink-0 ${isLight ? 'bg-stone-200' : 'bg-[#25362b]'}`} />
-
- {/* Quick Fit Size Presets */}
- <div className="flex items-center space-x-1 shrink-0">
- <button
- onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.78 }))}
- className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
- Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
- ? 'bg-amber-600 text-white '
- : isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
- : 'bg-[#1c2a20] hover:bg-[#25382b] text-amber-300'
- }`}
- title="仮名字面枠 (78%) にフィット"
- >
- 仮名 78%
- </button>
- <button
- onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.85 }))}
- className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
- Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
- ? 'bg-emerald-600 text-white '
- : isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
- : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-300'
- }`}
- title="漢字字面枠 (85%) にフィット"
- >
- 漢字 85%
- </button>
- <button
- onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 1.0 }))}
- className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
- Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
- ? 'bg-sky-600 text-white '
- : isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
- : 'bg-[#1c2a20] hover:bg-[#25382b] text-sky-300'
- }`}
- title="標準 100% (仮想ボディ枠基準)"
- >
- 100%
- </button>
- </div>
-
- {/* Font choice if text trace */}
- {traceSettings.type === 'char' && (
- <>
- <div className={`h-3.5 w-[1px] shrink-0 ${isLight ? 'bg-stone-200' : 'bg-[#25362b]'}`} />
- <div className="flex items-center space-x-1 shrink-0">
- <Type className="w-3 h-3 text-stone-400" />
- <select
- value={traceSettings.fontFamily || "'Noto Sans JP', sans-serif"}
- onChange={(e) =>
- onChangeTraceSettings?.((prev) => ({
- ...prev,
- fontFamily: e.target.value,
- }))
- }
- className={`text-[10px] rounded px-1.5 py-0.5 border focus:outline-none ${
- isLight
- ? 'bg-stone-100 text-stone-800 border-stone-300 focus:border-emerald-600'
- : 'bg-[#1c2a20] text-emerald-200 border-[#2b3e30] focus:border-emerald-500'
- }`}
- >
- <option value="'Noto Sans JP', sans-serif">ゴシック体</option>
- <option value="'Noto Serif JP', serif">明朝体</option>
- <option value="'Zen Maru Gothic', sans-serif">丸ゴシック</option>
- <option value="'Kaisei Tokumin', serif">特民明朝</option>
- </select>
- </div>
-            </>
- )}
-
- <div className={`h-3.5 w-[1px] shrink-0 ${isLight ? 'bg-stone-200' : 'bg-[#25362b]'}`} />
-
- {/* Position Offset Status & Reset position & Exit Done Button */}
- <div className="flex items-center space-x-1.5 shrink-0">
- {/* Position Reset Button */}
- <button
- onClick={handleResetTracePosition}
- className={`px-2 py-1 rounded text-[10.5px] font-bold flex items-center space-x-1 transition-all border ${
- (traceSettings.offsetX !== 0 || traceSettings.offsetY !== 0)
- ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-600'
- : isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300'
- : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-200 border-[#2b3e30]'
- }`}
- title="下絵の位置を中央 (X:0, Y:0) にリセット (Rキーまたは下絵ダブルクリックでも可)"
- >
- <RotateCcw className="w-2.5 h-2.5" />
- <span>位置リセット</span>
- </button>
-
- {/* Reset All */}
- <button
- onClick={handleResetTraceAll}
- className={`px-1.5 py-1 rounded text-[10px] flex items-center space-x-0.5 transition-colors ${
- isLight ? 'text-stone-500 hover:bg-stone-200' : 'text-stone-400 hover:bg-[#25382b]'
- }`}
- title="位置とサイズを推奨初期値にリセット"
- >
- <span>全リセット</span>
- </button>
-
- <button
- onClick={() => {
- onSetToolMode?.('brush');
- showCanvasToast('下絵調整を完了しました');
- }}
- className={`px-2.5 py-1 rounded font-bold text-[10.5px] flex items-center space-x-1 transition-colors ${
- isLight
- ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
- : 'bg-emerald-600 hover:bg-emerald-500 text-white'
- }`}
- title="調整を完了して描画ツールに戻る"
- >
- <Check className="w-3 h-3" />
- <span>完了</span>
- </button>
- </div>
- </div>
- )}
-
- {/* Typography Guide Assist Card (Helps user understand which grid lines to follow, unobtrusive & collapsible) */}
- <div
- className="absolute top-12 sm:top-14 right-2 sm:right-4 z-20 pointer-events-auto select-none transition-all duration-200"
- onPointerDown={(e) => e.stopPropagation()}
- >
- {!showGuideAssist ? (
- <button
- onClick={() => handleToggleGuideAssist(true)}
- className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${
- isLight
- ? 'bg-white/85 hover:bg-white border-emerald-200/90 text-emerald-800 '
- : 'bg-[#121c15]/85 hover:bg-[#121c15] border-emerald-800/60 text-emerald-300 '
- }`}
- title="フォント作図の基準線ガイド（凡例）を表示"
- >
- <HelpCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
- <span className="hidden xs:inline">ガイド凡例</span>
- </button>
- ) : (
- <div
- className={`w-[calc(100vw-24px)] sm:w-[380px] md:w-[400px] max-h-[calc(100vh-120px)] overflow-y-auto rounded-xl border p-3.5 sm:p-4 shadow-xl transition-all text-left ${
- isLight
- ? 'bg-white/95 border-emerald-200/90 text-stone-800 '
- : 'bg-[#101712]/95 border-emerald-800/70 text-emerald-100 '
- }`}
- >
- {/* Header */}
- <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-emerald-900/60 mb-2.5">
- <div className="flex items-center space-x-2 font-bold text-sm sm:text-base text-emerald-700 dark:text-emerald-300">
- <HelpCircle className="w-4 h-4 shrink-0" />
- <span>作図基準ガイド</span>
- <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
- {/[ぁ-んァ-ヶー]/.test(activeChar)
- ? '仮名'
- : /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar)
- ? '漢字'
- : '欧文'}
- </span>
- </div>
- <button
- onClick={() => handleToggleGuideAssist(false)}
- className="p-1 rounded-md hover:bg-stone-100 dark:hover:bg-emerald-950 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
- title="ガイドカードを閉じる"
- >
- <X className="w-4 h-4" />
- </button>
- </div>
-
- {/* Contextual Recommendation based on active character */}
- <div
- className={`p-2.5 sm:p-3 rounded-lg mb-3 text-xs sm:text-[13px] leading-relaxed text-left ${
- /[ぁ-んァ-ヶー]/.test(activeChar)
- ? isLight
- ? 'bg-amber-50 text-amber-900 border border-amber-200'
- : 'bg-amber-950/40 text-amber-200 border border-amber-800/60'
- : /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar)
- ? isLight
- ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
- : 'bg-emerald-950/40 text-emerald-200 border border-emerald-800/60'
- : isLight
- ? 'bg-sky-50 text-sky-900 border border-sky-200'
- : 'bg-sky-950/40 text-sky-200 border border-sky-800/60'
- }`}
- >
- {/[ぁ-んァ-ヶー]/.test(activeChar) ? (
- <>
- <div className="font-bold text-xs sm:text-sm text-amber-800 dark:text-amber-300 mb-1">
- 現在の文字: 「{activeChar}」（和文仮名）
- </div>
- <div>
- オレンジ色の<strong>仮名字面枠 (78%)</strong>の内側に収まるよう作図します。欧文底線（赤線）ではなく、<strong>マスの中央</strong>を基準として配置してください。
- </div>
-            </>
- ) : /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar) ? (
- <>
- <div className="font-bold text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 mb-1">
- 現在の文字: 「{activeChar}」（漢字）
- </div>
- <div>
- 緑色の<strong>漢字字面枠 (85%)</strong>の内側に収まるよう作図します。外枠（1000UPM）いっぱいまで描かず周囲に余白を残すことで、組版時の字間バランスが保たれます。
- </div>
-            </>
- ) : (
- <>
- <div className="font-bold text-xs sm:text-sm text-sky-800 dark:text-sky-300 mb-1">
- 現在の文字: 「{activeChar}」（欧文 / 記号）
- </div>
- <div>
- 赤色の<strong>Baseline (底線)</strong>の上に文字の底部を揃えて作図します。大文字はCap Height、小文字はx-Heightを目安にしてください。
- </div>
-            </>
- )}
- </div>
-
- {/* Line Legend with Dual Cues (Shape, Dash Pattern, & Color) */}
- <div className="space-y-2 text-xs sm:text-[13px] text-left">
- <div className="flex items-center justify-between">
- <span className="flex items-center space-x-2">
- <span className="w-3.5 h-3.5 border-2 border-dotted border-amber-500 bg-amber-500/20 rounded-xs flex items-center justify-center shrink-0">
- <span className="w-1 h-1 bg-amber-600 rounded-full" />
- </span>
- <span className="font-medium">仮名字面枠 (78%・点線)</span>
- </span>
- <span className="text-stone-500 dark:text-stone-400 text-xs">かな用</span>
- </div>
- <div className="flex items-center justify-between">
- <span className="flex items-center space-x-2">
- <span className="w-3.5 h-3.5 border-2 border-dashed border-emerald-600 bg-emerald-500/20 rounded-xs flex items-center justify-center shrink-0">
- <span className="w-1.5 h-0.5 bg-emerald-600" />
- </span>
- <span className="font-medium">漢字字面枠 (85%・破線)</span>
- </span>
- <span className="text-stone-500 dark:text-stone-400 text-xs">漢字推奨</span>
- </div>
- <div className="flex items-center justify-between">
- <span className="flex items-center space-x-2">
- <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0 text-red-500 font-bold text-[11px] leading-none">
- ▶─
- </span>
- <span className="font-medium">Baseline (欧文底線・実線)</span>
- </span>
- <span className="text-stone-500 dark:text-stone-400 text-xs">欧文(A-Z)整列</span>
- </div>
- <div className="flex items-center justify-between">
- <span className="flex items-center space-x-2">
- <span className="w-3.5 h-3.5 border border-teal-500 bg-teal-500/10 rounded-xs flex items-center justify-center shrink-0 text-[10px] text-teal-600 font-bold leading-none">
- ┼
- </span>
- <span className="font-medium">中心十字格 (田字格)</span>
- </span>
- <span className="text-stone-500 dark:text-stone-400 text-xs">重心バランス</span>
- </div>
- </div>
-
- {/* Direct Tool Switch Button */}
- <div className="mt-3 pt-2.5 border-t border-stone-200 dark:border-emerald-900/60 flex items-center justify-between text-xs">
- <span className="text-xs text-stone-500 dark:text-stone-400">下絵位置:</span>
- <div className="flex items-center gap-1.5">
- {(traceSettings.offsetX !== 0 || traceSettings.offsetY !== 0) && (
- <button
- onClick={handleResetTracePosition}
- className="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center space-x-1 transition-colors "
- title="下絵の位置を中央(0, 0)にリセット"
- >
- <RotateCcw className="w-3 h-3" />
- <span>位置リセット</span>
- </button>
- )}
- <button
- onClick={() => {
- onSetToolMode?.('trace_adjust');
- onChangeTraceSettings?.((prev) => ({ ...prev, enabled: true }));
- showCanvasToast('下絵調整モードに切り替えました');
- }}
- className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1 transition-colors "
- >
- <Move className="w-3.5 h-3.5" />
- <span>下絵の位置調整</span>
- </button>
- </div>
- </div>
- </div>
- )}
- </div>
-
- {/* Active Pen Tool Drawing In-Progress Draggable Floating HUD Bar */}
- {activePenContour && (
- <div
- style={
- penHudPos
- ? { left: `${penHudPos.x}px`, top: `${penHudPos.y}px` }
- : { left: '50%', transform: 'translateX(-50%)', top: '12px' }
- }
- className="absolute z-30 pointer-events-auto select-none animate-in fade-in zoom-in-95 duration-100"
- onPointerDown={(e) => e.stopPropagation()}
- >
- <div
- className={`px-2 py-1 rounded-full border shadow-xl flex items-center space-x-1.5 text-xs whitespace-nowrap ${
- isLight
- ? 'bg-white/98 border-emerald-300/80 text-stone-800'
- : 'bg-[#121c15]/98 border-emerald-700/60 text-emerald-100'
- }`}
- >
- {/* Drag Handle */}
- <div
- onPointerDown={handlePenHudPointerDown}
- onPointerMove={handlePenHudPointerMove}
- onPointerUp={handlePenHudPointerUp}
- onPointerCancel={handlePenHudPointerUp}
- className="flex items-center px-1 py-1 -ml-0.5 cursor-grab active:cursor-grabbing text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
- title="ドラッグして好きな場所に移動"
- >
- <GripVertical className="w-3.5 h-3.5" />
- </div>
-
- {/* Active Points Count */}
- <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full bg-emerald-100/80 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold font-mono text-[11px] shrink-0 whitespace-nowrap">
- <PenTool className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
- <span>{activePenContour.nodes.length}点</span>
- </div>
-
- <div className="h-3.5 w-[1px] bg-stone-200 dark:bg-emerald-800/80 shrink-0" />
-
- {/* Undo Last Point */}
- <button
- onClick={handleUndoPenNode}
- className={`px-2 py-0.5 rounded-full text-[11px] font-semibold flex items-center space-x-1 transition-all active:scale-95 whitespace-nowrap ${
- isLight
- ? 'bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900'
- : 'bg-[#1e2d23] hover:bg-[#283d30] text-emerald-200'
- }`}
- title="直前の頂点を取り消す (Backspace / ⌫ または Ctrl+Z)"
- >
- <RotateCcw className="w-3 h-3 text-stone-500 dark:text-stone-300 shrink-0" />
- <span>1点戻す</span>
- <span className="text-[9px] opacity-60 font-mono hidden sm:inline">⌫</span>
- </button>
-
- {/* Finalize as open path / stroke with configurable line thickness */}
- <div className="relative flex items-center">
- <button
- onClick={() => handleFinishPenContour(false)}
- disabled={activePenContour.nodes.length < 2}
- className={`px-2 py-0.5 rounded-l-full text-[11px] font-semibold flex items-center space-x-1 transition-all disabled:opacity-30 active:scale-95 whitespace-nowrap ${
- isLight
- ? 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-r border-sky-200'
- : 'bg-sky-950/70 hover:bg-sky-900/80 text-sky-200 border-r border-sky-800'
- }`}
- title={`開いた線を太さ ${penStrokeWidth}px (${penCapStyle === 'round' ? '丸端' : penCapStyle === 'butt' ? '平端' : '角端'}) で確定する (Enter / ↵)`}
- >
- <CornerDownLeft className="w-3 h-3 text-sky-600 dark:text-sky-400 shrink-0" />
- <span>線で確定</span>
- <span className="text-[9px] opacity-60 font-mono hidden sm:inline">↵</span>
- </button>
-
- {/* Stroke width quick trigger / badge button */}
- <button
- type="button"
- onClick={() => setShowPenStrokeMenu((prev) => !prev)}
- className={`px-1.5 py-0.5 rounded-r-full text-[10px] font-mono font-bold flex items-center space-x-0.5 transition-all active:scale-95 ${
- isLight
- ? 'bg-sky-100 hover:bg-sky-200 text-sky-900'
- : 'bg-sky-900/90 hover:bg-sky-800 text-sky-100'
- }`}
- title="線の太さ・端点形状を変更"
- >
- <span>{penStrokeWidth}px</span>
- <ChevronDown className="w-2.5 h-2.5 opacity-70" />
- </button>
-
- {/* Pen Stroke Quick Settings Floating Popover Menu */}
- {showPenStrokeMenu && (
- <div
- className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent pointer-events-auto"
- onClick={() => setShowPenStrokeMenu(false)}
- >
- <div
- className={`p-3 rounded-2xl shadow-2xl border flex flex-col space-y-2.5 min-w-[240px] text-xs pointer-events-auto animate-in fade-in zoom-in-95 duration-100 ${
- isLight
- ? 'bg-white border-sky-200 text-stone-800'
- : 'bg-[#0f1b14] border-sky-800/80 text-sky-100'
- }`}
- onClick={(e) => e.stopPropagation()}
- >
- <div className="flex items-center justify-between pb-1.5 border-b border-stone-200 dark:border-stone-800">
- <span className="font-bold flex items-center space-x-1.5 text-sky-700 dark:text-sky-300">
- <PenTool className="w-3.5 h-3.5" />
- <span>線の太さ設定</span>
- </span>
- <span className="font-mono font-bold px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 text-xs">
- {penStrokeWidth} px
- </span>
- </div>
-
- {/* Stepper + Slider */}
- <div className="flex items-center space-x-2">
- <button
- onClick={() => handleSetPenStrokeWidth(penStrokeWidth - (penStrokeWidth > 20 ? 5 : 2))}
- disabled={penStrokeWidth <= 2}
- className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 font-bold text-sm flex items-center justify-center disabled:opacity-30 cursor-pointer"
- >
- -
- </button>
- <input
- type="range"
- min={4}
- max={160}
- step={2}
- value={penStrokeWidth}
- onChange={(e) => handleSetPenStrokeWidth(parseInt(e.target.value, 10))}
- className="flex-1 h-2 accent-sky-600 dark:accent-sky-500 cursor-pointer"
- />
- <button
- onClick={() => handleSetPenStrokeWidth(penStrokeWidth + (penStrokeWidth >= 20 ? 5 : 2))}
- disabled={penStrokeWidth >= 300}
- className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 font-bold text-sm flex items-center justify-center disabled:opacity-30 cursor-pointer"
- >
- +
- </button>
- </div>
-
- {/* Presets Grid */}
- <div>
- <span className="text-[10px] text-stone-500 dark:text-stone-400 mb-1 block">クイック太さ:</span>
- <div className="grid grid-cols-5 gap-1 font-mono text-[11px]">
- {[15, 25, 40, 60, 80].map((w) => (
- <button
- key={w}
- onClick={() => {
- handleSetPenStrokeWidth(w);
- }}
- className={`py-1 rounded text-center transition-all cursor-pointer ${
- penStrokeWidth === w
- ? 'bg-sky-600 text-white font-bold ring-1 ring-sky-400'
- : 'bg-stone-100 dark:bg-stone-800/80 hover:bg-sky-100 dark:hover:bg-sky-950 text-stone-700 dark:text-stone-300'
- }`}
- >
- {w}
- </button>
- ))}
- </div>
- </div>
-
- {/* Cap Style */}
- <div>
- <span className="text-[10px] text-stone-500 dark:text-stone-400 mb-1 block">端点の形状:</span>
- <div className="grid grid-cols-3 gap-1 text-[11px]">
- {[
- { id: 'round', label: '丸 (Round)' },
- { id: 'butt', label: '平 (Butt)' },
- { id: 'square', label: '角 (Square)' },
- ].map((cap) => (
- <button
- key={cap.id}
- onClick={() => handleSetPenCapStyle(cap.id as 'round' | 'butt' | 'square')}
- className={`py-1 rounded text-center transition-all cursor-pointer ${
- penCapStyle === cap.id
- ? 'bg-sky-600 text-white font-bold'
- : 'bg-stone-100 dark:bg-stone-800/80 hover:bg-sky-100 dark:hover:bg-sky-950 text-stone-700 dark:text-stone-300'
- }`}
- >
- {cap.label}
- </button>
- ))}
- </div>
- </div>
-
- {/* Action button inside popover */}
- <button
- onClick={() => {
- setShowPenStrokeMenu(false);
- handleFinishPenContour(false);
- }}
- disabled={activePenContour.nodes.length < 2}
- className="mt-1 w-full py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-30 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-98 transition-all cursor-pointer"
- >
- <CornerDownLeft className="w-3.5 h-3.5" />
- <span>この太さ ({penStrokeWidth}px) で線確定</span>
- </button>
- </div>
- </div>
- )}
- </div>
-
- {/* Finalize as closed path */}
- <button
- onClick={() => handleFinishPenContour(true)}
- disabled={activePenContour.nodes.length < 3}
- className="px-2.5 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center space-x-1 transition-all disabled:opacity-30 active:scale-95 whitespace-nowrap"
- title="パスを閉じて輪郭として確定する (C または 始点をクリック)"
- >
- <Check className="w-3 h-3 shrink-0" />
- <span>閉じて確定</span>
- <span className="text-[9px] opacity-75 font-mono hidden sm:inline">C</span>
- </button>
-
- {/* Discard / Reset Path */}
- <button
- onClick={handleResetPenContour}
- className="p-1 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 transition-colors"
- title="作図中のパスを破棄・リセットする (Esc)"
- >
- <Trash2 className="w-3.5 h-3.5" />
- </button>
-
- {/* Reset Position (only if moved) */}
- {penHudPos && (
- <button
- onClick={() => setPenHudPos(null)}
- className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
- title="位置を上部中央にリセット"
- >
- <RotateCcw className="w-2.5 h-2.5" />
- </button>
- )}
- </div>
- </div>
- )}
-
+  {/* Active Pen Tool Drawing In-Progress Draggable Floating HUD Bar */}
+  <ActivePenDrawingHud
+    activePenContour={activePenContour}
+    penHudPos={penHudPos}
+    isLight={isLight}
+    handlePenHudPointerDown={handlePenHudPointerDown}
+    handlePenHudPointerMove={handlePenHudPointerMove}
+    handlePenHudPointerUp={handlePenHudPointerUp}
+    handleUndoPenNode={handleUndoPenNode}
+    handleFinishPenContour={handleFinishPenContour}
+    penStrokeWidth={penStrokeWidth}
+    penCapStyle={penCapStyle}
+    showPenStrokeMenu={showPenStrokeMenu}
+    setShowPenStrokeMenu={setShowPenStrokeMenu}
+    handleSetPenStrokeWidth={handleSetPenStrokeWidth}
+    handleSetPenCapStyle={handleSetPenCapStyle}
+    handleResetPenContour={handleResetPenContour}
+    setPenHudPos={setPenHudPos}
+  />
  {/* SVG Canvas Stage */}
  <svg
  className="w-full h-full touch-none select-none"
@@ -6366,325 +4328,26 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  />
  )}
 
- {/* Selected Contour Highlight & Interactive Bounding Box Transform UI (Only in Select tool mode) */}
- {toolMode === 'select' && selectedContourIds.length > 0 && selContoursBBox && (
- (() => {
- const bbox = selContoursBBox;
- const pad = 4;
- const bx = bbox.minX - pad;
- const by = bbox.minY - pad;
- const bw = Math.max(12, bbox.width + pad * 2);
- const bh = Math.max(12, bbox.height + pad * 2);
- const cx = bbox.centerX;
- const cy = bbox.centerY;
-
- const hs = Math.max(8, 10 / zoom); // handle size in canvas coordinates
- const rotStemDist = 32 / zoom;
-
- return (
- <g className="transform-bounding-box select-none">
- {/* Selected Path Outline Highlight */}
- {selectedContoursSvgPath && (
- <path
- d={selectedContoursSvgPath}
- fill="none"
- stroke={selectionColor}
- strokeWidth={2.5 / zoom}
- strokeDasharray="6 4"
- pointerEvents="none"
- />
- )}
-
- {/* Bounding Box Border & Drag-to-Move Stroke */}
- <rect
- x={bx}
- y={by}
- width={bw}
- height={bh}
- fill="none"
- stroke={selectionColor}
- strokeWidth={1 / zoom}
- strokeDasharray="4 2"
- className="cursor-move"
- pointerEvents="stroke"
- onPointerDown={(e) => handleTransformPointerDown(e, 'move')}
- />
-
- {/* Floating Selection Quick Actions Toolbar */}
- <foreignObject
- x={cx - 125 / zoom}
- y={by - rotStemDist - 38 / zoom < 10 ? by + bh + 12 / zoom : by - rotStemDist - 38 / zoom}
- width={250 / zoom}
- height={38 / zoom}
- className="overflow-visible pointer-events-auto select-none z-50"
- >
- <div
- style={{ transform: `scale(${Math.max(0.6, Math.min(1.0, 1 / zoom))})`, transformOrigin: 'top center' }}
- className="flex items-center justify-center space-x-1 px-2.5 py-1 bg-stone-900/95 dark:bg-[#101b13]/95 text-white rounded-full shadow-lg border border-emerald-500/40 text-xs font-sans pointer-events-auto"
- >
- <button
- onClick={(e) => { e.stopPropagation(); handleRotateSelected(45); }}
- className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
- title="45°回転 (Rotate 45°)"
- >
- <RotateCw className="w-3.5 h-3.5" />
- </button>
- <button
- onClick={(e) => { e.stopPropagation(); handleFlipHSelected(); }}
- className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
- title="左右反転 (Flip Horizontal)"
- >
- <FlipHorizontal className="w-3.5 h-3.5" />
- </button>
- <button
- onClick={(e) => { e.stopPropagation(); handleFlipVSelected(); }}
- className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
- title="上下反転 (Flip Vertical)"
- >
- <FlipVertical className="w-3.5 h-3.5" />
- </button>
- <div className="w-px h-3.5 bg-emerald-500/30 my-auto" />
- <button
- onClick={(e) => { e.stopPropagation(); handleDuplicateSelected(); }}
- className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
- title="複製 (Duplicate)"
- >
- <Copy className="w-3.5 h-3.5" />
- </button>
- {selectedContourIds.length > 1 && (
- <button
- onClick={(e) => { e.stopPropagation(); handleMergeSelectedContours(); }}
- className="p-1.5 rounded-full hover:bg-emerald-600/90 text-white transition-colors"
- title="選択パーツを結合・融解 (Union)"
- >
- <Layers className="w-3.5 h-3.5 text-white" />
- </button>
- )}
- <button
- onClick={(e) => { e.stopPropagation(); handleDeleteSelected(); }}
- className="p-1.5 rounded-full hover:bg-rose-800/90 text-rose-300 transition-colors ml-0.5"
- title="削除 (Delete)"
- >
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- <div className="w-px h-3.5 bg-emerald-500/30 my-auto" />
- <button
- onClick={(e) => {
- e.stopPropagation();
- setSelectedContourIds([]);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- }}
- className="p-1.5 rounded-full hover:bg-stone-700/90 text-stone-300 hover:text-white transition-colors"
- title="選択解除 (Deselect / Esc)"
- >
- <X className="w-3.5 h-3.5" />
- </button>
- </div>
- </foreignObject>
-
- {/* Center Anchor Crosshair */}
- <g
- className="cursor-move group"
- onPointerDown={(e) => handleTransformPointerDown(e, 'move')}
- >
- <circle cx={cx} cy={cy} r={4 / zoom} fill={selectionColor} stroke="#ffffff" strokeWidth={1 / zoom} />
- <line x1={cx - 5 / zoom} y1={cy} x2={cx + 5 / zoom} y2={cy} stroke={selectionColor} strokeWidth={1 / zoom} />
- <line x1={cx} y1={cy - 5 / zoom} x2={cx} y2={cy + 5 / zoom} stroke={selectionColor} strokeWidth={1 / zoom} />
- </g>
-
- {/* Rotation Connector Stem Line */}
- <line
- x1={cx}
- y1={by}
- x2={cx}
- y2={by - rotStemDist}
- stroke={selectionColor}
- strokeWidth={1.5 / zoom}
- strokeDasharray="3 2"
- pointerEvents="none"
- />
-
- {/* Rotation Grip Handle (Top-Center) */}
- <g
- className="cursor-grab active:cursor-grabbing"
- onPointerDown={(e) => handleTransformPointerDown(e, 'rotate')}
- >
- {/* Larger invisible hit area for touch/mouse */}
- <circle
- cx={cx}
- cy={by - rotStemDist}
- r={14 / zoom}
- fill="transparent"
- />
- <circle
- cx={cx}
- cy={by - rotStemDist}
- r={7 / zoom}
- fill={selectionColor}
- stroke="#ffffff"
- strokeWidth={1.8 / zoom}
- />
- {/* Inner rotation ring indicator */}
- <circle
- cx={cx}
- cy={by - rotStemDist}
- r={3.5 / zoom}
- fill="none"
- stroke="#ffffff"
- strokeWidth={1.2 / zoom}
- strokeDasharray="4 2"
- />
- </g>
-
- {/* 8 Resize Handles (Corner & Edge) */}
- {/* NW (Top-Left) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'nw')} className="cursor-nwse-resize">
- <rect x={bx - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx - hs / 2}
- y={by - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* N (Top-Center) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'n')} className="cursor-ns-resize">
- <rect x={bx + bw / 2 - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx + bw / 2 - hs / 2}
- y={by - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* NE (Top-Right) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'ne')} className="cursor-nesw-resize">
- <rect x={bx + bw - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx + bw - hs / 2}
- y={by - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* E (Middle-Right) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'e')} className="cursor-ew-resize">
- <rect x={bx + bw - hs} y={by + bh / 2 - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx + bw - hs / 2}
- y={by + bh / 2 - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* SE (Bottom-Right) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'se')} className="cursor-nwse-resize">
- <rect x={bx + bw - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx + bw - hs / 2}
- y={by + bh - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* S (Bottom-Center) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 's')} className="cursor-ns-resize">
- <rect x={bx + bw / 2 - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx + bw / 2 - hs / 2}
- y={by + bh - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* SW (Bottom-Left) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'sw')} className="cursor-nesw-resize">
- <rect x={bx - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx - hs / 2}
- y={by + bh - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* W (Middle-Left) */}
- <g onPointerDown={(e) => handleTransformPointerDown(e, 'w')} className="cursor-ew-resize">
- <rect x={bx - hs} y={by + bh / 2 - hs} width={hs * 2} height={hs * 2} fill="transparent" />
- <rect
- x={bx - hs / 2}
- y={by + bh / 2 - hs / 2}
- width={hs}
- height={hs}
- fill="#ffffff"
- stroke={selectionColor}
- strokeWidth={1.8 / zoom}
- rx={1.5 / zoom}
- />
- </g>
-
- {/* HUD Dimension Tooltip (Width x Height, Rotation Angle, Shift hint) */}
- <g transform={`translate(${bx}, ${by + bh + 12 / zoom})`} className="pointer-events-none">
- <rect
- x={0}
- y={0}
- width={Math.max(130 / zoom, (rotateDisplayAngle !== null ? 170 : 120) / zoom)}
- height={20 / zoom}
- rx={4 / zoom}
- fill="#0f172a"
- fillOpacity={0.9}
- />
- <text
- x={6 / zoom}
- y={14 / zoom}
- fill="#34d399"
- fontSize={10.5 / zoom}
- fontFamily="monospace"
- fontWeight="bold"
- >
- {Math.round(bbox.width)}×{Math.round(bbox.height)}px
- {rotateDisplayAngle !== null ? ` ∡${rotateDisplayAngle}°` : ''}
- </text>
- </g>
- </g>
- );
- })()
- )}
+          {/* Selected Contour Highlight & Interactive Bounding Box Transform UI */}
+          <TransformBoundingBoxLayer
+            toolMode={toolMode}
+            selectedContourIds={selectedContourIds}
+            selContoursBBox={selContoursBBox}
+            zoom={zoom}
+            selectionColor={selectionColor}
+            selectedContoursSvgPath={selectedContoursSvgPath}
+            rotateDisplayAngle={rotateDisplayAngle}
+            handleTransformPointerDown={handleTransformPointerDown}
+            handleRotateSelected={handleRotateSelected}
+            handleFlipHSelected={handleFlipHSelected}
+            handleFlipVSelected={handleFlipVSelected}
+            handleDuplicateSelected={handleDuplicateSelected}
+            handleMergeSelectedContours={handleMergeSelectedContours}
+            handleDeleteSelected={handleDeleteSelected}
+            setSelectedContourIds={setSelectedContourIds}
+            setSelectedNodeId={setSelectedNodeId}
+            setSelectedHandleType={setSelectedHandleType}
+          />
 
             {/* ---------------- BEZIER NODES & CONTROL HANDLES ---------------- */}
             <BezierNodeControlsLayer
@@ -7122,29 +4785,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
 
 
- {/* Dynamic Smooth Stroke & Operation Feedback Toast Notification (Bottom-Right Non-Intrusive) */}
- {canvasToast && (
- <div className="absolute bottom-14 sm:bottom-12 right-2 sm:right-3 z-30 pointer-events-none max-w-[calc(100vw-32px)] sm:max-w-sm">
- <div
- className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full sm:rounded-lg border shadow-md sm:shadow-lg flex items-center gap-1.5 sm:gap-2 transition-all ${
- isLight
- ? 'bg-stone-900/90 border-stone-700 text-stone-100 '
- : 'bg-[#15241b]/95 border-emerald-600/60 text-emerald-100 '
- }`}
- >
- <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 shrink-0" />
- <div className="min-w-0">
- <div className="text-[11px] sm:text-xs font-semibold leading-tight truncate">{canvasToast.message}</div>
- {canvasToast.subText && (
- <div className="text-[9.5px] sm:text-[10px] text-stone-300 dark:text-emerald-300 font-normal leading-tight mt-0.5 truncate">
- {canvasToast.subText}
- </div>
- )}
- </div>
- </div>
- </div>
- )}
-
+  {/* Dynamic Smooth Stroke & Operation Feedback Toast Notification */}
+  <CanvasToastNotification
+    canvasToast={canvasToast}
+    isLight={isLight}
+  />
  <CanvasStatusBar
           isBottomBarCollapsed={isBottomBarCollapsed}
           toggleBottomBarCollapse={toggleBottomBarCollapse}
@@ -7220,67 +4865,21 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleClearAllContours={handleClearAllContours}
         />
 
- {/* Mobile Selected Contour Quick Action Bar (Only in Select or Node tool modes) */}
- {(toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0 && (
- <div
- className={`sm:hidden absolute bottom-14 left-2 right-2 z-30 flex items-center justify-between px-3 py-1.5 rounded-full border shadow-xl whitespace-nowrap ${
- isLight
- ? 'bg-white border-emerald-300/80 text-stone-800'
- : 'bg-[#121c15] border-emerald-700/60 text-emerald-100'
- }`}
- >
- <div className="flex items-center space-x-1 shrink-0">
- <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 whitespace-nowrap">
- 選択中{selectedContourIds.length > 1 ? ` (${selectedContourIds.length}個)` : ''}
- </span>
- </div>
- <div className="flex items-center space-x-1.5">
- {selectedContourIds.length >= 2 && (
- <button
- onClick={handleMergeSelectedContours}
- className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold active:scale-95 transition-transform flex items-center gap-1"
- title="選択したパスを合体"
- >
- <Layers className="w-3.5 h-3.5" />
- <span>合体</span>
- </button>
- )}
- <button
- onClick={() => setShowMobilePartSheet(true)}
- className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold active:scale-95 transition-transform"
- >
- 変形
- </button>
- <button
- onClick={handleDuplicateSelected}
- className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-emerald-300"
- title="複製"
- >
- <Copy className="w-4 h-4" />
- </button>
- <button
- onClick={handleDeleteSelected}
- className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400"
- title="削除"
- >
- <Trash2 className="w-4 h-4" />
- </button>
- <button
- onClick={() => {
- setSelectedContourIds([]);
- setSelectedNodeId(null);
- }}
- className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400"
- title="選択解除"
- >
- <X className="w-4 h-4" />
- </button>
- </div>
- </div>
- )}
- </div>
+  {/* Mobile Selected Contour Quick Action Bar */}
+  <MobileSelectionActionBar
+    toolMode={toolMode}
+    selectedContourIds={selectedContourIds}
+    isLight={isLight}
+    handleMergeSelectedContours={handleMergeSelectedContours}
+    setShowMobilePartSheet={setShowMobilePartSheet}
+    handleDuplicateSelected={handleDuplicateSelected}
+    handleDeleteSelected={handleDeleteSelected}
+    setSelectedContourIds={setSelectedContourIds}
+    setSelectedNodeId={setSelectedNodeId}
+  />
+  </div>
 
- {/* Mobile Bottom Drawers / Action Sheets */}
+  {/* Mobile Bottom Drawers / Action Sheets */}
         {/* Mobile Bottom Drawers / Action Sheets */}
         {/* 1. Part Transform Bottom Sheet */}
         <MobilePartTransformSheet
