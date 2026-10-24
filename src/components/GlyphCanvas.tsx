@@ -163,6 +163,7 @@ import {
   insertNodeOnContourAtPoint,
   isPointNearContour,
 } from '../utils/pathUtils';
+import { CursorReticleOverlay } from './canvas/overlays/CursorReticleOverlay';
 import { GuidesAndGridModal } from './canvas/overlays/GuidesAndGridModal';
 import { CanvasStatusBar } from './canvas/overlays/CanvasStatusBar';
 import {
@@ -194,6 +195,14 @@ import { MobileSelectionActionBar } from './canvas/overlays/MobileSelectionActio
 import { CanvasSubToolbar } from './canvas/overlays/CanvasSubToolbar';
 import { TraceAdjustFloatingHud } from './canvas/overlays/TraceAdjustFloatingHud';
 import { useCanvasShortcuts } from './canvas/hooks/useCanvasShortcuts';
+import { useContourTransforms } from './canvas/hooks/useContourTransforms';
+import { useTransformSession } from './canvas/hooks/useTransformSession';
+import { useCanvasViewport } from './canvas/hooks/useCanvasViewport';
+import { useShapeCreation } from './canvas/hooks/useShapeCreation';
+import { useRulerMeasure } from './canvas/hooks/useRulerMeasure';
+import { usePenTool } from './canvas/hooks/usePenTool';
+import { useCanvasEraser } from './canvas/hooks/useCanvasEraser';
+import { InteractiveContourHitLayer } from './canvas/InteractiveContourHitLayer';
 
 
 // High-contrast dual-ring + center dot precision reticle SVG cursor (32x32, hotspot 16 16)
@@ -345,67 +354,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const onRedoRef = useRef(onRedo);
  onRedoRef.current = onRedo;
 
- const containerRef = useRef<HTMLDivElement>(null);
  const contoursRef = useRef<PathContour[]>(contours);
- useEffect(() => {
- contoursRef.current = contours;
- // Keep selection state strictly in-sync with current contours
- const validContourIds = new Set(contours.map((c) => c.id));
- setSelectedContourIds((prev) => prev.filter((id) => validContourIds.has(id)));
- setSelectedContourId((prev) => (prev && validContourIds.has(prev) ? prev : null));
- setSelectedNodeId((prev) => {
- if (!prev) return null;
- return contours.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
- });
-
- if (!contours || contours.length === 0) {
- if (activeBrushPathRef.current) {
- activeBrushPathRef.current.setAttribute('d', '');
- }
- activeBrushSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- activeEraserSvgDRef.current = '';
- brushStrokePointsRef.current = [];
- setSelectedContourIds([]);
- setSelectedContourId(null);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- eraserStrokePointsRef.current = [];
- erasedAnyInSessionRef.current = false;
- }
- }, [contours]);
-
- // Switching glyphs must never carry an in-progress gesture into the next page.
- useEffect(() => {
-   resetBrushDrawing();
-   eraserStrokePointsRef.current = [];
-   isErasingRef.current = false;
-   erasedAnyInSessionRef.current = false;
-   lastErasePosRef.current = null;
-   setActivePenContour(null);
-   setShapeStartPoint(null);
-   setShapeCurrentPoint(null);
-   setMarqueeSelection(null);
-   setTransformSession(null);
-   setSelectedContourIds([]);
-   setSelectedNodeId(null);
-   setSelectedHandleType(null);
-   setDraggingMetric(null);
-   setDraggingGuidelineId(null);
-   if (activeBrushPathRef.current) {
-     activeBrushPathRef.current.setAttribute('d', '');
-   }
-   if (activeEraserPathRef.current) {
-     activeEraserPathRef.current.setAttribute('d', '');
-   }
-   pendingTransformContoursRef.current = null;
-   activeBrushSvgDRef.current = '';
-   activeEraserSvgDRef.current = '';
- }, [selectedUnicode]);
 
  const isLight = isLightTheme(theme);
  const themeClasses = getThemeClasses(theme);
@@ -429,43 +378,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // Pen Mode: 'bezier' (smooth bezier curves) or 'corner' (sharp angular polyline)
  const [penMode, setPenMode] = useState<'bezier' | 'corner'>('bezier');
-
- // Pen Tool Stroke Width & Cap Style for "線で確定" (Stroke outline expansion)
- const [penStrokeWidth, setPenStrokeWidth] = useState<number>(() => {
- try {
- const saved = localStorage.getItem('glyph_pen_stroke_width');
- if (saved) {
- const val = parseInt(saved, 10);
- if (val >= 2 && val <= 300) return val;
- }
- } catch {}
- return 40;
- });
-
- const [penCapStyle, setPenCapStyle] = useState<'round' | 'butt' | 'square'>(() => {
- try {
- const saved = localStorage.getItem('glyph_pen_cap_style');
- if (saved === 'round' || saved === 'butt' || saved === 'square') return saved;
- } catch {}
- return 'round';
- });
-
- const [showPenStrokeMenu, setShowPenStrokeMenu] = useState<boolean>(false);
-
- const handleSetPenStrokeWidth = useCallback((width: number) => {
- const clamped = Math.max(2, Math.min(300, Math.round(width)));
- setPenStrokeWidth(clamped);
- try {
- localStorage.setItem('glyph_pen_stroke_width', String(clamped));
- } catch {}
- }, []);
-
- const handleSetPenCapStyle = useCallback((style: 'round' | 'butt' | 'square') => {
- setPenCapStyle(style);
- try {
- localStorage.setItem('glyph_pen_cap_style', style);
- } catch {}
- }, []);
 
  // Node Points Visibility Toggle (hides clutter when writing/viewing)
  const [showNodes, setShowNodes] = useState<boolean>(true);
@@ -497,11 +409,27 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  [isOutlineMode, onChangeOutlineOnly]
  );
 
- // Zoom & Pan Viewport State
- const [zoom, setZoom] = useState<number>(0.55);
- const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
- const [isPanning, setIsPanning] = useState<boolean>(false);
- const panStartRef = useRef<Point>({ x: 0, y: 0 });
+ const upm = project?.metadata?.unitsPerEm || 1000;
+
+ // Zoom & Pan Viewport State (Encapsulated in custom hook)
+ const {
+  containerRef,
+  containerRectRef,
+  zoom,
+  setZoom,
+  zoomRef,
+  pan,
+  setPan,
+  panRef,
+  panStartRef,
+  isPanning,
+  setIsPanning,
+  clampPan,
+  resetView,
+  handleZoomStep,
+  screenToCanvas,
+  canvasToScreen,
+ } = useCanvasViewport({ upm });
  const canvasGroupRef = useRef<SVGGElement | null>(null);
 
  // Trace adjust dragging & resizing state
@@ -584,7 +512,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const pendingPinchStateRef = useRef<{ zoom: number; pan: Point } | null>(null);
  const panRafRef = useRef<number | null>(null);
  const pendingPanRef = useRef<Point | null>(null);
- const containerRectRef = useRef<DOMRect | null>(null);
  const lastTapTimeRef = useRef<number>(0);
  const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
  const isStylusActiveRef = useRef<boolean>(false);
@@ -631,88 +558,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  };
  }, [showShapePickerDropdown, showQuickGridSlider]);
 
- const isShapeTool = [
- 'rect',
- 'square',
- 'ellipse',
- 'circle',
- 'rounded_rect',
- 'triangle',
- 'triangle_down',
- 'right_triangle',
- 'semicircle',
- 'ring',
- 'pill',
- 'parallelogram',
- 'crescent',
- 'star',
- 'heart',
- 'sparkle',
- 'starburst',
- 'diamond',
- 'polygon',
- 'line',
- ].includes(toolMode);
-
- // Pen Tool creation in-progress
- const [activePenContour, setActivePenContour] = useState<PathContour | null>(null);
- const [penMousePos, setPenMousePos] = useState<Point | null>(null);
- const [penHudPos, setPenHudPos] = useState<{ x: number; y: number } | null>(null);
- const isDraggingPenHudRef = useRef(false);
- const penHudDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
- const activeEraserSvgDRef = useRef<string>('');
-
- // Shape creation in-progress
- const [shapeStartPoint, setShapeStartPoint] = useState<Point | null>(null);
- const [shapeCurrentPoint, setShapeCurrentPoint] = useState<Point | null>(null);
- const shapeRafRef = useRef<number | null>(null);
- const [isShiftLockRatio, setIsShiftLockRatio] = useState<boolean>(false);
- const [isAltFromCenter, setIsAltFromCenter] = useState<boolean>(false);
-
  // Dragging metrics guide lines
  const [draggingMetric, setDraggingMetric] = useState<'lsb' | 'rsb' | null>(null);
 
  // Spacebar Hand/Pan navigation state
  const [isSpacePressed, setIsSpacePressed] = useState<boolean>(false);
-
- // Continuous sweep eraser tracking
- const isErasingRef = useRef<boolean>(false);
- const erasedAnyInSessionRef = useRef<boolean>(false);
- const lastErasePosRef = useRef<Point | null>(null);
- const eraserStrokePointsRef = useRef<Point[]>([]);
- const activeEraserPathRef = useRef<SVGPathElement | null>(null);
-
- // Bounding Box Transformation Session (Move, Free Rotate, 8-directional Resizing for single or multiple contours)
- const [transformSession, setTransformSession] = useState<{
- handle: 'move' | 'rotate' | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
- startPoint: Point;
- initialBBox: {
- minX: number;
- minY: number;
- maxX: number;
- maxY: number;
- width: number;
- height: number;
- centerX: number;
- centerY: number;
- };
- initialContours: PathContour[];
- allInitialNodes?: Point[];
- } | null>(null);
- const transformRafRef = useRef<number | null>(null);
- const pendingTransformContoursRef = useRef<PathContour[] | null>(null);
- const [rotateDisplayAngle, setRotateDisplayAngle] = useState<number | null>(null);
-
- // Ruler Measurement & Straight Line Draw Tool State
- const [rulerMeasurement, setRulerMeasurement] = useState<{
- start: Point;
- end: Point;
- active: boolean;
- } | null>(null);
-
- // Ruler Straight Line Assist (Hold Shift or toggle straight mode for precise horizontal/vertical/45deg lines)
- const [brushStraightMode, setBrushStraightMode] = useState<boolean>(false);
 
 
  // Stroke Smoothing Options & Real-time Auto-Smooth
@@ -786,9 +636,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }
  }, []);
 
- // Eraser Tool Config (Size & Mode: 'stroke' = 消しゴム, 'cut' = 部分削り・分割, 'node' = アンカー点消去)
- const [eraserSize, setEraserSize] = useState<number>(36);
- const [eraserMode, setEraserMode] = useState<'stroke' | 'cut' | 'node' | 'all'>('stroke');
 
  // Multi-touch Gesture tracking for 2-finger tap (Undo) and 3-finger tap (Redo)
  const touchStartTimeRef = useRef<number>(0);
@@ -816,20 +663,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const [hoverCanvasPos, setHoverCanvasPos] = useState<Point | null>(null);
  const hoverRafRef = useRef<number | null>(null);
 
- // Count targeted nodes inside anchor point eraser sweep area for real-time pointer feedback
- const targetedEraserNodeCount = useMemo(() => {
- if (toolMode !== 'eraser' || eraserMode !== 'node' || !hoverCanvasPos) return 0;
- const radius = Math.max(2, eraserSize / 2);
- let count = 0;
- for (const c of contours) {
- for (const n of c.nodes) {
- if (Math.hypot(n.x - hoverCanvasPos.x, n.y - hoverCanvasPos.y) <= radius) {
- count++;
- }
- }
- }
- return count;
- }, [toolMode, eraserMode, hoverCanvasPos, eraserSize, contours]);
 
  // Throttled RAF references for ultra-smooth 60fps canvas operations
  const eraserReticleRef = useRef<SVGGElement | null>(null);
@@ -848,17 +681,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  if (eraseRafRef.current != null) {
  cancelAnimationFrame(eraseRafRef.current);
  }
- if (shapeRafRef.current != null) {
- cancelAnimationFrame(shapeRafRef.current);
- }
  if (pinchRafRef.current != null) {
  cancelAnimationFrame(pinchRafRef.current);
  }
  if (panRafRef.current != null) {
  cancelAnimationFrame(panRafRef.current);
- }
- if (transformRafRef.current != null) {
- cancelAnimationFrame(transformRafRef.current);
  }
  };
  }, []);
@@ -871,6 +698,230 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const [lockGuidelines, setLockGuidelines] = useState<boolean>(true);
  const [draggingGuidelineId, setDraggingGuidelineId] = useState<string | null>(null);
  const [newGuidelineType, setNewGuidelineType] = useState<'h' | 'v' | null>(null);
+
+ // Dynamic snap metrics calculated from font canvas UPM
+ const snapMetrics = useMemo(() => ({
+ lsb,
+ advanceWidth,
+ baseline: Math.round(upm * 0.8),
+ ascender: Math.round(upm * 0.2),
+ capHeight: Math.round(upm * 0.3),
+ xHeight: Math.round(upm * 0.5),
+ descender: upm,
+ }), [lsb, advanceWidth, upm]);
+
+ const {
+ rulerMeasurement,
+ setRulerMeasurement,
+ brushStraightMode,
+ setBrushStraightMode,
+ handleRulerPointerDown,
+ handleRulerPointerMove,
+ handleRulerPointerUp,
+ handleCreateGuidelineFromRuler,
+ } = useRulerMeasure({
+ contours,
+ snapMetrics,
+ customGuidelines,
+ setCustomGuidelines,
+ gridSettings,
+ zoom,
+ setActiveSnapGuides,
+ showCanvasToast,
+ });
+ const handleConvertRulerToGuideline = handleCreateGuidelineFromRuler;
+
+  const handleDeleteSelectedRef = useRef<() => void>(() => {});
+
+  const {
+    brushStrokePointsRef,
+    activeBrushPathRef,
+    activeBrushSvgDRef,
+    resetBrushDrawing,
+    handleBrushPointerDown,
+    handleBrushPointerMove,
+    handleBrushPointerUp,
+  } = useBrushDrawing({
+    toolMode,
+    brushWidth,
+    brushStyle,
+    pressureSensitivity,
+    pressureCurve,
+    smoothingIntensity,
+    autoSmoothBrush,
+    smoothStrength,
+    activePenPreset,
+    brushStraightMode,
+    customGuidelines,
+    screenToCanvas,
+    contoursRef,
+    onChangeContours,
+    onCommitHistory,
+    setIsStylusActive,
+    isStylusActive,
+    onPressureUpdate: (val) => {
+      lastPressureValRef.current = val;
+    },
+  });
+
+  const {
+    selectedContourIds,
+    setSelectedContourIds,
+    selectedContourId,
+    setSelectedContourId,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedHandleType,
+    setSelectedHandleType,
+    touchLoupeState,
+    setTouchLoupeState,
+    nodeDragSessionRef,
+    pendingContoursRef,
+    startNodeOrHandleDrag,
+    handleNodePointerDownOnCanvas,
+    handleInsertNodeOnContour,
+    handleNodeDragMove,
+    handleNodeDragEnd,
+    handleToggleNodeType,
+    handleAddNodeToSelected,
+    handleDeleteSelectedNode,
+    handleNudgeSelectedNode,
+    clearNodeSelection,
+  } = useNodeEditing({
+    toolMode,
+    zoom,
+    contours,
+    contoursRef,
+    onChangeContours,
+    onCommitHistory,
+    screenToCanvas,
+    gridSettings,
+    snapMetrics,
+    customGuidelines,
+    showCanvasToast,
+    onDeleteSelectedContour: () => handleDeleteSelectedRef.current(),
+    setActiveSnapGuides,
+  });
+
+  // ---------------- PEN TOOL HOOK ----------------
+  const {
+    penStrokeWidth,
+    setPenStrokeWidth,
+    handleSetPenStrokeWidth,
+    penCapStyle,
+    setPenCapStyle,
+    handleSetPenCapStyle,
+    showPenStrokeMenu,
+    setShowPenStrokeMenu,
+    activePenContour,
+    setActivePenContour,
+    penMousePos,
+    setPenMousePos,
+    penHudPos,
+    setPenHudPos,
+    handleUndoPenNode,
+    handleResetPenContour,
+    handleFinishPenContour,
+    handlePenHudPointerDown,
+    handlePenHudPointerMove,
+    handlePenHudPointerUp,
+    penSvgPath,
+  } = usePenTool({
+    contours,
+    autoResolveBrushOverlap,
+    containerRef,
+    onChangeContours,
+    onCommitHistory,
+    showCanvasToast,
+    setSelectedContourId,
+    setSelectedContourIds,
+    setSelectedNodeId,
+    setSelectedHandleType,
+  });
+
+  // ---------------- CANVAS ERASER HOOK ----------------
+  const {
+    eraserSize,
+    setEraserSize,
+    eraserMode,
+    setEraserMode,
+    isErasingRef,
+    lastErasePosRef,
+    eraserStrokePointsRef,
+    activeEraserPathRef,
+    activeEraserSvgDRef,
+    targetedEraserNodeCount,
+    resetEraserVisuals,
+    handleEraserPointerDown,
+    handleEraserPointerMove,
+    handleEraserPointerUp,
+  } = useCanvasEraser({
+    toolMode,
+    contours,
+    contoursRef,
+    hoverCanvasPos,
+    onChangeContours,
+    onCommitHistory,
+    showCanvasToast,
+    setSelectedContourIds,
+    setSelectedContourId,
+    setSelectedNodeId,
+  });
+
+  // ---------------- SHAPE CREATION HOOK ----------------
+  const {
+    isShapeTool,
+    shapeStartPoint,
+    shapeCurrentPoint,
+    setShapeStartPoint,
+    setShapeCurrentPoint,
+    handleShapePointerDown,
+    handleShapePointerMove,
+    handleShapePointerUp,
+    activeShapeContours,
+    getShapeContoursFromPoints,
+    isShiftLockRatio,
+    setIsShiftLockRatio,
+    isAltFromCenter,
+    setIsAltFromCenter,
+  } = useShapeCreation({
+    toolMode,
+    brushWidth,
+    zoom,
+    contours,
+    contoursRef,
+    snapMetrics,
+    customGuidelines,
+    gridSettings,
+    onChangeContours,
+    onCommitHistory,
+    setActiveSnapGuides,
+    setSelectedContourIds,
+    setSelectedContourId,
+  });
+
+  // ---------------- TRANSFORMATION SESSION HOOK ----------------
+  const {
+    transformSession,
+    setTransformSession,
+    rotateDisplayAngle,
+    handleTransformPointerDown,
+    handleTransformPointerMove,
+    handleTransformPointerUp,
+    cancelTransformSession,
+    pendingTransformContoursRef,
+  } = useTransformSession({
+    contours,
+    selectedContourIds,
+    screenToCanvas,
+    onChangeContours,
+    onCommitHistory,
+    gridSettings,
+    snapMetrics,
+    customGuidelines,
+    zoom,
+    setActiveSnapGuides,
+  });
 
  // Draw straight stroke directly from ruler measurement line
  const handleDrawRulerAsStroke = useCallback(() => {
@@ -908,178 +959,12 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  showCanvasToast('すべてのカスタムガイド線を消去しました');
  }, [customGuidelines.length, setCustomGuidelines, showCanvasToast]);
 
- // Convert ruler line to horizontal, vertical, or diagonal canvas guideline
- const handleConvertRulerToGuideline = useCallback((guideType: 'auto' | 'diagonal' | 'h' | 'v' = 'auto') => {
- if (!rulerMeasurement) return;
- const { start, end } = rulerMeasurement;
- const dx = end.x - start.x;
- const dy = end.y - start.y;
- const absDx = Math.abs(dx);
- const absDy = Math.abs(dy);
-
- let finalType: 'h' | 'v' | 'diagonal' = 'diagonal';
- if (guideType === 'auto') {
- if (absDy < 2) {
- finalType = 'h';
- } else if (absDx < 2) {
- finalType = 'v';
- } else {
- finalType = 'diagonal';
- }
- } else {
- finalType = guideType;
- }
-
- if (finalType === 'diagonal') {
- const angle = Math.round((Math.atan2(dy, dx) * 180 / Math.PI) * 10) / 10;
- const newGuide: CustomGuideline = {
- id: generateId(),
- type: 'diagonal',
- position: 0,
- p1: { x: Math.round(start.x), y: Math.round(start.y) },
- p2: { x: Math.round(end.x), y: Math.round(end.y) },
- angle: angle,
- label: `斜め (${angle}°)`,
- };
- setCustomGuidelines((prev) => [...prev, newGuide]);
- setRulerMeasurement(null);
- showCanvasToast('斜めガイド線を作成しました', `角度: ${angle}° / 長さ: ${Math.round(Math.hypot(dx, dy))}px`);
- } else {
- const isHorizontal = finalType === 'h';
- const newGuide: CustomGuideline = {
- id: generateId(),
- type: isHorizontal ? 'h' : 'v',
- position: isHorizontal ? Math.round((start.y + end.y) / 2) : Math.round((start.x + end.x) / 2),
- };
- setCustomGuidelines((prev) => [...prev, newGuide]);
- setRulerMeasurement(null);
- showCanvasToast(
- isHorizontal ? '水平ガイド線を作成しました' : '垂直ガイド線を作成しました',
- `位置: ${newGuide.position}px`
- );
- }
- }, [rulerMeasurement, setCustomGuidelines, showCanvasToast]);
-
  // Mobile UI View Modes & Bottom Action Sheets
  const [isMobileFocusMode, setIsMobileFocusMode] = useState<boolean>(false);
  const [showMobilePartSheet, setShowMobilePartSheet] = useState<boolean>(false);
  const [showMobileBrushSheet, setShowMobileBrushSheet] = useState<boolean>(false);
  const [showMobileGuidesSheet, setShowMobileGuidesSheet] = useState<boolean>(false);
 
- const upm = project?.metadata?.unitsPerEm || 1000;
-
- // Dynamic snap metrics calculated from font canvas UPM
- const snapMetrics = useMemo(() => ({
- lsb,
- advanceWidth,
- baseline: Math.round(upm * 0.8),
- ascender: Math.round(upm * 0.2),
- capHeight: Math.round(upm * 0.3),
- xHeight: Math.round(upm * 0.5),
- descender: upm,
- }), [lsb, advanceWidth, upm]);
-
- // Boundary Clamping for Viewport Panning (prevents canvas from drifting into infinite empty space)
- const clampPan = useCallback((p: Point, currentZoom: number): Point => {
- if (!containerRef.current) return p;
- const rect = containerRef.current.getBoundingClientRect();
- const cWidth = rect.width;
- const cHeight = rect.height;
- if (cWidth <= 0 || cHeight <= 0) return p;
-
- const canvasWidth = upm * currentZoom;
- const canvasHeight = upm * currentZoom;
-
- // Minimum visible overlap: keep at least 30% or 180px in view
- const minVisibleX = Math.min(canvasWidth * 0.35, 180);
- const minVisibleY = Math.min(canvasHeight * 0.35, 180);
-
- const minX = -canvasWidth + minVisibleX;
- const maxX = cWidth - minVisibleX;
- const minY = -canvasHeight + minVisibleY;
- const maxY = cHeight - minVisibleY;
-
- return {
- x: Math.min(maxX, Math.max(minX, p.x)),
- y: Math.min(maxY, Math.max(minY, p.y)),
- };
- }, [upm]);
-
- // Auto-center canvas on initial mount, resize, or drawer toggle with optimal zoom
- const resetView = useCallback((mode: 'fit' | 'width' | '100%' = 'fit') => {
- if (containerRef.current) {
- const rect = containerRef.current.getBoundingClientRect();
- if (rect.width <= 0 || rect.height <= 0) return;
-
- if (mode === '100%') {
- setZoom(1.0);
- setPan({
- x: (rect.width - upm) / 2,
- y: (rect.height - upm) / 2,
- });
- return;
- }
-
- if (mode === 'width') {
- const margin = rect.width < 640 ? 12 : 24;
- const widthZoom = Math.max(0.35, Math.min(3.5, (rect.width - margin) / upm));
- setZoom(widthZoom);
- setPan({
- x: (rect.width - upm * widthZoom) / 2,
- y: Math.max(16, (rect.height - upm * widthZoom) / 2),
- });
- return;
- }
-
- // Default 'fit': comfortable, optimal margin (12px on mobile, 24px on desktop/iPad)
- const margin = rect.width < 640 ? 12 : 28;
- const idealZoom = Math.min((rect.width - margin) / upm, (rect.height - margin) / upm);
- const clampedZoom = Math.max(0.35, Math.min(3.5, idealZoom));
- setZoom(clampedZoom);
- setPan({
- x: (rect.width - upm * clampedZoom) / 2,
- y: (rect.height - upm * clampedZoom) / 2,
- });
- }
- }, [upm]);
-
- // Auto-recenter and fit canvas whenever project UPM (canvas size) changes
- const prevUpmRef = useRef<number>(upm);
- useEffect(() => {
- if (prevUpmRef.current !== upm) {
- prevUpmRef.current = upm;
- resetView('fit');
- }
- }, [upm, resetView]);
-
- // Smooth centered zoom step helper
- const handleZoomStep = useCallback((factor: number) => {
- if (!containerRef.current) return;
- const rect = containerRef.current.getBoundingClientRect();
- const centerX = rect.width / 2;
- const centerY = rect.height / 2;
- setZoom((prevZoom) => {
- const nextZoom = Math.max(0.35, Math.min(5.0, prevZoom * factor));
- const scale = nextZoom / prevZoom;
- setPan((prevPan) => {
- const newPan = {
- x: centerX - (centerX - prevPan.x) * scale,
- y: centerY - (centerY - prevPan.y) * scale,
- };
- return clampPan(newPan, nextZoom);
- });
- return nextZoom;
- });
- }, [clampPan]);
-
- const zoomRef = useRef<number>(zoom);
- useEffect(() => {
- zoomRef.current = zoom;
- }, [zoom]);
- const panRef = useRef<Point>(pan);
- useEffect(() => {
- panRef.current = pan;
- }, [pan]);
  const containerDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
  const isAnyModalOpenRef = useRef(isAnyModalOpen);
  useEffect(() => { isAnyModalOpenRef.current = isAnyModalOpen; }, [isAnyModalOpen]);
@@ -1231,14 +1116,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const handleWindowPointerUpOrCancel = (e: PointerEvent) => {
  setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
  if (isErasingRef.current) {
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- eraserStrokePointsRef.current = [];
- erasedAnyInSessionRef.current = false;
+ resetEraserVisuals();
  }
  if (e.pointerType === 'touch') {
  touchPointersRef.current.delete(e.pointerId);
@@ -1279,33 +1157,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  };
  }, [clampPan, showCanvasToast, zoom, pan]);
 
- // Auto-fit on initial mount
- useEffect(() => {
- resetView('fit');
- }, [resetView]);
-
- // ResizeObserver to adapt cleanly when sidebar drawers slide open or close, or orientation changes
- useEffect(() => {
- if (!containerRef.current) return;
- const ro = new ResizeObserver((entries) => {
- for (const entry of entries) {
- const { width, height } = entry.contentRect;
- if (width > 0 && height > 0) {
- const prev = containerDimensionsRef.current;
- if (prev.width === 0) {
- resetView('fit');
- } else {
- // Keep user's zoom level intact, smoothly re-clamp pan to ensure canvas stays safely visible
- setPan((prevPan) => clampPan(prevPan, zoomRef.current));
- }
- containerDimensionsRef.current = { width, height };
- }
- }
- });
- ro.observe(containerRef.current);
- return () => ro.disconnect();
- }, [resetView, clampPan]);
-
  // Reset trace position offset back to (0, 0) (Center)
  const handleResetTracePosition = useCallback(() => {
  if (!onChangeTraceSettings) return;
@@ -1334,299 +1185,57 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  showCanvasToast(`下絵の位置とサイズ(${Math.round(defaultScale * 100)}%)をリセットしました`);
  }, [onChangeTraceSettings, showCanvasToast, traceSettings.text, activeChar]);
 
- // Invalidate cached container rect on window resize/orientation change or scrolling
- useEffect(() => {
- const handleInvalidateContainerRect = () => {
- containerRectRef.current = null;
- };
- window.addEventListener('resize', handleInvalidateContainerRect);
- window.addEventListener('scroll', handleInvalidateContainerRect);
- return () => {
- window.removeEventListener('resize', handleInvalidateContainerRect);
- window.removeEventListener('scroll', handleInvalidateContainerRect);
- };
- }, []);
 
- // Screen to Canvas Coordinates Converter (Pure geometric mapping with zero drift & zero layout thrashing)
- const screenToCanvas = useCallback(
- (clientX: number, clientY: number): Point => {
- let rect = containerRectRef.current;
- if (!rect) {
- rect = containerRef.current?.getBoundingClientRect() || null;
- if (rect) {
- containerRectRef.current = rect;
- }
- }
- if (!rect) return { x: 0, y: 0 };
- const currentZoom = zoomRef.current || 1;
- const currentPan = panRef.current || { x: 0, y: 0 };
- const x = (clientX - rect.left - currentPan.x) / currentZoom;
- const y = (clientY - rect.top - currentPan.y) / currentZoom;
- return { x: Math.round(x), y: Math.round(y) };
- },
- []
- );
+  // Keep selection state strictly in-sync with current contours
+  useEffect(() => {
+    contoursRef.current = contours;
+    const validContourIds = new Set(contours.map((c) => c.id));
+    setSelectedContourIds((prev) => prev.filter((id) => validContourIds.has(id)));
+    setSelectedContourId((prev) => (prev && validContourIds.has(prev) ? prev : null));
+    setSelectedNodeId((prev) => {
+      if (!prev) return null;
+      return contours.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
+    });
 
- const {
- brushStrokePointsRef,
- activeBrushPathRef,
- activeBrushSvgDRef,
- resetBrushDrawing,
- handleBrushPointerDown,
- handleBrushPointerMove,
- handleBrushPointerUp,
- } = useBrushDrawing({
- toolMode,
- brushWidth,
- brushStyle,
- pressureSensitivity,
- pressureCurve,
- smoothingIntensity,
- autoSmoothBrush,
- smoothStrength,
- activePenPreset,
- brushStraightMode,
- customGuidelines,
- screenToCanvas,
- contoursRef,
- onChangeContours,
- onCommitHistory,
- setIsStylusActive,
- isStylusActive,
- onPressureUpdate: (val) => {
- lastPressureValRef.current = val;
- },
- });
+    if (!contours || contours.length === 0) {
+      if (activeBrushPathRef.current) {
+        activeBrushPathRef.current.setAttribute('d', '');
+      }
+      activeBrushSvgDRef.current = '';
+      resetEraserVisuals();
+      brushStrokePointsRef.current = [];
+      setSelectedContourIds([]);
+      setSelectedContourId(null);
+      setSelectedNodeId(null);
+      setSelectedHandleType(null);
+    }
+  }, [contours, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId]);
 
- const handleDeleteSelectedRef = useRef<() => void>(() => {});
-
- const {
- selectedContourIds,
- setSelectedContourIds,
- selectedContourId,
- setSelectedContourId,
- selectedNodeId,
- setSelectedNodeId,
- selectedHandleType,
- setSelectedHandleType,
- touchLoupeState,
- setTouchLoupeState,
- nodeDragSessionRef,
- pendingContoursRef,
- startNodeOrHandleDrag,
- handleNodePointerDownOnCanvas,
- handleInsertNodeOnContour,
- handleNodeDragMove,
- handleNodeDragEnd,
- handleToggleNodeType,
- handleAddNodeToSelected,
- handleDeleteSelectedNode,
- handleNudgeSelectedNode,
- clearNodeSelection,
- } = useNodeEditing({
- toolMode,
- zoom,
- contours,
- contoursRef,
- onChangeContours,
- onCommitHistory,
- screenToCanvas,
- gridSettings,
- snapMetrics,
- customGuidelines,
- showCanvasToast,
- onDeleteSelectedContour: () => handleDeleteSelectedRef.current(),
- setActiveSnapGuides,
- });
-
- // ---------------- PATH & BEZIER UNDO / RESET / FINISH ACTIONS ----------------
-
- // Undo the last placed node in the active pen path - zero latency
- const handleUndoPenNode = useCallback(() => {
- if (!activePenContour) return;
- if (activePenContour.nodes.length <= 1) {
- setActivePenContour(null);
- setSelectedNodeId(null);
- } else {
- const remainingNodes = activePenContour.nodes.slice(0, -1);
- setActivePenContour({
- ...activePenContour,
- nodes: remainingNodes,
- });
- setSelectedNodeId(remainingNodes[remainingNodes.length - 1].id);
- }
- }, [activePenContour]);
-
- // Reset/Discard the entire in-progress pen path (リセット)
- const handleResetPenContour = useCallback(() => {
- if (activePenContour) {
- const count = activePenContour.nodes.length;
- setActivePenContour(null);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- showCanvasToast('作図中のパスをリセット・破棄しました', `${count} 点を消去`);
- }
- }, [activePenContour, showCanvasToast]);
-
- // Finish and commit the in-progress pen path (確定)
- const handleFinishPenContour = useCallback(
- (closed: boolean = false, customStrokeWidth?: number) => {
- if (!activePenContour || activePenContour.nodes.length === 0) return;
- if (activePenContour.nodes.length === 1) {
- showCanvasToast('パスには2点以上の頂点が必要です', '作図を継続またはEscでキャンセル');
- return;
- }
- setShowPenStrokeMenu(false);
-
- const targetWidth = customStrokeWidth ?? penStrokeWidth;
-
- if (!closed) {
- // "線で確定": Expand the open path into a smooth, solid vector outline with the chosen line thickness
- try {
- const rawContour: PathContour = {
- ...activePenContour,
- closed: false,
- };
- const expanded = expandStrokeContours([rawContour], targetWidth, penCapStyle);
- if (expanded && expanded.length > 0) {
- let resultContours = expanded;
- if (autoResolveBrushOverlap && hasContourIntersections(expanded)) {
- try {
- const selfMerged = unionContours(expanded, 1.2, false);
- if (selfMerged && selfMerged.length > 0) {
- resultContours = selfMerged;
- }
- } catch (e) {
- console.warn('Stroke self-merge fallback:', e);
- }
- }
-
- onChangeContours([...contours, ...resultContours]);
- setSelectedContourId(null);
- setSelectedContourIds([]);
- setActivePenContour(null);
- setSelectedNodeId(null);
- onCommitHistory?.();
- showCanvasToast(
- `太さ ${targetWidth}px の線として確定しました`,
- `${resultContours.length} 個の輪郭 (端点: ${penCapStyle === 'round' ? '丸' : penCapStyle === 'butt' ? '平' : '角'})`
- );
- return;
- }
- } catch (err) {
- console.warn('Pen stroke expansion fallback:', err);
- }
- }
-
- const finalized: PathContour = {
- ...activePenContour,
- closed,
- };
-
- if (closed && autoResolveBrushOverlap) {
- try {
- const selfMerged = unionContours([finalized], 1.2, true);
- if (selfMerged && selfMerged.length > 0) {
- onChangeContours([...contours, ...selfMerged]);
- setSelectedContourId(null);
- setSelectedContourIds([]);
- setActivePenContour(null);
- setSelectedNodeId(null);
- onCommitHistory?.();
- showCanvasToast(
- selfMerged.length > 1
- ? '交差を自動結合し、輪郭を確定しました'
- : '閉じた輪郭として確定しました',
- `${selfMerged.length} 個の輪郭`
- );
- return;
- }
- } catch (err) {
- console.warn('Pen self-merge fallback:', err);
- }
- }
-
- onChangeContours([...contours, finalized]);
- setSelectedContourId(null);
- setSelectedContourIds([]);
- setActivePenContour(null);
- setSelectedNodeId(null);
- onCommitHistory?.();
- showCanvasToast(
- closed ? '閉じた輪郭として確定しました' : `開いた線 (太さ: ${targetWidth}px) として確定しました`,
- `${finalized.nodes.length} 頂点`
- );
- },
- [activePenContour, contours, autoResolveBrushOverlap, penStrokeWidth, penCapStyle, onChangeContours, onCommitHistory, showCanvasToast]
- );
-
- // ---------------- DRAGGABLE PEN HUD ACTIONS ----------------
- const handlePenHudPointerDown = useCallback((e: React.PointerEvent) => {
- e.stopPropagation();
- e.preventDefault();
- isDraggingPenHudRef.current = true;
- const target = e.currentTarget as HTMLElement;
- try {
- target.setPointerCapture?.(e.pointerId);
- } catch {
- // ignore
- }
-
- const containerRect = containerRef.current?.getBoundingClientRect();
- const currentLeft =
- penHudPos?.x ??
- (containerRect ? Math.max(16, (containerRect.width - 340) / 2) : 60);
- const currentTop = penHudPos?.y ?? 56;
-
- penHudDragOffsetRef.current = {
- x: e.clientX - currentLeft,
- y: e.clientY - currentTop,
- };
- }, [penHudPos]);
-
- const handlePenHudPointerMove = useCallback((e: React.PointerEvent) => {
- if (!isDraggingPenHudRef.current) return;
- e.stopPropagation();
- e.preventDefault();
- if (!containerRef.current) return;
-
- const containerRect = containerRef.current.getBoundingClientRect();
- let newX = e.clientX - penHudDragOffsetRef.current.x;
- let newY = e.clientY - penHudDragOffsetRef.current.y;
-
- // Clamp within container boundaries
- newX = Math.max(8, Math.min(containerRect.width - 260, newX));
- newY = Math.max(8, Math.min(containerRect.height - 44, newY));
-
- setPenHudPos({ x: newX, y: newY });
- }, []);
-
- const handlePenHudPointerUp = useCallback((e: React.PointerEvent) => {
- if (isDraggingPenHudRef.current) {
- isDraggingPenHudRef.current = false;
- try {
- (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
- } catch {
- // ignore
- }
- }
- }, []);
+  // Switching glyphs must never carry an in-progress gesture into the next page.
+  useEffect(() => {
+    resetBrushDrawing();
+    resetEraserVisuals();
+    setActivePenContour(null);
+    setShapeStartPoint(null);
+    setShapeCurrentPoint(null);
+    setMarqueeSelection(null);
+    setTransformSession(null);
+    setSelectedContourIds([]);
+    setSelectedNodeId(null);
+    setSelectedHandleType(null);
+    setDraggingMetric(null);
+    setDraggingGuidelineId(null);
+    if (activeBrushPathRef.current) {
+      activeBrushPathRef.current.setAttribute('d', '');
+    }
+    pendingTransformContoursRef.current = null;
+    activeBrushSvgDRef.current = '';
+  }, [selectedUnicode, resetBrushDrawing, resetEraserVisuals, setActivePenContour, setDraggingGuidelineId, setDraggingMetric, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setShapeCurrentPoint, setShapeStartPoint, setTransformSession]);
 
  // Clear / Reset all contours of current character (文字を全クリア)
  const handleClearAll = useCallback(() => {
- if (activeBrushPathRef.current) {
- activeBrushPathRef.current.setAttribute('d', '');
- }
- activeBrushSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- activeEraserSvgDRef.current = '';
- brushStrokePointsRef.current = [];
- eraserStrokePointsRef.current = [];
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- erasedAnyInSessionRef.current = false;
+ resetBrushDrawing();
+ resetEraserVisuals();
  setActivePenContour(null);
  setShapeStartPoint(null);
  setShapeCurrentPoint(null);
@@ -1648,38 +1257,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  contoursRef.current = [];
  onChangeContours([]);
  showCanvasToast('文字の全パーツ（輪郭）を消去しました', 'Ctrl+Z で取り消し可能');
- }, [contours, onChangeContours, onCommitHistory, showCanvasToast]);
+ }, [contours, onChangeContours, onCommitHistory, resetBrushDrawing, resetEraserVisuals, setActivePenContour, setEraserMode, setRulerMeasurement, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setShapeCurrentPoint, setShapeStartPoint, setTouchLoupeState, setTransformSession, showCanvasToast]);
 
  const handleClearAllContours = handleClearAll;
 
- // ---------------- TRANSFORMATION SESSION HELPER ----------------
- const handleTransformPointerDown = useCallback(
- (
- e: React.PointerEvent,
- handle: 'move' | 'rotate' | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w',
- overrideTargetIds?: string[]
- ) => {
- e.stopPropagation();
- const targetIds = overrideTargetIds || selectedContourIds;
- if (targetIds.length === 0) return;
- const targetContours = contours.filter((c) => targetIds.includes(c.id));
- if (targetContours.length === 0) return;
 
- const bbox = getContoursBoundingBox(targetContours);
- const pos = screenToCanvas(e.clientX, e.clientY);
- const allInitialNodes = targetContours.flatMap((c) => c.nodes.map((n) => ({ x: n.x, y: n.y })));
- setTransformSession({
- handle,
- startPoint: pos,
- initialBBox: bbox,
- initialContours: targetContours,
- allInitialNodes,
- });
- },
- [selectedContourIds, contours, screenToCanvas]
- );
-
- // Resolve dynamic high-contrast cursor (lightweight native OS hardware acceleration)
  const getCanvasCursor = useCallback(() => {
   const isReticleEnabled = gridSettings.showCursorCrosshair !== false;
   const isHighContrast = gridSettings.highContrastCursor !== false;
@@ -1905,24 +1487,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // RULER / MEASUREMENT TOOL
  if (toolMode === 'ruler') {
- let startPos = pos;
- if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
- const snapRes = snapSinglePoint(
- pos,
- contours,
- snapMetrics,
- customGuidelines,
- Math.max(7, Math.round(12 / zoom)),
- gridSettings
- );
- startPos = snapRes.point;
- setActiveSnapGuides(snapRes.activeGuides);
- }
- setRulerMeasurement({
- start: startPos,
- end: startPos,
- active: true,
- });
+ handleRulerPointerDown(pos, e);
  return;
  }
 
@@ -2018,68 +1583,15 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  return;
  }
 
- // SHAPES (RECT, SQUARE, ELLIPSE, CIRCLE, ROUNDED_RECT, TRIANGLE, STAR, HEART, SPARKLE, STARBURST, DIAMOND, POLYGON)
+ // SHAPES
  if (isShapeTool) {
- let startPos = pos;
- if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
- const snapRes = snapSinglePoint(
- pos,
- contours,
- snapMetrics,
- customGuidelines,
- Math.max(7, Math.round(12 / zoom)),
- gridSettings
- );
- startPos = snapRes.point;
- setActiveSnapGuides(snapRes.activeGuides);
- }
- setShapeStartPoint(startPos);
- setShapeCurrentPoint(startPos);
- setIsShiftLockRatio(e.shiftKey);
- setIsAltFromCenter(e.altKey);
+ handleShapePointerDown(pos, e);
  return;
  }
 
  // ERASER TOOL
  if (toolMode === 'eraser') {
- if (eraserMode === 'all') {
- handleClearAll();
- setEraserMode('stroke');
- return;
- }
- try {
- (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
- } catch {
- // Ignored
- }
- isErasingRef.current = true;
- erasedAnyInSessionRef.current = false;
- lastErasePosRef.current = pos;
- eraserStrokePointsRef.current = [pos];
- const eraseRadius = Math.max(2, eraserSize / 2);
-
- if (eraserMode === 'cut') {
- const d = `M ${pos.x} ${pos.y} L ${pos.x + 0.1} ${pos.y}`;
- activeEraserSvgDRef.current = d;
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', d);
- }
- } else {
- const currentContours = contoursRef.current || [];
- const updatedContours = eraseContoursAtPoint(currentContours, pos, eraseRadius, eraserMode);
- if (updatedContours !== currentContours) {
- onCommitHistory?.();
- erasedAnyInSessionRef.current = true;
- contoursRef.current = updatedContours;
- onChangeContours(updatedContours, { skipHistory: true });
- setSelectedContourIds((prev) => prev.filter((id) => updatedContours.some((c) => c.id === id)));
- setSelectedContourId((prev) => (prev && updatedContours.some((c) => c.id === prev) ? prev : null));
- setSelectedNodeId((prev) => {
- if (!prev) return null;
- return updatedContours.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
- });
- }
- }
+ handleEraserPointerDown(pos, e);
  return;
  }
 
@@ -2312,39 +1824,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // Active Ruler Measurement Drag
  if (toolMode === 'ruler' && rulerMeasurement && rulerMeasurement.active) {
- let endX = pos.x;
- let endY = pos.y;
-
- if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
- const snapRes = snapSinglePoint(
- pos,
- contours,
- snapMetrics,
- customGuidelines,
- Math.max(7, Math.round(12 / zoom)),
- gridSettings
- );
- endX = snapRes.point.x;
- endY = snapRes.point.y;
- setActiveSnapGuides(snapRes.activeGuides);
- }
-
- if (e.shiftKey) {
- // Snap to 15-degree increments (0°, 15°, 30°, 45°, 60°, 75°, 90°, etc.) when Shift is held
- const dx = endX - rulerMeasurement.start.x;
- const dy = endY - rulerMeasurement.start.y;
- const angle = Math.atan2(dy, dx);
- const snapStep = (15 * Math.PI) / 180; // 15 degrees = Math.PI / 12
- const snapAngle = Math.round(angle / snapStep) * snapStep;
- const dist = Math.hypot(dx, dy);
- endX = Math.round(rulerMeasurement.start.x + Math.cos(snapAngle) * dist);
- endY = Math.round(rulerMeasurement.start.y + Math.sin(snapAngle) * dist);
- }
-
- setRulerMeasurement({
- ...rulerMeasurement,
- end: { x: endX, y: endY },
- });
+ handleRulerPointerMove(pos, e);
  return;
  }
 
@@ -2364,331 +1844,14 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  return;
  }
 
- // ---------------- ACTIVE BOUNDING BOX TRANSFORMATION DRAG ----------------
- if (transformSession && selectedContourIds.length > 0) {
- const { handle, startPoint, initialBBox, initialContours, allInitialNodes: precomputedNodes } = transformSession;
- const rawDx = pos.x - startPoint.x;
- const rawDy = pos.y - startPoint.y;
-
- if (handle === 'move') {
- let finalDx = rawDx;
- let finalDy = rawDy;
-
- // Smart snap to Baseline, LSB, Metrics, Grid, and other contours (hold Alt/Option to bypass)
- if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
- const otherContours = contours.filter((c) => !selectedContourIds.includes(c.id));
- const snapThreshold = Math.max(7, Math.round(12 / zoom));
- const allInitialNodes = precomputedNodes || initialContours.flatMap((c) => c.nodes);
- const snapResult = snapContourMovement(
- initialBBox,
- rawDx,
- rawDy,
- otherContours,
- snapMetrics,
- customGuidelines,
- snapThreshold,
- allInitialNodes,
- gridSettings
- );
- finalDx = snapResult.dx;
- finalDy = snapResult.dy;
- setActiveSnapGuides(snapResult.activeGuides);
- } else {
- setActiveSnapGuides([]);
- }
-
- const updatedMap = new Map<string, PathContour>();
- for (const ic of initialContours) {
- updatedMap.set(ic.id, {
- ...ic,
- nodes: ic.nodes.map((n) => ({
- ...n,
- x: Math.round(n.x + finalDx),
- y: Math.round(n.y + finalDy),
- handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + finalDx), y: Math.round(n.handleIn.y + finalDy) } : null,
- handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + finalDx), y: Math.round(n.handleOut.y + finalDy) } : null,
- })),
- });
- }
-
- const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
- pendingTransformContoursRef.current = nextContours;
- if (transformRafRef.current == null) {
- transformRafRef.current = requestAnimationFrame(() => {
- transformRafRef.current = null;
- if (pendingTransformContoursRef.current) {
- onChangeContours(pendingTransformContoursRef.current);
- }
- });
- }
- return;
- }
-
- if (handle === 'rotate') {
- setActiveSnapGuides([]);
- const { centerX, centerY } = initialBBox;
- const startAngle = Math.atan2(startPoint.y - centerY, startPoint.x - centerX);
- const currAngle = Math.atan2(pos.y - centerY, pos.x - centerX);
- let delta = currAngle - startAngle;
-
- if (e.shiftKey) {
- // Snap to 15-degree increments when Shift is held
- const step = (15 * Math.PI) / 180;
- delta = Math.round(delta / step) * step;
- }
-
- const deg = Math.round((delta * 180) / Math.PI);
- setRotateDisplayAngle(deg);
-
- const cos = Math.cos(delta);
- const sin = Math.sin(delta);
-
- const rotPoint = (p: Point) => {
- const rx = p.x - centerX;
- const ry = p.y - centerY;
- return {
- x: Math.round(centerX + rx * cos - ry * sin),
- y: Math.round(centerY + rx * sin + ry * cos),
- };
- };
-
- const updatedMap = new Map<string, PathContour>();
- for (const ic of initialContours) {
- updatedMap.set(ic.id, {
- ...ic,
- nodes: ic.nodes.map((n) => ({
- ...n,
- ...rotPoint({ x: n.x, y: n.y }),
- handleIn: n.handleIn ? rotPoint(n.handleIn) : null,
- handleOut: n.handleOut ? rotPoint(n.handleOut) : null,
- })),
- });
- }
-
- const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
- pendingTransformContoursRef.current = nextContours;
- if (transformRafRef.current == null) {
- transformRafRef.current = requestAnimationFrame(() => {
- transformRafRef.current = null;
- if (pendingTransformContoursRef.current) {
- onChangeContours(pendingTransformContoursRef.current);
- }
- });
- }
- return;
- }
-
- // Handle Resizing (8 Handles: nw, n, ne, e, se, s, sw, w)
- const { minX, minY, maxX, maxY, width, height } = initialBBox;
- const safeW = Math.max(1, width);
- const safeH = Math.max(1, height);
-
- let snapX = pos.x;
- let snapY = pos.y;
-
- if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
- const otherContours = contours.filter((c) => !selectedContourIds.includes(c.id));
- const snapThreshold = Math.max(7, Math.round(12 / zoom));
- const snapResult = snapSinglePoint(
- pos,
- otherContours,
- snapMetrics,
- customGuidelines,
- snapThreshold,
- gridSettings
- );
- snapX = snapResult.point.x;
- snapY = snapResult.point.y;
- setActiveSnapGuides(snapResult.activeGuides);
- } else {
- setActiveSnapGuides([]);
- }
-
- let scaleX = 1;
- let scaleY = 1;
- let anchorX = minX;
- let anchorY = minY;
-
- const isPreserveAspect = e.shiftKey;
-
- switch (handle) {
- case 'se': {
- anchorX = minX;
- anchorY = minY;
- const newW = Math.max(8, snapX - minX);
- const newH = Math.max(8, snapY - minY);
- if (isPreserveAspect) {
- const s = Math.max(newW / safeW, newH / safeH);
- scaleX = s;
- scaleY = s;
- } else {
- scaleX = newW / safeW;
- scaleY = newH / safeH;
- }
- break;
- }
- case 'nw': {
- anchorX = maxX;
- anchorY = maxY;
- const newW = Math.max(8, maxX - snapX);
- const newH = Math.max(8, maxY - snapY);
- if (isPreserveAspect) {
- const s = Math.max(newW / safeW, newH / safeH);
- scaleX = s;
- scaleY = s;
- } else {
- scaleX = newW / safeW;
- scaleY = newH / safeH;
- }
- break;
- }
- case 'ne': {
- anchorX = minX;
- anchorY = maxY;
- const newW = Math.max(8, snapX - minX);
- const newH = Math.max(8, maxY - snapY);
- if (isPreserveAspect) {
- const s = Math.max(newW / safeW, newH / safeH);
- scaleX = s;
- scaleY = s;
- } else {
- scaleX = newW / safeW;
- scaleY = newH / safeH;
- }
- break;
- }
- case 'sw': {
- anchorX = maxX;
- anchorY = minY;
- const newW = Math.max(8, maxX - snapX);
- const newH = Math.max(8, snapY - minY);
- if (isPreserveAspect) {
- const s = Math.max(newW / safeW, newH / safeH);
- scaleX = s;
- scaleY = s;
- } else {
- scaleX = newW / safeW;
- scaleY = newH / safeH;
- }
- break;
- }
- case 'e': {
- anchorX = minX;
- anchorY = minY;
- const newW = Math.max(8, snapX - minX);
- scaleX = newW / safeW;
- scaleY = 1;
- break;
- }
- case 'w': {
- anchorX = maxX;
- anchorY = minY;
- const newW = Math.max(8, maxX - snapX);
- scaleX = newW / safeW;
- scaleY = 1;
- break;
- }
- case 's': {
- anchorX = minX;
- anchorY = minY;
- const newH = Math.max(8, snapY - minY);
- scaleX = 1;
- scaleY = newH / safeH;
- break;
- }
- case 'n': {
- anchorX = minX;
- anchorY = maxY;
- const newH = Math.max(8, maxY - snapY);
- scaleX = 1;
- scaleY = newH / safeH;
- break;
- }
- }
-
- const transformPoint = (p: Point): Point => {
- let nx = p.x;
- let ny = p.y;
- if (handle === 'nw' || handle === 'w' || handle === 'sw') {
- nx = anchorX - (anchorX - p.x) * scaleX;
- } else {
- nx = anchorX + (p.x - anchorX) * scaleX;
- }
-
- if (handle === 'nw' || handle === 'n' || handle === 'ne') {
- ny = anchorY - (anchorY - p.y) * scaleY;
- } else {
- ny = anchorY + (p.y - anchorY) * scaleY;
- }
-
- return { x: Math.round(nx), y: Math.round(ny) };
- };
-
- const updatedMap = new Map<string, PathContour>();
- for (const ic of initialContours) {
- updatedMap.set(ic.id, {
- ...ic,
- nodes: ic.nodes.map((n) => ({
- ...n,
- ...transformPoint({ x: n.x, y: n.y }),
- handleIn: n.handleIn ? transformPoint(n.handleIn) : null,
- handleOut: n.handleOut ? transformPoint(n.handleOut) : null,
- })),
- });
- }
-
- const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
- pendingTransformContoursRef.current = nextContours;
- if (transformRafRef.current == null) {
- transformRafRef.current = requestAnimationFrame(() => {
- transformRafRef.current = null;
- if (pendingTransformContoursRef.current) {
- onChangeContours(pendingTransformContoursRef.current);
- }
- });
- }
- return;
- }
+  // ---------------- ACTIVE BOUNDING BOX TRANSFORMATION DRAG ----------------
+  if (handleTransformPointerMove(pos, e)) {
+    return;
+  }
 
  // Eraser Tool continuous sweep-erase while dragging
  if (toolMode === 'eraser' && isErasingRef.current) {
- if (eraserMode === 'all') {
- return;
- }
- const eraseRadius = Math.max(2, eraserSize / 2);
- const prevPos = lastErasePosRef.current || pos;
- lastErasePosRef.current = pos;
- eraserStrokePointsRef.current.push(pos);
-
- if (eraserMode === 'cut') {
- // Fast SVG preview overlay without mutating/degrading vector contours every frame
- if (activeEraserPathRef.current && eraserStrokePointsRef.current.length > 0) {
- const pts = eraserStrokePointsRef.current;
- let d = `M ${pts[0].x} ${pts[0].y}`;
- for (let i = 1; i < pts.length; i++) {
- d += ` L ${pts[i].x} ${pts[i].y}`;
- }
- activeEraserSvgDRef.current = d;
- activeEraserPathRef.current.setAttribute('d', d);
- }
- } else {
- const currentContours = contoursRef.current || [];
- const updatedContours = eraseContoursAtPoint(currentContours, pos, eraseRadius, eraserMode, prevPos);
- if (updatedContours !== currentContours) {
- if (!erasedAnyInSessionRef.current) {
- onCommitHistory?.();
- erasedAnyInSessionRef.current = true;
- }
- contoursRef.current = updatedContours;
- onChangeContours(updatedContours, { skipHistory: true });
- setSelectedContourIds((prev) => prev.filter((id) => updatedContours.some((c) => c.id === id)));
- setSelectedContourId((prev) => (prev && updatedContours.some((c) => c.id === prev) ? prev : null));
- setSelectedNodeId((prev) => {
- if (!prev) return null;
- return updatedContours.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
- });
- }
- }
+ handleEraserPointerMove(pos);
  return;
  }
 
@@ -2696,33 +1859,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  if (handleBrushPointerMove(e)) return;
  }
 
-
-
- // Shapes in-progress (RAF throttled for maximum smoothness)
+ // Shapes in-progress
  if (isShapeTool && shapeStartPoint) {
- setIsShiftLockRatio(e.shiftKey);
- setIsAltFromCenter(e.altKey);
- let snapPos = pos;
- if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
- const snapResult = snapSinglePoint(
- pos,
- contours,
- snapMetrics,
- customGuidelines,
- Math.max(7, Math.round(12 / zoom)),
- gridSettings
- );
- snapPos = snapResult.point;
- setActiveSnapGuides(snapResult.activeGuides);
- } else {
- setActiveSnapGuides([]);
- }
- if (shapeRafRef.current == null) {
- shapeRafRef.current = requestAnimationFrame(() => {
- shapeRafRef.current = null;
- setShapeCurrentPoint(snapPos);
- });
- }
+ handleShapePointerMove(pos, e);
  return;
  }
 
@@ -2755,106 +1894,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }
  };
 
- // Helper to construct shape contours from 2 bounding drag points
- const getShapeContoursFromPoints = (
- mode: ToolMode,
- p1: Point,
- p2: Point,
- options?: { shiftKey?: boolean; altKey?: boolean }
- ): PathContour[] => {
- let startX = p1.x;
- let startY = p1.y;
- let endX = p2.x;
- let endY = p2.y;
-
- const forceSquare =
- options?.shiftKey ||
- mode === 'square' ||
- mode === 'circle' ||
- isShiftLockRatio;
-
- // Alt: draw from center
- if (options?.altKey || isAltFromCenter) {
- const dx = Math.abs(endX - startX);
- const dy = Math.abs(endY - startY);
- const maxD = forceSquare ? Math.max(dx, dy) : 0;
- const rx = forceSquare ? maxD : dx;
- const ry = forceSquare ? maxD : dy;
- startX = p1.x - rx;
- startY = p1.y - ry;
- endX = p1.x + rx;
- endY = p1.y + ry;
- } else if (forceSquare) {
- // 1:1 Aspect Ratio Lock
- const dx = endX - startX;
- const dy = endY - startY;
- const side = Math.max(Math.abs(dx), Math.abs(dy));
- endX = startX + (dx >= 0 ? side : -side);
- endY = startY + (dy >= 0 ? side : -side);
- }
-
- const minX = Math.min(startX, endX);
- const maxX = Math.max(startX, endX);
- const minY = Math.min(startY, endY);
- const maxY = Math.max(startY, endY);
- const width = Math.max(16, maxX - minX);
- const height = Math.max(16, maxY - minY);
- const cx = (minX + maxX) / 2;
- const cy = (minY + maxY) / 2;
- const rx = width / 2;
- const ry = height / 2;
-
- switch (mode) {
- case 'rect':
- case 'square':
- return [createRectContour(minX, minY, maxX, maxY)];
- case 'rounded_rect':
- return [createRoundedRectContour(cx, cy, width, height, Math.min(width, height) * 0.2)];
- case 'pill':
- return [createPillContour(cx, cy, width, height)];
- case 'ellipse':
- case 'circle':
- return [createEllipseContour(cx, cy, rx, ry)];
- case 'triangle':
- return [createTriangleContour(cx, cy, width, height, 'up')];
- case 'triangle_down':
- return [createTriangleContour(cx, cy, width, height, 'down')];
- case 'right_triangle':
- return [createRightTriangleContour(cx, cy, width, height)];
- case 'semicircle':
- return [createSemicircleContour(cx, cy, rx, ry, 'top')];
- case 'ring':
- return createRingContours(cx, cy, rx, ry * 0.55);
- case 'parallelogram':
- return [createParallelogramContour(cx, cy, width, height, 18)];
- case 'star':
- return [createStarContour(cx, cy, Math.max(rx, ry), Math.max(rx, ry) * 0.42, 5)];
- case 'heart':
- return [createHeartContour(cx, cy, width, height)];
- case 'sparkle':
- return [createSparkleContour(cx, cy, Math.max(rx, ry), 0.22)];
- case 'starburst':
- return [createStarburstContour(cx, cy, Math.max(rx, ry), 0.45, 8)];
- case 'diamond':
- return [createDiamondContour(cx, cy, width, height)];
- case 'polygon':
- return [createHexagonContour(cx, cy, Math.max(rx, ry))];
- case 'crescent':
- return [createCrescentContour(cx, cy, Math.max(rx, ry))];
- case 'line': {
- let lEndX = p2.x;
- let lEndY = p2.y;
- if (options?.shiftKey || isShiftLockRatio) {
- const snapped = snapToStraightAngle(p1.x, p1.y, p2.x, p2.y);
- lEndX = snapped.x;
- lEndY = snapped.y;
- }
- return [createLineContour(p1.x, p1.y, lEndX, lEndY, brushWidth || 32)];
- }
- default:
- return [createRectContour(minX, minY, maxX, maxY)];
- }
- };
 
  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
  setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
@@ -3026,59 +2065,13 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // Finalize Ruler Measurement Drag
  if (toolMode === 'ruler' && rulerMeasurement && rulerMeasurement.active) {
- const dist = Math.hypot(rulerMeasurement.end.x - rulerMeasurement.start.x, rulerMeasurement.end.y - rulerMeasurement.start.y);
- // If distance is negligible (user tapped/clicked to dismiss or reset), clear measurement
- if (dist < 4) {
- setRulerMeasurement(null);
- return;
- }
-
- setRulerMeasurement({
- ...rulerMeasurement,
- active: false,
- });
+ handleRulerPointerUp();
  return;
  }
 
  // Finalize Eraser Tool sweep session
  if (toolMode === 'eraser' && isErasingRef.current) {
- try {
- (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
- } catch {
- // Ignored
- }
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
-
- if (eraserMode === 'cut' && eraserStrokePointsRef.current.length > 0) {
- const eraseRadius = Math.max(2, eraserSize / 2);
- const rawPts = eraserStrokePointsRef.current;
- eraserStrokePointsRef.current = [];
- const pts = rawPts.length === 1
- ? [rawPts[0], { x: rawPts[0].x + 0.1, y: rawPts[0].y + 0.1 }]
- : rawPts;
- const currentContours = contoursRef.current || [];
- const updated = subtractEraserStrokeFromContours(currentContours, pts, eraseRadius);
- if (updated !== currentContours) {
- onCommitHistory?.();
- contoursRef.current = updated;
- onChangeContours(updated);
- showCanvasToast('パスを削り・分割しました');
- }
- } else if (erasedAnyInSessionRef.current) {
- erasedAnyInSessionRef.current = false;
- setSelectedContourIds((prev) => prev.filter((id) => (contoursRef.current || []).some((c) => c.id === id)));
- setSelectedContourId((prev) => (prev && (contoursRef.current || []).some((c) => c.id === prev) ? prev : null));
- setSelectedNodeId((prev) => {
- if (!prev) return null;
- return (contoursRef.current || []).some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
- });
- }
- eraserStrokePointsRef.current = [];
+ handleEraserPointerUp(e);
  return;
  }
 
@@ -3086,63 +2079,17 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  if (handleBrushPointerUp(e)) return;
  }
 
-
-
  // Finalize Geometric Shape
  if (isShapeTool && shapeStartPoint && shapeCurrentPoint) {
- if (shapeRafRef.current != null) {
- cancelAnimationFrame(shapeRafRef.current);
- shapeRafRef.current = null;
- }
- const dist = Math.hypot(
- shapeCurrentPoint.x - shapeStartPoint.x,
- shapeCurrentPoint.y - shapeStartPoint.y
- );
- // If clicked without dragging, stamp a balanced 180x180 shape centered at click position!
- const p1 =
- dist < 10
- ? { x: shapeStartPoint.x - 90, y: shapeStartPoint.y - 90 }
- : shapeStartPoint;
- const p2 =
- dist < 10
- ? { x: shapeStartPoint.x + 90, y: shapeStartPoint.y + 90 }
- : shapeCurrentPoint;
-
- const newContours = getShapeContoursFromPoints(toolMode, p1, p2, {
- shiftKey: e.shiftKey,
- altKey: e.altKey,
- });
- const currentContours = contoursRef.current || [];
- const nextContours = [...currentContours, ...newContours];
- contoursRef.current = nextContours;
- onChangeContours(nextContours);
- setSelectedContourIds([]);
- setSelectedContourId(null);
- setShapeStartPoint(null);
- setShapeCurrentPoint(null);
- setIsShiftLockRatio(false);
- setIsAltFromCenter(false);
- onCommitHistory?.();
+ handleShapePointerUp(e);
  return;
  }
 
  // Finalize Node Drag
  handleNodeDragEnd();
 
- // Finalize Bounding Box Transform Drag
- if (transformSession) {
- if (transformRafRef.current != null) {
- cancelAnimationFrame(transformRafRef.current);
- transformRafRef.current = null;
- }
- if (pendingTransformContoursRef.current) {
- onChangeContours(pendingTransformContoursRef.current);
- pendingTransformContoursRef.current = null;
- }
- setTransformSession(null);
- setRotateDisplayAngle(null);
- onCommitHistory?.();
- }
+  // Finalize Bounding Box Transform Drag
+  handleTransformPointerUp();
  };
 
  const handlePointerCancel = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -3196,18 +2143,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }
 
  // Cancel any in-progress stroke or drag cleanly. Pointer cancellation must
+ // Cancel any in-progress stroke or drag cleanly. Pointer cancellation must
  // never create a contour or history entry.
  resetBrushDrawing();
- if (isErasingRef.current) {
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- erasedAnyInSessionRef.current = false;
- eraserStrokePointsRef.current = [];
- }
+ resetEraserVisuals();
  setShapeStartPoint(null);
  setShapeCurrentPoint(null);
  setMarqueeSelection(null);
@@ -3237,32 +2176,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  cancelAnimationFrame(panRafRef.current);
  panRafRef.current = null;
  }
- if (isErasingRef.current) {
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- if (eraserMode === 'cut' && eraserStrokePointsRef.current.length > 0) {
- const eraseRadius = Math.max(2, eraserSize / 2);
- const rawPts = eraserStrokePointsRef.current;
- eraserStrokePointsRef.current = [];
- const pts = rawPts.length === 1
- ? [rawPts[0], { x: rawPts[0].x + 0.1, y: rawPts[0].y + 0.1 }]
- : rawPts;
- const currentContours = contoursRef.current || [];
- const updated = subtractEraserStrokeFromContours(currentContours, pts, eraseRadius);
- if (updated !== currentContours) {
- onCommitHistory?.();
- contoursRef.current = updated;
- onChangeContours(updated);
- }
- } else if (erasedAnyInSessionRef.current) {
- erasedAnyInSessionRef.current = false;
- }
- eraserStrokePointsRef.current = [];
- }
+ resetEraserVisuals();
  containerRectRef.current = null;
  twoFingerLastCenterRef.current = null;
  twoFingerLastDistRef.current = null;
@@ -3281,14 +2195,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  drawingReticleRef.current.style.display = 'none';
  }
  if (isErasingRef.current) {
- isErasingRef.current = false;
- lastErasePosRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- eraserStrokePointsRef.current = [];
- erasedAnyInSessionRef.current = false;
+ resetEraserVisuals();
  }
  isPenDrawingRef.current = false;
  isTwoFingerGestureRef.current = false;
@@ -3318,340 +2225,50 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }
  };
 
- // Transform operations for active selection (single or batch)
- const handleSlantSelected = (angleDeg: number) => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? slantSingleContour(c, angleDeg) : c
- );
- onChangeContours(updated);
- onCommitHistory?.();
- };
+  // Transform operations for active selection (extracted to useContourTransforms hook)
+  const {
+    handleSlantSelected,
+    handleRotateSelected,
+    handleScaleSelected,
+    handleFlipHSelected,
+    handleFlipVSelected,
+    handleDuplicateSelected,
+    handleDeleteSelected,
+    handleMergeSelectedContours,
+    handleSubtractSelectedContours,
+    handleIntersectSelectedContours,
+    handleReverseWindingSelected,
+    handleSmoothStrokeAll,
+    handleSmoothStrokeSelected,
+    handleStraightenWobblyAll,
+    handleStraightenWobblySelected,
+    handleSimplifyAll,
+    handleSimplifySelected,
+    handleConvertToCornersSelected,
+    handleConvertToSmoothSelected,
+    handleToggleClosedSelected,
+    handleExpandStrokeSelected,
+  } = useContourTransforms({
+    contours,
+    selectedContourIds,
+    setSelectedContourIds,
+    setSelectedContourId,
+    setSelectedNodeId,
+    setSelectedHandleType,
+    onChangeContours,
+    onCommitHistory,
+    showCanvasToast,
+    smoothStrength,
+    smoothPreserveCorners,
+    penStrokeWidth,
+    penCapStyle,
+    activeBrushPathRef,
+    activeBrushSvgDRef,
+    activeEraserPathRef,
+    activeEraserSvgDRef,
+    brushStrokePointsRef,
+  });
 
- const handleRotateSelected = (angleDeg: number) => {
- if (selectedContourIds.length === 0) return;
- if (selectedContourIds.length === 1) {
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? rotateSingleContour(c, angleDeg) : c
- );
- onChangeContours(updated);
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const rotated = rotateMultipleContours(selected, angleDeg);
- const rotatedMap = new Map(rotated.map((c) => [c.id, c]));
- onChangeContours(contours.map((c) => rotatedMap.get(c.id) || c));
- }
- onCommitHistory?.();
- };
-
- const handleScaleSelected = (factor: number) => {
- if (selectedContourIds.length === 0) return;
- if (selectedContourIds.length === 1) {
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? scaleSingleContour(c, factor, factor) : c
- );
- onChangeContours(updated);
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const scaled = scaleMultipleContours(selected, factor, factor);
- const scaledMap = new Map(scaled.map((c) => [c.id, c]));
- onChangeContours(contours.map((c) => scaledMap.get(c.id) || c));
- }
- onCommitHistory?.();
- };
-
- const handleFlipHSelected = () => {
- if (selectedContourIds.length === 0) return;
- if (selectedContourIds.length === 1) {
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? flipSingleContourH(c) : c
- );
- onChangeContours(updated);
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const flipped = flipMultipleContoursH(selected);
- const flippedMap = new Map(flipped.map((c) => [c.id, c]));
- onChangeContours(contours.map((c) => flippedMap.get(c.id) || c));
- }
- onCommitHistory?.();
- };
-
- const handleFlipVSelected = () => {
- if (selectedContourIds.length === 0) return;
- if (selectedContourIds.length === 1) {
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? flipSingleContourV(c) : c
- );
- onChangeContours(updated);
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const flipped = flipMultipleContoursV(selected);
- const flippedMap = new Map(flipped.map((c) => [c.id, c]));
- onChangeContours(contours.map((c) => flippedMap.get(c.id) || c));
- }
- onCommitHistory?.();
- };
-
- const handleDuplicateSelected = () => {
- if (selectedContourIds.length === 0) return;
- if (selectedContourIds.length === 1) {
- const target = contours.find((c) => c.id === selectedContourIds[0]);
- if (!target) return;
- const dup = duplicateContour(target, 40, 40);
- onChangeContours([...contours, dup]);
- setSelectedContourIds([dup.id]);
- } else {
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const dups = duplicateMultipleContours(selected, 40, 40);
- onChangeContours([...contours, ...dups]);
- setSelectedContourIds(dups.map((d) => d.id));
- }
- onCommitHistory?.();
- };
-
- const handleDeleteSelected = () => {
- if (selectedContourIds.length === 0) return;
- const remaining = contours.filter((c) => !selectedContourIds.includes(c.id));
- if (remaining.length === 0) {
- if (activeBrushPathRef.current) {
- activeBrushPathRef.current.setAttribute('d', '');
- }
- activeBrushSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- activeEraserSvgDRef.current = '';
- brushStrokePointsRef.current = [];
- }
- onChangeContours(remaining);
- setSelectedContourIds([]);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- onCommitHistory?.();
- };
-
- // Merge / Union selected contours into a single path or resolve single-stroke cursive overlaps
- const handleMergeSelectedContours = () => {
- const isExplicit = selectedContourIds.length > 0;
- const targets = isExplicit
- ? contours.filter((c) => selectedContourIds.includes(c.id))
- : contours;
-
- if (targets.length === 0) {
- showCanvasToast('対象となる輪郭がありません');
- return;
- }
-
- const merged = unionContours(targets, 1.2, true);
- if (merged.length === 0) {
- showCanvasToast('重なり白抜き解消に失敗しました');
- return;
- }
-
- const otherContours = isExplicit
- ? contours.filter((c) => !selectedContourIds.includes(c.id))
- : [];
- const newContours = [...otherContours, ...merged];
- onChangeContours(newContours);
- setSelectedContourIds(merged.map((m) => m.id));
- onCommitHistory?.();
-
- if (targets.length === 1) {
- showCanvasToast(
- '一筆書きの交差・重なり白抜きを解消しました',
- '交差ループが融解され、滑らかな単一輪郭になりました'
- );
- } else {
- showCanvasToast(
- `${targets.length}個のパスを結合し、白抜きを解消しました`,
- `重なりが結合され、${merged.length}個の輪郭になりました`
- );
- }
- };
-
- // Boolean Difference (型抜き): Subtract cutter paths from base path
- const handleSubtractSelectedContours = () => {
- if (selectedContourIds.length < 2) {
- showCanvasToast('型抜きには2つ以上のパスを選択してください');
- return;
- }
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const base = [selected[0]];
- const cutters = selected.slice(1);
- const result = booleanSubtractContours(base, cutters);
- if (result.length === 0) {
- showCanvasToast('型抜き結果が空になりました');
- return;
- }
- const other = contours.filter((c) => !selectedContourIds.includes(c.id));
- const updated = [...other, ...result];
- onChangeContours(updated);
- setSelectedContourIds(result.map((r) => r.id));
- onCommitHistory?.();
- showCanvasToast('パスを型抜き（前面で背面を切り抜き）しました');
- };
-
- // Boolean Intersection (交差): Keep only overlapping region
- const handleIntersectSelectedContours = () => {
- if (selectedContourIds.length < 2) {
- showCanvasToast('交差には2つ以上のパスを選択してください');
- return;
- }
- const selected = contours.filter((c) => selectedContourIds.includes(c.id));
- const base = [selected[0]];
- const cutters = selected.slice(1);
- const result = booleanIntersectContours(base, cutters);
- if (result.length === 0) {
- showCanvasToast('交差部分がありませんでした');
- return;
- }
- const other = contours.filter((c) => !selectedContourIds.includes(c.id));
- const updated = [...other, ...result];
- onChangeContours(updated);
- setSelectedContourIds(result.map((r) => r.id));
- onCommitHistory?.();
- showCanvasToast('パスの交差重なり部分を抽出しました');
- };
-
- // Reverse / Flip Winding Order (時計回り ⇄ 反時計回り) to fix transparent overlaps or create holes
- const handleReverseWindingSelected = () => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) => {
- if (!selectedContourIds.includes(c.id)) return c;
- return reverseContour(c);
- });
- onChangeContours(updated);
- onCommitHistory?.();
- showCanvasToast(
- '輪郭の向き（回転方向）を反転しました',
- '重なりが白抜き/黒塗りに反転します'
- );
- };
-
-
-
- // Shape-Preserving Stroke Smoothing & Anchor Point Reduction
- const handleSmoothStrokeSelected = (
- level: 'mild' | 'standard' | 'strong' = smoothStrength,
- preserveCorners: boolean = smoothPreserveCorners
- ) => {
- if (selectedContourIds.length === 0) {
- handleSmoothStrokeAll(level, preserveCorners);
- return;
- }
- const updated = contours.map((c) => {
- if (!selectedContourIds.includes(c.id)) return c;
- return smoothStrokeContour(c, { level, preserveCorners }).contour;
- });
- onChangeContours(updated);
- onCommitHistory?.();
-
- const levelName = level === 'mild' ? 'マイルド' : level === 'strong' ? '強力' : '標準';
- showCanvasToast(
- `選択パスを平滑化 (${levelName})`,
- `${selectedContourIds.length}個のパスのアンカーポイント最適化完了`
- );
- };
-
- const handleSmoothStrokeAll = (
- level: 'mild' | 'standard' | 'strong' = smoothStrength,
- preserveCorners: boolean = smoothPreserveCorners
- ) => {
- if (contours.length === 0) return;
- const result = smoothContoursPreservingShape(contours, { level, preserveCorners });
- onChangeContours(result.contours);
- onCommitHistory?.();
-
- const levelName = level === 'mild' ? 'マイルド' : level === 'strong' ? '強力' : '標準';
- showCanvasToast(
- `全ストロークを一括平滑化 (${levelName})`,
- `全パーツ合計: ${result.totalOriginalPoints}点 → ${result.totalReducedPoints}点 (-${result.totalReductionPercent}% 削減)`
- );
- };
-
- // 1-Click Straighten & De-wobble wobbly strokes
- const handleStraightenWobblySelected = () => {
- if (selectedContourIds.length === 0) {
- handleStraightenWobblyAll();
- return;
- }
- const updated = contours.map((c) => {
- if (!selectedContourIds.includes(c.id)) return c;
- return straightenWobblyContour(c);
- });
- onChangeContours(updated);
- onCommitHistory?.();
- showCanvasToast('選択パスの歪み・うねりを直線化補正しました', `${selectedContourIds.length}個のパーツ`);
- };
-
- const handleStraightenWobblyAll = () => {
- if (contours.length === 0) return;
- const updated = contours.map((c) => straightenWobblyContour(c));
- onChangeContours(updated);
- onCommitHistory?.();
- showCanvasToast('全ストロークの歪み・うねりを直線化補正しました', `${contours.length}個のパーツ`);
- };
-
- // Path Simplification & Curvature Conversions
- const handleSimplifyAll = (tolerance: number = 6) => {
- if (contours.length === 0) return;
- const simplified = contours.map((c) => simplifyContour(c, tolerance));
- onChangeContours(simplified);
- onCommitHistory?.();
- };
-
- const handleSimplifySelected = (tolerance: number = 6) => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? simplifyContour(c, tolerance) : c
- );
- onChangeContours(updated);
- onCommitHistory?.();
- };
-
- const handleConvertToCornersSelected = () => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? convertContourToCorners(c) : c
- );
- onChangeContours(updated);
- onCommitHistory?.();
- };
-
- const handleConvertToSmoothSelected = () => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? convertContourToSmooth(c) : c
- );
- onChangeContours(updated);
- onCommitHistory?.();
- };
-
- const handleToggleClosedSelected = () => {
- if (selectedContourIds.length === 0) return;
- const updated = contours.map((c) =>
- selectedContourIds.includes(c.id) ? { ...c, closed: !c.closed } : c
- );
- onChangeContours(updated);
- onCommitHistory?.();
- };
-
- const handleExpandStrokeSelected = () => {
- if (selectedContourIds.length === 0) return;
- const targetContours = contours.filter((c) => selectedContourIds.includes(c.id));
- const nonTargetContours = contours.filter((c) => !selectedContourIds.includes(c.id));
- const expanded = expandStrokeContours(targetContours, penStrokeWidth, penCapStyle);
- if (expanded && expanded.length > 0) {
- onChangeContours([...nonTargetContours, ...expanded]);
- setSelectedContourIds(expanded.map((e) => e.id));
- setSelectedContourId(expanded[0].id);
- onCommitHistory?.();
- showCanvasToast(
- `選択パスを太さ ${penStrokeWidth}px の線輪郭に変換しました`,
- `${expanded.length} 個の輪郭 (端点: ${penCapStyle === 'round' ? '丸' : penCapStyle === 'butt' ? '平' : '角'})`
- );
- }
- };
 
 
  // Memoized SVG Paths using WeakMap cache so panning, zooming, and adding new strokes do not recalculate existing complex curves
@@ -3659,10 +2276,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  if (!contours || contours.length === 0) return '';
  return contours.map(getCachedContourSvgPath).join(' ');
  }, [contours]);
- const penSvgPath = useMemo(
- () => (activePenContour ? contoursToSvgPath([activePenContour]) : ''),
- [activePenContour]
- );
  const contourSvgMap = useMemo(() => {
  const map = new Map<string, string>();
  for (const c of contours) {
@@ -4163,90 +2776,25 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  />
 
  {/* ---------------- INTERACTIVE CONTOUR HIT & SELECTION STROKES ---------------- */}
- {contours.map((contour) => {
- const isSelected = selectedContourIds.includes(contour.id);
- const pathD = contourSvgMap.get(contour.id) || contoursToSvgPath([contour]);
- return (
- <path
- key={`contour-hit-${contour.id}`}
- d={pathD}
- fill="transparent"
- stroke={isSelected ? selectionColor : 'transparent'}
- strokeWidth={isSelected ? Math.max(2, 2.5 / zoom) : Math.max(14, 18 / zoom)}
- strokeDasharray={isSelected ? '6 4' : undefined}
- className={toolMode === 'select' || toolMode === 'node' ? 'cursor-pointer' : 'pointer-events-none'}
- pointerEvents={toolMode === 'select' ? 'stroke fill' : toolMode === 'node' ? 'stroke' : 'none'}
- onPointerDown={(e) => {
- if (toolMode === 'node') {
- e.stopPropagation();
- const clickPos = screenToCanvas(e.clientX, e.clientY);
- const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
- if (insertResult) {
- const newContours = contours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
- onChangeContours(newContours);
- setSelectedContourId(contour.id);
- setSelectedContourIds([contour.id]);
- setSelectedNodeId(insertResult.newNodeId);
- setSelectedHandleType('node');
- const insertedNode = insertResult.updatedContour.nodes.find((n) => n.id === insertResult.newNodeId);
- if (insertedNode) {
-  nodeDragSessionRef.current = {
-   contourId: contour.id,
-   nodeId: insertResult.newNodeId,
-   handleType: 'node',
-   startPos: clickPos,
-   initialNode: { ...insertedNode },
-   initialContour: { ...insertResult.updatedContour },
-  };
-  try {
-   (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-  } catch {
-   // Ignored
-  }
- }
- onCommitHistory?.();
- showCanvasToast('頂点を追加しました', 'ドラッグして位置を調整できます');
- return;
- }
- setSelectedContourId(contour.id);
- setSelectedContourIds([contour.id]);
- return;
- }
- if (toolMode === 'select') {
- e.stopPropagation();
- if (e.shiftKey) {
- setSelectedContourIds((prev) =>
- prev.includes(contour.id)
- ? prev.filter((id) => id !== contour.id)
- : [...prev, contour.id]
- );
- } else {
- const nextIds =
- selectedContourIds.includes(contour.id) && selectedContourIds.length > 1
- ? selectedContourIds
- : [contour.id];
- setSelectedContourIds(nextIds);
- setSelectedContourId(contour.id);
- handleTransformPointerDown(e, 'move', nextIds);
- }
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- }
- }}
- onDoubleClick={(e) => {
- e.stopPropagation();
- if (onSetToolMode) {
- onSetToolMode('node');
- }
- setSelectedContourId(contour.id);
- setSelectedContourIds([contour.id]);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- showCanvasToast('ノード編集モードに切り替えました', 'アンカーポイントとハンドルを直接編集できます');
- }}
+ <InteractiveContourHitLayer
+  contours={contours}
+  selectedContourIds={selectedContourIds}
+  contourSvgMap={contourSvgMap}
+  selectionColor={selectionColor}
+  zoom={zoom}
+  toolMode={toolMode}
+  screenToCanvas={screenToCanvas}
+  onChangeContours={onChangeContours}
+  setSelectedContourId={setSelectedContourId}
+  setSelectedContourIds={setSelectedContourIds}
+  setSelectedNodeId={setSelectedNodeId}
+  setSelectedHandleType={setSelectedHandleType}
+  nodeDragSessionRef={nodeDragSessionRef}
+  onCommitHistory={onCommitHistory}
+  showCanvasToast={showCanvasToast}
+  handleTransformPointerDown={handleTransformPointerDown}
+  onSetToolMode={onSetToolMode}
  />
- );
- })}
 
  {/* Marquee Selection Box */}
  {marqueeSelection && (
@@ -4263,37 +2811,14 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  />
  )}
 
- {/* Active Pen Path in-progress */}
- {penSvgPath && (
- <path
- d={penSvgPath}
- fill="none"
- stroke="#38bdf8"
- strokeWidth={2}
- strokeDasharray="4 2"
- />
- )}
-
- {/* Rubber band line to mouse for Pen */}
- {toolMode === 'pen' && activePenContour && penMousePos && activePenContour.nodes.length > 0 && (
- <line
- x1={activePenContour.nodes[activePenContour.nodes.length - 1].x}
- y1={activePenContour.nodes[activePenContour.nodes.length - 1].y}
- x2={penMousePos.x}
- y2={penMousePos.y}
- stroke="#0284c7"
- strokeWidth={1.5}
- strokeDasharray="3 3"
- />
- )}
 
  {/* Active Brush Stroke in-progress (Hardware-accelerated live path) */}
  <path
  ref={activeBrushPathRef}
- d={activeBrushSvgDRef.current || ''}
+            d=""
  fill={isOutlineMode ? 'none' : inkFillColor}
- stroke={isOutlineMode ? (isLight ? '#0284c7' : '#38bdf8') : inkStrokeColor}
- strokeWidth={1.5}
+          stroke={isOutlineMode ? (isLight ? '#0284c7' : '#38bdf8') : 'none'}
+          strokeWidth={isOutlineMode ? 1.5 : 0}
  vectorEffect={isOutlineMode ? 'non-scaling-stroke' : undefined}
  fillRule="nonzero"
  pointerEvents="none"
@@ -4313,11 +2838,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  />
 
  {/* Active Shape in-progress */}
- {isShapeTool && shapeStartPoint && shapeCurrentPoint && (
+ {isShapeTool && activeShapeContours.length > 0 && (
  <path
- d={contoursToSvgPath(
- getShapeContoursFromPoints(toolMode, shapeStartPoint, shapeCurrentPoint)
- )}
+ d={contoursToSvgPath(activeShapeContours)}
  fill={isOutlineMode ? 'none' : '#f59e0b'}
  fillOpacity={isOutlineMode ? 0 : 0.35}
  stroke="#f59e0b"
@@ -4380,391 +2903,19 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
               selectionColor={selectionColor}
             />
 
- {/* ---------------- HIGH-CONTRAST CURSOR CROSSHAIR OVERLAY ---------------- */}
- {gridSettings.showCursorCrosshair && hoverCanvasPos && toolMode !== 'brush' && (
- <g className="canvas-cursor-crosshair pointer-events-none select-none">
- {/* Horizontal full line with dual-tone white/dark contrast */}
- <line
- x1={-300}
- y1={hoverCanvasPos.y}
- x2={1300}
- y2={hoverCanvasPos.y}
- stroke="#ffffff"
- strokeWidth={2.5 / zoom}
- strokeOpacity={0.6}
- />
- <line
- x1={-300}
- y1={hoverCanvasPos.y}
- x2={1300}
- y2={hoverCanvasPos.y}
- stroke="#059669"
- strokeWidth={1.2 / zoom}
- strokeDasharray="4 3"
- />
-
- {/* Vertical full line with dual-tone white/dark contrast */}
- <line
- x1={hoverCanvasPos.x}
- y1={-300}
- x2={hoverCanvasPos.x}
- y2={1300}
- stroke="#ffffff"
- strokeWidth={2.5 / zoom}
- strokeOpacity={0.6}
- />
- <line
- x1={hoverCanvasPos.x}
- y1={-300}
- x2={hoverCanvasPos.x}
- y2={1300}
- stroke="#059669"
- strokeWidth={1.2 / zoom}
- strokeDasharray="4 3"
- />
-
- {/* Central Target Reticle Ring */}
- <circle
- cx={hoverCanvasPos.x}
- cy={hoverCanvasPos.y}
- r={12 / zoom}
- fill="none"
- stroke="#ffffff"
- strokeWidth={2.5 / zoom}
- />
- <circle
- cx={hoverCanvasPos.x}
- cy={hoverCanvasPos.y}
- r={12 / zoom}
- fill="rgba(16, 185, 129, 0.1)"
- stroke={selectionColor}
- strokeWidth={1.5 / zoom}
- />
- <circle
- cx={hoverCanvasPos.x}
- cy={hoverCanvasPos.y}
- r={2.5 / zoom}
- fill="#ffffff"
- />
- <circle
- cx={hoverCanvasPos.x}
- cy={hoverCanvasPos.y}
- r={1.5 / zoom}
- fill={selectionColor}
- />
- </g>
- )}
-
- {/* ---------------- HARDWARE-ACCELERATED BRUSH DRAWING RETICLE (0ms DIRECT GPU DOM TRACKING) ---------------- */}
- {toolMode === 'brush' && gridSettings.showCursorCrosshair && (
- <g
- ref={drawingReticleRef}
- id="live-drawing-reticle"
- className="brush-drawing-reticle pointer-events-none select-none"
- style={{ display: 'none' }}
- >
- {/* Outer high-contrast white backing circle */}
- <circle
- cx={0}
- cy={0}
- r={Math.max(4, brushWidth / 2)}
- fill="rgba(16, 185, 129, 0.08)"
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- />
- {/* Inner high-contrast emerald precision ring */}
- <circle
- cx={0}
- cy={0}
- r={Math.max(4, brushWidth / 2)}
- fill="none"
- stroke="#059669"
- strokeWidth={1.5 / zoom}
- />
-
- {/* 4 Cardinal Crosshair Ticks across brush boundary */}
- {/* Top tick */}
- <line
- x1={0}
- y1={-Math.max(4, brushWidth / 2) - 5 / zoom}
- x2={0}
- y2={-Math.max(4, brushWidth / 2) + 5 / zoom}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- <line
- x1={0}
- y1={-Math.max(4, brushWidth / 2) - 5 / zoom}
- x2={0}
- y2={-Math.max(4, brushWidth / 2) + 5 / zoom}
- stroke="#059669"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
-
- {/* Bottom tick */}
- <line
- x1={0}
- y1={Math.max(4, brushWidth / 2) - 5 / zoom}
- x2={0}
- y2={Math.max(4, brushWidth / 2) + 5 / zoom}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- <line
- x1={0}
- y1={Math.max(4, brushWidth / 2) - 5 / zoom}
- x2={0}
- y2={Math.max(4, brushWidth / 2) + 5 / zoom}
- stroke="#059669"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
-
- {/* Left tick */}
- <line
- x1={-Math.max(4, brushWidth / 2) - 5 / zoom}
- y1={0}
- x2={-Math.max(4, brushWidth / 2) + 5 / zoom}
- y2={0}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- <line
- x1={-Math.max(4, brushWidth / 2) - 5 / zoom}
- y1={0}
- x2={-Math.max(4, brushWidth / 2) + 5 / zoom}
- y2={0}
- stroke="#059669"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
-
- {/* Right tick */}
- <line
- x1={Math.max(4, brushWidth / 2) - 5 / zoom}
- y1={0}
- x2={Math.max(4, brushWidth / 2) + 5 / zoom}
- y2={0}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- <line
- x1={Math.max(4, brushWidth / 2) - 5 / zoom}
- y1={0}
- x2={Math.max(4, brushWidth / 2) + 5 / zoom}
- y2={0}
- stroke="#059669"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
-
- {/* Center Target Dot: White Outer Ring + Emerald Center */}
- <circle
- cx={0}
- cy={0}
- r={3.2 / zoom}
- fill="#ffffff"
- />
- <circle
- cx={0}
- cy={0}
- r={1.8 / zoom}
- fill="#059669"
- />
-
- {/* Floating brush size tag badge above cursor */}
- {brushWidth >= 20 && (
- <g transform={`translate(0, ${-Math.max(4, brushWidth / 2) - 13 / zoom})`}>
- <rect
- x={-28 / zoom}
- y={-9 / zoom}
- width={56 / zoom}
- height={16 / zoom}
- rx={8 / zoom}
- fill="#0f172a"
- stroke="#ffffff"
- strokeWidth={1.5 / zoom}
- opacity={0.9}
- />
- <text
- x={0}
- y={0}
- textAnchor="middle"
- dominantBaseline="central"
- fill="#ffffff"
- fontSize={9 / zoom}
- fontWeight="bold"
- fontFamily="system-ui, -apple-system, sans-serif"
- >
- {brushWidth}px
- </text>
- </g>
- )}
- </g>
- )}
-
- {/* ---------------- HARDWARE-ACCELERATED ERASER RETICLE (0ms DIRECT GPU DOM TRACKING) ---------------- */}
- {toolMode === 'eraser' && gridSettings.showCursorCrosshair && (
- <g
- ref={eraserReticleRef}
- id="live-eraser-reticle"
- className="eraser-sweep-reticle pointer-events-none select-none"
- style={{ display: 'none' }}
- >
- {eraserMode === 'node' ? (
- /* Specialized Anchor Point Eraser (アンカー点消去) Pointer */
- <g className="anchor-eraser-pointer">
- {/* Outer glow & deletion boundary circle */}
- <circle
- cx={0}
- cy={0}
- r={eraserSize / 2}
- fill="rgba(244, 63, 94, 0.12)"
- stroke="#ffffff"
- strokeWidth={3 / zoom}
- />
- {/* Inner high-contrast dashed ring */}
- <circle
- cx={0}
- cy={0}
- r={eraserSize / 2}
- fill="none"
- stroke="#e11d48"
- strokeWidth={1.8 / zoom}
- strokeDasharray={`${5 / zoom} ${3 / zoom}`}
- />
-
- {/* High-contrast precision crosshair lines */}
- {/* Horizontal white backing */}
- <line
- x1={-eraserSize / 2 - 6 / zoom}
- y1={0}
- x2={eraserSize / 2 + 6 / zoom}
- y2={0}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- {/* Horizontal rose crosshair */}
- <line
- x1={-eraserSize / 2 - 6 / zoom}
- y1={0}
- x2={eraserSize / 2 + 6 / zoom}
- y2={0}
- stroke="#e11d48"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
- {/* Vertical white backing */}
- <line
- x1={0}
- y1={-eraserSize / 2 - 6 / zoom}
- x2={0}
- y2={eraserSize / 2 + 6 / zoom}
- stroke="#ffffff"
- strokeWidth={2.8 / zoom}
- strokeLinecap="round"
- />
- {/* Vertical rose crosshair */}
- <line
- x1={0}
- y1={-eraserSize / 2 - 6 / zoom}
- x2={0}
- y2={eraserSize / 2 + 6 / zoom}
- stroke="#e11d48"
- strokeWidth={1.4 / zoom}
- strokeLinecap="round"
- />
-
- {/* Center Node Target Diamond/Box */}
- <rect
- x={-4 / zoom}
- y={-4 / zoom}
- width={8 / zoom}
- height={8 / zoom}
- fill="#ffffff"
- stroke="#0f172a"
- strokeWidth={1.5 / zoom}
- rx={1 / zoom}
- />
- {/* Minus / Delete symbol inside center diamond */}
- <line
- x1={-2 / zoom}
- y1={0}
- x2={2 / zoom}
- y2={0}
- stroke="#e11d48"
- strokeWidth={1.5 / zoom}
- strokeLinecap="round"
- />
-
- {/* Floating Tag Badge Above Cursor */}
- <g transform={`translate(0, ${-eraserSize / 2 - 14 / zoom})`}>
- <rect
- x={-58 / zoom}
- y={-10 / zoom}
- width={116 / zoom}
- height={18 / zoom}
- rx={9 / zoom}
- fill="#0f172a"
- stroke="#ffffff"
- strokeWidth={1.5 / zoom}
- opacity={0.95}
- />
- <text
- x={0}
- y={0}
- textAnchor="middle"
- dominantBaseline="central"
- fill="#ffffff"
- fontSize={10 / zoom}
- fontWeight="bold"
- fontFamily="system-ui, -apple-system, sans-serif"
- >
- ⌖ アンカー消去 ({eraserSize}px)
- </text>
- </g>
- </g>
- ) : (
- /* Stroke / Cut Standard Eraser Pointer */
- <g className="standard-eraser-pointer">
- {/* Outer high-contrast ring */}
- <circle
- cx={0}
- cy={0}
- r={eraserSize / 2}
- fill="rgba(239, 68, 68, 0.16)"
- stroke="#ffffff"
- strokeWidth={2.5 / zoom}
- />
- {/* Inner dashed red circle */}
- <circle
- cx={0}
- cy={0}
- r={eraserSize / 2}
- fill="none"
- stroke="#ef4444"
- strokeWidth={1.8 / zoom}
- strokeDasharray={`${4 / zoom} ${3 / zoom}`}
- />
- {/* Center point */}
- <circle
- cx={0}
- cy={0}
- r={2.5 / zoom}
- fill="#ef4444"
- stroke="#ffffff"
- strokeWidth={1 / zoom}
- />
- </g>
- )}
- </g>
- )}
+            {/* ---------------- HIGH-CONTRAST CURSOR CROSSHAIR & DRAWING RETICLES ---------------- */}
+            <CursorReticleOverlay
+              gridSettings={gridSettings}
+              hoverCanvasPos={hoverCanvasPos}
+              toolMode={toolMode}
+              zoom={zoom}
+              selectionColor={selectionColor}
+              drawingReticleRef={drawingReticleRef}
+              eraserReticleRef={eraserReticleRef}
+              brushWidth={brushWidth}
+              eraserMode={eraserMode}
+              eraserSize={eraserSize}
+            />
 
             {/* ---------------- ACTIVE SMART SNAP GUIDELINES (BASELINE, LSB, METRICS, OTHER CONTOURS) ---------------- */}
             <SmartSnapGuidesLayer

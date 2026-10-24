@@ -279,28 +279,28 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
           }`}
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <div
-              className={`p-1.5 rounded-lg ${
+              className={`p-1.5 rounded-lg shrink-0 ${
                 isLight ? 'bg-amber-100 text-amber-900' : 'bg-emerald-950 text-emerald-300'
               }`}
             >
               <Sparkles className="w-4 h-4" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2
-                className={`text-sm font-bold tracking-wide flex items-center space-x-2 ${
+                className={`text-xs sm:text-sm font-bold tracking-wide flex items-center gap-2 ${
                   isLight ? 'text-emerald-950' : 'text-emerald-200'
                 }`}
               >
-                <span>最終調整・フォントサイズ＆品質一括統一スタジオ</span>
+                <span className="truncate">フォントサイズ・品質一括調整</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
-                    全画面モード
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                    全画面
                   </span>
                 )}
               </h2>
-              <p className={`text-[10px] ${isLight ? 'text-stone-500' : 'text-emerald-400/80'}`}>
+              <p className={`text-[10px] truncate ${isLight ? 'text-stone-500' : 'text-emerald-400/80'}`}>
                 文字の大きさ、送り幅、余白バランス、ベジェ点数の軽量化を一括自動調整
               </p>
             </div>
@@ -411,7 +411,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             {/* Scope Selection (7 cols) */}
             <div className="sm:col-span-7 space-y-2.5">
               <label className="font-semibold block text-xs">① 処理対象の文字グループ</label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {[
                   { id: 'all', label: '全文字一括', desc: '全体を均一に' },
                   { id: 'hiragana', label: 'ひらがな', desc: 'かな文字のみ' },
@@ -423,7 +423,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
                   <button
                     key={s.id}
                     onClick={() => setScope(s.id as TargetScope)}
-                    className={`p-2 rounded border text-left flex flex-col transition-all ${
+                    className={`p-2 rounded border text-left flex flex-col min-w-0 transition-all ${
                       scope === s.id
                         ? isLight
                           ? 'bg-emerald-100/70 border-emerald-600 text-emerald-950 font-bold '
@@ -433,8 +433,8 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
                         : 'bg-[#101813] border-[#25362b] text-emerald-300/80 hover:bg-[#18231c]'
                     }`}
                   >
-                    <span className="text-xs">{s.label}</span>
-                    <span className="text-[9px] opacity-70">{s.desc}</span>
+                    <span className="text-xs truncate w-full">{s.label}</span>
+                    <span className="text-[9px] opacity-70 truncate w-full">{s.desc}</span>
                   </button>
                 ))}
               </div>
@@ -463,11 +463,11 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
               {[
-                { id: 'standard', label: '標準和文 (820px)', sub: '推奨バランス' },
+                { id: 'standard', label: '標準 (820px)', sub: '推奨バランス' },
                 { id: 'large', label: '大振り (890px)', sub: '見出し・漢字' },
-                { id: 'kana', label: 'かな向け (780px)', sub: '適度な字間' },
+                { id: 'kana', label: 'かな (780px)', sub: '適度な字間' },
                 { id: 'compact', label: '小振り (740px)', sub: '長文・本文' },
                 { id: 'custom', label: 'カスタム', sub: '自由指定' },
               ].map((p) => (
@@ -478,7 +478,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
                       handlePresetChange(p.id);
                     }
                   }}
-                  className={`p-2 rounded border text-center transition-all ${
+                  className={`p-2 rounded border text-center flex flex-col justify-center items-center min-w-0 transition-all ${
                     sizePreset === p.id
                       ? isLight
                         ? 'bg-emerald-800 text-white font-bold'
@@ -488,8 +488,8 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
                       : 'bg-[#18231c] border-[#25362b] text-emerald-300 hover:bg-[#202d24]'
                   }`}
                 >
-                  <div className="text-[11px]">{p.label}</div>
-                  <div className="text-[9px] opacity-75">{p.sub}</div>
+                  <div className="text-[11px] truncate w-full">{p.label}</div>
+                  <div className="text-[9px] opacity-75 truncate w-full">{p.sub}</div>
                 </button>
               ))}
             </div>
@@ -731,14 +731,14 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
           <button
             onClick={handleApplyBatch}
- className={`px-5 py-2 rounded-lg font-bold text-xs flex items-center space-x-1.5 active:scale-95 transition-all ${
+            className={`px-4 sm:px-5 py-2 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-all min-w-0 ${
               isLight
                 ? 'bg-emerald-800 hover:bg-emerald-700 text-white'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold'
             }`}
           >
-            <Sparkles className="w-4 h-4 fill-current" />
-            <span>対象 {targetGlyphs.length} 文字に一括適用する</span>
+            <Sparkles className="w-4 h-4 fill-current shrink-0" />
+            <span className="truncate">対象 {targetGlyphs.length} 文字に一括適用</span>
           </button>
         </div>
       </div>

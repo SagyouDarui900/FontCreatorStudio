@@ -82,7 +82,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  }`}
  >
  <SIcon className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
- <span className="truncate">{shape.label.split(' ')[0]}</span>
+ <span className="truncate min-w-0 flex-1">{shape.label.split(' ')[0]}</span>
  </button>
  );
  })}
@@ -118,7 +118,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  }`}
  >
  <SIcon className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
- <span className="truncate">{shape.label.split(' ')[0]}</span>
+ <span className="truncate min-w-0 flex-1">{shape.label.split(' ')[0]}</span>
  </button>
  );
  })}
@@ -154,7 +154,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  }`}
  >
  <SIcon className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
- <span className="truncate">{shape.label.split(' ')[0]}</span>
+ <span className="truncate min-w-0 flex-1">{shape.label.split(' ')[0]}</span>
  </button>
  );
  })}

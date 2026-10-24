@@ -229,17 +229,17 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18231c] border-[#233327]'
  }`}
  >
- <div className="flex items-center space-x-2.5">
+ <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
  <div
- className={`p-2 rounded-xl flex items-center justify-center ${
+ className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${
  isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-900/60 text-emerald-300'
  }`}
  >
  <BookOpen className="w-5 h-5" />
  </div>
- <div>
- <h2 className="text-base font-bold tracking-tight flex items-center space-x-2">
- <span>FontCreator 説明書 & ガイド</span>
+ <div className="min-w-0 flex-1">
+ <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2 min-w-0">
+ <span className="truncate">FontCreator 説明書 & ガイド</span>
  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-normal bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  v2.0
  </span>
@@ -643,21 +643,21 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  filteredShortcuts.map((item, idx) => (
  <div
  key={idx}
- className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-colors ${
+ className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-xl border text-xs transition-colors ${
  isLight
  ? 'bg-stone-50/50 hover:bg-stone-50 border-stone-200/80'
  : 'bg-[#18241d]/50 hover:bg-[#18241d] border-[#25362b]'
  }`}
  >
- <div className="flex items-center space-x-2 min-w-0 pr-2">
- <span className="truncate">{item.description}</span>
+ <div className="flex items-center space-x-2 min-w-0 pr-1">
+ <span className="jp-wrap">{item.description}</span>
  {item.badge && (
  <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono shrink-0 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  {item.badge}
  </span>
  )}
  </div>
- <div className="flex items-center space-x-1 shrink-0">
+ <div className="flex items-center flex-wrap gap-1 shrink-0 self-start sm:self-auto">
  {item.keys.map((k, kIdx) => (
  <kbd
  key={kIdx}

@@ -112,13 +112,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   }, []);
 
   const getProcessedBrushContour = useCallback(
-    (pts: StrokePoint[], isFinalize: boolean = false) => {
-      let strokePts = pts;
-      // 描画中のプレビュー時は軽量化してフレームレート（60/120fps）を最大化
-      if (!isFinalize && pts.length > 80) {
-        strokePts = getDecimatedPointsForLivePreview(pts);
-      }
-
+    (pts: StrokePoint[], _isFinalize: boolean = false) => {
       // 手ブレ補正設定に応じた平滑化強度を適用
       const effectiveSmoothing = autoSmoothBrush
         ? smoothStrength === 'strong'
@@ -129,7 +123,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         : smoothingIntensity;
 
       const rawContour = strokePointsToOutline(
-        strokePts,
+        pts,
         brushWidth,
         brushStyle,
         true,
@@ -155,35 +149,11 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
   const getLivePreviewSvgPath = useCallback(
     (pts: StrokePoint[]): string => {
-      const effectiveSmoothing = autoSmoothBrush
-        ? smoothStrength === 'strong'
-          ? Math.max(82, smoothingIntensity)
-          : smoothStrength === 'standard'
-          ? Math.max(62, smoothingIntensity)
-          : Math.max(40, smoothingIntensity)
-        : smoothingIntensity;
-
-      return generateFastStrokeSvgPath(
-        pts,
-        brushWidth,
-        brushStyle,
-        true,
-        pressureSensitivity,
-        pressureCurve,
-        effectiveSmoothing,
-        { customPreset: activePenPreset || undefined }
-      );
+      if (!pts || pts.length === 0) return '';
+      const contour = getProcessedBrushContour(pts, false);
+      return contoursToSvgPath([contour]);
     },
-    [
-      brushWidth,
-      brushStyle,
-      pressureSensitivity,
-      pressureCurve,
-      smoothingIntensity,
-      autoSmoothBrush,
-      smoothStrength,
-      activePenPreset,
-    ]
+    [getProcessedBrushContour]
   );
 
   const handleBrushPointerDown = useCallback(
@@ -231,7 +201,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         brushStrokePointsRef.current = [
           { x: pos.x, y: pos.y, pressure: pres, time: Date.now(), pointerType: e.pointerType },
         ];
-        // 初期タップ瞬間には画面に巨大な丸をプレビュー表示せず、動いた時または描画確定時に表示
+        activeBrushSvgDRef.current = '';
         if (activeBrushPathRef.current) {
           activeBrushPathRef.current.setAttribute('d', '');
         }
@@ -506,6 +476,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       if (activeBrushPathRef.current) {
         activeBrushPathRef.current.setAttribute('d', '');
       }
+      activeBrushSvgDRef.current = '';
       const pts = brushStrokePointsRef.current;
       brushStrokePointsRef.current = [];
 

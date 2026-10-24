@@ -664,13 +664,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
  : 'bg-emerald-950/40 hover:bg-emerald-900/50 border-emerald-800/60 text-emerald-200'
  }`}
  >
- <div className="flex items-center space-x-2.5">
+ <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
  <Download className="w-4 h-4" />
  </div>
- <div>
- <div className="text-xs font-bold">フォントを出力 (TTF / OTF)</div>
- <div className="text-[10.5px] text-stone-500 dark:text-emerald-300/80">
+ <div className="min-w-0 flex-1">
+ <div className="text-xs font-bold truncate">フォントを出力 (TTF / OTF)</div>
+ <div className="text-[10.5px] text-stone-500 dark:text-emerald-300/80 jp-wrap leading-tight">
  インストール用・ダウンロード用フォントファイルの書き出し
  </div>
  </div>
@@ -697,16 +697,16 @@ export const Header: React.FC<HeaderProps> = React.memo(({
  : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
  }`}
  >
- <div className="flex items-center space-x-2">
+ <div className="flex items-center space-x-2 min-w-0 flex-1 mr-2">
  <SlidersHorizontal className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
- <div>
- <div className="text-xs font-bold">メトリクスパネル</div>
- <div className="text-[10px] text-stone-500 dark:text-stone-400">
+ <div className="min-w-0 flex-1">
+ <div className="text-xs font-bold truncate">メトリクスパネル</div>
+ <div className="text-[10px] text-stone-500 dark:text-stone-400 jp-wrap leading-tight">
  {showMetricsDrawer ? '表示中 (タップで閉じる)' : '文字枠・送り幅の調整'}
  </div>
  </div>
  </div>
- <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+ <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
  {showMetricsDrawer ? '閉じる' : '開く ➔'}
  </span>
  </button>

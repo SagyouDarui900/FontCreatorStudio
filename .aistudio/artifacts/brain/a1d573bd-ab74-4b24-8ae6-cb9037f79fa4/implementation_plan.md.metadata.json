@@ -1,6 +1,6 @@
 {
-  "summary": "肥大化ファイルの段階的分割作業の完了報告。stroke.ts（4,609行）の7モジュール化、ToolBar.tsx（2,152行）の3ボトムシート分離、GlyphCanvas.tsx（8,700行超から4,970行へ）の分離により、合計9,130行以上のコードをクリーンな責務別モジュールへ安全に移行。全テスト・ビルド成功。",
-  "updatedAt": "2026-10-20T07:29:53.076907894Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "UIテキストのはみ出し・不自然な改行の包括的修正計画。既存の機能・ロジックを100%維持しながら、index.cssのボタン一律nowrap解除、Header/ToolBar/各種Modal/サイドパネルのmin-w-0および日本語折り返し（line-break: strict / break-word）の体系的適用計画。",
+  "updatedAt":  "2026-10-24T07:37:43.813980728Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

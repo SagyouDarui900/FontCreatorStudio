@@ -347,7 +347,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   <span className="font-bold text-sm">.TTF (TrueType)</span>
                   {format === 'ttf' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                 </div>
-                <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed break-words">
+                <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed jp-wrap">
                   AviUtl2、Premiere、Windows、Mac、iPad、Android全対応（最も確実）
                 </p>
               </button>
@@ -369,7 +369,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   <span className="font-bold text-sm">.OTF (OpenType)</span>
                   {format === 'otf' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                 </div>
-                <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed break-words">
+                <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed jp-wrap">
                   InDesign、Illustrator等のDTP・グラフィックデザインソフト向け
                 </p>
               </button>
@@ -394,7 +394,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               </span>
             </div>
 
-            <p className="text-[11px] opacity-80 leading-relaxed">
+            <p className="text-[11px] opacity-80 leading-relaxed jp-wrap">
               キャンバス上の下絵（手本フォント）や字面枠に合わせて描いた場合は、<strong>「原寸のまま (100%)」</strong>を選ぶとキャンバスの見た目と全く同じ位置・サイズで正確に出力されます。キャンバス上で小さめに描いた文字を市販フォント同等の大粒サイズに自動拡大したい場合は「和文拡大 (135%)」をお選びください。
             </p>
 
@@ -402,7 +402,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSizePreset('raw')}
-                className={`p-2.5 rounded-lg border text-center transition-all ${
+                className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
                   sizePreset === 'raw'
                     ? isLight
                       ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -419,7 +419,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSizePreset('standard_jp')}
-                className={`p-2.5 rounded-lg border text-center transition-all ${
+                className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
                   sizePreset === 'standard_jp'
                     ? isLight
                       ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -436,7 +436,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 type="button"
                 onClick={() => setSizePreset('custom')}
-                className={`p-2.5 rounded-lg border text-center transition-all ${
+                className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
                   sizePreset === 'custom'
                     ? isLight
                       ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'

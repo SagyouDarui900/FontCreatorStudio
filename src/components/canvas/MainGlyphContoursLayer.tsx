@@ -115,8 +115,7 @@ export const MainGlyphContoursLayer: React.FC<MainGlyphContoursLayerProps> = Rea
             d={group.d}
             fill={fillColor}
             fillRule={group.fillRule}
-            stroke={strokeColor}
-            strokeWidth={1.5}
+            stroke="none"
           />
         ))}
       </g>

@@ -287,17 +287,17 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
           }`}
         >
-          <div className="flex items-center space-x-2">
-            <Settings className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
+          <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
+            <Settings className={`w-4 h-4 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
             <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${
                 isLight ? 'text-emerald-950' : 'text-emerald-200'
               }`}
             >
-              <span>フォント情報・ライセンス設定</span>
+              <span className="truncate">フォント情報・ライセンス</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
-                  全画面モード
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                  全画面
                 </span>
               )}
             </h2>
@@ -547,9 +547,9 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                   <div className="flex flex-col space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className={`text-xs font-medium ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>UPM (キャンバスサイズ)</label>
-                      <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <label className={`text-xs font-medium truncate ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>UPM (サイズ)</label>
+                      <div className="flex items-center gap-1 shrink-0">
                         {[1000, 1200, 1500, 2048].map((val) => (
                           <button
                             key={val}

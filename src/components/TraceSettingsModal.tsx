@@ -170,17 +170,17 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
           }`}
         >
-          <div className="flex items-center space-x-2">
-            <Layers className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
+          <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
+            <Layers className={`w-4 h-4 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
             <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${
                 isLight ? 'text-emerald-950' : 'text-emerald-200'
               }`}
             >
-              <span>看板・レタリング写真＆下絵トレース設定</span>
+              <span className="truncate">下絵・レタリングトレース設定</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
-                  全画面モード
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                  全画面
                 </span>
               )}
             </h2>
@@ -250,7 +250,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
-              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 transition-all ${
+              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 min-w-0 transition-all ${
                 traceSettings.type === 'image'
                   ? isLight
                     ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold shadow-xs'
@@ -260,13 +260,13 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
               }`}
             >
-              <ImageIcon className="w-4 h-4 text-emerald-600" />
-              <span>看板写真・画像・スケッチ</span>
+              <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-xs truncate w-full text-center">写真・下絵画像</span>
             </button>
 
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'char' }))}
-              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 transition-all ${
+              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 min-w-0 transition-all ${
                 traceSettings.type === 'char'
                   ? isLight
                     ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold shadow-xs'
@@ -276,8 +276,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
               }`}
             >
-              <Type className="w-4 h-4 text-emerald-600" />
-              <span>標準フォント下絵文字</span>
+              <Type className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-xs truncate w-full text-center">標準フォント下絵</span>
             </button>
           </div>
 
@@ -431,8 +431,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       className="w-full accent-emerald-700"
                     />
                     {/* Quick Fit Presets */}
-                    <div className="flex items-center space-x-1.5 pt-1">
-                      <span className="text-[10px] text-stone-500">推奨サイズ:</span>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-stone-500 shrink-0">推奨サイズ:</span>
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}

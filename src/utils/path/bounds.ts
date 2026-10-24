@@ -498,7 +498,7 @@ export function groupContoursForRendering(contours: PathContour[]): RenderGroup[
   const result: RenderGroup[] = groups.map((group, idx) => ({
     id: group.map((c) => c.id).join('-') || `group-${idx}`,
     d: contoursToSvgPath(group),
-    fillRule: group.length > 1 ? 'evenodd' : 'nonzero',
+    fillRule: 'nonzero',
   }));
 
   RENDER_GROUP_CACHE.set(contours, result);

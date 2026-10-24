@@ -96,24 +96,24 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  : 'bg-[#1b2720] hover:bg-[#23352b] border-[#2c4033] text-stone-100 '
  }`}
  >
- <div className="flex items-center space-x-2.5">
+ <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
  <div
- className={`p-1.5 rounded-lg ${
+ className={`p-1.5 rounded-lg shrink-0 ${
  isLight ? 'bg-stone-200 text-stone-700' : 'bg-[#25392d] text-emerald-300'
  }`}
  >
  <Sliders className="w-4 h-4" />
  </div>
- <div>
- <div className="font-bold text-xs text-stone-900 dark:text-stone-100">
+ <div className="min-w-0 flex-1">
+ <div className="font-bold text-xs text-stone-900 dark:text-stone-100 truncate">
  カスタムペン作成・設定
  </div>
- <div className="text-[10px] font-normal text-stone-500 dark:text-stone-400">
+ <div className="text-[10px] font-normal text-stone-500 dark:text-stone-400 jp-wrap leading-tight">
  入り抜き・筆先形状・角度・手ブレ補正を編集
  </div>
  </div>
  </div>
- <ChevronRight className="w-4 h-4 text-stone-400" />
+ <ChevronRight className="w-4 h-4 text-stone-400 shrink-0" />
  </button>
  )}
 
