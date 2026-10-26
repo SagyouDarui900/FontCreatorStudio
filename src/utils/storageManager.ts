@@ -568,7 +568,7 @@ export function downloadSnapshotJsonFile(snapshot: ProjectBackupSnapshot): boole
   try {
     const project = loadProjectFromSnapshot(snapshot.id);
     if (!project) {
-      alert('スナップショットデータの取得に失敗しました。');
+      console.warn('スナップショットデータの取得に失敗しました。');
       return false;
     }
     const projectName = snapshot.familyName || project.metadata?.familyName || project.name || '手書きフォント';

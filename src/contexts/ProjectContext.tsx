@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { FontProject, GlyphData, PathContour } from '../types';
+import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useGlyphActions } from '../hooks/useGlyphActions';
 import {
   getPrevGlyphNav,
   getNextGlyphNav,
@@ -36,6 +37,7 @@ export interface ProjectContextType {
   isGlyphLocked: boolean;
   undoStack: GlyphData[];
   redoStack: GlyphData[];
+  setUndoStack: React.Dispatch<React.SetStateAction<GlyphData[]>>;
   canUndo: boolean;
   canRedo: boolean;
   handleUndo: () => void;
@@ -44,6 +46,18 @@ export interface ProjectContextType {
   clipboardContours: PathContour[] | null;
   setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>>;
   handleQuickSaveCurrentGlyph: () => void;
+
+  // Glyph actions
+  handleSimplifyCurrentGlyph: (level?: 'mild' | 'normal' | 'strong') => void;
+  handleAutoSpaceCurrentGlyph: (preset?: any) => void;
+  handleClearGlyph: (unicode: number) => void;
+  handleCopyGlyph: (unicode: number) => void;
+  handlePasteGlyph: (unicode: number) => void;
+  handleDuplicateAsSmallKana: (sourceUnicode: number) => void;
+  handleGenerateDakutenTarget: (targetChar: string, isHandakuten?: boolean) => void;
+  handleCopyFromChar: (sourceChar: string) => void;
+  handleInsertRadical: (radicalContours: PathContour[]) => void;
+  handleBatchInsertRadical: (radicalContours: PathContour[], targetChars: string[]) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | null>(null);
@@ -54,6 +68,7 @@ interface ProjectProviderProps {
   projectRef: React.MutableRefObject<FontProject>;
   saveProjectToIndexedDbWhenIdle: (p: FontProject) => Promise<void>;
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  setToolMode?: (mode: ToolMode) => void;
   children: React.ReactNode;
 }
 
@@ -63,11 +78,11 @@ export function ProjectProvider({
   projectRef,
   saveProjectToIndexedDbWhenIdle,
   showToast,
+  setToolMode = () => {},
   children,
 }: ProjectProviderProps) {
   const [selectedUnicode, setSelectedUnicode] = useState<number>(12354); // 'あ' (U+3042)
   const [selectedChar, setSelectedChar] = useState<string>('あ');
-  const [clipboardContours, setClipboardContours] = useState<PathContour[] | null>(null);
 
   const currentGlyph: GlyphData = useMemo(() => {
     return (
@@ -75,13 +90,13 @@ export function ProjectProvider({
         unicode: selectedUnicode,
         char: selectedChar,
         name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-        advanceWidth: project.metadata.unitsPerEm || 1000,
+        advanceWidth: project.metadata?.unitsPerEm || 1000,
         lsb: 50,
         contours: [],
         modified: false,
       }
     );
-  }, [project.glyphs, project.metadata.unitsPerEm, selectedUnicode, selectedChar]);
+  }, [project.glyphs, project.metadata?.unitsPerEm, selectedUnicode, selectedChar]);
 
   const currentGlyphRef = useRef<GlyphData>(currentGlyph);
   useEffect(() => {
@@ -91,6 +106,7 @@ export function ProjectProvider({
   const {
     undoStack,
     redoStack,
+    setUndoStack,
     commitHistory,
     handleUndo,
     handleRedo,
@@ -154,7 +170,7 @@ export function ProjectProvider({
         unicode: selectedUnicode,
         char: selectedChar,
         name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-        advanceWidth: prev.metadata.unitsPerEm || 1000,
+        advanceWidth: prev.metadata?.unitsPerEm || 1000,
         lsb: 50,
         contours: [],
       };
@@ -176,7 +192,7 @@ export function ProjectProvider({
         : `文字「${selectedChar}」の編集ロックを解除しました`,
       nextLocked ? 'warning' : 'info'
     );
-  }, [isGlyphLocked, project.metadata.unitsPerEm, selectedUnicode, selectedChar, setProject, showToast]);
+  }, [isGlyphLocked, project.metadata?.unitsPerEm, selectedUnicode, selectedChar, setProject, showToast]);
 
   const handleUpdateContours = useCallback(
     (newContours: PathContour[], options?: { skipHistory?: boolean }) => {
@@ -195,7 +211,7 @@ export function ProjectProvider({
           unicode: selectedUnicode,
           char: selectedChar,
           name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: prev.metadata.unitsPerEm || 1000,
+          advanceWidth: prev.metadata?.unitsPerEm || 1000,
           lsb: 50,
         };
 
@@ -274,7 +290,7 @@ export function ProjectProvider({
     const g = projectRef.current.glyphs?.[selectedUnicode] || {
       unicode: selectedUnicode,
       char: selectedChar,
-      advanceWidth: projectRef.current.metadata.unitsPerEm || 1000,
+      advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
       contours: [],
       strokes: [],
       anchors: [],
@@ -298,6 +314,22 @@ export function ProjectProvider({
     }
   }, [selectedUnicode, selectedChar, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
 
+  const glyphActions = useGlyphActions({
+    project,
+    setProject,
+    selectedUnicode,
+    selectedChar,
+    setSelectedUnicode,
+    setSelectedChar,
+    currentGlyph,
+    currentGlyphRef,
+    commitHistory,
+    setUndoStack,
+    setToolMode,
+    onShowToast: showToast,
+    handleUpdateContours,
+  });
+
   const value = useMemo<ProjectContextType>(
     () => ({
       project,
@@ -320,14 +352,25 @@ export function ProjectProvider({
       isGlyphLocked,
       undoStack,
       redoStack,
+      setUndoStack,
       canUndo,
       canRedo,
       handleUndo,
       handleRedo,
       commitHistory,
-      clipboardContours,
-      setClipboardContours,
+      clipboardContours: glyphActions.clipboardContours,
+      setClipboardContours: glyphActions.setClipboardContours,
       handleQuickSaveCurrentGlyph,
+      handleSimplifyCurrentGlyph: glyphActions.handleSimplifyCurrentGlyph,
+      handleAutoSpaceCurrentGlyph: glyphActions.handleAutoSpaceCurrentGlyph,
+      handleClearGlyph: glyphActions.handleClearGlyph,
+      handleCopyGlyph: glyphActions.handleCopyGlyph,
+      handlePasteGlyph: glyphActions.handlePasteGlyph,
+      handleDuplicateAsSmallKana: glyphActions.handleDuplicateAsSmallKana,
+      handleGenerateDakutenTarget: glyphActions.handleGenerateDakutenTarget,
+      handleCopyFromChar: glyphActions.handleCopyFromChar,
+      handleInsertRadical: glyphActions.handleInsertRadical,
+      handleBatchInsertRadical: glyphActions.handleBatchInsertRadical,
     }),
     [
       project,
@@ -348,13 +391,14 @@ export function ProjectProvider({
       isGlyphLocked,
       undoStack,
       redoStack,
+      setUndoStack,
       canUndo,
       canRedo,
       handleUndo,
       handleRedo,
       commitHistory,
-      clipboardContours,
       handleQuickSaveCurrentGlyph,
+      glyphActions,
     ]
   );
 

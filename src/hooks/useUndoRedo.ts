@@ -22,14 +22,12 @@ export const areContoursEqual = (a: PathContour[], b: PathContour[]): boolean =>
     if (ca.id !== cb.id || ca.closed !== cb.closed || ca.nodes.length !== cb.nodes.length) {
       return false;
     }
-    const len = ca.nodes.length;
-    if (len > 0) {
-      const n0a = ca.nodes[0];
-      const n0b = cb.nodes[0];
-      if (n0a.x !== n0b.x || n0a.y !== n0b.y) return false;
-      const nEndA = ca.nodes[len - 1];
-      const nEndB = cb.nodes[len - 1];
-      if (nEndA.x !== nEndB.x || nEndA.y !== nEndB.y) return false;
+    for (let j = 0; j < ca.nodes.length; j++) {
+      const na = ca.nodes[j];
+      const nb = cb.nodes[j];
+      if (na.x !== nb.x || na.y !== nb.y || na.type !== nb.type) return false;
+      if (na.handleIn?.x !== nb.handleIn?.x || na.handleIn?.y !== nb.handleIn?.y) return false;
+      if (na.handleOut?.x !== nb.handleOut?.x || na.handleOut?.y !== nb.handleOut?.y) return false;
     }
   }
   return true;

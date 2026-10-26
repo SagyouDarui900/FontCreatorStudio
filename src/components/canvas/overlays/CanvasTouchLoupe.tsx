@@ -21,12 +21,20 @@ export const CanvasTouchLoupe: React.FC<CanvasTouchLoupeProps> = React.memo(
   ({ touchLoupeState, contours, theme, isOutlineMode }) => {
     if (!touchLoupeState.visible || !touchLoupeState.canvasPos) return null;
 
+    const vvWidth = typeof window !== 'undefined' ? (window.visualViewport?.width ?? window.innerWidth) : 375;
+    const vvHeight = typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 667;
+    const vvOffsetLeft = typeof window !== 'undefined' ? (window.visualViewport?.offsetLeft ?? 0) : 0;
+    const vvOffsetTop = typeof window !== 'undefined' ? (window.visualViewport?.offsetTop ?? 0) : 0;
+
+    const leftPos = Math.max(vvOffsetLeft + 12, Math.min(vvOffsetLeft + vvWidth - 132, touchLoupeState.screenX - 60));
+    const topPos = Math.max(vvOffsetTop + 12, Math.min(vvOffsetTop + vvHeight - 132, touchLoupeState.screenY - 145));
+
     return (
       <div
         style={{
           position: 'fixed',
-          left: Math.max(12, Math.min(window.innerWidth - 132, touchLoupeState.screenX - 60)),
-          top: Math.max(12, touchLoupeState.screenY - 145),
+          left: leftPos,
+          top: topPos,
           width: 120,
           height: 120,
           pointerEvents: 'none',

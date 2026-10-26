@@ -199,14 +199,22 @@ async function cleanupOldAutosaves(db: IDBDatabase, maxCount: number = 15): Prom
     const request = index.getAll();
 
     request.onsuccess = () => {
-      const entries: IndexedDBAutoSaveEntry[] = request.result || [];
-      if (entries.length > maxCount) {
-        entries.sort((a, b) => b.timestamp - a.timestamp);
-        const toDelete = entries.slice(maxCount);
-        for (const entry of toDelete) {
-          store.delete(entry.id);
+      try {
+        const entries: IndexedDBAutoSaveEntry[] = request.result || [];
+        if (entries.length > maxCount) {
+          entries.sort((a, b) => b.timestamp - a.timestamp);
+          const toDelete = entries.slice(maxCount);
+          for (const entry of toDelete) {
+            store.delete(entry.id);
+          }
         }
+      } catch (err) {
+        console.warn('Error deleting old autosave entry:', err);
       }
+    };
+
+    request.onerror = (e) => {
+      console.warn('Failed to fetch autosave index for cleanup:', e);
     };
   } catch (err) {
     console.warn('Error during IndexedDB autosave cleanup:', err);

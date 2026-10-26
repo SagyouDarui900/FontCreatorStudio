@@ -84,21 +84,8 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     }
   }, []);
 
-  // Seamlessly upgrade any cached legacy sample glyphs on mount and check IndexedDB recovery
+  // Check IndexedDB for a newer auto-saved version on initial mount
   useEffect(() => {
-    let upgraded = false;
-    const updated = { ...project.glyphs };
-    for (const u of [65, 12354, 26085]) {
-      if (updated[u] && isLegacyMockGlyph(updated[u])) {
-        updated[u] = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_GLYPHS[u]));
-        upgraded = true;
-      }
-    }
-    if (upgraded) {
-      setProject((prev) => ({ ...prev, glyphs: updated }));
-    }
-
-    // Check IndexedDB for a newer auto-saved version
     loadProjectFromIndexedDB()
       .then((dbData) => {
         if (dbData && dbData.project) {
@@ -112,7 +99,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
       .catch((err) => {
         console.warn('IndexedDB initial recovery check failed:', err);
       });
-  }, []);
+  }, [onShowToast]);
 
   // LocalStorage is the synchronous recovery copy; IndexedDB is written in the background.
   useEffect(() => {

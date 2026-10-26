@@ -541,6 +541,7 @@ export interface FontProject {
   kerning?: Record<string, number>; // Pair string "char1,char2" or "unicode1,unicode2" -> offset in font units
   openTypeFeatures?: OpenTypeFeaturesConfig;
   pixelFontSettings?: PixelFontProjectSettings;
+  /** @deprecated Alias for backwards compatibility; prefer openTypeFeatures.mojikumi */
   mojikumiSettings?: MojikumiConfig;
   createdAt: number;
   updatedAt: number;

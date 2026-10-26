@@ -19,10 +19,12 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { GridSettings, TraceSettings, GlyphOverlaySettings, PathContour, ToolMode } from '../../../types';
+import { ThemeMode, getThemeClasses } from '../../../utils/theme';
 
 export interface MobileAuxMenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  theme?: ThemeMode;
   isLight: boolean;
   zoom: number;
   handleZoomStep: (factor: number) => void;
@@ -54,6 +56,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
   ({
     isOpen,
     onClose,
+    theme,
     isLight,
     zoom,
     handleZoomStep,
@@ -82,6 +85,8 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
   }) => {
     if (!isOpen) return null;
 
+    const themeClasses = getThemeClasses(theme || (isLight ? 'light' : 'dark'));
+
     return (
       <div
         className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
@@ -89,9 +94,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-2xl shadow-2xl border-t p-4 pb-8 space-y-4 animate-in slide-in-from-bottom duration-250 ${
-            isLight ? 'bg-stone-50 border-stone-200 text-stone-800' : 'bg-[#152319] border-[#25382c] text-emerald-100'
-          }`}
+          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-2xl shadow-2xl border-t p-4 pb-8 space-y-4 animate-in slide-in-from-bottom duration-250 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
         >
           {/* Drawer Handle & Header */}
           <div className="flex flex-col items-center pb-2.5 border-b border-stone-200 dark:border-[#25382c]">

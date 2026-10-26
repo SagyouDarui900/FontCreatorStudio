@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 
 export interface ToastMessage {
@@ -19,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
   const isLight = isLightTheme(theme);
 
   return (
-    <div className="fixed bottom-14 sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-50 flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none pb-[max(env(safe-area-inset-bottom),0px)]">
+    <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-50 flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none pb-[max(env(safe-area-inset-bottom),0px)]">
       {toasts.map((toast) => {
         const isSuccess = toast.type === 'success' || !toast.type;
         const isError = toast.type === 'error';
@@ -49,7 +49,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
             {isError ? (
               <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
             ) : isWarning ? (
-              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
             ) : isSuccess ? (
               <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             ) : (

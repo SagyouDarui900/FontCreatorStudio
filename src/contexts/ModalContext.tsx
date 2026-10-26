@@ -62,7 +62,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
   const [isMobileThemeModalOpen, setIsMobileThemeModalOpen] = useState(false);
   const [showRadicals, setShowRadicals] = useState(false);
   const [showGridDrawer, setShowGridDrawer] = useState(() => {
-    return typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
+    return typeof window !== 'undefined' ? window.innerWidth >= 1280 : false;
   });
   const [showMetricsDrawer, setShowMetricsDrawer] = useState(false);
 
