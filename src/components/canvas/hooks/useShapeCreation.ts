@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Point, PathContour, ToolMode, GridSettings, SnapGuideLine, CustomGuideline } from '../../../types';
+import { Point, PathContour, ToolMode, GridSettings, SnapGuideLine, CustomGuideline, SnapMetrics } from '../../../types';
 import {
   createRectContour,
   createRoundedRectContour,
@@ -28,7 +28,7 @@ interface UseShapeCreationOptions {
   zoom: number;
   contours: PathContour[];
   contoursRef: React.MutableRefObject<PathContour[]>;
-  snapMetrics: any;
+  snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   gridSettings: GridSettings;
   onChangeContours: (contours: PathContour[]) => void;
@@ -37,6 +37,29 @@ interface UseShapeCreationOptions {
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedContourId: React.Dispatch<React.SetStateAction<string | null>>;
 }
+
+export const isShapeToolMode = (mode: ToolMode): boolean => [
+  'rect',
+  'rounded_rect',
+  'pill',
+  'ellipse',
+  'circle',
+  'triangle',
+  'triangle_down',
+  'right_triangle',
+  'semicircle',
+  'ring',
+  'parallelogram',
+  'crescent',
+  'star',
+  'heart',
+  'sparkle',
+  'starburst',
+  'diamond',
+  'polygon',
+  'line',
+  'hexagon',
+].includes(mode);
 
 export function useShapeCreation({
   toolMode,
@@ -53,27 +76,7 @@ export function useShapeCreation({
   setSelectedContourIds,
   setSelectedContourId,
 }: UseShapeCreationOptions) {
-  const isShapeTool = [
-    'rect',
-    'rounded_rect',
-    'pill',
-    'ellipse',
-    'circle',
-    'triangle',
-    'triangle_down',
-    'right_triangle',
-    'semicircle',
-    'ring',
-    'parallelogram',
-    'crescent',
-    'star',
-    'heart',
-    'sparkle',
-    'starburst',
-    'diamond',
-    'polygon',
-    'line',
-  ].includes(toolMode);
+  const isShapeTool = isShapeToolMode(toolMode);
 
   const [shapeStartPoint, setShapeStartPoint] = useState<Point | null>(null);
   const [shapeCurrentPoint, setShapeCurrentPoint] = useState<Point | null>(null);

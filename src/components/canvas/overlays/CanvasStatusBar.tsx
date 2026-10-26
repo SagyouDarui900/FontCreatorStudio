@@ -34,6 +34,7 @@ import {
   GlyphOverlaySettings,
   PathContour,
   Point,
+  RulerMeasurement,
 } from '../../../types';
 
 export interface CanvasStatusBarProps {
@@ -43,12 +44,8 @@ export interface CanvasStatusBarProps {
   toolMode: ToolMode;
   isSpacePressed: boolean;
   hoverCanvasPos: Point | null;
-  rulerMeasurement?: {
-    start: Point;
-    end: Point;
-    active: boolean;
-  } | null;
-  setRulerMeasurement?: (val: any) => void;
+  rulerMeasurement?: RulerMeasurement | null;
+  setRulerMeasurement?: (val: RulerMeasurement | null) => void;
   handleDrawRulerAsStroke?: () => void;
   handleConvertRulerToGuideline?: () => void;
   selectedNodeId?: string | null;

@@ -1,107 +1,115 @@
-# UIテキストのはみ出し・不自然な改行の包括的修正計画
+# Font Creator Studio アーキテクチャ刷新・品質向上計画
 
-## 概要
-すべてのデバイス幅（スマートフォン 360〜400px、タブレット、デスクトップ）において、ラベル・ボタン・モーダル説明文・サイドパネル内テキストの**横はみ出し**および**不自然な改行**を解消します。
-**既存の機能・作字描画・フォント生成・保存ロジックは一切変更せず、CSSおよびレイアウトクラス（Flex/Grid/折り返し）のみを安全に修正**します。
+Grokのコードレビューに基づく、巨大コンポーネント（`GlyphCanvas`, `FontQualityModal`, `ExportModal`, `FontInfoModal`）の責務分離、型安全性強化、テストカバレッジ拡充、および描画パフォーマンス最適化のロードマップです。
 
----
-
-## ユーザー確認 & 決定事項
+## ユーザー確認・決定事項サマリー
 
 > [!IMPORTANT]
-> 前段のヒアリングおよびユーザー回答に基づき確定した方針です：
-> - **幅400px未満のモバイル画面におけるボタン**: アイコンを表示した上で、テキストの自然な折り返しまたはコンパクト表示を許可し、親コンテナを押し広げないように制御。
-> - **説明文・ヘルプ文**: `line-break: strict` と `overflow-wrap: break-word` による自然な日本語折り返しを適用。
-> - **作業アプローチ**: 共通CSS（`index.css`）→ Header/ToolBar → 各種Modal → サイドパネル・グリッドの順で段階的に修正。
+> ユーザー様との確認を経て、以下の優先順位および実装方針を確定しました。
+
+- **決定事項 1（GlyphCanvas 分割順序）**:
+  約800行に及ぶスタイラス判定・パームリジェクション・2本指ジェスチャー・各ツールへのイベントルーティングを担う「ポインター・ジェスチャー調停フック (`useCanvasPointerDispatcher`)」の分離を最優先で実施。その後、ガイド線・下絵操作・レイヤースタックの分離を進めます。
+- **決定事項 2（巨大モーダル分割アプローチ）**:
+  `FontQualityModal`、`ExportModal`、`FontInfoModal` は、タブおよび個別ツール単位（総合診断、極値挿入、ノード削減、太さ均等化、エクスポート設定、ライセンス選択など）で専用サブコンポーネントに分離します。
+- **決定事項 3（テスト強化の重点対象）**:
+  Phase 4 では、字形生成・輪郭処理の根幹である `pathUtils`（単純化・結合・交差判定・穴判定）および `vectorBoolean` の単体テストを最優先で拡充します。
 
 ---
 
-## 1. 問題の根本原因
+## 1. 概要と目標 (Overview & Core Concept)
 
-1. **`index.css` における `<button>` の一律 `white-space: nowrap` 強制**:
-   - `button, kbd { text-wrap: nowrap; white-space: nowrap; }` が定義されているため、ボタン内に複数行の説明文やオプション解説が含まれている場合（例：エクスポート形式選択、ブラシプリセット、各種設定タイル）でも改行が禁止され、親コンテナを右側へ大きく押し広げていた。
-2. **Flex 子要素の `min-w-0` 不足（Flexbox min-width: auto 問題）**:
-   - 横並び（`flex`）コンテナ内のテキスト要素に `min-w-0` が指定されていないため、長いテキストが親の幅を押し広げ、右端のアイコンや閉じるボタンが画面外に押し出されていた。
-3. **日本語テキストの禁則・折り返しルールの局所的未適用**:
-   - モーダル説明文や注意書きで `break-words` が抜けている箇所があり、長い英単語・ファイル形式名（.TTF, TrueType, Illustrator等）や約物の前後で親枠を突き破っていた。
-4. **固定幅・極小文字（`text-[10px]`）と長い日本語の無理な詰め込み**:
-   - 狭小幅で要素が横一列に詰め込まれ、ボタンテキストが1文字ずつ縦に折れる現象が生じていた。
+- **目的**: 
+  機能追加を行わず、既存の描画・編集・フォント生成機能を100%保ったまま、保守性・型安全性・テスト網羅率を飛躍的に向上させ、将来の機能拡張に耐えうる堅牢な基盤を構築する。
+- **対象読者 / ユーザー**:
+  PC（マウス・ペンタブ）、iPad（Apple Pencil）、スマートフォン（タッチ）でフォント制作を行うすべてのクリエイター。
+- **提供価値**:
+  コードの肥大化による副作用や再レンダリング遅延を解消し、長時間のフォント制作や大規模グリフプロジェクトでも安定して動作する開発基盤と実行環境を実現する。
 
 ---
 
-## 2. 段階的修正計画
+## 2. ユーザー体験と品質保証 (User Experience & Consistency)
 
-### Phase 1: 共通CSSルールの整理（`src/index.css`）
-- `<button>` の一律 `white-space: nowrap` を廃止：
-  - 単一操作ボタン（「保存」「閉じる」「OK」等の短いラベル）は専用クラス `.btn-nowrap` または個別 `whitespace-nowrap` で制御。
-  - タイル型ボタンや複数行を含むボタンは自然に折り返せるよう整理。
-- 日本語折り返し用ユーティリティクラスの定義：
-  - `.jp-wrap`: `overflow-wrap: break-word; line-break: strict; word-break: normal;`
-  - `.btn-card`: タイル選択ボタン用。内部のタイトルと解説文が自然に折り返され、親幅を押し広げない。
-- `.truncate-label` に `min-w-0` を確実に保証。
-
-### Phase 2: Header & メインナビゲーションの調整（`src/components/Header.tsx`, `src/App.tsx`）
-- プロジェクト名・編集中グリフ情報の `flex min-w-0` と `truncate max-w-[...]` を再調整し、375px画面でも右側のアクションボタン（元に戻す、やり直し、メニュー）が押し出されない構造にする。
-- ロックボタンや文字一覧ボタンのラベル表示をスマホ幅で最適化（アイコン優先＋極小画面ではテキスト自然非表示/コンパクト化）。
-- 下部モバイルバー（`App.tsx`）の文字一覧・作図・メトリクス等のボタンラベルが360px端末で重ならないようパディングと字間を微調整。
-
-### Phase 3: ToolBar & モバイル用シート（`src/components/ToolBar.tsx`, `src/components/toolbar/*`）
-- `MobileBrushMenuSheet`: カスタムペン作成ボタンの「入り抜き・筆先形状・角度・手ブレ補正を編集」が画面外にはみ出る問題を、`min-w-0` と `.jp-wrap` で解消。
-- `MobileShapeMenuSheet` / `MobileGridMenuSheet`: オプション項目の解説テキストが狭い画面でも右側のチェックマークを潰さないようレイアウトを是正。
-- PC版ツールパレット（左ツールバー）：ツール名・ショートカットヒントのツールチップおよびフライアウトメニューの折り返しを適正化。
-
-### Phase 4: 各種 Modal のタイトル・説明文・選択タイル（優先順）
-1. **`ExportModal.tsx`**:
-   - .TTF / .OTF 選択タイルの解説文、仮想ボディ倍率最適化（「原寸のまま」「和文拡大」「カスタム」）のボタン内テキストのはみ出し解消。
-2. **`FontInfoModal.tsx`**:
-   - フォント名、デザイナー名、著作権表記の入力欄ラベルとヘルプテキストの折り返し整理。
-3. **`BatchNormalizeModal.tsx` / `WeightInterpolationModal.tsx`**:
-   - 一括処理の実行確認文、パラメータ説明の日本語折り返し改善。
-4. **`TraceSettingsModal.tsx` / `ShortcutsHelpModal.tsx`**:
-   - 下絵調整スライダーの数値ラベル、キーボードショートカット一覧表のセル幅とテキスト折り返し。
-5. **`ProjectDiagnosticsPanel.tsx` / `StorageManagerModal.tsx`**:
-   - 診断警告テキスト、ストレージ容量メーターの数値ラベル折り返し。
-
-### Phase 5: MetricsPanel & GlyphGrid
-- `MetricsPanel.tsx`:
-  - 左サイドベアリング（LSB）、右サイドベアリング（RSB）、送り幅（Advance Width）のラベルと数値入力欄が、サイドバー幅伸縮時に押し潰されないよう `min-w-0` を付与。
-- `GlyphGrid.tsx`:
-  - グリッド下部の文字情報（Unicode値、字名、パス数）のテキストオーバーフローを制御。
+- **UX/UI ゼロ回帰方針**:
+  リファクタリング前後で既存のUI外観、ボタン配置、ショートカットキー、ジェスチャー感度（Apple Pencil の筆圧、2本指ピンチイン/アウト、2本指タップUndo/3本指タップRedo）は完全に同一の挙動を維持します。
+- **フィードバックの局所化**:
+  状態をサブコンポーネントおよび専用フックへ局所化することで、スライダー操作やツール切替時の不要な全画面再描画を抑制し、応答レスポンスを向上させます。
 
 ---
 
-## 3. レスポンシブ確認観点
+## 3. 主要な設計方針とトレードオフ (Key Decisions & Trade-Offs)
 
-| 対象デバイス幅 | 主な確認ポイント |
-|---|---|
-| **超狭小スマホ（360px〜375px）** | Header 右端ボタンが切れないか、モバイルシートのテキストが画面端を突き破らないか |
-| **標準スマホ（390px〜430px）** | 各種モーダルの解説文・フッターのボタンが適切な日本語改行になっているか |
-| **タブレット（768px〜1024px）** | Header と ToolBar の中間幅での押し合いが発生しないか |
-| **PC デスクトップ（1280px〜1540px）** | モーダル内の複数カラムグリッド（2列・3列）のタイトルと説明が均等に収まっているか |
+### 方針 1: 「純関数」と「副作用フック」の徹底分離
+- **アプローチ**:
+  座標変換、幾何計算、ベクターブーリアン、メトリクス補正は純粋関数（`src/utils/path/` および `src/utils/font/`）にまとめ、DOMイベントやReactステートに依存させない。
+- **理由**:
+  純粋関数化により、Vitestでのユニットテスト作成が容易になり、不具合の再現・検証が極めて高速になります。
+
+### 方針 2: 段階的コミットと常時ビルド可能状態の維持
+- **アプローチ**:
+  1つのファイルを分割・リファクタリングするごとに必ず `npm run typecheck` と `npm run build` を実行。
+- **理由**:
+  数千行のファイルを一斉に変更した場合のデバッグコストを防ぎ、常に稼働可能なデプロイ品質を維持します。
 
 ---
 
-## 5. 実施結果・修正完了ステータス
+## 4. 技術アーキテクチャ & 実装フェーズ (Technical Architecture & Phasing)
 
-- [x] **Phase 1: 共通CSSルールの整理 (`src/index.css`)**
-  - `<button>` の一律 `white-space: nowrap` を廃止し、`.btn-nowrap`, `.badge`, `.chip`, `kbd` のみに限定。
-  - 自然な日本語折り返し用の `.jp-wrap` (`overflow-wrap: break-word; line-break: strict; text-wrap: pretty;`) を導入。
-  - タイル型ボタン用の `.btn-card` を追加。
-- [x] **Phase 2: Header & メインナビゲーション (`src/components/Header.tsx`, `src/App.tsx`)**
-  - エクスポート案内バナー、モバイルメトリクス切り替え、ツールメニュー各アイテムに `min-w-0 flex-1` と `.jp-wrap` を適用。
-  - 下部モバイルナビゲーションバーの各タブ幅と文字ラベル（作図、文字一覧、文字組等）を `truncate max-w-[48px]` で保護。
-- [x] **Phase 3: ToolBar & モバイル用シート (`src/components/toolbar/*`)**
-  - `MobileBrushMenuSheet`: カスタムペン設定ボタンの長い解説文を `min-w-0 flex-1` と `.jp-wrap` で親枠内に安全に収納。
-  - `MobileShapeMenuSheet`: 図形ツールの各項目に `min-w-0 flex-1 truncate` を付与しチェックアイコンの押し出しを防止。
-- [x] **Phase 4: 各種 Modal のタイトル・説明文・選択タイル**
-  - `ExportModal.tsx`: TTF/WOFF/SVG 形式選択カード、最適化プリセットボタンの文字溢れを解消。
-  - `BatchNormalizeModal.tsx`: モーダルヘッダー、6つの対象グループボタン（`grid-cols-2 sm:grid-cols-3`）、5つのサイズプリセット（`grid-cols-2 sm:grid-cols-3 md:grid-cols-5`）、フッターボタンのレスポンシブ化。
-  - `FontInfoModal.tsx`: モーダルヘッダーの長文タイトル、UPMプリセット行（1000/1200/1500/2048）の折り返し許可、各タブ説明文の `.jp-wrap` 適用。
-  - `ShortcutsHelpModal.tsx`: ヘッダーの幅制御、ショートカット一覧の行をモバイルで縦並び許容 (`flex flex-col sm:flex-row gap-1.5`) に改善。
-  - `TraceSettingsModal.tsx`: ヘッダー、写真/下絵モード切り替えボタンの縮小・省略制御、推奨サイズプリセット行の `flex-wrap` 化。
-  - `MojikumiStudioModal.tsx`: モバイルでの確実な閉じる操作保証（右上の40×40px常時タップ領域、下部フローティング閉じるバー、Escキー、背景クリック）、5つの本格組版ビュー（見開き書籍、原稿用紙、雑誌段組、短冊、アキ量比較）、青空文庫の著作権フリー名作10作品への刷新。
-- [x] **Phase 5: MetricsPanel & GlyphGrid**
-  - `MetricsPanel.tsx`: 送り幅・余白・変形ツールのヘッダーとチップに `min-w-0` と `truncate` を付与。
-- [x] **検証**:
-  - `npm run lint` (`tsc --noEmit`): 0 errors
-  - `compile_applet` (`vite build`): 成功 (0 errors)
+### システム構成図
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                               App.tsx                                  │
+└──────┬────────────────────────────┬─────────────────────────────┬──────┘
+       │                            │                             │
+       ▼                            ▼                             ▼
+┌──────────────┐          ┌───────────────────┐         ┌────────────────┐
+│ GlyphCanvas  │          │ FontQualityModal  │         │  ExportModal / │
+│              │          │                   │         │  FontInfoModal │
+└──────┬───────┘          └─────────┬─────────┘         └────────┬───────┘
+       │                            │                            │
+       ├─ useCanvasViewport         ├─ OverviewTab               ├─ PreviewSection
+       ├─ useCanvasPointerDispatch  ├─ ExtremaOptimizerTab       ├─ OptionsSection
+       ├─ useCustomGuidelines       ├─ NodeOptimizerTab          └─ LicenseSection
+       ├─ useTraceTransform         └─ StrokeEqualizerTab
+       ├─ useContourTransforms
+       └─ CanvasLayerStack
+              │                             │                            │
+              ▼                             ▼                            ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Core Utilities & Engines                        │
+│  ┌───────────────────────────────┐   ┌──────────────────────────────┐  │
+│  │       src/utils/path/         │   │       src/utils/font/        │  │
+│  │ (pathUtils, vectorBoolean)    │   │ (fontCompiler, dakuten, etc) │  │
+│  └───────────────────────────────┘   └──────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 実施ステップ
+
+#### 【Phase 1】健全性確認と基盤修正
+1. `npm run typecheck` / `npm run build` を基準とした未使用 import、デッドコード、不要な `any` の洗い出しと型引き締め。
+2. `src/types.ts` と `fontCompiler` / `qualityChecker` 間の型整合性を強化。
+
+#### 【Phase 2】巨大コンポーネントの分割
+1. **`GlyphCanvas.tsx` の分割**:
+   - `useCanvasPointerDispatcher`: ポインター/タッチ/ジェスチャー調停（スタイラス判定、パームリジェクション、ピンチズーム/パン、マルチタップUndo/Redo）。
+   - `useCustomGuidelines`: ガイド線の作成・ドラッグ移動・削除・ロック管理。
+   - `useTraceTransform`: 下絵の配置・拡縮・回転制御。
+   - `CanvasLayerStack`: SVG描画レイヤーの集約。
+2. **`FontQualityModal.tsx` の分割**:
+   - タブ単位（`OverviewTab`, `ExtremaOptimizerTab`, `NodeOptimizerTab`, `StrokeEqualizerTab`）でコンポーネントを分離。
+3. **`ExportModal.tsx` & `FontInfoModal.tsx` の分割**:
+   - プレビュー部、オプション部、ライセンス選択部を独立コンポーネント化。
+
+#### 【Phase 3】コアロジックの品質向上
+1. `src/utils/path`（純粋ベクター演算）と `src/utils/font`（フォントバイナリ・メトリクス生成）の境界を整理。
+2. 自己交差検出・ワインディング判定・マジックナンバーの定数化。
+3. エラーハンドリングの標準化。
+
+#### 【Phase 4】テスト強化
+1. `src/utils/pathUtils.test.ts` および新規テストファイルでベクターブーリアン（結合・差分・交差）、ノード単純化、穴判定のユニットテストを追加。
+2. `fontCompiler` によるTTF/OTF出力の主要パステスト、濁点/半濁点合成テストの追加。
+
+#### 【Phase 5】パフォーマンスと内部整理
+1. `React.memo` / `useCallback` / `useMemo` による再描画抑制。
+2. 循環参照のチェックとファイル構成の最終整理。

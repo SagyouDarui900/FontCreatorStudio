@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { Point, PathContour, GridSettings, SnapGuideLine, CustomGuideline } from '../../../types';
+import { Point, PathContour, GridSettings, SnapGuideLine, CustomGuideline, SnapMetrics, RulerMeasurement } from '../../../types';
 import { snapSinglePoint } from '../../../utils/snapUtils';
 import { generateId } from '../../../utils/pathUtils';
 
 interface UseRulerMeasureOptions {
   contours: PathContour[];
-  snapMetrics: any;
+  snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>>;
   gridSettings: GridSettings;
@@ -24,11 +24,7 @@ export function useRulerMeasure({
   setActiveSnapGuides,
   showCanvasToast,
 }: UseRulerMeasureOptions) {
-  const [rulerMeasurement, setRulerMeasurement] = useState<{
-    start: Point;
-    end: Point;
-    active: boolean;
-  } | null>(null);
+  const [rulerMeasurement, setRulerMeasurement] = useState<RulerMeasurement | null>(null);
 
   const [brushStraightMode, setBrushStraightMode] = useState<boolean>(false);
 

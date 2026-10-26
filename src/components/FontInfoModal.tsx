@@ -21,6 +21,8 @@ import { FontMetadata, FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 import { exportProjectJsonFile } from '../utils/storageManager';
 import { BundledFontsModal } from './BundledFontsModal';
+import { LicensePresetSection, LICENSE_PRESETS } from './fontinfo/LicensePresetSection';
+import { MetricsSettingsSection } from './fontinfo/MetricsSettingsSection';
 
 interface FontInfoModalProps {
   isOpen: boolean;
@@ -32,53 +34,6 @@ interface FontInfoModalProps {
 }
 
 type ModalTab = 'info' | 'license' | 'opentype' | 'guide';
-
-const LICENSE_PRESETS = [
-  {
-    id: 'ofl',
-    name: 'SIL Open Font License 1.1 (OFL)',
-    badge: '推奨・国際標準',
-    desc: 'フォント界の標準オープンソース。商用利用・改変・Webフォント・製品組み込み自由。',
-    license:
-      'This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.',
-    licenseUrl: 'https://openfontlicense.org/',
-  },
-  {
-    id: 'commercial_free',
-    name: '商用フリー・ロイヤリティフリー (Free for Commercial)',
-    badge: '商用利用自由',
-    desc: '個人・法人・同人・商業出版・ゲーム・映像問わずクレジット表記不要で自由利用可能。',
-    license:
-      '本フォントは商用・非商用問わず無償で自由に利用（印刷物・同人誌・ゲーム・アプリ・映像・Web等への組み込み）が可能です。ロイヤリティフリー。',
-    licenseUrl: '',
-  },
-  {
-    id: 'cc0',
-    name: 'CC0 1.0 全世界 パブリック・ドメイン',
-    badge: '著作権放棄',
-    desc: '権利を放棄し共有財産（パブリックドメイン）として誰でも無制限に利用可能。',
-    license:
-      'To the extent possible under law, the author has waived all copyright and related rights to this work under Creative Commons CC0 1.0 Universal.',
-    licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-  },
-  {
-    id: 'mit',
-    name: 'MIT License',
-    badge: '汎用オープンソース',
-    desc: 'ソフトウェアやフォントに広く使われる自由度の高いオープンソースライセンス。',
-    license:
-      'Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated font files to use, copy, modify, merge, publish, distribute without restriction.',
-    licenseUrl: 'https://opensource.org/licenses/MIT',
-  },
-  {
-    id: 'custom',
-    name: 'カスタム独自ライセンス / 独自利用規約',
-    badge: '独自設定',
-    desc: 'ご自身で作成したオリジナルの利用規約や販売条件を自由に記述・設定できます。',
-    license: '',
-    licenseUrl: '',
-  },
-];
 
 export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   isOpen,
@@ -533,125 +488,15 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                 </div>
               </div>
 
-              <div className={`border-t pt-3 sm:pt-3.5 ${isLight ? 'border-[#d8e6df]' : 'border-[#25362b]'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span
-                    className={`text-[11px] font-bold uppercase tracking-wider block ${
-                      isLight ? 'text-emerald-950' : 'text-emerald-300'
-                    }`}
-                  >
-                    EMメトリクス (単位: FUnit)
-                  </span>
-                  <span className="text-[10px] text-stone-500 dark:text-stone-400">標準UPM: 1000</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                  <div className="flex flex-col space-y-1">
-                    <div className="flex flex-wrap items-center justify-between gap-1">
-                      <label className={`text-xs font-medium truncate ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>UPM (サイズ)</label>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {[1000, 1200, 1500, 2048].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => handleUpmChange(val)}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-all ${
-                              (formData.unitsPerEm ?? 1000) === val
-                                ? 'bg-emerald-600 text-white font-bold border-emerald-600'
-                                : isLight ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100' : 'bg-[#152119] border-[#2d4034] text-emerald-300 hover:bg-[#1d2d23]'
-                            }`}
-                          >
-                            {val}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <input
-                      type="number"
-                      value={formData.unitsPerEm ?? 1000}
-                      onChange={(e) => handleUpmChange(Number(e.target.value) || 1000)}
-                      className={`border rounded-lg p-2.5 sm:p-2 text-sm font-mono focus:outline-none focus:ring-1 ${
-                        isLight
-                          ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                          : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                      }`}
-                    />
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className={`text-xs font-medium ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>アセンダ (Ascender)</label>
-                    <input
-                      type="number"
-                      value={formData.ascender ?? 800}
-                      onChange={(e) => setFormData({ ...formData, ascender: Number(e.target.value) || 800 })}
-                      className={`border rounded-lg p-2.5 sm:p-2 text-sm font-mono focus:outline-none focus:ring-1 ${
-                        isLight
-                          ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                          : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                      }`}
-                    />
-                  </div>
-
-                  <div className="flex flex-col space-y-1">
-                    <label className={`text-xs font-medium ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>ディセンダ (Descender)</label>
-                    <input
-                      type="number"
-                      value={formData.descender ?? -200}
-                      onChange={(e) => setFormData({ ...formData, descender: Number(e.target.value) || -200 })}
-                      className={`border rounded-lg p-2.5 sm:p-2 text-sm font-mono focus:outline-none focus:ring-1 ${
-                        isLight
-                          ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                          : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                      }`}
-                    />
-                  </div>
-                </div>
-
-                {/* Dynamic Scaling Option when UPM is modified */}
-                {(formData.unitsPerEm ?? 1000) !== (project.metadata.unitsPerEm || 1000) && (
-                  <div
-                    className={`mt-2 p-3 rounded-lg border text-xs space-y-1.5 transition-all ${
-                      isLight
-                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                        : 'bg-[#15231a] border-emerald-800 text-emerald-200'
-                    }`}
-                  >
-                    <label className="flex items-start gap-2 cursor-pointer font-medium">
-                      <input
-                        type="checkbox"
-                        checked={scaleGlyphsOnResize}
-                        onChange={(e) => setScaleGlyphsOnResize(e.target.checked)}
-                        className="mt-0.5 accent-emerald-600 rounded"
-                      />
-                      <div>
-                        <span className="font-bold">
-                          既存グリフの輪郭・送り幅もキャンバス比率に合わせて自動拡大縮小する
-                        </span>
-                        <div className="text-[11px] opacity-80 mt-0.5 font-normal">
-                          {scaleGlyphsOnResize
-                            ? `現在の倍率: ×${(((formData.unitsPerEm ?? 1000) / (project.metadata.unitsPerEm || 1000))).toFixed(3)} （全頂点・ベジェ制御点ハンドル・送り幅を比例変換）`
-                            : 'チェックOFF: 既存グリフの座標・サイズは維持し、外枠キャンバス領域（余白）のみを変更します'}
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              {/* Windows 11 & Japanese OS/2 Compatibility Note */}
-              <div
-                className={`p-3 rounded-xl border text-[11px] space-y-1 ${
-                  isLight ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950' : 'bg-emerald-950/60 border-emerald-800 text-emerald-200'
-                }`}
-              >
-                <div className="font-bold flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
-                  <span>Windows 11 / Mac 日本語フォント規格適合設定</span>
-                </div>
-                <p className="text-[10.5px] opacity-85 leading-relaxed">
-                  エクスポート時に、OS/2テーブル（Shift-JIS 932コードページフラグ）、DirectWrite行間クリップ防止メトリクス、縦書き代替グリフ、および日・英バイリンガル名テーブルが自動構成されます。
-                </p>
-              </div>
+              <MetricsSettingsSection
+                isLight={isLight}
+                formData={formData}
+                setFormData={setFormData}
+                project={project}
+                scaleGlyphsOnResize={scaleGlyphsOnResize}
+                setScaleGlyphsOnResize={setScaleGlyphsOnResize}
+                handleUpmChange={handleUpmChange}
+              />
 
               {/* Project JSON Backup & Export Section */}
               <div
@@ -725,77 +570,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           {/* TAB 2: LICENSE & COPYRIGHT SETTINGS */}
           {activeTab === 'license' && (
             <div className="space-y-4 animate-fadeIn">
-              <div
-                className={`p-3 sm:p-3.5 rounded-xl border ${
-                  isLight ? 'bg-amber-50/70 border-amber-200 text-amber-950' : 'bg-amber-950/40 border-amber-800/80 text-amber-200'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
-                  <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>ライセンス プリセットから選択</span>
-                </div>
-                <p className="text-[11px] opacity-85 leading-relaxed mb-3">
-                  出力フォントファイル（TTF/OTF）の OpenType name テーブル（ID 13: License, ID 14: URL, ID 0: Copyright）に正式に埋め込まれます。タップで即時適用されます。
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {LICENSE_PRESETS.map((p) => {
-                    const isSelected =
-                      formData.license?.includes(p.name.split(' ')[0]) ||
-                      (p.id === 'ofl' && formData.license?.includes('OFL'));
-
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => handleApplyPreset(p.id)}
-                        className={`text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between relative active:scale-[0.99] ${
-                          isSelected
-                            ? isLight
-                              ? 'bg-white border-amber-500 ring-2 ring-amber-500/80 shadow-xs'
-                              : 'bg-[#1e2a22] border-amber-400 ring-2 ring-amber-400/80 shadow-xs'
-                            : isLight
-                            ? 'bg-white/90 border-stone-200 hover:border-amber-300 hover:bg-white'
-                            : 'bg-[#151f18] border-[#293c2f] hover:border-amber-500/50'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                            <div className="flex items-center gap-1.5">
-                              {isSelected && (
-                                <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                              )}
-                              <span className="font-bold text-xs leading-snug break-words text-stone-900 dark:text-amber-100">
-                                {p.name}
-                              </span>
-                            </div>
-                            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-amber-200/70 dark:bg-amber-900/80 text-amber-950 dark:text-amber-200 font-bold shrink-0">
-                              {p.badge}
-                            </span>
-                          </div>
-                          <p className="text-[11px] opacity-85 leading-relaxed break-words text-stone-700 dark:text-amber-200/90">
-                            {p.desc}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-3 pt-2.5 border-t border-amber-200/60 dark:border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <span className="text-[11px] opacity-85">
-                    アプリ内蔵の下絵・部首用フォントの権利・利用条件を確認
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsBundledFontsModalOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:underline cursor-pointer"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    <span>内蔵フォント一覧 &amp; ライセンス (OFL 1.1)</span>
-                  </button>
-                </div>
-              </div>
+              <LicensePresetSection
+                isLight={isLight}
+                formData={formData}
+                onApplyPreset={handleApplyPreset}
+                onOpenBundledFontsModal={() => setIsBundledFontsModalOpen(true)}
+              />
 
               {/* Editable License Fields */}
               <div className="space-y-3.5">

@@ -53,9 +53,11 @@ import {
   GridSettings,
   PathContour,
   Point,
+  RulerMeasurement,
   ToolMode,
   UserPenPreset,
 } from '../../../types';
+import { ThemeClasses } from '../../../utils/theme';
 import { PEN_PRESETS } from '../../../utils/pathUtils';
 import { DAKUTEN_MAPPINGS } from '../../../utils/dakutenHelper';
 
@@ -63,7 +65,7 @@ export interface CanvasSubToolbarProps {
   isMobileFocusMode: boolean;
   showSubToolbar: boolean;
   handleToggleSubToolbar: () => void;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   onSelectPrevGlyph?: () => void;
   onSelectNextGlyph?: () => void;
@@ -110,10 +112,10 @@ export interface CanvasSubToolbarProps {
   eraserSize: number;
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
   isShapeTool: boolean;
-  rulerMeasurement: { start: Point; end: Point; active: boolean } | null;
+  rulerMeasurement: RulerMeasurement | null;
   handleDrawRulerAsStroke: () => void;
   handleConvertRulerToGuideline: (mode?: 'auto' | 'diagonal' | 'h' | 'v') => void;
-  setRulerMeasurement: (r: any) => void;
+  setRulerMeasurement: (r: RulerMeasurement | null) => void;
   customGuidelines: CustomGuideline[];
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>>;
   lockGuidelines: boolean;
@@ -549,7 +551,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 title="ペンの種類と太さを設定"
               >
                 <Paintbrush className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
-                <span>{PEN_PRESETS.find((p: any) => p.id === brushStyle)?.name || 'ペン'}</span>
+                <span>{PEN_PRESETS.find((p) => p.id === brushStyle)?.name || 'ペン'}</span>
                 <span className="font-mono text-[10px]">({brushWidth}px)</span>
               </button>
 
@@ -562,7 +564,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                     onChange={(e) => {
                       const newStyle = e.target.value as BrushStyle;
                       onChangeBrushStyle(newStyle);
-                      const preset = PEN_PRESETS.find((p: any) => p.id === newStyle);
+                      const preset = PEN_PRESETS.find((p) => p.id === newStyle);
                       if (preset && preset.defaultWidth && onChangeBrushWidth) {
                         onChangeBrushWidth(preset.defaultWidth);
                       }
@@ -574,7 +576,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                     }`}
                     title="その他全ペンスタイル一覧"
                   >
-                    {PEN_PRESETS.map((p: any) => (
+                    {PEN_PRESETS.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
                       </option>

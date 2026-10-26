@@ -318,6 +318,7 @@ function AppContent() {
   const handleOpenPixelStudio = useCallback(() => setIsPixelStudioOpen(true), []);
   const handleOpenStorageManagerModal = useCallback(() => setIsStorageManagerOpen(true), []);
   const handleOpenShortcutsModal = useCallback(() => setIsShortcutsModalOpen(true), []);
+  const handleOpenExportModal = useCallback(() => setIsExportModalOpen(true), []);
   const handleCloseGridDrawer = useCallback(() => setShowGridDrawer(false), []);
   const handleCloseMetricsDrawer = useCallback(() => setShowMetricsDrawer(false), []);
   const handleCloseRadicalsDrawer = useCallback(() => setShowRadicals(false), []);
@@ -1172,6 +1173,7 @@ function AppContent() {
         onOpenMojikumiStudio={() => setIsMojikumiStudioOpen(true)}
         onOpenGridFittingModal={() => setIsGridFittingModalOpen(true)}
         onOpenStorageManagerModal={handleOpenStorageManagerModal}
+        onOpenExportModal={handleOpenExportModal}
         onToggleRadicals={toggleRadicals}
         showRadicals={showRadicals}
         onToggleGridDrawer={toggleGridDrawer}
@@ -1215,7 +1217,7 @@ function AppContent() {
             onOpenPenPresetsModal={handleOpenPenPresetsModal}
             onOpenPixelStudio={handleOpenPixelStudio}
             onQuickSaveGlyph={handleQuickSaveCurrentGlyph}
-            onOpenExportModal={() => setIsExportModalOpen(true)}
+            onOpenExportModal={handleOpenExportModal}
             theme={theme}
             activePenPreset={activePenPreset}
             userPresets={penPresets}

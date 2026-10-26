@@ -198,11 +198,14 @@ import { useCanvasShortcuts } from './canvas/hooks/useCanvasShortcuts';
 import { useContourTransforms } from './canvas/hooks/useContourTransforms';
 import { useTransformSession } from './canvas/hooks/useTransformSession';
 import { useCanvasViewport } from './canvas/hooks/useCanvasViewport';
-import { useShapeCreation } from './canvas/hooks/useShapeCreation';
+import { useShapeCreation, isShapeToolMode } from './canvas/hooks/useShapeCreation';
 import { useRulerMeasure } from './canvas/hooks/useRulerMeasure';
 import { usePenTool } from './canvas/hooks/usePenTool';
 import { useCanvasEraser } from './canvas/hooks/useCanvasEraser';
 import { InteractiveContourHitLayer } from './canvas/InteractiveContourHitLayer';
+import { useCustomGuidelines } from './canvas/hooks/useCustomGuidelines';
+import { useTraceTransform } from './canvas/hooks/useTraceTransform';
+import { useCanvasPointerDispatcher } from './canvas/hooks/useCanvasPointerDispatcher';
 
 
 // High-contrast dual-ring + center dot precision reticle SVG cursor (32x32, hotspot 16 16)
@@ -431,31 +434,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   canvasToScreen,
  } = useCanvasViewport({ upm });
  const canvasGroupRef = useRef<SVGGElement | null>(null);
-
- // Trace adjust dragging & resizing state
- const [isDraggingTrace, setIsDraggingTrace] = useState<boolean>(false);
- const [isResizingTrace, setIsResizingTrace] = useState<boolean>(false);
- const traceDragStartRef = useRef<{ clientX: number; clientY: number; initOffsetX: number; initOffsetY: number }>({
- clientX: 0,
- clientY: 0,
- initOffsetX: 0,
- initOffsetY: 0,
- });
- const traceResizeStartRef = useRef<{
- clientX: number;
- clientY: number;
- initScale: number;
- initDist: number;
- centerScreenX: number;
- centerScreenY: number;
- }>({
- clientX: 0,
- clientY: 0,
- initScale: 1,
- initDist: 1,
- centerScreenX: 0,
- centerScreenY: 0,
- });
+  // Trace state extracted to useTraceTransform hook below
 
  // Typography Writing Guide Assist Card state (Default to false so it doesn't obstruct the canvas)
  const [showGuideAssist, setShowGuideAssist] = useState<boolean>(() => {
@@ -496,27 +475,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  });
  }, []);
 
- // Touch gesture state for pinch-to-zoom & two-finger pan
- const touchPointersRef = useRef<Map<number, Point>>(new Map());
- const pointerTypesRef = useRef<Map<number, string>>(new Map());
- const isPenDrawingRef = useRef<boolean>(false);
- const lastPenActiveTimeRef = useRef<number>(0);
- const isTwoFingerGestureRef = useRef<boolean>(false);
- const activeTwoFingerIdsRef = useRef<[number, number] | null>(null);
- const twoFingerCooldownUntilRef = useRef<number>(0);
- const twoFingerLastCenterRef = useRef<Point | null>(null);
- const twoFingerLastDistRef = useRef<number | null>(null);
- const twoFingerStartDistRef = useRef<number | null>(null);
- const twoFingerStartCenterRef = useRef<Point | null>(null);
- const pinchRafRef = useRef<number | null>(null);
- const pendingPinchStateRef = useRef<{ zoom: number; pan: Point } | null>(null);
- const panRafRef = useRef<number | null>(null);
- const pendingPanRef = useRef<Point | null>(null);
- const lastTapTimeRef = useRef<number>(0);
- const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
- const isStylusActiveRef = useRef<boolean>(false);
- const [liveStylusPressure, setLiveStylusPressure] = useState<number | null>(null);
- const lastPressureValRef = useRef<number | null>(null);
+  const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
+  const [liveStylusPressure, setLiveStylusPressure] = useState<number | null>(null);
+  const lastPressureValRef = useRef<number | null>(null);
 
  // When switching tool modes away from selection / node editing, automatically clear transient tool states
  useEffect(() => {
@@ -681,23 +642,37 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  if (eraseRafRef.current != null) {
  cancelAnimationFrame(eraseRafRef.current);
  }
- if (pinchRafRef.current != null) {
- cancelAnimationFrame(pinchRafRef.current);
- }
- if (panRafRef.current != null) {
- cancelAnimationFrame(panRafRef.current);
- }
+
  };
  }, []);
 
  // Active Smart Snap Guidelines (Baseline, LSB, Metrics, Other Contours, Grid)
  const [activeSnapGuides, setActiveSnapGuides] = useState<SnapGuideLine[]>([]);
+  const isShapeTool = isShapeToolMode(toolMode);
 
- // User Custom Guidelines (Created by dragging from Top or Left Rulers)
- const [customGuidelines, setCustomGuidelines] = useState<CustomGuideline[]>([]);
- const [lockGuidelines, setLockGuidelines] = useState<boolean>(true);
- const [draggingGuidelineId, setDraggingGuidelineId] = useState<string | null>(null);
- const [newGuidelineType, setNewGuidelineType] = useState<'h' | 'v' | null>(null);
+  // Custom Guidelines Hook (Extracted for modularity and isolation)
+  const {
+    customGuidelines,
+    setCustomGuidelines,
+    lockGuidelines,
+    setLockGuidelines,
+    draggingGuidelineId,
+    setDraggingGuidelineId,
+    newGuidelineType,
+    setNewGuidelineType,
+    isGuideEraserActive,
+    setIsGuideEraserActive,
+    handleDeleteGuideline,
+    handleClearAllGuidelines,
+    handlePointerDownGuide,
+    handleDoubleClickGuide,
+    updateDraggingGuideline,
+  } = useCustomGuidelines({
+    upm,
+    toolMode,
+    isShapeTool,
+    showCanvasToast,
+  });
 
  // Dynamic snap metrics calculated from font canvas UPM
  const snapMetrics = useMemo(() => ({
@@ -870,7 +845,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   // ---------------- SHAPE CREATION HOOK ----------------
   const {
-    isShapeTool,
     shapeStartPoint,
     shapeCurrentPoint,
     setShapeStartPoint,
@@ -942,22 +916,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  setRulerMeasurement(null);
  showCanvasToast('定規のラインから直線ストロークを作成しました', `長さ: ${Math.round(dist)}px / 太さ: ${brushWidth}px`);
  }, [rulerMeasurement, brushWidth, contours, onChangeContours, onCommitHistory, showCanvasToast]);
-
- // Guideline Eraser Mode State
- const [isGuideEraserActive, setIsGuideEraserActive] = useState<boolean>(false);
-
- // Delete an individual guideline
- const handleDeleteGuideline = useCallback((guideId: string) => {
- setCustomGuidelines((prev) => prev.filter((g) => g.id !== guideId));
- showCanvasToast('ガイド線を削除しました');
- }, [setCustomGuidelines, showCanvasToast]);
-
- // Clear all custom guidelines
- const handleClearAllGuidelines = useCallback(() => {
- if (customGuidelines.length === 0) return;
- setCustomGuidelines([]);
- showCanvasToast('すべてのカスタムガイド線を消去しました');
- }, [customGuidelines.length, setCustomGuidelines, showCanvasToast]);
+  // Guideline eraser mode and delete handlers extracted into useCustomGuidelines
 
  // Mobile UI View Modes & Bottom Action Sheets
  const [isMobileFocusMode, setIsMobileFocusMode] = useState<boolean>(false);
@@ -1130,11 +1089,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  }
  }
  isTwoFingerGestureRef.current = false;
- activeTwoFingerIdsRef.current = null;
- twoFingerLastCenterRef.current = null;
- twoFingerLastDistRef.current = null;
- twoFingerStartDistRef.current = null;
- twoFingerStartCenterRef.current = null;
+
  }
  } else if (e.pointerType === 'pen') {
  isPenDrawingRef.current = false;
@@ -1156,34 +1111,26 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  window.removeEventListener('pointercancel', handleWindowPointerUpOrCancel);
  };
  }, [clampPan, showCanvasToast, zoom, pan]);
-
- // Reset trace position offset back to (0, 0) (Center)
- const handleResetTracePosition = useCallback(() => {
- if (!onChangeTraceSettings) return;
- onChangeTraceSettings((prev) => ({
- ...prev,
- offsetX: 0,
- offsetY: 0,
- rotation: 0,
- }));
- showCanvasToast('下絵の位置を中央(X:0, Y:0)にリセットしました');
- }, [onChangeTraceSettings, showCanvasToast]);
-
- // Reset trace position AND scale back to standard
- const handleResetTraceAll = useCallback(() => {
- if (!onChangeTraceSettings) return;
- const isKana = /[ぁ-んァ-ヶー]/.test(traceSettings.text || activeChar || '');
- const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(traceSettings.text || activeChar || '');
- const defaultScale = isKana ? 0.78 : isKanji ? 0.85 : 1.0;
- onChangeTraceSettings((prev) => ({
- ...prev,
- offsetX: 0,
- offsetY: 0,
- scale: defaultScale,
- rotation: 0,
- }));
- showCanvasToast(`下絵の位置とサイズ(${Math.round(defaultScale * 100)}%)をリセットしました`);
- }, [onChangeTraceSettings, showCanvasToast, traceSettings.text, activeChar]);
+  // Trace Transform Hook (Extracted for modularity and isolation)
+  const {
+    isDraggingTrace,
+    isResizingTrace,
+    handlePointerDownTraceImage,
+    handlePointerDownTraceResize,
+    handleResetTracePosition,
+    handleResetTraceAll,
+    handleTracePointerMove,
+    resetTraceDragState,
+  } = useTraceTransform({
+    upm,
+    zoom,
+    pan,
+    containerRef,
+    traceSettings,
+    onChangeTraceSettings,
+    activeChar,
+    showCanvasToast,
+  });
 
 
   // Keep selection state strictly in-sync with current contours
@@ -1296,918 +1243,156 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   }
   return 'default';
  }, [gridSettings.highContrastCursor, gridSettings.showCursorCrosshair, toolMode, eraserMode, isPanning, isSpacePressed, isShapeTool]);
-
- // ---------------- POINTER EVENT HANDLERS ----------------
-
- const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
- // Only capture pointer for non-touch (mouse/pen) to prevent WebKit / iOS multi-touch cancellation glitches
- if (e.pointerType !== 'touch') {
- try {
- (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
- } catch {
- // Ignored for non-capturable pointers in certain mobile browsers
- }
- }
- pointerTypesRef.current.set(e.pointerId, e.pointerType);
- touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
- if (containerRef.current) {
- containerRectRef.current = containerRef.current.getBoundingClientRect();
- }
-
- // Spacebar or Middle Mouse or Hand tool = Pan canvas (HIGHEST PRIORITY)
- if (toolMode === 'hand' || e.button === 1 || isSpacePressed) {
- if (e.button === 1 && e.cancelable) {
- e.preventDefault();
- }
- setIsPanning(true);
- panStartRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
- return;
- }
-
- // Block non-left clicks (e.g. right click, back/forward buttons) from starting strokes
- if (e.pointerType === 'mouse' && e.button !== 0) {
- return;
- }
-
- // Stylus / Apple Pencil detection (Pen takes absolute priority)
- const isPen = e.pointerType === 'pen';
- if (isPen) {
- isPenDrawingRef.current = true;
- lastPenActiveTimeRef.current = Date.now();
- // Immediately cancel any conflicting touch gesture if Apple Pencil touches the screen
- isTwoFingerGestureRef.current = false;
- activeTwoFingerIdsRef.current = null;
- if (!isStylusActiveRef.current) {
- isStylusActiveRef.current = true;
- setIsStylusActive(true);
- }
- if (e.pressure && e.pressure > 0) {
- lastPressureValRef.current = Math.round(e.pressure * 100);
- }
- }
-
- // Cooldown check for touch: do not start single-finger drawing immediately after a 2-finger gesture ends
- if (e.pointerType === 'touch' && twoFingerCooldownUntilRef.current > Date.now()) {
- return;
- }
-
- // Track multi-touch tap gestures
- if (e.pointerType === 'touch') {
- const currentTouchCount = touchPointersRef.current.size;
- if (currentTouchCount === 1) {
- touchStartTimeRef.current = Date.now();
- maxTouchCountRef.current = 1;
- hasMovedSignificantRef.current = false;
- } else {
- maxTouchCountRef.current = Math.max(maxTouchCountRef.current, currentTouchCount);
- }
- }
-
- // PALM REJECTION for iPad & Stylus:
- // If palm rejection is active (auto when stylus was recently active or strict_pen_only), ignore accidental palm/finger drawing!
- const isPenRecentlyActive = Date.now() - lastPenActiveTimeRef.current < 1500;
- const isPalmRejectionActive =
- palmRejectionMode === 'strict_pen_only' ||
- (palmRejectionMode === 'auto' && (isPenDrawingRef.current || isPenRecentlyActive));
-
- if (e.pointerType === 'touch' && isPalmRejectionActive && !isPenDrawingRef.current) {
- // If 1 finger touch during active palm rejection, ignore canvas stroke to prevent stray marks
- if (touchPointersRef.current.size === 1) {
- // Allow metric dragging if right on guide
- const posCheck = screenToCanvas(e.clientX, e.clientY);
- const hitThreshold = 30 / zoomRef.current;
- if (Math.abs(posCheck.x - lsb) <= hitThreshold || Math.abs(posCheck.x - advanceWidth) <= hitThreshold) {
- // Allow guideline adjustment
- } else {
- showCanvasToast('パームリジェクション', 'ペン先以外の接触を自動ブロック中');
- return;
- }
- }
- }
-
- // If stylus is currently drawing or was active within 200ms, ignore touch input completely
- if (e.pointerType === 'touch' && (isPenDrawingRef.current || (Date.now() - lastPenActiveTimeRef.current < 200))) {
- return;
- }
-
- // Multi-touch gesture (Pinch-to-zoom & 2-Finger Pan)
- // Only pure finger touches trigger pinch zoom / 2-finger pan
- const fingerTouches = Array.from(touchPointersRef.current.entries())
- .filter(([id]) => pointerTypesRef.current.get(id) === 'touch');
-
- if (fingerTouches.length >= 2 && !isPenDrawingRef.current) {
- isTwoFingerGestureRef.current = true;
- activeTwoFingerIdsRef.current = [fingerTouches[0][0], fingerTouches[1][0]];
-
- // Immediately cancel any single-touch drawings in progress to prevent accidental blobs or stray strokes
- brushStrokePointsRef.current = [];
- if (activeBrushPathRef.current) {
- activeBrushPathRef.current.setAttribute('d', '');
- }
- setShapeStartPoint(null);
- setShapeCurrentPoint(null);
- setMarqueeSelection(null);
- setDraggingMetric(null);
- setDraggingGuidelineId(null);
- setIsDraggingTrace(false);
- setIsResizingTrace(false);
- setTransformSession(null);
- isErasingRef.current = false;
- lastErasePosRef.current = null;
-
- // If pen contour was just started by finger 1 (single node), discard it so pinch doesn't leave stray node
- if (activePenContour && activePenContour.nodes.length <= 1) {
- setActivePenContour(null);
- setSelectedNodeId(null);
- }
-
- const p1 = fingerTouches[0][1];
- const p2 = fingerTouches[1][1];
- const dist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
- const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-
- twoFingerLastCenterRef.current = center;
- twoFingerLastDistRef.current = dist;
- twoFingerStartDistRef.current = dist;
- twoFingerStartCenterRef.current = center;
- return;
- }
-
- // Double tap on mobile screen -> quick toggle Fit / 100% (only in select or hand tool to avoid interrupting drawing)
- if (e.pointerType === 'touch' && (toolMode === 'select' || (toolMode as string) === 'hand')) {
- const now = Date.now();
- if (now - lastTapTimeRef.current < 300 && touchPointersRef.current.size === 1) {
- if (Math.abs(zoom - 1.0) < 0.08) {
- resetView('fit');
- showCanvasToast('画面にフィット');
- } else {
- resetView('100%');
- showCanvasToast('100% 等倍表示');
- }
- lastTapTimeRef.current = 0;
- return;
- }
- lastTapTimeRef.current = now;
- }
-
- const pos = screenToCanvas(e.clientX, e.clientY);
- const isTouch = e.pointerType === 'touch';
- const metricHitDist = isTouch ? Math.max(30 / zoom, 26) : 18 / zoom;
-
- // Metrics drag detection (LSB or RSB)
- // Guard against accidental vertical line dragging during drawing tools or when guidelines are locked
- const isDrawingTool = toolMode === 'brush' || toolMode === 'pen' || toolMode === 'eraser' || isShapeTool;
- const isMetricDragAllowed = !lockGuidelines && !isDrawingTool && (toolMode === 'select' || toolMode === 'ruler');
-
- if (isMetricDragAllowed) {
- if (Math.abs(pos.x - lsb) <= metricHitDist) {
- setDraggingMetric('lsb');
- return;
- }
- if (Math.abs(pos.x - advanceWidth) <= metricHitDist) {
- setDraggingMetric('rsb');
- return;
- }
- } else if (lockGuidelines && toolMode === 'select' && (Math.abs(pos.x - lsb) <= metricHitDist || Math.abs(pos.x - advanceWidth) <= metricHitDist)) {
- showCanvasToast('ガイド・文字幅線はロックされています', 'ヘッダーの鍵アイコンでロック解除できます');
- }
-
- // TRACE ADJUST DRAG
- if (toolMode === 'trace_adjust') {
- setIsDraggingTrace(true);
- traceDragStartRef.current = {
- clientX: e.clientX,
- clientY: e.clientY,
- initOffsetX: traceSettings.offsetX || 0,
- initOffsetY: traceSettings.offsetY || 0,
- };
- return;
- }
-
- // RULER / MEASUREMENT TOOL
- if (toolMode === 'ruler') {
- handleRulerPointerDown(pos, e);
- return;
- }
-
- // 選択中は誤描画を防止：輪郭やノードを選択している間はキャンバスへの新規書き込みをロック
- // タップ/クリックで選択を解除し、再度描画できるようにする
- const hasActiveSelection =
- selectedContourIds.length > 0 ||
- (selectedNodeId !== null && !activePenContour);
-
- // Auto-clear active selection on start drawing or erasing so user can directly interact immediately
- if (
- hasActiveSelection &&
- (toolMode === 'brush' || toolMode === 'pen' || toolMode === 'eraser' || isShapeTool)
- ) {
- setSelectedContourIds([]);
- setSelectedContourId(null);
- setSelectedNodeId(null);
- setSelectedHandleType(null);
- }
-
- // PEN TOOL
- if (toolMode === 'pen') {
- let penPos = pos;
- if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
- const snapRes = snapSinglePoint(
- pos,
- contours,
- snapMetrics,
- customGuidelines,
- Math.max(7, Math.round(12 / zoom)),
- gridSettings
- );
- penPos = snapRes.point;
- setActiveSnapGuides(snapRes.activeGuides);
- }
-
- if (!activePenContour) {
- // Start new path
- const firstNode: BezierNode = {
- id: generateId(),
- x: penPos.x,
- y: penPos.y,
- type: penMode === 'corner' ? 'corner' : 'smooth',
- };
- const newContour: PathContour = {
- id: generateId(),
- closed: false,
- nodes: [firstNode],
- };
- setActivePenContour(newContour);
- setSelectedContourId(newContour.id);
- setSelectedNodeId(firstNode.id);
- if (penMode === 'bezier') {
- setSelectedHandleType('handleOut');
- } else {
- setSelectedHandleType(null);
- }
- } else {
- const firstNode = activePenContour.nodes[0];
- const distToStart = Math.hypot(penPos.x - firstNode.x, penPos.y - firstNode.y);
-
- // Closing path if clicked near start node
- if (activePenContour.nodes.length >= 2 && distToStart <= 24 / zoom) {
- handleFinishPenContour(true);
- return;
- }
-
- // Add new node
- const newNode: BezierNode = {
- id: generateId(),
- x: penPos.x,
- y: penPos.y,
- type: penMode === 'corner' ? 'corner' : 'smooth',
- };
- const updated = {
- ...activePenContour,
- nodes: [...activePenContour.nodes, newNode],
- };
- setActivePenContour(updated);
- setSelectedNodeId(newNode.id);
- if (penMode === 'bezier') {
- setSelectedHandleType('handleOut');
- } else {
- setSelectedHandleType(null);
- }
- }
- return;
- }
-
- // BRUSH TOOL (With Stylus / Apple Pencil pressure tracking & Straight Line Assist)
- if (toolMode === 'brush') {
- handleBrushPointerDown(e, pos);
- return;
- }
-
- // SHAPES
- if (isShapeTool) {
- handleShapePointerDown(pos, e);
- return;
- }
-
- // ERASER TOOL
- if (toolMode === 'eraser') {
- handleEraserPointerDown(pos, e);
- return;
- }
-
- // SELECT / NODE TOOL
- if (toolMode === 'select' || toolMode === 'node') {
- const handledNode = handleNodePointerDownOnCanvas(pos, e);
- if (!handledNode && toolMode === 'select') {
- setMarqueeSelection({ start: pos, current: pos });
- }
- }
- };
-
- const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
- // Pen takes absolute priority
- if (e.pointerType === 'pen') {
- isPenDrawingRef.current = true;
- lastPenActiveTimeRef.current = Date.now();
- isTwoFingerGestureRef.current = false;
- activeTwoFingerIdsRef.current = null;
- }
-
- // Palm rejection: ignore accidental resting palm movement while stylus is active or recently active
- if (e.pointerType === 'touch' && (isPenDrawingRef.current || (Date.now() - lastPenActiveTimeRef.current < 250))) {
- return;
- }
- touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
- // Track movement for multi-touch tap gestures
- if (e.pointerType === 'touch' && !hasMovedSignificantRef.current) {
- hasMovedSignificantRef.current = true;
- }
-
- // Handle 2-finger pinch zoom and fluid two-finger pan (pure finger touches only)
- const fingerTouches = Array.from(touchPointersRef.current.entries())
- .filter(([id]) => pointerTypesRef.current.get(id) === 'touch');
-
- if (fingerTouches.length >= 2 && !isPenDrawingRef.current) {
- isTwoFingerGestureRef.current = true;
-
- // Select stable pair of touch points to prevent jumpiness if 3+ touches occur
- let p1: Point;
- let p2: Point;
- const trackedIds = activeTwoFingerIdsRef.current;
- if (trackedIds && touchPointersRef.current.has(trackedIds[0]) && touchPointersRef.current.has(trackedIds[1])) {
- p1 = touchPointersRef.current.get(trackedIds[0])!;
- p2 = touchPointersRef.current.get(trackedIds[1])!;
- } else {
- activeTwoFingerIdsRef.current = [fingerTouches[0][0], fingerTouches[1][0]];
- p1 = fingerTouches[0][1];
- p2 = fingerTouches[1][1];
- }
-
- const currDist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
- const currCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-
- if (!twoFingerLastCenterRef.current || !twoFingerLastDistRef.current) {
- twoFingerLastCenterRef.current = currCenter;
- twoFingerLastDistRef.current = currDist;
- twoFingerStartDistRef.current = currDist;
- twoFingerStartCenterRef.current = currCenter;
- return;
- }
-
- const dx = currCenter.x - twoFingerLastCenterRef.current.x;
- const dy = currCenter.y - twoFingerLastCenterRef.current.y;
- const lastDist = twoFingerLastDistRef.current;
-
- // Calculate scale step with smooth deadzone for pure pan
- let scaleStep = currDist / lastDist;
- const startDist = twoFingerStartDistRef.current || currDist;
- const totalRatioFromStart = currDist / startDist;
-
- // If finger distance stayed within ±6% of start, prioritize pure butter-smooth pan with no zoom jitter
- if (Math.abs(totalRatioFromStart - 1.0) < 0.06) {
- scaleStep = 1.0;
- } else {
- // Softly clamp per-frame step to prevent erratic jumps
- scaleStep = Math.max(0.86, Math.min(1.16, scaleStep));
- }
-
- const rect = containerRectRef.current || (containerRef.current ? containerRef.current.getBoundingClientRect() : null);
- const centerScreenX = rect ? (currCenter.x - rect.left) : currCenter.x;
- const centerScreenY = rect ? (currCenter.y - rect.top) : currCenter.y;
-
- const currentZoom = zoomRef.current;
- const currentPan = panRef.current;
-
- const nextZoom = Math.max(0.35, Math.min(5.0, currentZoom * scaleStep));
- const actualScaleChange = nextZoom / currentZoom;
-
- const nextPanX = centerScreenX - (centerScreenX - currentPan.x) * actualScaleChange + dx;
- const nextPanY = centerScreenY - (centerScreenY - currentPan.y) * actualScaleChange + dy;
- const nextPan = clampPan({ x: nextPanX, y: nextPanY }, nextZoom);
-
- twoFingerLastCenterRef.current = currCenter;
- twoFingerLastDistRef.current = currDist;
- zoomRef.current = nextZoom;
- panRef.current = nextPan;
-
- // Direct hardware-accelerated DOM transform during live pinch zoom
- if (canvasGroupRef.current) {
- canvasGroupRef.current.setAttribute(
- 'transform',
- `translate(${nextPan.x}, ${nextPan.y}) scale(${nextZoom})`
- );
- }
- return;
- }
-
- // If currently in a two-finger gesture or within exit cooldown, strictly block single-finger canvas drawings
- if (isTwoFingerGestureRef.current || (e.pointerType === 'touch' && twoFingerCooldownUntilRef.current > Date.now())) {
- return;
- }
-
- if (isPanning) {
- const nextPan = clampPan({
- x: e.clientX - panStartRef.current.x,
- y: e.clientY - panStartRef.current.y,
- }, zoomRef.current);
- panRef.current = nextPan;
-
- if (canvasGroupRef.current) {
- canvasGroupRef.current.setAttribute(
- 'transform',
- `translate(${nextPan.x}, ${nextPan.y}) scale(${zoomRef.current})`
- );
- }
- return;
- }
-
- // Dragging trace image position
- if (isDraggingTrace && onChangeTraceSettings) {
- const deltaX = (e.clientX - traceDragStartRef.current.clientX) / zoom;
- const deltaY = (e.clientY - traceDragStartRef.current.clientY) / zoom;
- onChangeTraceSettings((prev) => ({
- ...prev,
- offsetX: Math.round(traceDragStartRef.current.initOffsetX + deltaX),
- offsetY: Math.round(traceDragStartRef.current.initOffsetY + deltaY),
- }));
- return;
- }
-
- // Resizing trace image / char scale from corner handle
- if (isResizingTrace && onChangeTraceSettings) {
- const { centerScreenX, centerScreenY, initDist, initScale } = traceResizeStartRef.current;
- const currentDist = Math.hypot(e.clientX - centerScreenX, e.clientY - centerScreenY);
- const ratio = currentDist / initDist;
- const rawScale = initScale * ratio;
- const nextScale = Math.round(Math.max(0.2, Math.min(3.0, rawScale)) * 100) / 100;
- onChangeTraceSettings((prev) => ({
- ...prev,
- scale: nextScale,
- }));
- return;
- }
-
- const pos = screenToCanvas(e.clientX, e.clientY);
- 
- // Instantaneous direct hardware DOM update for eraser reticle (0ms latency, bypasses React render tree)
- if (toolMode === 'eraser' && eraserReticleRef.current) {
-  if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) {
-   if (eraserReticleRef.current.style.display !== 'none') {
-    eraserReticleRef.current.style.display = 'none';
-   }
-  } else {
-   eraserReticleRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
-   if (eraserReticleRef.current.style.display === 'none') {
-    eraserReticleRef.current.style.display = '';
-   }
-  }
- }
-
- // Instantaneous direct hardware DOM update for brush drawing reticle (0ms latency, bypasses React render tree)
- if (toolMode === 'brush' && drawingReticleRef.current) {
-  if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) {
-   if (drawingReticleRef.current.style.display !== 'none') {
-    drawingReticleRef.current.style.display = 'none';
-   }
-  } else {
-   drawingReticleRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
-   if (drawingReticleRef.current.style.display === 'none') {
-    drawingReticleRef.current.style.display = '';
-   }
-  }
- }
-
- // Only update hover cursor coordinates when crosshair, ruler, or pen tool is active, and NOT during panning or active stroke drawing
- const isActivelyDrawing = brushStrokePointsRef.current.length > 0 || isPenDrawingRef.current;
- const isDrawingOrPanning =
- isActivelyDrawing ||
- isShapeTool ||
- isSpacePressed ||
- isPanning;
-
- const needsHoverPos =
- Boolean(gridSettings.showCursorCrosshair) ||
- (toolMode === 'pen' && Boolean(activePenContour)) ||
- (toolMode === 'eraser' && eraserMode === 'node');
-
- if (needsHoverPos && !isDrawingOrPanning) {
- if (hoverRafRef.current == null) {
- hoverRafRef.current = requestAnimationFrame(() => {
- hoverRafRef.current = null;
- setHoverCanvasPos(pos);
- });
- }
- } else if (!needsHoverPos && hoverCanvasPos !== null) {
- setHoverCanvasPos(null);
- }
-
- // Active Custom Guideline Drag
- if (draggingGuidelineId) {
- setCustomGuidelines((prev) =>
- prev.map((g) => {
- if (g.id !== draggingGuidelineId) return g;
- return {
- ...g,
- position: g.type === 'v' ? Math.max(0, Math.min(upm, pos.x)) : Math.max(0, Math.min(upm, pos.y)),
- };
- })
- );
- return;
- }
-
- // New Guideline Dragging from Rulers
- if (newGuidelineType) {
- // Keep tracking
- return;
- }
-
- // Active Ruler Measurement Drag
- if (toolMode === 'ruler' && rulerMeasurement && rulerMeasurement.active) {
- handleRulerPointerMove(pos, e);
- return;
- }
-
- // Metric lines drag
- if (draggingMetric === 'lsb') {
- onChangeLsb(Math.max(0, Math.min(pos.x, advanceWidth - 50)));
- return;
- }
- if (draggingMetric === 'rsb') {
- onChangeAdvanceWidth(Math.max(lsb + 50, Math.min(2000, pos.x)));
- return;
- }
-
- // Marquee rectangular drag selection
- if (marqueeSelection) {
- setMarqueeSelection((prev) => (prev ? { ...prev, current: pos } : null));
- return;
- }
-
-  // ---------------- ACTIVE BOUNDING BOX TRANSFORMATION DRAG ----------------
-  if (handleTransformPointerMove(pos, e)) {
-    return;
-  }
-
- // Eraser Tool continuous sweep-erase while dragging
- if (toolMode === 'eraser' && isErasingRef.current) {
- handleEraserPointerMove(pos);
- return;
- }
-
- if (toolMode === 'brush') {
- if (handleBrushPointerMove(e)) return;
- }
-
- // Shapes in-progress
- if (isShapeTool && shapeStartPoint) {
- handleShapePointerMove(pos, e);
- return;
- }
-
- // Pen tool hover rubber-band
- if (toolMode === 'pen' && activePenContour) {
- setPenMousePos(pos);
- // If dragging while creating node -> adjust handleOut
- if (selectedNodeId && selectedHandleType === 'handleOut') {
- const updatedNodes = activePenContour.nodes.map((node) => {
- if (node.id === selectedNodeId) {
- const dx = pos.x - node.x;
- const dy = pos.y - node.y;
- return {
- ...node,
- handleOut: { x: pos.x, y: pos.y },
- handleIn: { x: node.x - dx, y: node.y - dy },
- type: 'smooth' as const,
- };
- }
- return node;
- });
- setActivePenContour({ ...activePenContour, nodes: updatedNodes });
- }
- return;
- }
-
- // Select/Node Dragging (Ref-accelerated 0ms latency synchronous tracking)
- if (handleNodeDragMove(e, pos)) {
-  return;
- }
- };
-
-
- const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
- setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
- try {
- if (e.currentTarget?.hasPointerCapture?.(e.pointerId)) {
- e.currentTarget.releasePointerCapture(e.pointerId);
- }
- } catch {
- // Ignored
- }
- const wasTouch = e.pointerType === 'touch';
- touchPointersRef.current.delete(e.pointerId);
- pointerTypesRef.current.delete(e.pointerId);
- if (e.pointerType === 'pen') {
- isPenDrawingRef.current = false;
- lastPenActiveTimeRef.current = Date.now();
- if (lastPressureValRef.current !== null) {
- setLiveStylusPressure(lastPressureValRef.current);
- }
- }
-
- const remainingTouches = Array.from(touchPointersRef.current.entries())
- .filter(([id]) => pointerTypesRef.current.get(id) === 'touch');
-
- // If down to 1 or 0 fingers from a two-finger gesture:
- if (remainingTouches.length >= 2) {
- // Still 2 or more fingers (e.g. 3 fingers touched, 1 lifted): re-anchor seamlessly
- activeTwoFingerIdsRef.current = [remainingTouches[0][0], remainingTouches[1][0]];
- const p1 = remainingTouches[0][1];
- const p2 = remainingTouches[1][1];
- const dist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
- const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
- twoFingerLastCenterRef.current = center;
- twoFingerLastDistRef.current = dist;
- twoFingerStartDistRef.current = dist;
- twoFingerStartCenterRef.current = center;
- } else {
- twoFingerLastCenterRef.current = null;
- twoFingerLastDistRef.current = null;
- twoFingerStartDistRef.current = null;
- twoFingerStartCenterRef.current = null;
- }
-
- // Check for 2-finger tap (Undo) or 3-finger tap (Redo) when all fingers leave screen
- if (wasTouch && touchPointersRef.current.size === 0) {
- const duration = Date.now() - touchStartTimeRef.current;
- const touchCount = maxTouchCountRef.current;
- const didNotMove = !hasMovedSignificantRef.current;
-
- // Reset gesture tracking
- maxTouchCountRef.current = 0;
- hasMovedSignificantRef.current = false;
-
- if (duration < 380 && didNotMove) {
- if (touchCount === 2) {
- if (onUndo) {
- onUndo();
- isTwoFingerGestureRef.current = false;
- twoFingerCooldownUntilRef.current = Date.now() + 150;
- activeTwoFingerIdsRef.current = null;
- return;
- }
- } else if (touchCount === 3) {
- if (onRedo) {
- onRedo();
- isTwoFingerGestureRef.current = false;
- twoFingerCooldownUntilRef.current = Date.now() + 150;
- activeTwoFingerIdsRef.current = null;
- return;
- }
- }
- }
- }
-
- // If we were in a two-finger gesture, do not commit any drawing or shape actions
- if (isTwoFingerGestureRef.current) {
- if (touchPointersRef.current.size === 0) {
- isTwoFingerGestureRef.current = false;
- twoFingerCooldownUntilRef.current = Date.now() + 150;
- activeTwoFingerIdsRef.current = null;
- }
- if (Math.abs(zoomRef.current - zoom) > 0.001 || Math.abs(panRef.current.x - pan.x) > 0.5 || Math.abs(panRef.current.y - pan.y) > 0.5) {
- setZoom(zoomRef.current);
- setPan(panRef.current);
- }
- return;
- }
-
- if (touchPointersRef.current.size < 2) {
- twoFingerLastCenterRef.current = null;
- twoFingerLastDistRef.current = null;
- twoFingerStartDistRef.current = null;
- twoFingerStartCenterRef.current = null;
- }
-
- if (pinchRafRef.current != null) {
- cancelAnimationFrame(pinchRafRef.current);
- pinchRafRef.current = null;
- }
- if (pendingPinchStateRef.current) {
- setZoom(pendingPinchStateRef.current.zoom);
- setPan(pendingPinchStateRef.current.pan);
- zoomRef.current = pendingPinchStateRef.current.zoom;
- panRef.current = pendingPinchStateRef.current.pan;
- pendingPinchStateRef.current = null;
- }
- if (panRafRef.current != null) {
- cancelAnimationFrame(panRafRef.current);
- panRafRef.current = null;
- }
- if (pendingPanRef.current) {
- setPan(pendingPanRef.current);
- panRef.current = pendingPanRef.current;
- pendingPanRef.current = null;
- }
- containerRectRef.current = null;
-
- // Always clear active snap guidelines when releasing pointer
- setActiveSnapGuides([]);
-
- // Finalize Marquee Selection Box
- if (marqueeSelection) {
- const minX = Math.min(marqueeSelection.start.x, marqueeSelection.current.x);
- const maxX = Math.max(marqueeSelection.start.x, marqueeSelection.current.x);
- const minY = Math.min(marqueeSelection.start.y, marqueeSelection.current.y);
- const maxY = Math.max(marqueeSelection.start.y, marqueeSelection.current.y);
- if (Math.hypot(maxX - minX, maxY - minY) > 10) {
- const intersecting = contours.filter((c) => {
- const b = getContoursBoundingBox([c]);
- return !(b.maxX < minX || b.minX > maxX || b.maxY < minY || b.minY > maxY);
- });
- if (intersecting.length > 0) {
- const newIds = intersecting.map((c) => c.id);
- setSelectedContourIds((prev) =>
- e.shiftKey ? [...new Set([...prev, ...newIds])] : newIds
- );
- showCanvasToast(`${intersecting.length}個のパスを選択しました`);
- }
- }
- setMarqueeSelection(null);
- }
-
- if (isDraggingTrace) {
- setIsDraggingTrace(false);
- return;
- }
-
- if (isResizingTrace) {
- setIsResizingTrace(false);
- return;
- }
-
- if (isPanning) {
- setIsPanning(false);
- setPan(panRef.current);
- return;
- }
-
- if (draggingMetric) {
- setDraggingMetric(null);
- onCommitHistory?.();
- return;
- }
-
- if (draggingGuidelineId) {
- setDraggingGuidelineId(null);
- return;
- }
-
- // Finalize Ruler Measurement Drag
- if (toolMode === 'ruler' && rulerMeasurement && rulerMeasurement.active) {
- handleRulerPointerUp();
- return;
- }
-
- // Finalize Eraser Tool sweep session
- if (toolMode === 'eraser' && isErasingRef.current) {
- handleEraserPointerUp(e);
- return;
- }
-
- if (toolMode === 'brush') {
- if (handleBrushPointerUp(e)) return;
- }
-
- // Finalize Geometric Shape
- if (isShapeTool && shapeStartPoint && shapeCurrentPoint) {
- handleShapePointerUp(e);
- return;
- }
-
- // Finalize Node Drag
- handleNodeDragEnd();
-
-  // Finalize Bounding Box Transform Drag
-  handleTransformPointerUp();
- };
-
- const handlePointerCancel = (e: React.PointerEvent<SVGSVGElement>) => {
- if (e.pointerType !== 'touch') {
- try {
- if (e.currentTarget?.hasPointerCapture?.(e.pointerId)) {
- e.currentTarget.releasePointerCapture(e.pointerId);
- }
- } catch {
- // Ignored
- }
- }
- touchPointersRef.current.delete(e.pointerId);
- pointerTypesRef.current.delete(e.pointerId);
-
- if (e.pointerType === 'pen') {
- isPenDrawingRef.current = false;
- lastPenActiveTimeRef.current = Date.now();
- }
-
- const remainingTouches = Array.from(touchPointersRef.current.entries())
- .filter(([id]) => pointerTypesRef.current.get(id) === 'touch');
-
- if (remainingTouches.length >= 2) {
- activeTwoFingerIdsRef.current = [remainingTouches[0][0], remainingTouches[1][0]];
- const p1 = remainingTouches[0][1];
- const p2 = remainingTouches[1][1];
- const dist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
- const center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
- twoFingerLastCenterRef.current = center;
- twoFingerLastDistRef.current = dist;
- twoFingerStartDistRef.current = dist;
- twoFingerStartCenterRef.current = center;
- } else {
- twoFingerLastCenterRef.current = null;
- twoFingerLastDistRef.current = null;
- twoFingerStartDistRef.current = null;
- twoFingerStartCenterRef.current = null;
- if (touchPointersRef.current.size === 0) {
- if (isTwoFingerGestureRef.current) {
- twoFingerCooldownUntilRef.current = Date.now() + 150;
- }
- isTwoFingerGestureRef.current = false;
- activeTwoFingerIdsRef.current = null;
- }
- }
-
- if (Math.abs(zoomRef.current - zoom) > 0.001 || Math.abs(panRef.current.x - pan.x) > 0.5 || Math.abs(panRef.current.y - pan.y) > 0.5) {
- setZoom(zoomRef.current);
- setPan(panRef.current);
- }
-
- // Cancel any in-progress stroke or drag cleanly. Pointer cancellation must
- // Cancel any in-progress stroke or drag cleanly. Pointer cancellation must
- // never create a contour or history entry.
- resetBrushDrawing();
- resetEraserVisuals();
- setShapeStartPoint(null);
- setShapeCurrentPoint(null);
- setMarqueeSelection(null);
- setDraggingMetric(null);
- setDraggingGuidelineId(null);
- setIsDraggingTrace(false);
- setIsResizingTrace(false);
- setIsPanning(false);
- pendingTransformContoursRef.current = null;
- setTransformSession(null);
- setSelectedHandleType(null);
- nodeDragSessionRef.current = null;
- setActiveSnapGuides([]);
- containerRectRef.current = null;
- };
-
- const handlePointerLeave = () => {
- if (hoverRafRef.current != null) {
- cancelAnimationFrame(hoverRafRef.current);
- hoverRafRef.current = null;
- }
- if (pinchRafRef.current != null) {
- cancelAnimationFrame(pinchRafRef.current);
- pinchRafRef.current = null;
- }
- if (panRafRef.current != null) {
- cancelAnimationFrame(panRafRef.current);
- panRafRef.current = null;
- }
- resetEraserVisuals();
- containerRectRef.current = null;
- twoFingerLastCenterRef.current = null;
- twoFingerLastDistRef.current = null;
- twoFingerStartDistRef.current = null;
- if (eraserReticleRef.current) {
- eraserReticleRef.current.style.display = 'none';
- }
- if (drawingReticleRef.current) {
- drawingReticleRef.current.style.display = 'none';
- }
- setHoverCanvasPos(null);
- };
-
- const handleLostPointerCapture = useCallback(() => {
- if (drawingReticleRef.current) {
- drawingReticleRef.current.style.display = 'none';
- }
- if (isErasingRef.current) {
- resetEraserVisuals();
- }
- isPenDrawingRef.current = false;
- isTwoFingerGestureRef.current = false;
- activeTwoFingerIdsRef.current = null;
- setIsPanning(false);
- setIsDraggingTrace(false);
- setIsResizingTrace(false);
- setDraggingMetric(null);
- setDraggingGuidelineId(null);
- setMarqueeSelection(null);
- nodeDragSessionRef.current = null;
- }, []);
+  // ---------------- POINTER EVENT DISPATCHER (Extracted hook) ----------------
+  const {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isPenDrawingRef,
+    lastPenActiveTimeRef,
+    touchPointersRef,
+    pointerTypesRef,
+    isTwoFingerGestureRef,
+    twoFingerCooldownUntilRef,
+  } = useCanvasPointerDispatcher({
+    zoom,
+    pan,
+    setZoom,
+    setPan,
+    zoomRef,
+    panRef,
+    screenToCanvas,
+    resetView,
+    containerRef,
+    isSpacePressed,
+    isPanning,
+    setIsPanning,
+    panStartRef,
+    toolMode,
+    isShapeTool,
+    eraserMode,
+    penMode,
+    palmRejectionMode,
+    isStylusActive,
+    setIsStylusActive,
+    setLiveStylusPressure,
+    contours,
+    contoursRef,
+    selectedContourIds,
+    setSelectedContourIds,
+    selectedContourId,
+    setSelectedContourId,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedHandleType,
+    setSelectedHandleType,
+    marqueeSelection,
+    setMarqueeSelection,
+    setTouchLoupeState,
+    lsb,
+    advanceWidth,
+    onChangeLsb,
+    onChangeAdvanceWidth,
+    draggingMetric,
+    setDraggingMetric,
+    handleBrushPointerDown,
+    handleBrushPointerMove,
+    handleBrushPointerUp,
+    brushStrokePointsRef,
+    activeBrushPathRef,
+    handleNodePointerDownOnCanvas,
+    handleNodeDragMove,
+    handleNodeDragEnd,
+    nodeDragSessionRef,
+    shapeStartPoint,
+    handleShapePointerDown,
+    handleShapePointerMove,
+    handleShapePointerUp,
+    setShapeStartPoint,
+    setShapeCurrentPoint,
+    isErasingRef,
+    lastErasePosRef,
+    handleEraserPointerDown,
+    handleEraserPointerMove,
+    handleEraserPointerUp,
+    eraserReticleRef,
+    drawingReticleRef,
+    resetEraserVisuals,
+    activePenContour,
+    setActivePenContour,
+    penStrokeWidth,
+    penCapStyle,
+    autoResolveBrushOverlap,
+    setPenMousePos,
+    handleTransformPointerMove,
+    handleTransformPointerUp,
+    setTransformSession,
+    rulerMeasurement,
+    handleRulerPointerDown,
+    handleRulerPointerMove,
+    handleRulerPointerUp,
+    lockGuidelines,
+    draggingGuidelineId,
+    setDraggingGuidelineId,
+    updateDraggingGuideline,
+    isDraggingTrace,
+    isResizingTrace,
+    handleTracePointerMove,
+    resetTraceDragState,
+    traceSettings,
+    onChangeTraceSettings,
+    gridSettings,
+    snapMetrics,
+    customGuidelines,
+    setActiveSnapGuides,
+    hoverCanvasPos,
+    setHoverCanvasPos,
+    onChangeContours,
+    onCommitHistory,
+    onUndo,
+    onRedo,
+    showCanvasToast,
+  });
+
+  const handlePointerCancel = handlePointerUp;
+
+  const handlePointerLeave = useCallback(() => {
+    if (eraserReticleRef.current) {
+      eraserReticleRef.current.style.display = 'none';
+    }
+    if (drawingReticleRef.current) {
+      drawingReticleRef.current.style.display = 'none';
+    }
+    setHoverCanvasPos(null);
+  }, [setHoverCanvasPos]);
+
+  const handleLostPointerCapture = useCallback(() => {
+    if (drawingReticleRef.current) {
+      drawingReticleRef.current.style.display = 'none';
+    }
+    if (isErasingRef.current) {
+      resetEraserVisuals();
+    }
+    isPenDrawingRef.current = false;
+    isTwoFingerGestureRef.current = false;
+    setIsPanning(false);
+    resetTraceDragState();
+    setDraggingMetric(null);
+    setDraggingGuidelineId(null);
+    setMarqueeSelection(null);
+    nodeDragSessionRef.current = null;
+  }, [
+    isErasingRef,
+    resetEraserVisuals,
+    isPenDrawingRef,
+    isTwoFingerGestureRef,
+    setIsPanning,
+    resetTraceDragState,
+    setDraggingMetric,
+    setDraggingGuidelineId,
+    setMarqueeSelection,
+    nodeDragSessionRef,
+  ]);
 
 
  // Zoom handlers
@@ -2298,79 +1483,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  );
 
  // Callbacks for memoized layer interactions
- const handlePointerDownTraceImage = useCallback(
- (e: React.PointerEvent) => {
- e.stopPropagation();
- setIsDraggingTrace(true);
- traceDragStartRef.current = {
- clientX: e.clientX,
- clientY: e.clientY,
- initOffsetX: traceSettings.offsetX || 0,
- initOffsetY: traceSettings.offsetY || 0,
- };
- },
- [traceSettings.offsetX, traceSettings.offsetY]
- );
-
- const handlePointerDownTraceResize = useCallback(
- (e: React.PointerEvent, _handle: TraceResizeHandle) => {
- e.stopPropagation();
- setIsResizingTrace(true);
- const rect = containerRef.current?.getBoundingClientRect();
- const currentZoom = zoom;
- const currentPan = pan;
- const centerCanvasX = (upm / 2) + (traceSettings.offsetX || 0);
- const centerCanvasY = (upm / 2) + (traceSettings.offsetY || 0);
- const centerScreenX = (rect ? rect.left : 0) + currentPan.x + centerCanvasX * currentZoom;
- const centerScreenY = (rect ? rect.top : 0) + currentPan.y + centerCanvasY * currentZoom;
- const initDist = Math.hypot(e.clientX - centerScreenX, e.clientY - centerScreenY);
-
- traceResizeStartRef.current = {
- clientX: e.clientX,
- clientY: e.clientY,
- initScale: traceSettings.scale ?? 1,
- initDist: Math.max(10, initDist),
- centerScreenX,
- centerScreenY,
- };
- },
- [zoom, pan, traceSettings.offsetX, traceSettings.offsetY, traceSettings.scale, upm]
- );
-
- const handlePointerDownGuide = useCallback(
- (e: React.PointerEvent, guideId: string) => {
- if (
- lockGuidelines ||
- toolMode === 'brush' ||
- toolMode === 'pen' ||
- toolMode === 'eraser' ||
- isShapeTool
- ) {
- return;
- }
- e.stopPropagation();
- setDraggingGuidelineId(guideId);
- },
- [lockGuidelines, toolMode, isShapeTool]
- );
-
- const handleDoubleClickGuide = useCallback(
- (e: React.MouseEvent, guideId: string) => {
- if (
- lockGuidelines ||
- toolMode === 'brush' ||
- toolMode === 'pen' ||
- toolMode === 'eraser' ||
- isShapeTool
- ) {
- return;
- }
- e.stopPropagation();
- setCustomGuidelines((prev) => prev.filter((g) => g.id !== guideId));
- },
- [lockGuidelines, toolMode, isShapeTool]
- );
-
+ // Trace & guideline pointer callbacks provided by useTraceTransform & useCustomGuidelines
   // Canvas keyboard shortcuts & spacebar pan navigation
   useCanvasShortcuts({
     isAnyModalOpen,

@@ -5,6 +5,7 @@ import {
   GridSettings,
   SnapGuideLine,
   CustomGuideline,
+  SnapMetrics,
 } from '../../../types';
 import { getContoursBoundingBox } from '../../../utils/pathUtils';
 import { snapContourMovement, snapSinglePoint } from '../../../utils/snapUtils';
@@ -36,7 +37,7 @@ export interface UseTransformSessionOptions {
   onChangeContours: (contours: PathContour[]) => void;
   onCommitHistory?: () => void;
   gridSettings: GridSettings;
-  snapMetrics: any;
+  snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   zoom: number;
   setActiveSnapGuides: React.Dispatch<React.SetStateAction<SnapGuideLine[]>>;

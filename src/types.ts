@@ -173,6 +173,22 @@ export interface CustomGuideline {
   color?: string;
 }
 
+export interface SnapMetrics {
+  lsb: number;
+  advanceWidth: number;
+  baseline: number;
+  ascender: number;
+  capHeight: number;
+  xHeight: number;
+  descender: number;
+}
+
+export interface RulerMeasurement {
+  start: Point;
+  end: Point;
+  active: boolean;
+}
+
 export interface FontMetadata {
   familyName: string;
   styleName: string;

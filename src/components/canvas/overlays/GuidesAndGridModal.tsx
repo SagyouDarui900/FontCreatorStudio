@@ -6,7 +6,7 @@ import {
   Square,
   Trash2,
 } from 'lucide-react';
-import { GridSettings, JapaneseGuidePattern, VerticalGuidePattern } from '../../../types';
+import { CustomGuideline, GridSettings, JapaneseGuidePattern, VerticalGuidePattern } from '../../../types';
 
 export const JAPANESE_GUIDE_OPTIONS: { id: JapaneseGuidePattern; label: string; sub: string }[] = [
   { id: 'none', label: 'なし', sub: '非表示' },
@@ -34,12 +34,12 @@ interface GuidesAndGridModalProps {
   upm?: number;
   isOutlineMode: boolean;
   setOutlineOnly: (val: boolean) => void;
-  nodeStyle: string;
-  setNodeStyle: (val: any) => void;
+  nodeStyle: 'full' | 'clean' | 'selected_only';
+  setNodeStyle: React.Dispatch<React.SetStateAction<'full' | 'clean' | 'selected_only'>> | ((val: 'full' | 'clean' | 'selected_only') => void);
   showNodes: boolean;
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
-  customGuidelines: any[];
-  setCustomGuidelines: (val: any[]) => void;
+  customGuidelines: CustomGuideline[];
+  setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>> | ((val: CustomGuideline[]) => void);
   lockGuidelines: boolean;
   setLockGuidelines: (val: boolean) => void;
   showCanvasToast: (msg: string) => void;

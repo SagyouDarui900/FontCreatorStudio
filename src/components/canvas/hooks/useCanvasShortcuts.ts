@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { GridSettings, PathContour, Point, ToolMode } from '../../../types';
+import { GridSettings, PathContour, RulerMeasurement, ToolMode } from '../../../types';
 
 export interface UseCanvasShortcutsProps {
   isAnyModalOpen: boolean;
@@ -8,7 +8,7 @@ export interface UseCanvasShortcutsProps {
   selectedContourIds: string[];
   selectedNodeId: string | null;
   selectedContourId: string | null;
-  rulerMeasurement: { start: Point; end: Point; active: boolean } | null;
+  rulerMeasurement: RulerMeasurement | null;
   gridSettings: GridSettings;
   onChangeGridSettings?: React.Dispatch<React.SetStateAction<GridSettings>>;
   resetView: (mode?: 'fit' | '100%' | 'width') => void;
@@ -27,7 +27,7 @@ export interface UseCanvasShortcutsProps {
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
   setOutlineOnly: React.Dispatch<React.SetStateAction<boolean>>;
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
-  setRulerMeasurement: (val: any) => void;
+  setRulerMeasurement: (val: RulerMeasurement | null) => void;
   setSelectedContourIds: (ids: string[]) => void;
   setSelectedNodeId: (id: string | null) => void;
   setIsSpacePressed: (pressed: boolean) => void;
