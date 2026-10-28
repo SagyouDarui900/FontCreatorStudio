@@ -218,58 +218,9 @@ import {
   HIGH_CONTRAST_CROSSHAIR_CURSOR,
   getCachedContourSvgPath,
 } from './canvas/cursors';
-
-export interface GlyphCanvasProps {
-  contours: PathContour[];
-  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
-  advanceWidth: number;
-  lsb: number;
-  onChangeAdvanceWidth: (w: number) => void;
-  onChangeLsb: (lsb: number) => void;
-  toolMode: ToolMode;
-  onSetToolMode?: (mode: ToolMode) => void;
-  brushWidth: number;
-  brushStyle?: BrushStyle;
-  onChangeBrushStyle?: (style: BrushStyle) => void;
-  onChangeBrushWidth?: (w: number) => void;
-  pressureSensitivity?: 'high' | 'normal' | 'low' | 'off';
-  onChangePressureSensitivity?: (val: 'high' | 'normal' | 'low' | 'off') => void;
-  pressureCurve?: PressureCurveConfig;
-  smoothingIntensity?: number;
-  onChangeSmoothingIntensity?: (val: number) => void;
-  traceSettings: TraceSettings;
-  onChangeTraceSettings?: React.Dispatch<React.SetStateAction<TraceSettings>>;
-  selectedUnicode: number;
-  gridSettings: GridSettings;
-  onChangeGridSettings?: React.Dispatch<React.SetStateAction<GridSettings>>;
-  activeChar: string;
-  onSelectPrevGlyph?: () => void;
-  onSelectNextGlyph?: () => void;
-  onCommitHistory?: () => void;
-  theme: ThemeMode;
-  onCopyFromChar?: (char: string) => void;
-  onGenerateDakutenTarget?: (char: string, isHandaku?: boolean) => void;
-  onToggleGridDrawer?: () => void;
-  showGridDrawer?: boolean;
-  onToggleMetricsDrawer?: () => void;
-  showMetricsDrawer?: boolean;
-  onToggleRadicals?: () => void;
-  showRadicals?: boolean;
-  onToggleZenMode?: () => void;
-  isZenMode?: boolean;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
-  onOpenPenPresetsModal?: () => void;
-  activePenPreset?: UserPenPreset;
-  isAnyModalOpen?: boolean;
-  overlaySettings?: GlyphOverlaySettings;
-  project: FontProject;
-  onOpenGlyphCompareModal?: () => void;
-  outlineOnly?: boolean;
-  onChangeOutlineOnly?: (val: boolean) => void;
-}
+import { GlyphCanvasProps } from './canvas/glyphCanvasTypes';
+import { getInkColors } from './canvas/glyphCanvasConstants';
+export type { GlyphCanvasProps };
 
 export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  contours,
@@ -333,21 +284,12 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const themeClasses = getThemeClasses(theme);
  const selectionColor = themeClasses.selectionStroke || '#10b981';
 
- const inkFillColor = useMemo(() => {
- if (theme === 'sepia') return '#2d2217';
- if (theme === 'warm') return '#292019';
- if (theme === 'nord') return '#eceff4';
- if (theme === 'monochrome') return '#000000';
- return isLight ? '#1f2937' : '#ecfdf5';
- }, [theme, isLight]);
+ const { fill: inkFillColor, stroke: inkStrokeColor } = useMemo(
+   () => getInkColors(theme, isLight),
+   [theme, isLight]
+ );
 
- const inkStrokeColor = useMemo(() => {
- if (theme === 'sepia') return '#8c673b';
- if (theme === 'warm') return '#ea580c';
- if (theme === 'nord') return '#88c0d0';
- if (theme === 'monochrome') return '#000000';
- return isLight ? '#065f46' : '#34d399';
- }, [theme, isLight]);
+
 
  // Pen Mode: 'bezier' (smooth bezier curves) or 'corner' (sharp angular polyline)
  const [penMode, setPenMode] = useState<'bezier' | 'corner'>('bezier');

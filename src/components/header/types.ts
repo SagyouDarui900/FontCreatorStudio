@@ -1,0 +1,48 @@
+import React from 'react';
+import { FontProject } from '../../types';
+import { ThemeMode } from '../../utils/theme';
+
+export interface HeaderProps {
+  project: FontProject;
+  setProject: React.Dispatch<React.SetStateAction<FontProject>>;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onOpenTestModal: () => void;
+  onOpenFontInfoModal: () => void;
+  onOpenTraceModal: () => void;
+  onOpenSvgModal: () => void;
+  onOpenBatchNormalizeModal: () => void;
+  onOpenQualityModal?: () => void;
+  onOpenGlyphSynthesisModal?: () => void;
+  onOpenKerningModal?: () => void;
+  onOpenWeightInterpolationModal?: () => void;
+  onOpenGlyphCompareModal?: () => void;
+  onOpenRadicalStudio: () => void;
+  onOpenPixelStudio?: () => void;
+  onOpenOpenTypeFeaturesModal?: () => void;
+  onOpenMojikumiStudio?: () => void;
+  onOpenGridFittingModal?: () => void;
+  onOpenStorageManagerModal?: () => void;
+  onOpenExportModal?: () => void;
+  onToggleRadicals: () => void;
+  showRadicals: boolean;
+  onToggleGridDrawer: () => void;
+  showGridDrawer: boolean;
+  onToggleMetricsDrawer?: () => void;
+  showMetricsDrawer?: boolean;
+  onToggleZenMode?: () => void;
+  isZenMode?: boolean;
+  onApplyHandwritingPreset?: () => void;
+  onOpenShortcutsModal?: () => void;
+  onOpenPenPresetsModal?: () => void;
+  selectedChar: string;
+  selectedUnicode: number;
+  isGlyphLocked?: boolean;
+  onToggleLockGlyph?: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+  onChangeTheme?: (mode: ThemeMode) => void;
+  onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+}
