@@ -226,6 +226,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     showCanvasToast,
   } = opts;
 
+  // Active pointer isolation to prevent concurrent pointer collisions
+  const activeDrawingPointerIdRef = useRef<number | null>(null);
+
   // Stylus state refs
   const isPenDrawingRef = useRef<boolean>(false);
   const lastPenActiveTimeRef = useRef<number>(0);
@@ -257,12 +260,19 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   });
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    if (e.pointerType !== 'touch') {
-      try {
-        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-      } catch {
-        // Ignored
+    // If an existing drawing pointer is already active, reject secondary pointerdown unless 2-finger gesture
+    if (activeDrawingPointerIdRef.current !== null && activeDrawingPointerIdRef.current !== e.pointerId) {
+      if (e.pointerType === 'touch' && touchPointersRef.current.size >= 1) {
+        // Allow transition to 2-finger gesture below
+      } else {
+        return;
       }
+    }
+
+    try {
+      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      // Ignored
     }
     pointerTypesRef.current.set(e.pointerId, e.pointerType);
     touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -345,6 +355,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     if (fingerTouches.length >= 2 && !isPenDrawingRef.current) {
       isTwoFingerGestureRef.current = true;
       activeTwoFingerIdsRef.current = [fingerTouches[0][0], fingerTouches[1][0]];
+      activeDrawingPointerIdRef.current = null;
 
       brushStrokePointsRef.current = [];
       if (activeBrushPathRef.current) {
@@ -431,6 +442,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       handleRulerPointerDown(pos, e);
       return;
     }
+
+    // Set active drawing pointer for single-pointer tools
+    activeDrawingPointerIdRef.current = e.pointerId;
 
     // Auto-clear active selection on start drawing or erasing
     const hasActiveSelection = selectedContourIds.length > 0 || (selectedNodeId !== null && !activePenContour);
@@ -603,6 +617,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    // Isolate active drawing pointer from secondary pointer movements
+    if (activeDrawingPointerIdRef.current !== null && e.pointerId !== activeDrawingPointerIdRef.current && !isTwoFingerGestureRef.current) {
+      return;
+    }
 
     // Multi-touch gestures (Pinch-to-zoom & 2-finger Pan)
     if (isTwoFingerGestureRef.current && activeTwoFingerIdsRef.current) {
@@ -806,6 +825,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     setTouchLoupeState((prev: any) => (prev.visible ? { ...prev, visible: false } : prev));
+    if (activeDrawingPointerIdRef.current === e.pointerId) {
+      activeDrawingPointerIdRef.current = null;
+    }
     try {
       if (e.currentTarget?.hasPointerCapture?.(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);

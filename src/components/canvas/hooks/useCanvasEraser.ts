@@ -240,6 +240,7 @@ export function useCanvasEraser({
     activeEraserSvgDRef,
     targetedEraserNodeCount,
     resetEraserVisuals,
+    reset: resetEraserVisuals,
     handleEraserPointerDown,
     handleEraserPointerMove,
     handleEraserPointerUp,

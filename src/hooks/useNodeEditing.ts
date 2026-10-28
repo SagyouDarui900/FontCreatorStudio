@@ -510,13 +510,17 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         cancelAnimationFrame(nodeDragRafRef.current);
         nodeDragRafRef.current = null;
       }
+      let didChange = false;
       if (pendingContoursRef.current) {
         onChangeContours(pendingContoursRef.current);
         pendingContoursRef.current = null;
+        didChange = true;
       }
       nodeDragSessionRef.current = null;
       setSelectedHandleType(null);
-      onCommitHistory?.();
+      if (didChange) {
+        onCommitHistory?.();
+      }
       return true;
     }
     return false;

@@ -30,6 +30,7 @@ import { KANA_PAIRS } from './data/unicodeTables';
 import { Undo2, Redo2, X, PenTool, Grid, Ruler, Shapes } from 'lucide-react';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
 import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
 import { AppModalsHost } from './components/modals/AppModalsHost';
 
 interface AppMainProps {
@@ -213,7 +214,7 @@ function AppMain({
   // Glyph Overlay Comparison Settings
   const [overlaySettings, setOverlaySettings] = useState<GlyphOverlaySettings>(() => {
     try {
-      const saved = localStorage.getItem('font_editor_glyph_overlay_v1');
+      const saved = getStorageItem(STORAGE_KEYS.GLYPH_OVERLAY);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
@@ -232,7 +233,7 @@ function AppMain({
 
   useEffect(() => {
     try {
-      localStorage.setItem('font_editor_glyph_overlay_v1', JSON.stringify(overlaySettings));
+      setStorageItem(STORAGE_KEYS.GLYPH_OVERLAY, JSON.stringify(overlaySettings));
     } catch (e) {}
   }, [overlaySettings]);
 

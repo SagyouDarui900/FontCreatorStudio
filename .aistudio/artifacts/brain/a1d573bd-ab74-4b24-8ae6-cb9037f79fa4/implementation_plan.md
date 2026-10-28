@@ -1,109 +1,105 @@
-# UI & Canvas Visibility Repair Implementation Plan
+# Implementation Plan: Bug Fixes, Pointer & State Stabilization, and Phased Decomposition
 
-Restore full canvas rendering across all viewport sizes, integrate a dedicated mobile bottom navigation bar with seamless tab switching, and resolve reported UI issues (UI-01 through UI-13) across CSS, HTML, theme tokens, and accessibility.
-
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The following user preferences were confirmed during the interactive interview:
-> - **Mobile View Layout**: Show canvas first with a bottom navigation bar to switch between Canvas ("作図"), Glyph Grid ("文字一覧"), Metrics ("メトリクス"), and Radicals ("部首").
-> - **Desktop Dialog Backdrops**: Solid semi-opaque dark background (`bg-black/75` / `bg-stone-950/80`) for maximum rendering performance and zero transparency artifacts.
-> - **Range Sliders**: Dynamic accent colors matching the active theme (Sepia warm amber, Warm orange, Nord frost cyan, Monochrome zinc, Emerald green).
+## 1. Overview & User Goals
+Address high-priority bug risks and stabilization requirements identified in the latest codebase review, adhering to the strict rule of **no new features** and preserving 100% backward compatibility for all existing public APIs and re-exports.
+Based on the clarifying answers:
+- **Pacing**: Execute **Sprint 1 (Bug fixes and stabilization)** first, verify thoroughly, then proceed to subsequent sprints.
+- **Testing**: Implement **Vitest in-memory font generation assertions** in `src/utils/font/*.test.ts`.
+- **Storage Keys**: Employ **dual-read fallback** (read new `fcs_` key, fallback to legacy, write only to `fcs_`).
 
 ---
 
-## 1. Overview & Core Concept
+## 2. Sprint 1 Detailed Technical Plan
 
-- **What It Does**: Resolves the viewport height collapse and drawer overlay that hid the drawing canvas, restores quick-access mobile navigation tabs, and upgrades mobile/desktop UX to meet WCAG accessibility, proper safe-area-inset spacing, and cohesive 6-theme styling.
-- **Target Audience / Persona**: Font designers, calligraphers, and typographers working across smartphone (iPhone/Android touch), iPad/tablet (Pencil), and desktop screens.
-- **Key Value**: Immediate access to the drawing canvas on launch, zero layout clipping or white flash on reload, and consistent theme presentation without visual regressions.
+### A1. State Management & Single Source of Truth (`GlyphCanvas.tsx`)
+- **Documented Authority**: Clarify in top-level header comments that props (`contours`, `outlineOnly`) are authoritative (controlled).
+- **Controlled Outline Mode**:
+  - When `propOutlineOnly` is provided, canvas treats it as source of truth and writes changes through `onChangeOutlineOnly` while keeping localStorage as an internal sync cache.
+  - When `propOutlineOnly` is undefined, fall back to internal state initialized from `storageKeys.ts`.
+- **Ref Updates Lifecycle**:
+  - Ensure `contoursRef.current = contours` is synced reliably within `useEffect` and commit callbacks rather than arbitrary render-phase mutations.
+  - Bind `onChangeContours` and `onCommitHistory` to stable mutable refs (`onChangeContoursRef`, `onCommitHistoryRef`) to eradicate stale closures across long pointer sessions.
+
+### A2. Consolidated Tool Switch Cleanup (`useToolModeCleanup.ts` / `GlyphCanvas.tsx`)
+- Consolidate all transient state resets into a single centralized cleanup routine invoked upon `toolMode` changes:
+  - Active Pen: abort uncommitted nodes (`resetPen()`)
+  - Marquee Selection: clear rectangular marquee box (`setMarqueeSelection(null)`)
+  - Transform Session: clear active bounding box drag session (`setTransformSession(null)`)
+  - Shape Creation: clear in-progress shape start/current points (`resetShapeCreation()`)
+  - Smart Snap Guides: clear active guide overlays (`setActiveSnapGuides([])`)
+  - Eraser: reset sweep points, SVG path string, and reticle visuals
+  - Touch Loupe / Mobile Sheet: dismiss loupe and auxiliary drawer
+- Provide explicit `.reset()` hooks on `usePenTool`, `useShapeCreation`, `useTransformSession`, `useCanvasEraser`.
+
+### A3. Pointer Dispatcher Unification (`useCanvasPointerDispatcher.ts`)
+- **Single Active Pointer**:
+  - Track `activeDrawingPointerIdRef` during single-pointer operations (brush, eraser, pen, node drag, transform).
+  - Filter out secondary pointer down/move/up events from interfering with an ongoing drawing session.
+- **Strict Pointer Capture Symmetry**:
+  - Guarantee that whenever `setPointerCapture(pointerId)` is acquired on `pointerDown`, it is unconditionally released on `pointerUp`, `pointerCancel`, or gesture interruption.
+- **Middle-Click / Spacebar Panning**:
+  - Prevent tool down handlers from activating when panning is in progress via spacebar or middle mouse button (`e.button === 1`).
+- **Touch & Stylus Coexistence**:
+  - Ensure stylus strokes immediately claim the active pointer slot and suppress simultaneous palm/touch events while respecting multi-touch zoom cooldowns.
+
+### A4. Undo / Redo Granularity & History Sanitization
+- **Single Commit per Interaction**:
+  - Brush drawing: Exactly 1 commit history entry when stroke finishes and is vectorized on `pointerUp`.
+  - Node drag / Part transform: No history commits during `pointerMove`; commit exactly once on `pointerUp` when delta has non-zero movement.
+  - Eraser sweep: Commit once on `pointerUp` after all subtractions/cuts are merged into contours.
+- **Glyph Switching Hygiene**:
+  - Discard any uncommitted in-flight brush or shape points when the selected glyph changes so orphan contours never cross-contaminate history.
+
+### A5. Font Export Validation & Vitest Test Suite
+- **Export Pre-validation**:
+  - In `src/utils/font/compilerCore.ts`, run `validateFontProject` before compilation and log actionable diagnostics.
+  - Add fallback guard: Ensure `advanceWidth` defaults to `Math.max(100, project.metrics?.advanceWidth || 1000)` and is never `0` or `NaN`.
+  - Validate opentype.js Path commands to ensure all closed contours properly emit `Z` (close path) without duplicate zero-length terminal segments.
+  - Fix any Y-coordinate inversions (Font Y = `baselineY - Screen Y`).
+- **Vitest Unit Test Suite (`src/utils/font/compilerCore.test.ts`)**:
+  - Test 1: Empty project compilation yields a valid OpenType font with `.notdef` and does not throw.
+  - Test 2: Single rectangle contour compiles to valid TTF ArrayBuffer (`buffer.byteLength > 512`) with correct bounding box orientation.
+  - Test 3: Multiple overlapping contours compile with TrueType non-zero winding normalization.
+  - Test 4: Extreme / NaN coordinates and zero advanceWidth are safely sanitized without crashing.
+
+### A7. Centralized Storage Keys (`src/utils/storageKeys.ts`)
+- Create `src/utils/storageKeys.ts` with typed keys prefixed with `fcs_`:
+  - `fcs_outline_mode` (legacy: `glyph_canvas_outline_mode`)
+  - `fcs_guide_assist_open` (legacy: `mojisaku_guide_assist_open`)
+  - `fcs_show_subtoolbar` (legacy: `mojisaku_show_subtoolbar`)
+  - `fcs_auto_union_brush` (legacy: `fontforge_auto_union_brush`)
+  - `fcs_glyph_overlay` (legacy: `font_editor_glyph_overlay_v1`)
+- Provide helper `getStorageItem(key, fallback)` and `setStorageItem(key, value)` implementing dual-read fallback:
+  - Read `key.primary`; if null, read `key.legacy`.
+  - Always write strictly to `key.primary`.
 
 ---
 
-## 2. User Experience & Visual Design
+## 3. Roadmaps for Subsequent Sprints (2 to 4)
 
-### Key User Flows
-1. **Launch & Mobile Viewport**: 
-   - App loads directly with the active character canvas front-and-center.
-   - A bottom navigation bar (`h-14` with `env(safe-area-inset-bottom)`) provides one-tap switching between Canvas ("作図"), Glyph List ("文字一覧"), Metrics ("メトリクス"), and Radicals ("部首").
-2. **Desktop Viewport**:
-   - Left sidebar displays the glyph grid cleanly without covering the drawing stage.
-   - Dialog modals open over solid semi-opaque dark backdrops (`bg-black/75`) ensuring crystal-clear text legibility and rapid GPU rendering.
-3. **Theme & Input Elements**:
-   - Range sliders reflect the selected theme's accent color (e.g. amber for Sepia, cyan for Nord, orange for Warm).
-   - Reloading in Dark or Nord mode preserves the dark background with zero white flash (FOUC).
-
-### Visual Tokens & Theme Matrix
-- **Light**: `#f7faf8` base with `#059669` emerald accent.
-- **Dark**: `#0f1712` base with `#10b981` mint emerald accent.
-- **Sepia**: `#f4ede2` base with `#854d0e` amber accent.
-- **Warm**: `#fbf3e8` base with `#ea580c` sunset orange accent.
-- **Nord**: `#2e3440` base with `#88c0d0` frost blue-cyan accent.
-- **Monochrome**: `#f4f4f5` / `#09090b` high-contrast neutral slate/zinc.
+- **Sprint 2: `GlyphCanvas.tsx` Decomposition**:
+  - Extract UI chrome hooks (`useCanvasUiChrome.ts`, `useCanvasLocalPrefs.ts`, `useToolModeCleanup.ts`).
+  - Extract JSX layers and overlays into `src/components/canvas/GlyphCanvasView.tsx`.
+  - Target `GlyphCanvas.tsx` to become a lean orchestrator (~800–1,200 lines).
+- **Sprint 3: Grid & Heavy Modals Decomposition**:
+  - Split `GlyphGrid.tsx` into `GlyphGridToolbar`, `GlyphGridCell`, `useGlyphGridFilter`.
+  - Thin down `FontInfoModal`, `ExportModal`, `BatchNormalizeModal`, and `GlyphDensityHeatmapModal`.
+- **Sprint 4: App Wiring & Final Hygiene**:
+  - Split shortcuts and layout listeners into `useAppShortcuts.ts` and `useAppLayout.ts`.
+  - Circular dependency auditing and project cleanup.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+## 4. Verification Plan
 
-- **Decision 1: Restoring Canvas via CSS Flexbox `min-h-0` & Default Drawer State**
-  - *Chosen Approach*: Add `min-h-0` to all intermediate `flex-1 flex-col` wrappers in `App.tsx` and ensure `showGridDrawer` is `false` on viewports `< 1024px` by default.
-  - *Why*: In CSS Flexbox, nested flex column children default to `min-height: auto`, which causes canvas containers to collapse to 0px height in responsive layouts. Setting `min-h-0` and defaulting mobile to canvas-view ensures the canvas is always visible and measured correctly.
-- **Decision 2: Solid Semi-Opaque Desktop Backdrops (`bg-black/75`)**
-  - *Chosen Approach*: Replace problematic global CSS `backdrop-filter: none !important` media query rules with clean solid modal backdrops (`bg-black/75`).
-  - *Why*: Eliminates GPU overhead and prevents modal content transparency glitches on desktop browsers while keeping mobile touch overlays lightweight.
-- **Decision 3: FOUC Prevention via Inline `<head>` Theme Guard**
-  - *Chosen Approach*: Place a micro `<script>` in `index.html` `<head>` that reads `localStorage.getItem('font_editor_theme_mode')` and applies `data-theme` and `.dark` before first DOM render.
-  - *Why*: Completely stops the jarring 100ms white screen flash when dark mode users reload.
+### Automated Verification
+1. `npm run typecheck` (`tsc --noEmit`): Must complete with 0 errors.
+2. `npm test` (`vitest run`): All existing 32 tests plus new font compilation tests must pass 100%.
+3. `npm run build`: Production Vite bundle must build cleanly.
 
----
-
-## 4. Technical Architecture & System Layout
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Top Navigation Header                           │
-├────────────────────┬───────────────────────────────────┬───────────────┤
-│                    │     ToolBar (Pens, Width, Undo)   │               │
-│                    ├───────────────────────────────────┤               │
-│  GlyphGrid Drawer  │                                   │ MetricsPanel  │
-│  (Desktop: side;   │        GlyphCanvas (SVG Stage)    │ (Side /       │
-│   Mobile: sheet)   │    • min-h-0 flex-1 height flow   │  Overlay)     │
-│                    │    • Dynamic theme range sliders  │               │
-│                    │    • Viewport clamp / touch loupe │               │
-├────────────────────┴───────────────────────────────────┴───────────────┤
-│  Bottom Navigation Bar (Mobile: Canvas | Grid | Metrics | Radicals)    │
-│  Bottom Floating Toast: bottom-[calc(64px+env(safe-area-inset-bottom))]│
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Action Items & File Breakdown
-
-1. **`src/App.tsx`**:
-   - Fix flexbox height propagation: add `min-h-0` to workspace and canvas wrapper containers.
-   - Set mobile default tab to `'canvas'` so the grid drawer does not mask the canvas on startup.
-   - Implement the mobile bottom navigation bar (`sm:hidden fixed bottom-0 left-0 right-0 z-40`) with full ARIA accessibility (`aria-label`, `aria-pressed`).
-   - Pass missing layout flags (`showGridDrawer`, `showMetricsDrawer`, `showRadicals`, `isZenMode`) to `GlyphCanvas`.
-
-2. **`index.html` (UI-01, UI-12, UI-13)**:
-   - Update viewport meta to `<meta name="viewport" content="width=device-width, initial-scale=1.0" />`.
-   - Add inline theme script in `<head>` to prevent dark-theme FOUC flash on reload.
-   - Add OpenGraph `og:locale` (`ja_JP`), `og:site_name`, canonical, and Schema.org `WebApplication` structured data.
-
-3. **`src/index.css` (UI-05, UI-06, UI-11)**:
-   - Consolidate duplicate `.jp-wrap` rules into one clean definition.
-   - Remove conflicting `@media (min-width: 769px)` backdrop-filter suppression; standardize modal overlay class (`bg-black/75`).
-   - Define CSS variables `--slider-thumb-color` and `--slider-track-color` across all theme blocks (`[data-theme="..."]`) so range sliders track active theme accent colors.
-
-4. **`src/components/Toast.tsx` & `src/components/OfflineIndicator.tsx` (UI-02, UI-03, UI-09)**:
-   - `Toast.tsx`: Update position to `bottom-[calc(68px+env(safe-area-inset-bottom,0px))] sm:bottom-6`.
-   - `Toast.tsx`: Replace `AlertCircle` with `AlertTriangle` for warnings.
-   - `OfflineIndicator.tsx`: Move to `bottom-[calc(72px+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-4 z-40` avoiding collision with toast and bottom navigation.
-
-5. **`src/components/canvas/overlays/CanvasTouchLoupe.tsx` (UI-04)**:
-   - Clamp position against `window.visualViewport?.width ?? window.innerWidth` and `window.visualViewport?.height ?? window.innerHeight`.
-
-6. **`src/components/canvas/overlays/MobileAuxMenuDrawer.tsx` (UI-07)**:
-   - Replace hardcoded `isLight ? ... : ...` with `themeClasses.modalBg`, `themeClasses.border`, and `themeClasses.textPrimary`.
-
-7. **`src/components/ErrorBoundary.tsx` (UI-08)**:
-   - Add theme detection using `localStorage.getItem('font_editor_theme_mode')` or CSS theme tokens to render seamless dark/nord/sepia crash fallback views.
+### Manual Sanity Checks
+1. Draw a single stroke with the brush -> verify stroke appears cleanly.
+2. Undo -> stroke disappears; Redo -> stroke reappears.
+3. Switch tool modes (Brush -> Pen -> Node -> Eraser -> Hand) -> verify no dangling temporary lines, reticles, or open sheets.
+4. Export font to TTF and WOFF2 -> verify file downloads and bytes are valid.
+5. Select a different glyph in the grid -> verify canvas switches cleanly without state leakage.

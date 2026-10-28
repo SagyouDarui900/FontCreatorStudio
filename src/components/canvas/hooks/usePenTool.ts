@@ -272,6 +272,7 @@ export function usePenTool({
     setPenHudPos,
     handleUndoPenNode,
     handleResetPenContour,
+    reset: handleResetPenContour,
     handleFinishPenContour,
     handlePenHudPointerDown,
     handlePenHudPointerMove,

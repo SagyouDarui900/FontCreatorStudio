@@ -433,6 +433,7 @@ export function useTransformSession({
     handleTransformPointerMove,
     handleTransformPointerUp,
     cancelTransformSession,
+    reset: cancelTransformSession,
     pendingTransformContoursRef,
   };
 }

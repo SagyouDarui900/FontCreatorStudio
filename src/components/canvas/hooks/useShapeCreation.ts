@@ -292,6 +292,17 @@ export function useShapeCreation({
     return getShapeContoursFromPoints(toolMode, shapeStartPoint, shapeCurrentPoint);
   }, [getShapeContoursFromPoints, isShapeTool, shapeCurrentPoint, shapeStartPoint, toolMode]);
 
+  const reset = useCallback(() => {
+    setShapeStartPoint(null);
+    setShapeCurrentPoint(null);
+    setIsShiftLockRatio(false);
+    setIsAltFromCenter(false);
+    if (shapeRafRef.current != null) {
+      cancelAnimationFrame(shapeRafRef.current);
+      shapeRafRef.current = null;
+    }
+  }, []);
+
   return {
     isShapeTool,
     shapeStartPoint,
@@ -307,5 +318,6 @@ export function useShapeCreation({
     setIsShiftLockRatio,
     isAltFromCenter,
     setIsAltFromCenter,
+    reset,
   };
 }

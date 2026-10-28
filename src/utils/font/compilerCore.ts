@@ -14,6 +14,7 @@ import {
   DEFAULT_DESCENDER,
   isAsymmetricOrPunctuationGlyph,
 } from './constants';
+import { validateFontProject } from './validation';
 import { contoursToOpenTypePath } from './paths';
 import { deriveProjectPaltMetrics } from './metrics';
 
@@ -64,6 +65,12 @@ export function compileFont(
   buffer: ArrayBuffer;
   blobUrl: string;
 } {
+  // Run project validation check prior to compilation
+  const validation = validateFontProject(project);
+  if (!validation.valid && validation.errors.length > 0) {
+    console.warn('Font project validation issues before compilation:', validation.errors);
+  }
+
   const glyphsList: opentype.Glyph[] = [];
 
   // .notdef glyph is required as the first glyph (index 0)
@@ -102,8 +109,10 @@ export function compileFont(
   let totalAdvanceWidth = 0;
   let maxAdvanceWidth = 0;
 
-  const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
-  const baselineY = project.metadata.ascender || Math.round(upm * 0.8);
+  const rawUpm = project.metadata?.unitsPerEm;
+  const upm = Number.isFinite(rawUpm) && (rawUpm as number) > 0 ? (rawUpm as number) : DEFAULT_UPM;
+  const rawAscender = project.metadata?.ascender;
+  const baselineY = Number.isFinite(rawAscender) ? (rawAscender as number) : Math.round(upm * 0.8);
   const featureConfig = project.openTypeFeatures;
   const openTypeFeaturesEnabled = featureConfig?.enabled !== false;
   const verticalWritingEnabled = openTypeFeaturesEnabled && featureConfig?.verticalWriting?.enabled !== false;

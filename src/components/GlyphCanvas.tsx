@@ -1,4 +1,18 @@
+/**
+ * GlyphCanvas Component
+ * State Ownership & Source of Truth:
+ * - Contours: `props.contours` is the authoritative source of truth (controlled).
+ *   `contoursRef.current` is synchronized via effects and commit handlers to eliminate stale closures.
+ * - Outline Mode: `props.outlineOnly` is authoritative if provided.
+ *   `internalOutlineOnly` acts as an uncontrolled fallback or local cache synchronized to storageKeys.
+ * - Callbacks: `onChangeContours` and `onCommitHistory` are tracked via mutable refs to prevent stale closure bugs in long pointer sessions.
+ */
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import {
+  STORAGE_KEYS,
+  getBooleanStorageItem,
+  setBooleanStorageItem,
+} from '../utils/storageKeys';
 import {
   ZoomIn,
   ZoomOut,
@@ -277,6 +291,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  onUndoRef.current = onUndo;
  const onRedoRef = useRef(onRedo);
  onRedoRef.current = onRedo;
+ const onChangeContoursRef = useRef(onChangeContours);
+ onChangeContoursRef.current = onChangeContours;
+ const onCommitHistoryRef = useRef(onCommitHistory);
+ onCommitHistoryRef.current = onCommitHistory;
 
  const contoursRef = useRef<PathContour[]>(contours);
 
@@ -301,27 +319,21 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // Outline-Only (Wireframe) Mode (輪郭表示): Turns glyph paths into outlines only so overlapping shapes, curves, and underlying guides are easily seen during editing
  const [internalOutlineOnly, setInternalOutlineOnly] = useState<boolean>(() => {
- try {
- return localStorage.getItem('glyph_canvas_outline_mode') === 'true';
- } catch {
- return false;
- }
+   return getBooleanStorageItem(STORAGE_KEYS.OUTLINE_MODE, false);
  });
 
  const isOutlineMode = propOutlineOnly !== undefined ? propOutlineOnly : internalOutlineOnly;
 
  const setOutlineOnly = useCallback(
- (value: boolean | ((prev: boolean) => boolean)) => {
- const nextVal = typeof value === 'function' ? value(isOutlineMode) : value;
- if (onChangeOutlineOnly) {
- onChangeOutlineOnly(nextVal);
- }
- setInternalOutlineOnly(nextVal);
- try {
- localStorage.setItem('glyph_canvas_outline_mode', String(nextVal));
- } catch {}
- },
- [isOutlineMode, onChangeOutlineOnly]
+   (value: boolean | ((prev: boolean) => boolean)) => {
+     const nextVal = typeof value === 'function' ? value(isOutlineMode) : value;
+     if (onChangeOutlineOnly) {
+       onChangeOutlineOnly(nextVal);
+     }
+     setInternalOutlineOnly(nextVal);
+     setBooleanStorageItem(STORAGE_KEYS.OUTLINE_MODE, nextVal);
+   },
+   [isOutlineMode, onChangeOutlineOnly]
  );
 
  const upm = project?.metadata?.unitsPerEm || 1000;
@@ -350,64 +362,33 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
  // Typography Writing Guide Assist Card state (Default to false so it doesn't obstruct the canvas)
  const [showGuideAssist, setShowGuideAssist] = useState<boolean>(() => {
- try {
- return localStorage.getItem('mojisaku_guide_assist_open') === 'true';
- } catch {
- return false;
- }
+   return getBooleanStorageItem(STORAGE_KEYS.GUIDE_ASSIST_OPEN, false);
  });
 
  // Sub-toolbar visibility (collapsible to maximize canvas height)
  const [showSubToolbar, setShowSubToolbar] = useState<boolean>(() => {
- try {
- const val = localStorage.getItem('mojisaku_show_subtoolbar');
- return val !== null ? val === 'true' : true;
- } catch {
- return true;
- }
+   return getBooleanStorageItem(STORAGE_KEYS.SHOW_SUBTOOLBAR, true);
  });
 
  const handleToggleSubToolbar = useCallback(() => {
- setShowSubToolbar((prev) => {
- const next = !prev;
- try {
- localStorage.setItem('mojisaku_show_subtoolbar', String(next));
- } catch {}
- return next;
- });
+   setShowSubToolbar((prev) => {
+     const next = !prev;
+     setBooleanStorageItem(STORAGE_KEYS.SHOW_SUBTOOLBAR, next);
+     return next;
+   });
  }, []);
 
  const handleToggleGuideAssist = useCallback((open?: boolean) => {
- setShowGuideAssist((prev) => {
- const next = typeof open === 'boolean' ? open : !prev;
- try {
- localStorage.setItem('mojisaku_guide_assist_open', String(next));
- } catch {}
- return next;
- });
+   setShowGuideAssist((prev) => {
+     const next = typeof open === 'boolean' ? open : !prev;
+     setBooleanStorageItem(STORAGE_KEYS.GUIDE_ASSIST_OPEN, next);
+     return next;
+   });
  }, []);
 
-  const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
-  const [liveStylusPressure, setLiveStylusPressure] = useState<number | null>(null);
-  const lastPressureValRef = useRef<number | null>(null);
-
- // When switching tool modes away from selection / node editing, automatically clear transient tool states
- useEffect(() => {
- if (toolMode !== 'select' && toolMode !== 'node') {
- setShowMobilePartSheet(false);
- }
- if (toolMode !== 'eraser') {
- isErasingRef.current = false;
- eraserStrokePointsRef.current = [];
- activeEraserSvgDRef.current = '';
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- }
- if (toolMode !== 'ruler' || gridSettings.showRulers === false) {
- setRulerMeasurement(null);
- }
- }, [toolMode, gridSettings.showRulers]);
+ const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
+ const [liveStylusPressure, setLiveStylusPressure] = useState<number | null>(null);
+ const lastPressureValRef = useRef<number | null>(null);
  const [marqueeSelection, setMarqueeSelection] = useState<{ start: Point; current: Point } | null>(null);
  const [showShapePickerDropdown, setShowShapePickerDropdown] = useState<boolean>(false);
  const shapePickerRef = useRef<HTMLDivElement>(null);
@@ -442,21 +423,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
  const [autoSmoothBrush, setAutoSmoothBrush] = useState<boolean>(true);
  // 合体（デフォルトON: 初心者でも交差した線が自然に結合され、穴あきや重なりバグ感を防止）
  const [autoUnionBrush, setAutoUnionBrush] = useState<boolean>(() => {
- try {
- const saved = localStorage.getItem('fontforge_auto_union_brush');
- return saved !== null ? saved === 'true' : true;
- } catch {
- return true;
- }
+   return getBooleanStorageItem(STORAGE_KEYS.AUTO_UNION_BRUSH, true);
  });
  // 一筆書きの線が交差・重なった部分の白抜き防止（デフォルトON: ループ線を描いた時の中抜け・白抜きバグ感を防止）
  const [autoResolveBrushOverlap, setAutoResolveBrushOverlap] = useState<boolean>(() => {
- try {
- const saved = localStorage.getItem('fontforge_auto_resolve_brush_overlap');
- return saved !== null ? saved === 'true' : true;
- } catch {
- return true;
- }
+   return getBooleanStorageItem(STORAGE_KEYS.AUTO_UNION_BRUSH, true);
  });
  const [smoothStrength, setSmoothStrength] = useState<'mild' | 'standard' | 'strong'>('standard');
  const [smoothPreserveCorners, setSmoothPreserveCorners] = useState<boolean>(true);
@@ -770,6 +741,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setIsShiftLockRatio,
     isAltFromCenter,
     setIsAltFromCenter,
+    reset: resetShapeCreation,
   } = useShapeCreation({
     toolMode,
     brushWidth,
@@ -808,6 +780,38 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     zoom,
     setActiveSnapGuides,
   });
+
+  // Consolidated Tool Switch Cleanup Table
+  useEffect(() => {
+    if (toolMode !== 'select' && toolMode !== 'node') {
+      setShowMobilePartSheet(false);
+      setMarqueeSelection(null);
+    }
+    if (toolMode !== 'pen') {
+      handleResetPenContour();
+    }
+    if (!isShapeToolMode(toolMode)) {
+      resetShapeCreation();
+    }
+    if (toolMode !== 'eraser') {
+      resetEraserVisuals();
+    }
+    if (toolMode !== 'ruler' || gridSettings?.showRulers === false) {
+      setRulerMeasurement(null);
+    }
+    cancelTransformSession();
+    setActiveSnapGuides([]);
+    setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+  }, [
+    toolMode,
+    gridSettings?.showRulers,
+    handleResetPenContour,
+    resetShapeCreation,
+    resetEraserVisuals,
+    cancelTransformSession,
+    setActiveSnapGuides,
+    setTouchLoupeState,
+  ]);
 
  // Draw straight stroke directly from ruler measurement line
  const handleDrawRulerAsStroke = useCallback(() => {
