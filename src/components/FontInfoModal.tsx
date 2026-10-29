@@ -4,10 +4,7 @@ import {
   Settings,
   Check,
   Download,
-  FileJson,
   Layers,
-  Database,
-  HardDriveDownload,
   ShieldCheck,
   Scale,
   HelpCircle,
@@ -23,6 +20,8 @@ import { exportProjectJsonFile } from '../utils/storageManager';
 import { BundledFontsModal } from './BundledFontsModal';
 import { LicensePresetSection, LICENSE_PRESETS } from './fontinfo/LicensePresetSection';
 import { MetricsSettingsSection } from './fontinfo/MetricsSettingsSection';
+import { OpenTypeMetricsSection } from './fontinfo/OpenTypeMetricsSection';
+import { JsonBackupSection } from './fontinfo/JsonBackupSection';
 
 interface FontInfoModalProps {
   isOpen: boolean;
@@ -499,71 +498,13 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               />
 
               {/* Project JSON Backup & Export Section */}
-              <div
-                className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 transition-colors ${
-                  isLight
-                    ? 'bg-amber-50/70 border-amber-200/80 text-stone-800'
-                    : 'bg-[#18231c] border-[#2f4236] text-emerald-100'
-                }`}
-              >
-                <div className="flex items-start space-x-2.5">
-                  <div
-                    className={`p-2 rounded-lg shrink-0 mt-0.5 ${
-                      isLight ? 'bg-amber-200/80 text-amber-900' : 'bg-emerald-950 text-emerald-300'
-                    }`}
-                  >
-                    <FileJson className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold flex flex-wrap items-center gap-1.5">
-                      <span>プロジェクトバックアップ (JSON形式)</span>
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${
-                          isLight ? 'bg-amber-200/80 text-amber-950' : 'bg-emerald-900/80 text-emerald-300'
-                        }`}
-                      >
-                        .fontproj.json
-                      </span>
-                    </h4>
-                    <p className="text-[11px] opacity-80 leading-relaxed mt-0.5">
-                      全文字のベクター輪郭、メトリクス設定、部首パーツ定義をJSON形式でローカル保存します。
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-amber-200/60 dark:border-[#25362b] text-[11px]">
-                  <div className="flex items-center gap-3 font-mono opacity-85">
-                    <span>収録文字: <strong className="font-bold font-sans">{glyphCount}</strong> 字</span>
-                    {radicalCount > 0 && (
-                      <span>部首パーツ: <strong className="font-bold font-sans">{radicalCount}</strong> 個</span>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadJsonBackup}
-                    className={`w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer ${
-                      isDownloaded
-                        ? 'bg-emerald-600 text-white'
-                        : isLight
-                        ? 'bg-amber-500 hover:bg-amber-600 text-stone-950 border border-amber-600/30'
-                        : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    }`}
-                  >
-                    {isDownloaded ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>保存完了</span>
-                      </>
-                    ) : (
-                      <>
-                        <HardDriveDownload className="w-3.5 h-3.5" />
-                        <span>JSONバックアップ保存</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+              <JsonBackupSection
+                isLight={isLight}
+                glyphCount={glyphCount}
+                radicalCount={radicalCount}
+                handleDownloadJsonBackup={handleDownloadJsonBackup}
+                isDownloaded={isDownloaded}
+              />
             </div>
           )}
 
@@ -635,168 +576,11 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
           {/* TAB 2.5: OPENTYPE OS/2 & HHEA TABLE METRICS */}
           {activeTab === 'opentype' && (
-            <div className="space-y-4 animate-fadeIn">
-              <div
-                className={`p-3 sm:p-3.5 rounded-xl border space-y-1.5 ${
-                  isLight ? 'bg-indigo-50/70 border-indigo-200 text-slate-800' : 'bg-indigo-950/40 border-indigo-800/60 text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-2 font-bold text-xs">
-                  <Database className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <span>OpenType OS/2・hhea・post 詳細メタデータ</span>
-                </div>
-                <p className="text-[11px] opacity-85 leading-relaxed">
-                  Windows DirectWrite, macOS CoreText, AviUtl2 等の描画エンジンでの互換性やウエイト（太さ）、タイポグラフィ行間を決定づけるテーブル数値です。
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
-                {/* Weight Class */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    usWeightClass (ウェイト数値)
-                  </label>
-                  <select
-                    value={formData.usWeightClass ?? 400}
-                    onChange={(e) => setFormData({ ...formData, usWeightClass: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  >
-                    <option value={100}>100 - Thin (極細)</option>
-                    <option value={200}>200 - Extra Light</option>
-                    <option value={300}>300 - Light (細字)</option>
-                    <option value={400}>400 - Regular (標準・通常)</option>
-                    <option value={500}>500 - Medium (中字)</option>
-                    <option value={600}>600 - Semi Bold (半太字)</option>
-                    <option value={700}>700 - Bold (太字)</option>
-                    <option value={800}>800 - Heavy / Extra Bold</option>
-                    <option value={900}>900 - Black (極太)</option>
-                  </select>
-                </div>
-
-                {/* Vendor ID */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    achVendID (ベンダーID / 4文字)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={formData.vendorId || 'OTED'}
-                    onChange={(e) => setFormData({ ...formData, vendorId: e.target.value.toUpperCase() })}
-                    placeholder="OTED"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Typo Ascender */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    sTypoAscender (OS/2 アセンダ)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.typoAscender ?? formData.ascender ?? 880}
-                    onChange={(e) => setFormData({ ...formData, typoAscender: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Typo Descender */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    sTypoDescender (OS/2 ディセンダ)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.typoDescender ?? formData.descender ?? -120}
-                    onChange={(e) => setFormData({ ...formData, typoDescender: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Win Ascent */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    usWinAscent (Windows 上部限界)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.winAscent ?? Math.max(formData.ascender ?? 880, 800)}
-                    onChange={(e) => setFormData({ ...formData, winAscent: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Win Descent */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    usWinDescent (Windows 下部限界 / 正数)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.winDescent ?? Math.abs(formData.descender ?? -120)}
-                    onChange={(e) => setFormData({ ...formData, winDescent: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Italic Angle */}
-                <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    italicAngle (post 斜体角度 °)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={formData.italicAngle ?? 0}
-                    onChange={(e) => setFormData({ ...formData, italicAngle: Number(e.target.value) })}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
-                  />
-                </div>
-
-                {/* Monospace flag */}
-                <div className="flex items-center space-x-2 pt-2 sm:pt-4">
-                  <input
-                    type="checkbox"
-                    id="isFixedPitch"
-                    checked={formData.isFixedPitch ?? false}
-                    onChange={(e) => setFormData({ ...formData, isFixedPitch: e.target.checked })}
-                    className="w-4 h-4 rounded text-emerald-600 border-stone-300 focus:ring-emerald-500 cursor-pointer"
-                  />
-                  <label htmlFor="isFixedPitch" className={`font-bold text-xs cursor-pointer ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                    isFixedPitch (等幅・Monospace属性)
-                  </label>
-                </div>
-              </div>
-            </div>
+            <OpenTypeMetricsSection
+              formData={formData}
+              setFormData={setFormData}
+              isLight={isLight}
+            />
           )}
 
           {/* TAB 3: COPYRIGHT & COMMERCIAL USE FAQ GUIDE */}

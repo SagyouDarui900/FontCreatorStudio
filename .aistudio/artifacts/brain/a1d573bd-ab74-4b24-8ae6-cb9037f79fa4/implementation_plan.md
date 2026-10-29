@@ -75,31 +75,49 @@ Based on the clarifying answers:
 
 ---
 
-## 3. Roadmaps for Subsequent Sprints (2 to 4)
+## 3. Sprint Execution Status & Subsequent Sprints
 
-- **Sprint 2: `GlyphCanvas.tsx` Decomposition**:
-  - Extract UI chrome hooks (`useCanvasUiChrome.ts`, `useCanvasLocalPrefs.ts`, `useToolModeCleanup.ts`).
-  - Extract JSX layers and overlays into `src/components/canvas/GlyphCanvasView.tsx`.
-  - Target `GlyphCanvas.tsx` to become a lean orchestrator (~800–1,200 lines).
-- **Sprint 3: Grid & Heavy Modals Decomposition**:
-  - Split `GlyphGrid.tsx` into `GlyphGridToolbar`, `GlyphGridCell`, `useGlyphGridFilter`.
-  - Thin down `FontInfoModal`, `ExportModal`, `BatchNormalizeModal`, and `GlyphDensityHeatmapModal`.
-- **Sprint 4: App Wiring & Final Hygiene**:
-  - Split shortcuts and layout listeners into `useAppShortcuts.ts` and `useAppLayout.ts`.
-  - Circular dependency auditing and project cleanup.
+### Sprint 1: Bug Fixes & Stabilization — [COMPLETED]
+- Centralized storage key migration with dual-read fallback (`src/utils/storageKeys.ts`).
+- Compiler core validation with non-zero defaults and in-memory Vitest suite (`compilerCore.test.ts`, 37 total tests passing).
+- Single active pointer dispatching in `useCanvasPointerDispatcher.ts`.
+- Single undo history commit granularity in `useNodeEditing.ts`.
+- Centralized tool reset and cleanup in `GlyphCanvas.tsx`.
+
+### Sprint 2: `GlyphCanvas.tsx` Modular Decomposition — [COMPLETED]
+- **Canvas Local Preferences**: Extracted `src/components/canvas/hooks/useCanvasLocalPrefs.ts` for outline mode, node appearance, writing guide assist, sub-toolbar collapsing, auto union brush, and mobile sheet states.
+- **Native Gestures & Wheel Registration**: Extracted `src/components/canvas/hooks/useCanvasNativeGestures.ts` for non-passive touch prevention, multi-touch pinch cooldowns, smooth zoom, and window pointerup safety listeners.
+- **SVG Viewport & Layer Stage**: Extracted `src/components/canvas/CanvasSvgStage.tsx` encapsulating the entire SVG container, 15 layered canvas components, active drawing path elements, transform bounding boxes, and double-click node-mode transitions.
+- **HUDs, Overlays & Mobile Sheets**: Extracted `src/components/canvas/overlays/CanvasFloatingOverlays.tsx` organizing hand-mode badges, floating HUDs, precision touch loupe, status bar, and bottom drawers.
+- **Main Orchestrator Slimdown**: `GlyphCanvas.tsx` reduced from 2,152 lines down to 1,314 lines (44 KB), drastically improving editability in AI Studio and clarity of state ownership.
+
+### Sprint 3: Grid & Heavy Modals Decomposition — [COMPLETED]
+- **`GlyphGrid.tsx`**: Decomposed from 1,322 lines down to **337 lines** (-74.5% reduction):
+  - Extracted `useGlyphGridFilter.ts` (category selection, search filtering, custom Unicode jumps, pagination calculations, sidebar resizing).
+  - Extracted `GlyphGridToolbar.tsx` (all header controls, search inputs, width presets, category popovers, studio modal launch buttons).
+  - Extracted `GlyphGridPagination.tsx` (compact and standard pagination controls).
+- **`FontInfoModal.tsx`**: Decomposed from 912 lines down to **442 lines** (-51.5% reduction):
+  - Integrated `OpenTypeMetricsSection.tsx` and `JsonBackupSection.tsx` alongside `LicensePresetSection` and `MetricsSettingsSection`.
+- **`GlyphDensityHeatmapModal.tsx`**: Decomposed from 1,304 lines down to **377 lines** (-71.1% reduction):
+  - Extracted `src/components/density/HeatmapCanvasView.tsx` (interactive SVG stage, anchor node heatmap colors, hotspot radar rings, zoom controls, and contextual node popover).
+  - Extracted `src/components/density/HeatmapContourSidebar.tsx` (density score card, node count stats, distribution meter, and contour-by-contour simplify list).
+  - Extracted `src/components/density/HeatmapTopBar.tsx` (tolerance presets, slider, and batch action buttons).
+- **`BatchNormalizeModal.tsx`**: Decomposed from 748 lines down to **346 lines** (-53.7% reduction):
+  - Extracted `src/components/batch/types.ts` (with type guards `isAlignHorizontal`, `isAlignVertical`, `isSizePreset`).
+  - Extracted `src/components/batch/BatchPreviewSection.tsx` (SVG comparison box and target scope selector).
+  - Extracted `src/components/batch/BatchOptionsSection.tsx` (size presets, dimensions, weight delta, alignment, advance width, and font quality checkboxes).
+- **`ExportModal.tsx`**: Decomposed from 682 lines down to **358 lines** (-47.5% reduction):
+  - Extracted `src/components/export/ExportFormatSection.tsx` (TTF/OTF selector, em-box scale presets, side bearings and overlap union toggles).
+  - Extracted `src/components/export/ExportCssSection.tsx` (CSS @font-face code snippet with one-click copy).
+
+### Sprint 4: App Wiring & Final Hygiene (Next)
+- Extract shortcuts and keydown listeners into `useAppShortcuts.ts`.
+- Extract responsive layout and window listeners into `useAppLayout.ts`.
+- Final circular dependency auditing, unused import hygiene, and comprehensive build validation.
 
 ---
 
-## 4. Verification Plan
-
-### Automated Verification
-1. `npm run typecheck` (`tsc --noEmit`): Must complete with 0 errors.
-2. `npm test` (`vitest run`): All existing 32 tests plus new font compilation tests must pass 100%.
-3. `npm run build`: Production Vite bundle must build cleanly.
-
-### Manual Sanity Checks
-1. Draw a single stroke with the brush -> verify stroke appears cleanly.
-2. Undo -> stroke disappears; Redo -> stroke reappears.
-3. Switch tool modes (Brush -> Pen -> Node -> Eraser -> Hand) -> verify no dangling temporary lines, reticles, or open sheets.
-4. Export font to TTF and WOFF2 -> verify file downloads and bytes are valid.
-5. Select a different glyph in the grid -> verify canvas switches cleanly without state leakage.
+## 4. Verification Results
+- `npm run typecheck` (`tsc --noEmit`): 0 errors.
+- `npm test` (`vitest run`): 37 / 37 passed across all 3 test suites.
+- `npm run build`: Production Vite build passes cleanly.

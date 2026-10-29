@@ -2,37 +2,22 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Sparkles,
-  Sliders,
-  CheckCircle2,
-  ShieldCheck,
-  Zap,
-  Layers,
-  RefreshCw,
-  Cpu,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
-import { FontProject, GlyphData, PathContour } from '../types';
+import { FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/pathUtils';
-import { KANA_PAIRS } from '../data/unicodeTables';
+import {
+  AlignHorizontal,
+  AlignVertical,
+  SizePreset,
+  TargetScope,
+  BatchPreviewSection,
+  BatchOptionsSection,
+} from './batch';
 
-type AlignHorizontal = 'center' | 'keep';
-type AlignVertical = 'center' | 'baseline' | 'keep';
-type SizePreset = 'standard' | 'large' | 'kana' | 'compact' | 'custom';
-
-const isAlignHorizontal = (value: string): value is AlignHorizontal =>
-  value === 'center' || value === 'keep';
-
-const isAlignVertical = (value: string): value is AlignVertical =>
-  value === 'center' || value === 'baseline' || value === 'keep';
-
-const isSizePreset = (value: string): value is SizePreset =>
-  value === 'standard' ||
-  value === 'large' ||
-  value === 'kana' ||
-  value === 'compact' ||
-  value === 'custom';
+export type { TargetScope } from './batch';
 
 interface BatchNormalizeModalProps {
   isOpen: boolean;
@@ -43,8 +28,6 @@ interface BatchNormalizeModalProps {
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
-
-export type TargetScope = 'all' | 'hiragana' | 'katakana' | 'kanji' | 'latin' | 'current';
 
 export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   isOpen,
@@ -346,347 +329,45 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 text-xs">
-          {/* Top Row: Preview & Scope */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
-            {/* Preview Box (5 cols) */}
-            <div
-              className={`sm:col-span-5 p-3 rounded-lg border flex flex-col items-center justify-center space-y-2 ${
-                isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-              }`}
-            >
-              <div className="w-full flex items-center justify-between text-[11px] font-semibold">
-                <span>プレビュー確認</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                  「{previewGlyph?.char || 'あ'}」
-                </span>
-              </div>
+          <BatchPreviewSection
+            isLight={isLight}
+            project={project}
+            previewGlyph={previewGlyph}
+            origSvg={origSvg}
+            normSvg={normSvg}
+            origBbox={origBbox}
+            normBbox={normBbox}
+            targetWidth={targetWidth}
+            targetHeight={targetHeight}
+            scope={scope}
+            setScope={setScope}
+            targetGlyphsCount={targetGlyphs.length}
+          />
 
-              {/* SVG Stage */}
-              <div className="relative w-44 h-44 border rounded bg-white overflow-hidden shadow-inner flex items-center justify-center">
-                {/* EM Grid Lines */}
-                {(() => {
-                  const upm = project?.metadata?.unitsPerEm || 1000;
-                  const baselineY = Math.round(upm * 0.8);
-                  const half = upm / 2;
-                  return (
-                    <svg viewBox={`0 0 ${upm} ${upm}`} className="absolute inset-0 w-full h-full pointer-events-none">
-                      {/* EM Box Boundary */}
-                      <rect x="0" y="0" width={upm} height={upm} fill="#fafafa" stroke="#e0e0e0" strokeWidth={upm * 0.006} />
-                      {/* Baseline */}
-                      <line x1="0" y1={baselineY} x2={upm} y2={baselineY} stroke="#f87171" strokeWidth={upm * 0.004} strokeDasharray="10 10" />
-                      {/* Center lines */}
-                      <line x1={half} y1="0" x2={half} y2={upm} stroke="#93c5fd" strokeWidth={upm * 0.003} strokeDasharray="8 8" />
-                      <line x1="0" y1={half} x2={upm} y2={half} stroke="#93c5fd" strokeWidth={upm * 0.003} strokeDasharray="8 8" />
-
-                      {/* Target frame box */}
-                      <rect
-                        x={(upm - targetWidth) / 2}
-                        y={(upm - targetHeight) / 2}
-                        width={targetWidth}
-                        height={targetHeight}
-                        fill="none"
-                        stroke="#10b981"
-                        strokeWidth={upm * 0.003}
-                        strokeDasharray="6 6"
-                      />
-
-                      {/* Original (Faint Red) */}
-                      {origSvg && <path d={origSvg} fill="#fca5a5" opacity="0.45" fillRule="nonzero" />}
-
-                      {/* Normalized (Crisp Emerald) */}
-                      {normSvg && <path d={normSvg} fill="#047857" opacity="0.9" fillRule="nonzero" />}
-                    </svg>
-                  );
-                })()}
-              </div>
-
-              <div className="w-full text-[10px] flex justify-between font-mono text-stone-500 dark:text-emerald-400/80">
-                <span>元: {Math.round(origBbox.width)}×{Math.round(origBbox.height)}px</span>
-                <span className="text-emerald-700 dark:text-emerald-300 font-bold">
-                  後: {Math.round(normBbox.width)}×{Math.round(normBbox.height)}px
-                </span>
-              </div>
-            </div>
-
-            {/* Scope Selection (7 cols) */}
-            <div className="sm:col-span-7 space-y-2.5">
-              <label className="font-semibold block text-xs">① 処理対象の文字グループ</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {[
-                  { id: 'all', label: '全文字一括', desc: '全体を均一に' },
-                  { id: 'hiragana', label: 'ひらがな', desc: 'かな文字のみ' },
-                  { id: 'katakana', label: 'カタカナ', desc: 'カナ文字のみ' },
-                  { id: 'kanji', label: '漢字', desc: '漢字のみ' },
-                  { id: 'latin', label: '英数字', desc: 'ASCII英数' },
-                  { id: 'current', label: '現在の文字', desc: `「${previewGlyph?.char || ''}」のみ` },
-                ].map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setScope(s.id as TargetScope)}
-                    className={`p-2 rounded border text-left flex flex-col min-w-0 transition-all ${
-                      scope === s.id
-                        ? isLight
-                          ? 'bg-emerald-100/70 border-emerald-600 text-emerald-950 font-bold '
-                          : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold '
-                        : isLight
-                        ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-stone-50'
-                        : 'bg-[#101813] border-[#25362b] text-emerald-300/80 hover:bg-[#18231c]'
-                    }`}
-                  >
-                    <span className="text-xs truncate w-full">{s.label}</span>
-                    <span className="text-[9px] opacity-70 truncate w-full">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div
-                className={`p-2 rounded border flex items-center justify-between text-[11px] ${
-                  isLight ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-950/50 border-emerald-800 text-emerald-300'
-                }`}
-              >
-                <span>選択中の対象文字数:</span>
-                <span className="font-bold font-mono text-xs">{targetGlyphs.length} 文字</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Presets & Sizing */}
-          <div
-            className={`p-3 rounded-lg border space-y-3 ${
-              isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-semibold flex items-center space-x-1.5">
-                <Sliders className="w-3.5 h-3.5 text-emerald-600" />
-                <span>② 文字サイズ・枠プリセット</span>
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
-              {[
-                { id: 'standard', label: '標準 (820px)', sub: '推奨バランス' },
-                { id: 'large', label: '大振り (890px)', sub: '見出し・漢字' },
-                { id: 'kana', label: 'かな (780px)', sub: '適度な字間' },
-                { id: 'compact', label: '小振り (740px)', sub: '長文・本文' },
-                { id: 'custom', label: 'カスタム', sub: '自由指定' },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    if (isSizePreset(p.id)) {
-                      handlePresetChange(p.id);
-                    }
-                  }}
-                  className={`p-2 rounded border text-center flex flex-col justify-center items-center min-w-0 transition-all ${
-                    sizePreset === p.id
-                      ? isLight
-                        ? 'bg-emerald-800 text-white font-bold'
-                        : 'bg-emerald-600 text-white font-bold'
-                      : isLight
-                      ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                      : 'bg-[#18231c] border-[#25362b] text-emerald-300 hover:bg-[#202d24]'
-                  }`}
-                >
-                  <div className="text-[11px] truncate w-full">{p.label}</div>
-                  <div className="text-[9px] opacity-75 truncate w-full">{p.sub}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* Custom Sliders */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px]">
-                  <span>目標幅 (Width)</span>
-                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{targetWidth} px</span>
-                </div>
-                <input
-                  type="range"
-                  min={500}
-                  max={960}
-                  step={10}
-                  value={targetWidth}
-                  onChange={(e) => {
-                    setTargetWidth(Number(e.target.value));
-                    setSizePreset('custom');
-                  }}
-                  className="w-full accent-emerald-700"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px]">
-                  <span>目標高さ (Height)</span>
-                  <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{targetHeight} px</span>
-                </div>
-                <input
-                  type="range"
-                  min={500}
-                  max={960}
-                  step={10}
-                  value={targetHeight}
-                  onChange={(e) => {
-                    setTargetHeight(Number(e.target.value));
-                    setSizePreset('custom');
-                  }}
-                  className="w-full accent-emerald-700"
-                />
-              </div>
-            </div>
-
-            {/* Stroke Weight Normalization Slider */}
-            <div className="pt-2 border-t space-y-1">
-              <div className="flex justify-between text-[11px]">
-                <span className="font-medium">線の太さ（ウェイト）一括調整:</span>
-                <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                  {weightDelta > 0 ? `+${weightDelta}px (太く)` : weightDelta < 0 ? `${weightDelta}px (細く)` : '0px (現状維持)'}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={-20}
-                max={20}
-                step={2}
-                value={weightDelta}
-                onChange={(e) => setWeightDelta(Number(e.target.value))}
-                className="w-full accent-emerald-700"
-              />
-              <div className="flex justify-between text-[9px] text-stone-400">
-                <span>-20px (スリム化)</span>
-                <span>±0px (維持)</span>
-                <span>+20px (ボールド化)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Alignment, Advance Width, & Quality Optimization */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Position & Metric Controls */}
-            <div
-              className={`p-3 rounded-lg border space-y-2.5 ${
-                isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-              }`}
-            >
-              <span className="font-semibold block text-[11px]">③ 位置揃え・送り幅</span>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-stone-500 dark:text-emerald-400 block mb-1">水平揃え</label>
-                  <select
-                    value={alignH}
-                    onChange={(e) => {
-                      if (isAlignHorizontal(e.target.value)) {
-                        setAlignH(e.target.value);
-                      }
-                    }}
-                    className={`w-full border rounded p-1.5 text-xs ${
-                      isLight ? 'bg-stone-50 border-[#c8ded3]' : 'bg-[#18231c] border-[#25362b]'
-                    }`}
-                  >
-                    <option value="center">枠の中央揃え (推奨)</option>
-                    <option value="keep">現在のX位置を維持</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-stone-500 dark:text-emerald-400 block mb-1">垂直揃え</label>
-                  <select
-                    value={alignV}
-                    onChange={(e) => {
-                      if (isAlignVertical(e.target.value)) {
-                        setAlignV(e.target.value);
-                      }
-                    }}
-                    className={`w-full border rounded p-1.5 text-xs ${
-                      isLight ? 'bg-stone-50 border-[#c8ded3]' : 'bg-[#18231c] border-[#25362b]'
-                    }`}
-                  >
-                    <option value="center">枠の中央揃え (全角向け)</option>
-                    <option value="baseline">ベースライン基準 (欧文向け)</option>
-                    <option value="keep">現在のY位置を維持</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t flex items-center justify-between">
-                <label className="flex items-center space-x-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={unifyAdvance}
-                    onChange={(e) => setUnifyAdvance(e.target.checked)}
-                    className="rounded text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="text-[11px] font-medium">送り幅(advanceWidth)を一括統一</span>
-                </label>
-                <input
-                  type="number"
-                  disabled={!unifyAdvance}
-                  value={advanceWidth}
-                  onChange={(e) => setAdvanceWidth(Number(e.target.value))}
-                  className={`w-20 border rounded p-1 text-right font-mono text-xs ${
-                    isLight ? 'bg-stone-50 border-[#c8ded3]' : 'bg-[#18231c] border-[#25362b]'
-                  } ${!unifyAdvance && 'opacity-40'}`}
-                />
-              </div>
-            </div>
-
-            {/* Quality & Size Optimization (容量削減・バグ防止) */}
-            <div
-              className={`p-3 rounded-lg border space-y-2.5 ${
-                isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-              }`}
-            >
-              <span className="font-semibold flex items-center space-x-1 text-[11px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>④ フォント容量肥大化防止＆バグ防止</span>
-              </span>
-
-              <div className="space-y-1.5 text-[10px] text-stone-600 dark:text-emerald-300/90">
-                <label className="flex items-start space-x-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={optimizePoints}
-                    onChange={(e) => setOptimizePoints(e.target.checked)}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>
-                    <strong>ベジェ制御点の重複・ゴミ取り（容量削減）</strong>
-                    <br />
-                    微小な重複アンカーポイントの統合、不要なハンドル除去、整数座標クランプを行いファイルサイズを最小化します。
-                  </span>
-                </label>
-
-                <label className="flex items-start space-x-1.5 cursor-pointer pt-1 border-t border-stone-100 dark:border-stone-800">
-                  <input
-                    type="checkbox"
-                    checked={normalizeWinding}
-                    onChange={(e) => setNormalizeWinding(e.target.checked)}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>
-                    <strong>TrueType標準ワインディング（輪郭方向）の統一</strong>
-                    <br />
-                    外輪郭を時計回り、中抜き穴を反時計回りに統一し、レンダラーでの黒塗りつぶれバグを防ぎます。
-                  </span>
-                </label>
-              </div>
-
-              <div
-                className={`p-2 rounded text-[10px] space-y-0.5 border ${
-                  isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-emerald-950/60 border-emerald-800 text-emerald-200'
-                }`}
-              >
-                <div className="font-semibold flex items-center space-x-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  <span>Windows 11 日本語フォント規格適合</span>
-                </div>
-                <p className="text-[9px] opacity-80">
-                  TTF出力時に自動でShift-JIS 932コードページフラグ、Windows行間メトリクス、縦書き代替グリフが設定されます。
-                </p>
-              </div>
-            </div>
-          </div>
+          <BatchOptionsSection
+            isLight={isLight}
+            sizePreset={sizePreset}
+            setSizePreset={setSizePreset}
+            handlePresetChange={handlePresetChange}
+            targetWidth={targetWidth}
+            setTargetWidth={setTargetWidth}
+            targetHeight={targetHeight}
+            setTargetHeight={setTargetHeight}
+            weightDelta={weightDelta}
+            setWeightDelta={setWeightDelta}
+            alignH={alignH}
+            setAlignH={setAlignH}
+            alignV={alignV}
+            setAlignV={setAlignV}
+            unifyAdvance={unifyAdvance}
+            setUnifyAdvance={setUnifyAdvance}
+            advanceWidth={advanceWidth}
+            setAdvanceWidth={setAdvanceWidth}
+            optimizePoints={optimizePoints}
+            setOptimizePoints={setOptimizePoints}
+            normalizeWinding={normalizeWinding}
+            setNormalizeWinding={setNormalizeWinding}
+          />
         </div>
 
         {/* Footer */}
