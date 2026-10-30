@@ -26,8 +26,11 @@ import { ThemeMode, isLightTheme, getThemeClasses, THEME_PRESETS, getThemePreset
 import { useToolState } from './hooks/useToolState';
 import { useTheme } from './hooks/useTheme';
 import { useProjectStorage } from './hooks/useProjectStorage';
+import { useAppLayout } from './hooks/useAppLayout';
+import { useAppShortcuts } from './hooks/useAppShortcuts';
+import { AppBottomBar, AppMobileNav } from './components/navigation';
 import { KANA_PAIRS } from './data/unicodeTables';
-import { Undo2, Redo2, X, PenTool, Grid, Ruler, Shapes } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
 import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
@@ -237,70 +240,32 @@ function AppMain({
     } catch (e) {}
   }, [overlaySettings]);
 
-  // Responsive layout tracking
-  const [viewportWidth, setViewportWidth] = useState<number>(() => {
-    return typeof window !== 'undefined' ? window.innerWidth : 1280;
+  // Responsive layout tracking & navigation state
+  const {
+    viewportWidth,
+    isGridOverlay,
+    isMetricsOverlay,
+    isZenMode,
+    toggleZenMode,
+    toggleGridDrawer,
+    toggleMetricsDrawer,
+    toggleRadicals,
+    handleCloseGridDrawer,
+    handleCloseMetricsDrawer,
+    handleCloseRadicalsDrawer,
+    mobileActiveTab,
+    handleSwitchMobileTab,
+  } = useAppLayout({
+    showGridDrawer,
+    setShowGridDrawer,
+    showMetricsDrawer,
+    setShowMetricsDrawer,
+    showRadicals,
+    setShowRadicals,
+    showToast,
   });
 
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const isGridOverlay = viewportWidth < 1024;
-  const isMetricsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
-
-  const isZenMode = !showGridDrawer && !showMetricsDrawer && !showRadicals;
-  const toggleZenMode = useCallback(() => {
-    if (showGridDrawer || showMetricsDrawer || showRadicals) {
-      setShowGridDrawer(false);
-      setShowMetricsDrawer(false);
-      setShowRadicals(false);
-      showToast('全面作図・集中モード（サイドバー収納）', 'info');
-    } else {
-      setShowGridDrawer(true);
-      showToast('標準レイアウトに戻しました', 'info');
-    }
-  }, [showGridDrawer, showMetricsDrawer, showRadicals, setShowGridDrawer, setShowMetricsDrawer, setShowRadicals, showToast]);
-
-  const toggleGridDrawer = useCallback(() => setShowGridDrawer((prev) => !prev), [setShowGridDrawer]);
-  const toggleMetricsDrawer = useCallback(() => setShowMetricsDrawer((prev) => !prev), [setShowMetricsDrawer]);
-  const toggleRadicals = useCallback(() => setShowRadicals((prev) => !prev), [setShowRadicals]);
   const openPenPresetsModal = useCallback(() => setIsPenPresetsModalOpen(true), [setIsPenPresetsModalOpen]);
-
-  // Mobile Tab switching logic (UI-10)
-  const mobileActiveTab = useMemo(() => {
-    if (showGridDrawer) return 'grid';
-    if (showMetricsDrawer) return 'metrics';
-    if (showRadicals) return 'radicals';
-    return 'canvas';
-  }, [showGridDrawer, showMetricsDrawer, showRadicals]);
-
-  const handleSwitchMobileTab = useCallback(
-    (tab: 'canvas' | 'grid' | 'metrics' | 'radicals') => {
-      if (tab === 'canvas') {
-        setShowGridDrawer(false);
-        setShowMetricsDrawer(false);
-        setShowRadicals(false);
-      } else if (tab === 'grid') {
-        setShowGridDrawer(true);
-        setShowMetricsDrawer(false);
-        setShowRadicals(false);
-      } else if (tab === 'metrics') {
-        setShowMetricsDrawer(true);
-        setShowGridDrawer(false);
-        setShowRadicals(false);
-      } else if (tab === 'radicals') {
-        setShowRadicals(true);
-        setShowGridDrawer(false);
-        setShowMetricsDrawer(false);
-      }
-    },
-    [setShowGridDrawer, setShowMetricsDrawer, setShowRadicals]
-  );
 
   const handleOpenTestModal = useCallback(() => setIsTestModalOpen(true), [setIsTestModalOpen]);
   const handleOpenFontInfoModal = useCallback(() => setIsFontInfoModalOpen(true), [setIsFontInfoModalOpen]);
@@ -317,9 +282,6 @@ function AppMain({
   const handleOpenStorageManagerModal = useCallback(() => setIsStorageManagerOpen(true), [setIsStorageManagerOpen]);
   const handleOpenShortcutsModal = useCallback(() => setIsShortcutsModalOpen(true), [setIsShortcutsModalOpen]);
   const handleOpenExportModal = useCallback(() => setIsExportModalOpen(true), [setIsExportModalOpen]);
-  const handleCloseGridDrawer = useCallback(() => setShowGridDrawer(false), [setShowGridDrawer]);
-  const handleCloseMetricsDrawer = useCallback(() => setShowMetricsDrawer(false), [setShowMetricsDrawer]);
-  const handleCloseRadicalsDrawer = useCallback(() => setShowRadicals(false), [setShowRadicals]);
   const handleOpenRadicalStudioFromDrawer = useCallback(() => {
     setShowRadicals(false);
     setIsRadicalStudioOpen(true);
@@ -343,100 +305,7 @@ function AppMain({
   );
 
   // Global Keyboard Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement;
-      const isInput =
-        activeElement &&
-        (activeElement.tagName === 'INPUT' ||
-          activeElement.tagName === 'TEXTAREA' ||
-          activeElement.tagName === 'SELECT' ||
-          activeElement.getAttribute('contenteditable') === 'true');
-
-      if (isInput) return;
-      if (isAnyModalOpen) return;
-
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
-
-      if (ctrlOrCmd && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else {
-          handleUndo();
-        }
-        return;
-      }
-
-      if (ctrlOrCmd && e.key.toLowerCase() === 'y') {
-        e.preventDefault();
-        handleRedo();
-        return;
-      }
-
-      if (ctrlOrCmd && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        handleQuickSaveCurrentGlyph();
-        return;
-      }
-
-      if (ctrlOrCmd && e.key.toLowerCase() === 'c') {
-        if (currentGlyph.contours && currentGlyph.contours.length > 0) {
-          e.preventDefault();
-          handleCopyGlyph(selectedUnicode);
-        }
-        return;
-      }
-
-      if (ctrlOrCmd && e.key.toLowerCase() === 'v') {
-        if (clipboardContours && clipboardContours.length > 0) {
-          e.preventDefault();
-          handlePasteGlyph(selectedUnicode);
-        }
-        return;
-      }
-
-      if (e.key === 'ArrowLeft' && e.altKey) {
-        e.preventDefault();
-        handleSelectPrevGlyph();
-        return;
-      }
-
-      if (e.key === 'ArrowRight' && e.altKey) {
-        e.preventDefault();
-        handleSelectNextGlyph();
-        return;
-      }
-
-      if (e.key === 'f' || e.key === 'F') {
-        if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault();
-          toggleZenMode();
-          return;
-        }
-      }
-
-      if (e.key === 'v' || e.key === 'V') {
-        if (!ctrlOrCmd) setToolMode('select');
-      } else if (e.key === 'p' || e.key === 'P') {
-        if (!ctrlOrCmd) setToolMode('pen');
-      } else if (e.key === 'b' || e.key === 'B') {
-        if (!ctrlOrCmd) setToolMode('brush');
-      } else if (e.key === 'e' || e.key === 'E') {
-        if (!ctrlOrCmd) setToolMode('eraser');
-      } else if (e.key === 'r' || e.key === 'R') {
-        if (!ctrlOrCmd) setToolMode('rect');
-      } else if (e.key === 'o' || e.key === 'O') {
-        if (!ctrlOrCmd) setToolMode('ellipse');
-      } else if (e.key === 'm' || e.key === 'M') {
-        if (!ctrlOrCmd) setToolMode('ruler');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
+  useAppShortcuts({
     isAnyModalOpen,
     handleUndo,
     handleRedo,
@@ -450,7 +319,7 @@ function AppMain({
     handleSelectNextGlyph,
     toggleZenMode,
     setToolMode,
-  ]);
+  });
 
   return (
     <div className={`h-screen w-screen flex flex-col font-sans select-none overflow-hidden pb-14 sm:pb-0 ${themeClasses.appBg} ${themeClasses.textPrimary}`}>
@@ -699,134 +568,27 @@ function AppMain({
       </div>
 
       {/* Desktop/Tablet Bottom Floating Navigation Toolbar & Quick Navigation Bar */}
-      <div className={`hidden sm:flex h-9 border-t items-center justify-between px-3 text-xs shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}>
-        <div className="flex items-center space-x-2">
-          <span className="font-mono text-stone-500 dark:text-stone-400">
-            {selectedChar} (U+
-            {selectedUnicode.toString(16).toUpperCase().padStart(4, '0')})
-          </span>
-          <span className="text-stone-300 dark:text-stone-600">|</span>
-          <button
-            onClick={handleSelectPrevGlyph}
-            className="px-1.5 py-0.5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 font-mono text-[11px]"
-            title="前の文字へ (Alt+Left)"
-          >
-            &lt; 前の文字
-          </button>
-          <button
-            onClick={handleSelectNextGlyph}
-            className="px-1.5 py-0.5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 font-mono text-[11px]"
-            title="次の文字へ (Alt+Right)"
-          >
-            次の文字 &gt;
-          </button>
-          <span className="text-stone-300 dark:text-stone-600">|</span>
-          <button
-            onClick={handleSelectPrevUncompletedGlyph}
-            className="px-1.5 py-0.5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-[11px] text-amber-600 dark:text-amber-400 font-medium"
-            title="前の未作成文字へジャンプ"
-          >
-            &lt; 前の未作成
-          </button>
-          <button
-            onClick={handleSelectNextUncompletedGlyph}
-            className="px-1.5 py-0.5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-[11px] text-amber-600 dark:text-amber-400 font-medium"
-            title="次の未作成文字へジャンプ"
-          >
-            次の未作成 &gt;
-          </button>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <span className="text-stone-400 text-[11px]">
-            輪郭数: {currentGlyph.contours?.length || 0} パス
-          </span>
-          <span className="text-stone-300 dark:text-stone-600">|</span>
-          <button
-            onClick={handleUndo}
-            disabled={!canUndo}
-            className="p-1 rounded disabled:opacity-30 hover:bg-stone-100 dark:hover:bg-stone-800"
-            title="元に戻す (Ctrl+Z)"
-          >
-            <Undo2 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={!canRedo}
-            className="p-1 rounded disabled:opacity-30 hover:bg-stone-100 dark:hover:bg-stone-800"
-            title="やり直し (Ctrl+Y)"
-          >
-            <Redo2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      <AppBottomBar
+        selectedChar={selectedChar}
+        selectedUnicode={selectedUnicode}
+        handleSelectPrevGlyph={handleSelectPrevGlyph}
+        handleSelectNextGlyph={handleSelectNextGlyph}
+        handleSelectPrevUncompletedGlyph={handleSelectPrevUncompletedGlyph}
+        handleSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
+        contourCount={currentGlyph.contours?.length || 0}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        themeClasses={themeClasses}
+      />
 
       {/* Accessible Mobile Bottom Navigation Bar (UI-10) */}
-      <nav
-        role="tablist"
-        aria-label="モバイル主要ナビゲーション"
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around h-14 pb-[env(safe-area-inset-bottom,0px)] shadow-lg ${themeClasses.toolbarBg} ${themeClasses.border}`}
-      >
-        <button
-          role="tab"
-          aria-selected={mobileActiveTab === 'canvas'}
-          aria-label="作図キャンバス画面に切り替え"
-          onClick={() => handleSwitchMobileTab('canvas')}
-          className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-            mobileActiveTab === 'canvas'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
-          }`}
-        >
-          <PenTool className="w-5 h-5" />
-          <span>作図</span>
-        </button>
-
-        <button
-          role="tab"
-          aria-selected={mobileActiveTab === 'grid'}
-          aria-label="文字一覧（グリッド）画面を開く"
-          onClick={() => handleSwitchMobileTab('grid')}
-          className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-            mobileActiveTab === 'grid'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
-          }`}
-        >
-          <Grid className="w-5 h-5" />
-          <span>文字一覧</span>
-        </button>
-
-        <button
-          role="tab"
-          aria-selected={mobileActiveTab === 'metrics'}
-          aria-label="メトリクス・文字ガイド設定を開く"
-          onClick={() => handleSwitchMobileTab('metrics')}
-          className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-            mobileActiveTab === 'metrics'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
-          }`}
-        >
-          <Ruler className="w-5 h-5" />
-          <span>メトリクス</span>
-        </button>
-
-        <button
-          role="tab"
-          aria-selected={mobileActiveTab === 'radicals'}
-          aria-label="部首・パーツライブラリを開く"
-          onClick={() => handleSwitchMobileTab('radicals')}
-          className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
-            mobileActiveTab === 'radicals'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
-          }`}
-        >
-          <Shapes className="w-5 h-5" />
-          <span>部首</span>
-        </button>
-      </nav>
+      <AppMobileNav
+        mobileActiveTab={mobileActiveTab}
+        handleSwitchMobileTab={handleSwitchMobileTab}
+        themeClasses={themeClasses}
+      />
 
       {/* Centralized Modal Manager Host */}
       <AppModalsHost
