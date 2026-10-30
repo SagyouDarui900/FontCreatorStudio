@@ -15,13 +15,19 @@ import {
   contoursToSvgPath,
   generateStraightStrokePoints,
   snapToStraightAngle,
-  generateFastStrokeSvgPath,
 } from '../utils/pathUtils';
+import {
+  calibrateStylusPressure,
+  computeMouseSpeedPressure,
+  blendStrokePressure,
+  trimTerminalJitter,
+  isAccidentalStrayTap,
+  calculateEffectiveSmoothing,
+  getDecimatedPointsForLivePreview,
+} from '../utils/brush';
 
-export const getDecimatedPointsForLivePreview = (pts: StrokePoint[]): StrokePoint[] => {
-  if (pts.length <= 4) return pts;
-  return pts.filter((_, idx) => idx % 2 === 0 || idx === pts.length - 1);
-};
+// Re-export for backwards compatibility
+export { getDecimatedPointsForLivePreview };
 
 export interface UseBrushDrawingOptions {
   toolMode: ToolMode;
@@ -88,6 +94,16 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   const brushRafIdRef = useRef<number | null>(null);
   const mouseSmoothSpeedRef = useRef<number>(0.5);
   const lastBrushPointRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const strokeBrushConfigRef = useRef<{
+    brushWidth: number;
+    brushStyle: BrushStyle;
+    pressureSensitivity: 'high' | 'normal' | 'low' | 'off';
+    pressureCurve?: PressureCurveConfig | null;
+    smoothingIntensity: number;
+    autoSmoothBrush?: boolean;
+    smoothStrength?: 'light' | 'standard' | 'strong' | 'mild';
+    activePenPreset?: PenPresetInfo | UserPenPreset | null;
+  } | null>(null);
 
   const resetBrushDrawing = useCallback(() => {
     if (brushRafIdRef.current != null) {
@@ -96,6 +112,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     }
     brushStrokePointsRef.current = [];
     pendingBrushEventsRef.current = [];
+    strokeBrushConfigRef.current = null;
     activeBrushSvgDRef.current = '';
     if (activeBrushPathRef.current) {
       activeBrushPathRef.current.setAttribute('d', '');
@@ -113,27 +130,33 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
   const getProcessedBrushContour = useCallback(
     (pts: StrokePoint[], _isFinalize: boolean = false) => {
-      // 手ブレ補正設定に応じた平滑化強度を適用
-      const effectiveSmoothing = autoSmoothBrush
-        ? smoothStrength === 'strong'
-          ? Math.max(82, smoothingIntensity)
-          : smoothStrength === 'standard'
-          ? Math.max(62, smoothingIntensity)
-          : Math.max(40, smoothingIntensity)
-        : smoothingIntensity;
-
-      const rawContour = strokePointsToOutline(
-        pts,
+      const cfg = strokeBrushConfigRef.current || {
         brushWidth,
         brushStyle,
-        true,
         pressureSensitivity,
         pressureCurve,
-        effectiveSmoothing,
-        { customPreset: activePenPreset || undefined }
+        smoothingIntensity,
+        autoSmoothBrush,
+        smoothStrength,
+        activePenPreset,
+      };
+
+      const effectiveSmoothing = calculateEffectiveSmoothing(
+        cfg.autoSmoothBrush,
+        cfg.smoothStrength,
+        cfg.smoothingIntensity
       );
 
-      return rawContour;
+      return strokePointsToOutline(
+        pts,
+        cfg.brushWidth,
+        cfg.brushStyle,
+        true,
+        cfg.pressureSensitivity,
+        cfg.pressureCurve,
+        effectiveSmoothing,
+        { customPreset: cfg.activePenPreset || undefined }
+      );
     },
     [
       brushWidth,
@@ -150,10 +173,72 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   const getLivePreviewSvgPath = useCallback(
     (pts: StrokePoint[]): string => {
       if (!pts || pts.length === 0) return '';
-      const contour = getProcessedBrushContour(pts, false);
+      // When points grow large (> 24 pts), decimate to maintain smooth 60fps/120fps live preview
+      const previewPts = pts.length > 24 ? getDecimatedPointsForLivePreview(pts) : pts;
+      const contour = getProcessedBrushContour(previewPts, false);
       return contoursToSvgPath([contour]);
     },
     [getProcessedBrushContour]
+  );
+
+  // Helper to ingest incoming pointer events into stroke points
+  const ingestRawEvents = useCallback(
+    (events: { clientX: number; clientY: number; pressure: number; timeStamp: number; pointerType: string }[]): boolean => {
+      let lastP = brushStrokePointsRef.current[brushStrokePointsRef.current.length - 1];
+      let hasNewPoints = false;
+
+      for (let k = 0; k < events.length; k++) {
+        const ev = events[k];
+        let subPos = screenToCanvas(ev.clientX, ev.clientY);
+
+        // Remove 1px staircase noise for mouse
+        if (ev.pointerType === 'mouse' && lastP) {
+          subPos = {
+            x: subPos.x * 0.75 + lastP.x * 0.25,
+            y: subPos.y * 0.75 + lastP.y * 0.25,
+          };
+        }
+
+        // Ignore micro-sampling (< 1.5px)
+        if (lastP) {
+          const dx = subPos.x - lastP.x;
+          const dy = subPos.y - lastP.y;
+          if (dx * dx + dy * dy < 2.25) {
+            continue;
+          }
+        }
+
+        let rawPres = 0.5;
+        if (pressureSensitivity === 'off') {
+          rawPres = 0.5;
+        } else if (ev.pointerType === 'pen') {
+          rawPres = calibrateStylusPressure(typeof ev.pressure === 'number' ? ev.pressure : 0);
+        } else if (typeof ev.pressure === 'number' && ev.pressure > 0 && ev.pressure !== 0.5) {
+          rawPres = ev.pressure;
+        } else if (lastP && lastP.time) {
+          const dt = ev.timeStamp - lastP.time;
+          const ds = Math.hypot(subPos.x - lastP.x, subPos.y - lastP.y);
+          const { smoothSpeed, rawPressure } = computeMouseSpeedPressure(dt, ds, mouseSmoothSpeedRef.current);
+          mouseSmoothSpeedRef.current = smoothSpeed;
+          rawPres = rawPressure;
+        }
+
+        const pres = blendStrokePressure(ev.pointerType, pressureSensitivity, rawPres, lastP?.pressure);
+        const ptItem: StrokePoint = {
+          x: subPos.x,
+          y: subPos.y,
+          pressure: pres,
+          time: ev.timeStamp,
+          pointerType: ev.pointerType,
+        };
+        brushStrokePointsRef.current.push(ptItem);
+        lastP = ptItem;
+        hasNewPoints = true;
+      }
+
+      return hasNewPoints;
+    },
+    [pressureSensitivity, screenToCanvas]
   );
 
   const handleBrushPointerDown = useCallback(
@@ -162,6 +247,19 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       mouseSmoothSpeedRef.current = 0.5;
       brushStrokeStartTimeRef.current = Date.now();
       brushStrokeStartPosRef.current = { x: pos.x, y: pos.y };
+
+      // Snapshot active brush configuration at stroke inception to prevent mid-stroke jump
+      strokeBrushConfigRef.current = {
+        brushWidth,
+        brushStyle,
+        pressureSensitivity,
+        pressureCurve,
+        smoothingIntensity,
+        autoSmoothBrush,
+        smoothStrength,
+        activePenPreset,
+      };
+
       const isPen = e.pointerType === 'pen';
       let pres = 0.5;
       if (pressureSensitivity === 'off') {
@@ -170,8 +268,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         if (!isStylusActive && setIsStylusActive) {
           setIsStylusActive(true);
         }
-        const rawP = e.pressure && e.pressure > 0 ? e.pressure : 0.15;
-        pres = Math.max(0.04, Math.min(1.0, (rawP - 0.03) / 0.65));
+        pres = calibrateStylusPressure(e.pressure && e.pressure > 0 ? e.pressure : 0.15);
         if (onPressureUpdate) {
           onPressureUpdate(Math.round(pres * 100));
         }
@@ -181,7 +278,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         pres = 0.55;
       }
 
-      // Shift-Click straight line connection from previous stroke endpoint (like Photoshop / Paint Tool SAI)
+      // Shift-Click straight line connection from previous stroke endpoint
       if (e.shiftKey && lastBrushPointRef.current && Date.now() - lastBrushPointRef.current.time < 120000) {
         const pPrev: StrokePoint = {
           x: lastBrushPointRef.current.x,
@@ -212,7 +309,6 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       isStylusActive,
       setIsStylusActive,
       onPressureUpdate,
-      getProcessedBrushContour,
       getLivePreviewSvgPath,
     ]
   );
@@ -227,7 +323,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         setIsStylusActive(true);
       }
 
-      // Straight Ruler Assist: When Shift is held or straight mode is ON, lock stroke to perfect 0°/45°/90° straight line
+      // Straight Ruler Assist: When Shift is held or straight mode is ON
       if (e.shiftKey || brushStraightMode) {
         const p0 = brushStrokePointsRef.current[0];
         const subPos = screenToCanvas(e.clientX, e.clientY);
@@ -299,79 +395,8 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           const events = pendingBrushEventsRef.current;
           pendingBrushEventsRef.current = [];
 
-          let lastP = brushStrokePointsRef.current[brushStrokePointsRef.current.length - 1];
-          let hasNewPoints = false;
+          const hasNewPoints = ingestRawEvents(events);
 
-          for (let k = 0; k < events.length; k++) {
-            const ev = events[k];
-            let subPos = screenToCanvas(ev.clientX, ev.clientY);
-
-            // マウス特有の離散化ジッター（1pxの階段状ノイズ）を直前座標と適応的に融合して除去
-            if (ev.pointerType === 'mouse' && lastP) {
-              subPos = {
-                x: subPos.x * 0.75 + lastP.x * 0.25,
-                y: subPos.y * 0.75 + lastP.y * 0.25,
-              };
-            }
-
-            // 距離が極小（1.5px未満）の重複サンプリングは補間に寄与せず計算爆発を招くため除外
-            if (lastP) {
-              const dx = subPos.x - lastP.x;
-              const dy = subPos.y - lastP.y;
-              if (dx * dx + dy * dy < 2.25) {
-                continue;
-              }
-            }
-
-            let rawPres = 0.5;
-            if (pressureSensitivity === 'off') {
-              rawPres = 0.5;
-            } else if (ev.pointerType === 'pen') {
-              // Apple Pencil / スタイラス：ハードウェアの筆圧センサー値を全域フルレンジで校正
-              const p = typeof ev.pressure === 'number' ? ev.pressure : 0;
-              if (p > 0) {
-                rawPres = Math.max(0.04, Math.min(1.0, (p - 0.03) / 0.65));
-              } else {
-                rawPres = 0.15;
-              }
-            } else if (typeof ev.pressure === 'number' && ev.pressure > 0 && ev.pressure !== 0.5) {
-              rawPres = ev.pressure;
-            } else {
-              // マウス・タッチ：安定した速度推定EMAで太さの脈動・ガタつきを抑止
-              if (lastP && lastP.time) {
-                const dt = Math.max(8, ev.timeStamp - lastP.time);
-                const ds = Math.hypot(subPos.x - lastP.x, subPos.y - lastP.y);
-                const instantSpeed = Math.min(3.0, ds / dt);
-                mouseSmoothSpeedRef.current = mouseSmoothSpeedRef.current * 0.85 + instantSpeed * 0.15;
-                const smoothSpeed = mouseSmoothSpeedRef.current;
-                rawPres = Math.max(0.35, Math.min(0.80, 0.65 - (smoothSpeed - 0.5) * 0.18));
-              }
-            }
-
-            // ペンタブレットは即応（88%新筆圧）、マウス時は高平滑（75%直前筆圧）で線の波打ちを徹底防止
-            const pres =
-              pressureSensitivity === 'off'
-                ? 0.5
-                : ev.pointerType === 'pen'
-                ? lastP && typeof lastP.pressure === 'number'
-                  ? lastP.pressure * 0.12 + rawPres * 0.88
-                  : rawPres
-                : lastP && typeof lastP.pressure === 'number'
-                ? lastP.pressure * 0.75 + rawPres * 0.25
-                : rawPres;
-            const ptItem: StrokePoint = {
-              x: subPos.x,
-              y: subPos.y,
-              pressure: pres,
-              time: ev.timeStamp,
-              pointerType: ev.pointerType,
-            };
-            brushStrokePointsRef.current.push(ptItem);
-            lastP = ptItem;
-            hasNewPoints = true;
-          }
-
-          // 新規点が追加された場合のみパス再計算とDOM更新を行い、減速・停止時の無駄な再描画を回避
           if (hasNewPoints && activeBrushPathRef.current && brushStrokePointsRef.current.length > 0) {
             const d = getLivePreviewSvgPath(brushStrokePointsRef.current);
             activeBrushSvgDRef.current = d;
@@ -389,7 +414,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       screenToCanvas,
       customGuidelines,
       pressureSensitivity,
-      getProcessedBrushContour,
+      ingestRawEvents,
       getLivePreviewSvgPath,
     ]
   );
@@ -406,67 +431,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       if (pendingBrushEventsRef.current.length > 0) {
         const events = pendingBrushEventsRef.current;
         pendingBrushEventsRef.current = [];
-
-        let lastP = brushStrokePointsRef.current[brushStrokePointsRef.current.length - 1];
-
-        for (let k = 0; k < events.length; k++) {
-          const ev = events[k];
-          let subPos = screenToCanvas(ev.clientX, ev.clientY);
-
-          if (ev.pointerType === 'mouse' && lastP) {
-            subPos = {
-              x: subPos.x * 0.75 + lastP.x * 0.25,
-              y: subPos.y * 0.75 + lastP.y * 0.25,
-            };
-          }
-
-          if (lastP) {
-            const dx = subPos.x - lastP.x;
-            const dy = subPos.y - lastP.y;
-            if (dx * dx + dy * dy < 2.25) {
-              continue;
-            }
-          }
-
-          let rawPres = 0.5;
-          if (pressureSensitivity === 'off') {
-            rawPres = 0.5;
-          } else if (ev.pointerType === 'pen') {
-            const p = typeof ev.pressure === 'number' ? ev.pressure : 0;
-            rawPres = p > 0 ? Math.max(0.04, Math.min(1.0, (p - 0.03) / 0.65)) : 0.15;
-          } else if (typeof ev.pressure === 'number' && ev.pressure > 0 && ev.pressure !== 0.5) {
-            rawPres = ev.pressure;
-          } else {
-            if (lastP && lastP.time) {
-              const dt = Math.max(8, ev.timeStamp - lastP.time);
-              const ds = Math.hypot(subPos.x - lastP.x, subPos.y - lastP.y);
-              const instantSpeed = Math.min(3.0, ds / dt);
-              mouseSmoothSpeedRef.current = mouseSmoothSpeedRef.current * 0.85 + instantSpeed * 0.15;
-              const smoothSpeed = mouseSmoothSpeedRef.current;
-              rawPres = Math.max(0.35, Math.min(0.80, 0.65 - (smoothSpeed - 0.5) * 0.18));
-            }
-          }
-
-          const pres =
-            pressureSensitivity === 'off'
-              ? 0.5
-              : ev.pointerType === 'pen'
-              ? lastP && typeof lastP.pressure === 'number'
-                ? lastP.pressure * 0.12 + rawPres * 0.88
-                : rawPres
-              : lastP && typeof lastP.pressure === 'number'
-              ? lastP.pressure * 0.75 + rawPres * 0.25
-              : rawPres;
-          const ptItem: StrokePoint = {
-            x: subPos.x,
-            y: subPos.y,
-            pressure: pres,
-            time: ev.timeStamp,
-            pointerType: ev.pointerType,
-          };
-          brushStrokePointsRef.current.push(ptItem);
-          lastP = ptItem;
-        }
+        ingestRawEvents(events);
       }
 
       if (brushRafIdRef.current != null) {
@@ -480,42 +445,20 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       const pts = brushStrokePointsRef.current;
       brushStrokePointsRef.current = [];
 
-      // 終端付近の微細ブレ（スタイラス離脱時の微小変位）をトリミングし、滑らかな終端形状を確保
-      while (pts.length > 2) {
-        const last = pts[pts.length - 1];
-        const prev = pts[pts.length - 2];
-        const dx = last.x - prev.x;
-        const dy = last.y - prev.y;
-        if (dx * dx + dy * dy < 2.25) {
-          // < 1.5px
-          pts.pop();
-        } else {
-          break;
-        }
-      }
+      // Trim micro-jitter at stroke end
+      trimTerminalJitter(pts);
 
-      // 軽くタップしただけの偶発接触（stray touch / accidental tap）を判別
+      // Distinguish accidental stray tap vs intentional mark
       const duration = Date.now() - brushStrokeStartTimeRef.current;
-      const startPos = brushStrokeStartPosRef.current;
-      let maxDistFromStart = 0;
-      let totalStrokeLength = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const dStart = Math.hypot(pts[i].x - startPos.x, pts[i].y - startPos.y);
-        if (dStart > maxDistFromStart) maxDistFromStart = dStart;
-        if (i > 0) {
-          totalStrokeLength += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-        }
-      }
+      const isAccidental = isAccidentalStrayTap(
+        pts,
+        brushStrokeStartPosRef.current,
+        duration,
+        e.pointerType
+      );
 
-      // スタイラス（ペン）で意図してしっかり押し当てた点打ち（筆圧 > 0.38）は許可
-      const isDeliberatePenTap = e.pointerType === 'pen' && pts.some((p: { pressure?: number }) => (p.pressure || 0) > 0.38);
-
-      // スマホ・タブレット等の微小タップや誤接触を破棄
-      const isAccidentalTap =
-        !isDeliberatePenTap &&
-        (pts.length <= 1 || (maxDistFromStart < 5.0 && totalStrokeLength < 8.0)) &&
-        duration < 280;
-      if (isAccidentalTap) {
+      if (isAccidental) {
+        strokeBrushConfigRef.current = null;
         return true;
       }
 
@@ -532,12 +475,12 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         };
         onCommitHistory?.();
       }
+      strokeBrushConfigRef.current = null;
       return true;
     },
     [
       toolMode,
-      screenToCanvas,
-      pressureSensitivity,
+      ingestRawEvents,
       getProcessedBrushContour,
       contoursRef,
       onChangeContours,

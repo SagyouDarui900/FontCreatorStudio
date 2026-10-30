@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import {
   Point,
   PathContour,
@@ -258,6 +258,16 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     initOffsetX: 0,
     initOffsetY: 0,
   });
+
+  // Reset any active pointer locks and in-progress sessions when toolMode changes
+  useEffect(() => {
+    activeDrawingPointerIdRef.current = null;
+    touchPointersRef.current.clear();
+    pointerTypesRef.current.clear();
+    isTwoFingerGestureRef.current = false;
+    activeTwoFingerIdsRef.current = null;
+    isPenDrawingRef.current = false;
+  }, [toolMode]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     // If an existing drawing pointer is already active, reject secondary pointerdown unless 2-finger gesture
@@ -839,6 +849,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     const wasTouch = e.pointerType === 'touch';
     touchPointersRef.current.delete(e.pointerId);
     pointerTypesRef.current.delete(e.pointerId);
+    if (touchPointersRef.current.size === 0) {
+      activeDrawingPointerIdRef.current = null;
+    }
 
     if (e.pointerType === 'pen') {
       isPenDrawingRef.current = false;
@@ -959,5 +972,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     pointerTypesRef,
     isTwoFingerGestureRef,
     twoFingerCooldownUntilRef,
+    activeDrawingPointerIdRef,
   };
 }

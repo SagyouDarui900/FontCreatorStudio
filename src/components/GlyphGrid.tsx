@@ -148,7 +148,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           effectiveIsOverlay
             ? 'fixed inset-y-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200'
             : 'relative z-10 shadow-none shrink-0'
-        } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg}`}
+        } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
         {/* Left Sidebar Drag Resizer Handle */}
         {!effectiveIsOverlay && (
@@ -229,7 +229,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               : gridDensity === 'medium'
               ? 'grid-cols-4'
               : 'grid-cols-5'
-          } ${isLight ? 'bg-[#f7faf8]' : 'bg-[#121914]'}`}
+          } ${themeClasses.canvasOuterBg}`}
           style={{
             gridAutoRows: gridDensity === 'large' ? '92px' : gridDensity === 'medium' ? '76px' : '62px',
             paddingBottom: effectiveIsOverlay ? 'max(env(safe-area-inset-bottom, 0px) + 40px, 40px)' : undefined,
@@ -237,9 +237,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         >
           {charList.length === 0 ? (
             <div
-              className={`col-span-full py-12 text-center text-xs ${
-                isLight ? 'text-stone-400' : 'text-emerald-600'
-              }`}
+              className={`col-span-full py-12 text-center text-xs ${themeClasses.textMuted}`}
             >
               該当する文字が見つかりません
             </div>
@@ -251,6 +249,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
                 isSelected={selectedUnicode === item.code}
                 glyphData={project.glyphs[item.code]}
                 isLight={isLight}
+                themeClasses={themeClasses}
                 density={gridDensity}
                 unitsPerEm={project.metadata.unitsPerEm || 1000}
                 onSelectGlyph={handleCardSelect}
@@ -263,19 +262,17 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         {/* Selected Glyph Quick Action Dock */}
         {currentSelectedGlyph && (
           <div
-            className={`px-3 py-1.5 border-t flex items-center justify-between text-xs shrink-0 ${
-              isLight ? 'bg-[#edf5f1] border-[#d4e5dc]' : 'bg-[#16211a] border-[#25362b]'
-            }`}
+            className={`px-3 py-1.5 border-t flex items-center justify-between text-xs shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <div className="flex items-center space-x-1.5 min-w-0">
-              <span className="font-bold text-sm text-emerald-700 dark:text-emerald-400">
+              <span className={`font-bold text-sm ${themeClasses.accentText}`}>
                 {currentSelectedGlyph.char || String.fromCodePoint(currentSelectedGlyph.unicode)}
               </span>
-              <span className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
+              <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
                 U+{currentSelectedGlyph.unicode.toString(16).toUpperCase().padStart(4, '0')}
               </span>
               {currentSelectedHasContours && (
-                <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold">
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${themeClasses.accentBadge}`}>
                   {currentSelectedGlyph.contours.length}画
                 </span>
               )}
@@ -285,11 +282,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {currentSelectedHasContours && (
                 <button
                   onClick={() => onCopyGlyph(currentSelectedGlyph.unicode)}
-                  className={`p-1 rounded text-[10px] font-bold flex items-center gap-0.5 border ${
-                    isLight
-                      ? 'bg-white border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
-                      : 'bg-[#1e2d24] border-[#2d4034] text-emerald-200 hover:bg-[#283b2f]'
-                  }`}
+                  className={`p-1 rounded text-[10px] font-bold flex items-center gap-0.5 border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
                   title="選択中の字形をコピー"
                 >
                   <Copy className="w-3 h-3" />
@@ -300,7 +293,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {hasClipboard && (
                 <button
                   onClick={() => onPasteGlyph(currentSelectedGlyph.unicode)}
-                  className="px-1.5 py-1 rounded text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-0.5"
+                  className={`px-1.5 py-1 rounded text-[10px] font-bold ${themeClasses.accentBtn} flex items-center gap-0.5 cursor-pointer`}
                   title="コピーした形をこの文字に貼り付け"
                 >
                   <Clipboard className="w-3 h-3" />
@@ -311,7 +304,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {currentSelectedHasContours && (
                 <button
                   onClick={() => onClearGlyph(currentSelectedGlyph.unicode)}
-                  className="p-1 rounded text-[10px] font-bold hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-transparent hover:border-rose-300 transition-colors"
+                  className="p-1 rounded text-[10px] font-bold hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-transparent hover:border-rose-300 transition-colors cursor-pointer"
                   title="この文字のパスを消去"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -324,19 +317,15 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         {/* Pagination Footer */}
         {totalPages > 1 && (
           <div
-            className={`p-2 border-t flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom),10px)] ${
-              isLight ? 'bg-[#edf5f1] border-[#d4e5dc]' : 'bg-[#18231c] border-[#25362b]'
-            }`}
+            className={`p-2 border-t flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom),10px)] ${themeClasses.toolbarBg} ${themeClasses.border}`}
           >
             <div className="flex items-center justify-between text-[11px] px-0.5">
-              <span className={`font-medium ${isLight ? 'text-stone-600' : 'text-emerald-400/90'}`}>
-                全<strong className={isLight ? 'text-stone-900 font-bold' : 'text-emerald-200 font-bold'}>{charList.length.toLocaleString()}字</strong>中{' '}
+              <span className={`font-medium ${themeClasses.textMuted}`}>
+                全<strong className={`font-bold ${themeClasses.textPrimary}`}>{charList.length.toLocaleString()}字</strong>中{' '}
                 <span className="font-mono">{Math.min(charList.length, (validPage - 1) * pageSize + 1)}〜{Math.min(charList.length, validPage * pageSize)}字</span>
               </span>
               <span
-                className={`font-mono text-[11px] font-bold px-1.5 py-0.2 rounded ${
-                  isLight ? 'bg-emerald-100 text-emerald-950 border border-emerald-200' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                }`}
+                className={`font-mono text-[11px] font-bold px-1.5 py-0.2 rounded border ${themeClasses.accentBadge}`}
               >
                 {validPage} / {totalPages} ページ
               </span>
@@ -347,6 +336,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               totalPages={totalPages}
               setCurrentPage={setCurrentPage}
               isLight={isLight}
+              themeClasses={themeClasses}
             />
           </div>
         )}

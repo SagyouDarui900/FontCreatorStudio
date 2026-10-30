@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Lock, MoreHorizontal } from 'lucide-react';
 import { GlyphData } from '../../types';
+import { ThemeClasses } from '../../utils/theme';
 import { groupContoursForRendering } from '../../utils/pathUtils';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
 import { KANA_PAIRS } from '../../data/unicodeTables';
@@ -11,6 +12,7 @@ interface GlyphGridCardProps {
   isSelected: boolean;
   glyphData?: GlyphData;
   isLight: boolean;
+  themeClasses?: ThemeClasses;
   density: GridDensity;
   unitsPerEm?: number;
   onSelectGlyph: (code: number, char: string) => void;
@@ -23,6 +25,7 @@ export const GlyphGridCard = memo(
     isSelected,
     glyphData,
     isLight,
+    themeClasses,
     density,
     unitsPerEm = 1000,
     onSelectGlyph,
@@ -63,15 +66,15 @@ export const GlyphGridCard = memo(
         className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-all duration-150 select-none overflow-hidden ${
           isSelected
             ? isLight
-              ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-600/40 z-10'
-              : 'bg-emerald-950/80 border-emerald-400 ring-2 ring-emerald-500/40 z-10'
+              ? `bg-white ${themeClasses?.accentBorder || 'border-emerald-600'} ring-2 ring-offset-1 ring-emerald-600/40 z-10 shadow-sm`
+              : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.accentBorder || 'border-emerald-400'} ring-2 ring-offset-1 ring-offset-stone-900 ring-emerald-500/40 z-10 shadow-sm`
             : hasContours
             ? isLight
-              ? 'bg-white border-emerald-300/80 text-stone-900 hover:border-emerald-500'
-              : 'bg-[#18231c] border-emerald-700/70 text-emerald-100 hover:border-emerald-400'
+              ? `bg-white ${themeClasses?.border || 'border-stone-200'} text-stone-900 hover:${themeClasses?.accentBorder || 'border-emerald-400'}`
+              : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.border || 'border-[#223026]'} text-stone-100 hover:${themeClasses?.accentBorder || 'border-emerald-400'}`
             : isLight
-            ? 'bg-stone-50/90 border-stone-200/90 text-stone-400 hover:border-emerald-300 hover:bg-white hover:text-stone-700'
-            : 'bg-[#131b16] border-[#223126] text-emerald-600/60 hover:border-emerald-700 hover:text-emerald-300'
+            ? `bg-stone-50/70 ${themeClasses?.border || 'border-stone-200/80'} text-stone-400 hover:bg-white hover:${themeClasses?.accentBorder || 'border-emerald-300'}`
+            : `bg-stone-900/30 ${themeClasses?.border || 'border-[#1a251e]'} text-stone-500 hover:${themeClasses?.cardBg || 'bg-[#18231c]'}`
         }`}
       >
         {/* Subtle Manuscript Guide Crosshairs */}
@@ -85,16 +88,12 @@ export const GlyphGridCard = memo(
           <span
             className={`font-mono text-[9px] tracking-tight truncate max-w-[80%] ${
               isSelected
-                ? isLight
-                  ? 'text-emerald-900 font-bold'
-                  : 'text-emerald-300 font-bold'
+                ? `${themeClasses?.accentText || (isLight ? 'text-emerald-900' : 'text-emerald-300')} font-bold`
                 : hasContours
                 ? isLight
-                  ? 'text-emerald-800 font-semibold'
-                  : 'text-emerald-400 font-semibold'
-                : isLight
-                ? 'text-stone-400'
-                : 'text-emerald-800'
+                  ? 'text-stone-800 font-semibold'
+                  : 'text-stone-200 font-semibold'
+                : 'text-stone-400 dark:text-stone-600'
             }`}
           >
             {item.code.toString(16).toUpperCase().padStart(4, '0')}
@@ -110,7 +109,9 @@ export const GlyphGridCard = memo(
             {hasContours ? (
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isLight ? 'bg-emerald-600' : 'bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]'
+                  isSelected
+                    ? 'bg-current ' + (themeClasses?.accentText || (isLight ? 'text-emerald-600' : 'text-emerald-400'))
+                    : isLight ? 'bg-emerald-600' : 'bg-emerald-400'
                 }`}
                 title={`作成済 (${strokeCount}画)`}
               />
@@ -134,9 +135,7 @@ export const GlyphGridCard = memo(
                   d={group.d}
                   fill={
                     isSelected
-                      ? isLight
-                        ? '#065f46'
-                        : '#34d399'
+                      ? themeClasses?.selectionStroke || (isLight ? '#065f46' : '#34d399')
                       : isLight
                       ? '#1f2937'
                       : '#ecfdf5'

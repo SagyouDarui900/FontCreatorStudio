@@ -18,25 +18,29 @@ import {
   isLightTheme,
   getThemeClasses,
 } from '../utils/theme';
-import { createLineContour } from '../utils/pathUtils';
 import { useBrushDrawing } from '../hooks/useBrushDrawing';
 import { useNodeEditing } from '../hooks/useNodeEditing';
 import { CanvasSubToolbar } from './canvas/overlays/CanvasSubToolbar';
 import { CanvasFloatingOverlays } from './canvas/overlays/CanvasFloatingOverlays';
 import { CanvasSvgStage } from './canvas/CanvasSvgStage';
-import { useCanvasShortcuts } from './canvas/hooks/useCanvasShortcuts';
-import { useContourTransforms } from './canvas/hooks/useContourTransforms';
-import { useTransformSession } from './canvas/hooks/useTransformSession';
-import { useCanvasViewport } from './canvas/hooks/useCanvasViewport';
-import { useShapeCreation, isShapeToolMode } from './canvas/hooks/useShapeCreation';
-import { useRulerMeasure } from './canvas/hooks/useRulerMeasure';
-import { usePenTool } from './canvas/hooks/usePenTool';
-import { useCanvasEraser } from './canvas/hooks/useCanvasEraser';
-import { useCustomGuidelines } from './canvas/hooks/useCustomGuidelines';
-import { useTraceTransform } from './canvas/hooks/useTraceTransform';
-import { useCanvasPointerDispatcher } from './canvas/hooks/useCanvasPointerDispatcher';
-import { useCanvasLocalPrefs } from './canvas/hooks/useCanvasLocalPrefs';
-import { useCanvasNativeGestures } from './canvas/hooks/useCanvasNativeGestures';
+import {
+  useCanvasShortcuts,
+  useContourTransforms,
+  useTransformSession,
+  useCanvasViewport,
+  useShapeCreation,
+  isShapeToolMode,
+  useRulerMeasure,
+  usePenTool,
+  useCanvasEraser,
+  useCustomGuidelines,
+  useTraceTransform,
+  useCanvasPointerDispatcher,
+  useCanvasLocalPrefs,
+  useCanvasNativeGestures,
+  useToolModeCleanup,
+  useCanvasContourActions,
+} from './canvas/hooks';
 
 import {
   HIGH_CONTRAST_GRAB_CURSOR,
@@ -507,59 +511,33 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setActiveSnapGuides,
   });
 
-  // Consolidated Tool Switch Cleanup Table
-  useEffect(() => {
-    if (toolMode !== 'select' && toolMode !== 'node') {
-      setShowMobilePartSheet(false);
-      setMarqueeSelection(null);
-    }
-    if (toolMode !== 'pen') {
-      handleResetPenContour();
-    }
-    if (!isShapeToolMode(toolMode)) {
-      resetShapeCreation();
-    }
-    if (toolMode !== 'eraser') {
-      resetEraserVisuals();
-    }
-    if (toolMode !== 'ruler' || gridSettings?.showRulers === false) {
-      setRulerMeasurement(null);
-    }
-    cancelTransformSession();
-    setActiveSnapGuides([]);
-    setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
-  }, [
-    toolMode,
-    gridSettings?.showRulers,
-    handleResetPenContour,
-    resetShapeCreation,
-    resetEraserVisuals,
-    cancelTransformSession,
-    setActiveSnapGuides,
-    setTouchLoupeState,
-    setShowMobilePartSheet,
+  const {
+    handleDrawRulerAsStroke,
+    handleClearAllContours,
+  } = useCanvasContourActions({
+    contours,
+    contoursRef,
+    onChangeContours,
+    onCommitHistory,
+    brushWidth,
+    rulerMeasurement,
     setRulerMeasurement,
-  ]);
-
-  // Draw straight stroke directly from ruler measurement line
-  const handleDrawRulerAsStroke = useCallback(() => {
-    if (!rulerMeasurement) return;
-    const { start, end } = rulerMeasurement;
-    const dist = Math.hypot(end.x - start.x, end.y - start.y);
-    if (dist < 4) return;
-
-    const strokeContour = createLineContour(
-      start.x,
-      start.y,
-      end.x,
-      end.y,
-      brushWidth || 32
-    );
-    onChangeContours([...contours, strokeContour]);
-    onCommitHistory?.();
-    setRulerMeasurement(null);
-    showCanvasToast('定規のラインから直線ストロークを作成しました', `長さ: ${Math.round(dist)}px / 太さ: ${brushWidth}px`);
-  }, [rulerMeasurement, brushWidth, contours, onChangeContours, onCommitHistory, showCanvasToast, setRulerMeasurement]);
+    showCanvasToast,
+    resetBrushDrawing,
+    resetEraserVisuals,
+    setActivePenContour,
+    setShapeStartPoint,
+    setShapeCurrentPoint,
+    setTransformSession,
+    setMarqueeSelection,
+    setSelectedContourIds,
+    setSelectedContourId,
+    setSelectedNodeId,
+    setSelectedHandleType,
+    setTouchLoupeState,
+    setEraserMode,
+  });
+  const handleClearAll = handleClearAllContours;
 
   const isAnyModalOpenRef = useRef(isAnyModalOpen);
   useEffect(() => { isAnyModalOpenRef.current = isAnyModalOpen; }, [isAnyModalOpen]);
@@ -629,55 +607,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     }
   }, [contours, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, activeBrushPathRef, activeBrushSvgDRef, brushStrokePointsRef]);
 
-  // Switching glyphs hygiene
-  useEffect(() => {
-    resetBrushDrawing();
-    resetEraserVisuals();
-    setActivePenContour(null);
-    setShapeStartPoint(null);
-    setShapeCurrentPoint(null);
-    setMarqueeSelection(null);
-    setTransformSession(null);
-    setSelectedContourIds([]);
-    setSelectedNodeId(null);
-    setSelectedHandleType(null);
-    setDraggingMetric(null);
-    setDraggingGuidelineId(null);
-    if (activeBrushPathRef.current) {
-      activeBrushPathRef.current.setAttribute('d', '');
-    }
-    pendingTransformContoursRef.current = null;
-    activeBrushSvgDRef.current = '';
-  }, [selectedUnicode, resetBrushDrawing, resetEraserVisuals, setActivePenContour, setDraggingGuidelineId, setDraggingMetric, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setShapeCurrentPoint, setShapeStartPoint, setTransformSession, activeBrushPathRef, activeBrushSvgDRef, pendingTransformContoursRef]);
 
-  // Clear / Reset all contours of current character
-  const handleClearAll = useCallback(() => {
-    resetBrushDrawing();
-    resetEraserVisuals();
-    setActivePenContour(null);
-    setShapeStartPoint(null);
-    setShapeCurrentPoint(null);
-    setRulerMeasurement(null);
-    setTransformSession(null);
-    setMarqueeSelection(null);
-    setSelectedContourIds([]);
-    setSelectedContourId(null);
-    setSelectedNodeId(null);
-    setSelectedHandleType(null);
-    setTouchLoupeState({ visible: false, screenX: 0, screenY: 0, canvasPos: null });
-    setEraserMode('stroke');
-
-    if (!contours || contours.length === 0) {
-      showCanvasToast('キャンバスは既に空です');
-      return;
-    }
-    onCommitHistory?.();
-    contoursRef.current = [];
-    onChangeContours([]);
-    showCanvasToast('文字の全パーツ（輪郭）を消去しました', 'Ctrl+Z で取り消し可能');
-  }, [contours, onChangeContours, onCommitHistory, resetBrushDrawing, resetEraserVisuals, setActivePenContour, setEraserMode, setRulerMeasurement, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setShapeCurrentPoint, setShapeStartPoint, setTouchLoupeState, setTransformSession, showCanvasToast]);
-
-  const handleClearAllContours = handleClearAll;
 
   const getCanvasCursor = useCallback(() => {
     const isReticleEnabled = gridSettings.showCursorCrosshair !== false;
@@ -722,6 +652,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     pointerTypesRef,
     isTwoFingerGestureRef,
     twoFingerCooldownUntilRef,
+    activeDrawingPointerIdRef,
   } = useCanvasPointerDispatcher({
     zoom,
     pan,
@@ -830,28 +761,42 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setHoverCanvasPos(null);
   }, []);
 
-  const handleLostPointerCapture = useCallback(() => {
-    if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
-    if (isErasingRef.current) resetEraserVisuals();
-    isPenDrawingRef.current = false;
-    isTwoFingerGestureRef.current = false;
-    setIsPanning(false);
-    resetTraceDragState();
-    setDraggingMetric(null);
-    setDraggingGuidelineId(null);
-    setMarqueeSelection(null);
-    nodeDragSessionRef.current = null;
-  }, [
-    isErasingRef,
+  // Consolidated Tool Switch & Pointer Loss Cleanup
+  const { handleLostPointerCapture } = useToolModeCleanup({
+    toolMode,
+    selectedUnicode,
+    gridSettingsShowRulers: gridSettings?.showRulers,
+    setShowMobilePartSheet,
+    setMarqueeSelection,
+    handleResetPenContour,
+    resetShapeCreation,
     resetEraserVisuals,
+    setRulerMeasurement,
+    cancelTransformSession,
+    setActiveSnapGuides,
+    setTouchLoupeState,
+    resetBrushDrawing,
+    setActivePenContour,
+    setShapeStartPoint,
+    setShapeCurrentPoint,
+    setTransformSession,
+    setSelectedContourIds,
+    setSelectedNodeId,
+    setSelectedHandleType,
+    setDraggingMetric,
+    setDraggingGuidelineId,
+    activeBrushPathRef,
+    activeBrushSvgDRef,
+    pendingTransformContoursRef,
     isPenDrawingRef,
     isTwoFingerGestureRef,
     setIsPanning,
     resetTraceDragState,
-    setDraggingMetric,
-    setDraggingGuidelineId,
     nodeDragSessionRef,
-  ]);
+    drawingReticleRef,
+    isErasingRef,
+    activeDrawingPointerIdRef,
+  });
 
   // Native wheel & touch gesture registration hook
   useCanvasNativeGestures({

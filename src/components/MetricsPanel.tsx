@@ -341,24 +341,22 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  effectiveIsOverlay
  ? 'fixed inset-y-0 right-0 z-50 w-full sm:w-96 max-w-full shadow-2xl animate-in slide-in-from-right duration-200'
  : 'relative z-10 w-72 lg:w-80 shadow-none shrink-0'
- } border-l flex flex-col h-full overflow-hidden select-none transition-colors ${themeClasses.sidebarBg} border-stone-200 dark:border-stone-800`}
+ } border-l flex flex-col h-full overflow-hidden select-none transition-colors ${themeClasses.sidebarBg} ${themeClasses.border}`}
  >
  {/* Sticky Mobile/Desktop Header */}
  <div
- className={`flex items-center justify-between p-3 border-b shrink-0 z-10 ${
- isLight ? 'bg-white/95 border-stone-200' : 'bg-[#141e17]/95 border-stone-800'
- } `}
+ className={`flex items-center justify-between p-3 border-b shrink-0 z-10 ${themeClasses.headerBg} ${themeClasses.border}`}
  style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 8px, 12px)' }}
  >
  <div className="flex items-center space-x-2 min-w-0">
- <div className={`p-1.5 rounded-lg shrink-0 ${isLight ? 'bg-stone-100 text-stone-800' : 'bg-stone-800 text-emerald-300'}`}>
+ <div className={`p-1.5 rounded-lg shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
  <Sliders className="w-4 h-4 shrink-0" />
  </div>
  <div className="flex flex-col min-w-0">
- <span className={`text-xs font-bold truncate ${isLight ? 'text-stone-900' : 'text-emerald-300'}`}>
+ <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
  メトリクス・文字ツール
  </span>
- <span className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+ <span className={`text-[10px] ${themeClasses.textMuted} truncate`}>
  送り幅・余白・変形・単純化
  </span>
  </div>
@@ -367,11 +365,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <div className="flex items-center space-x-1.5 shrink-0">
  <button
  onClick={handleToggleAll}
- className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${
- isLight
- ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
- : 'bg-[#18231c] border-stone-800 text-emerald-300 hover:bg-[#202d24]'
- }`}
+ className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
  >
  {isAllExpanded ? '全閉' : '全開'}
@@ -380,11 +374,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  {onClose && (
  <button
  onClick={onClose}
- className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer ${
- isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-200'
- : 'bg-stone-800 hover:bg-stone-700 text-stone-100 border border-stone-700'
- }`}
+ className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="パネルを閉じる (作図エリアへ戻る)"
  >
  <X className="w-3.5 h-3.5 shrink-0" />
@@ -405,23 +395,15 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  >
  {/* 1. Fast Glyph Navigation & Active Character Card */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('nav')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
  <div className="flex items-center space-x-2.5 min-w-0">
  <div
- className={`w-10 h-10 rounded-lg border flex items-center justify-center text-center font-bold shrink-0 ${
- isLight
- ? 'bg-[#f0f7f3] border-emerald-300 text-emerald-950 '
- : 'bg-[#101813] border-emerald-700 text-emerald-300'
- }`}
+ className={`w-10 h-10 rounded-lg border flex items-center justify-center text-center font-bold shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentBorder} ${themeClasses.accentText}`}
  >
  {selectedUnicode === 0x3000 ? (
  <span className="text-[9px] leading-tight">全角<br />空白</span>
@@ -432,7 +414,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  )}
  </div>
  <div className="flex flex-col min-w-0">
- <span className={`text-xs font-bold truncate ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
+ <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
  {selectedUnicode === 0x3000
  ? '全角空白 (U+3000)'
  : selectedUnicode === 0x0020
@@ -441,7 +423,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  ? `文字: 「${selectedChar}」`
  : '未選択'}
  </span>
- <span className={`text-[10px] font-mono truncate ${isLight ? 'text-stone-500' : 'text-emerald-400'}`}>
+ <span className={`text-[10px] font-mono truncate ${themeClasses.textMuted}`}>
  U+{selectedUnicode.toString(16).toUpperCase().padStart(4, '0')} • {contours.length}パス ({totalNodes}頂点)
  </span>
  </div>
@@ -452,7 +434,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.nav && (
- <div className="p-2.5 pt-0 space-y-2 border-t border-stone-100 dark:border-stone-800/60">
+ <div className={`p-2.5 pt-0 space-y-2 border-t ${themeClasses.border}`}>
  {/* Navigation Button Grid */}
  <div className="grid grid-cols-2 gap-1.5 pt-2">
  <button
@@ -519,23 +501,17 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* 2. Manual Metrics Adjustment (送り幅 & LSB) */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('metrics')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
  <div className="flex flex-wrap items-center gap-1.5 min-w-0 pr-1">
- <span className={`text-xs font-bold uppercase tracking-wider whitespace-nowrap ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+ <span className={`text-xs font-bold uppercase tracking-wider whitespace-nowrap ${themeClasses.textPrimary}`}>
  メトリクス数値指定
  </span>
- <span className={`text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap ${
- isLight ? 'bg-emerald-100 text-emerald-900' : 'bg-emerald-950 text-emerald-300'
- }`}>
+ <span className={`text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap border ${themeClasses.accentBadge}`}>
  幅:{advanceWidth ?? 1000} / LSB:{lsb ?? 50}
  </span>
  </div>
@@ -545,12 +521,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.metrics && (
- <div className="p-3 pt-0 space-y-3 border-t border-stone-100 dark:border-stone-800/60">
+ <div className={`p-3 pt-0 space-y-3 border-t ${themeClasses.border}`}>
  {/* Advance Width Section */}
  <div
- className={`p-2.5 rounded-lg border space-y-2 mt-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#121a14] border-[#223026]'
- }`}
+ className={`p-2.5 rounded-lg border space-y-2 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
  >
  <div className="flex items-center justify-between">
  <label className={`text-xs font-bold whitespace-nowrap ${isLight ? 'text-stone-800' : 'text-emerald-300'}`}>
