@@ -373,50 +373,23 @@ function AppMain({
       <div className="flex-1 min-h-0 flex overflow-hidden relative">
         {/* Left Side: Glyph Select Matrix */}
         {showGridDrawer && (
-          <div
-            className={`${
-              isGridOverlay
-                ? 'absolute left-0 top-0 bottom-0 z-30 shadow-2xl w-80 max-w-[85vw]'
-                : 'w-72 border-r flex flex-col shrink-0 min-h-0'
-            } ${themeClasses.sidebarBg} ${themeClasses.border}`}
-          >
-            {isGridOverlay && (
-              <div className={`p-2 border-b flex justify-between items-center ${themeClasses.border}`}>
-                <span className="font-semibold text-xs text-stone-700 dark:text-stone-300">文字一覧（グリッド）</span>
-                <button
-                  onClick={handleCloseGridDrawer}
-                  className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-            <GlyphGrid
-              project={project}
-              selectedUnicode={selectedUnicode}
-              onSelectGlyph={(u, c) => {
-                handleSelectGlyph(u, c);
-                if (isGridOverlay) handleCloseGridDrawer();
-              }}
-              onClearGlyph={handleClearGlyph}
-              onCopyGlyph={handleCopyGlyph}
-              onPasteGlyph={handlePasteGlyph}
-              onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
-              onGenerateDakutenTarget={handleGenerateDakutenTarget}
-              hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
-              isOpen={showGridDrawer}
-              onClose={handleCloseGridDrawer}
-              theme={theme}
-              isOverlay={isGridOverlay}
-            />
-          </div>
-        )}
-
-        {/* BackDrop for Left Drawer when in overlay mode */}
-        {showGridDrawer && isGridOverlay && (
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-20"
-            onClick={handleCloseGridDrawer}
+          <GlyphGrid
+            project={project}
+            selectedUnicode={selectedUnicode}
+            onSelectGlyph={(u, c) => {
+              handleSelectGlyph(u, c);
+              if (isGridOverlay) handleCloseGridDrawer();
+            }}
+            onClearGlyph={handleClearGlyph}
+            onCopyGlyph={handleCopyGlyph}
+            onPasteGlyph={handlePasteGlyph}
+            onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
+            onGenerateDakutenTarget={handleGenerateDakutenTarget}
+            hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
+            isOpen={showGridDrawer}
+            onClose={handleCloseGridDrawer}
+            theme={theme}
+            isOverlay={isGridOverlay}
           />
         )}
 
@@ -517,7 +490,7 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'absolute right-0 top-0 bottom-0 z-30 shadow-2xl w-80 max-w-[85vw]'
+                ? 'fixed top-0 bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-80 max-w-[85vw]'
                 : 'w-72 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
@@ -561,7 +534,7 @@ function AppMain({
         {/* BackDrop for Right Drawer when in overlay mode */}
         {showMetricsDrawer && isMetricsOverlay && (
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-20"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-35"
             onClick={handleCloseMetricsDrawer}
           />
         )}

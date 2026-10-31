@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
-import { BookOpen, Sparkles, Feather } from 'lucide-react';
+import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { BookOpen, Feather } from 'lucide-react';
 
 interface MagazineLayoutViewProps {
   layout: FormattedLayoutResult;
@@ -41,53 +42,113 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
 
   // Split lines into two columns for magazine spread
   const half = Math.ceil(layout.lines.length / 2);
-  const col1 = layout.lines.slice(0, half);
-  const col2 = layout.lines.slice(half);
+  const firstHalf = layout.lines.slice(0, half);
+  const secondHalf = layout.lines.slice(half);
 
-  const renderColumn = (lines: typeof layout.lines) => (
-    <div
-      className="flex flex-col space-y-2 select-text"
-      style={{
-        gap: `${lineGapPx}px`,
-        fontFamily,
-      }}
-    >
-      {lines.map((line, lIdx) => (
+  // In vertical Japanese reading (右開き), Section 1 is on the Right, Section 2 is on the Left.
+  // In horizontal reading (左開き), Section 1 is on the Left, Section 2 is on the Right.
+  const col1 = isVertical ? secondHalf : firstHalf;
+  const col2 = isVertical ? firstHalf : secondHalf;
+
+  const renderColumn = (lines: typeof layout.lines) => {
+    if (isVertical) {
+      return (
         <div
-          key={lIdx}
-          className={`flex flex-row items-baseline relative shrink-0 ${
-            line.isOverflown ? 'bg-rose-500/10' : ''
-          }`}
-          style={{ minHeight: `${emPx}px` }}
+          className="flex flex-row-reverse items-start justify-start select-text min-h-[320px] overflow-x-auto custom-scrollbar p-1"
+          style={{
+            gap: `${lineGapPx}px`,
+            fontFamily,
+            fontFeatureSettings: '"vert" 1, "vrt2" 1',
+          }}
         >
-          {line.glyphs.map((g, gIdx) => (
-            <span
-              key={gIdx}
-              className={`inline-block relative text-center ${
-                g.isHanging
-                  ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded'
-                  : ''
+          {lines.map((line, lIdx) => (
+            <div
+              key={lIdx}
+              className={`flex flex-col items-center relative shrink-0 ${
+                line.isOverflown ? 'bg-rose-500/10' : ''
               }`}
-              style={{
-                fontSize: `${emPx}px`,
-                lineHeight: 1,
-                paddingLeft: `${g.spacingBeforeEm * emPx}px`,
-                paddingRight: `${g.spacingAfterEm * emPx}px`,
-              }}
+              style={{ minWidth: `${emPx}px` }}
             >
-              {showGrid && (
-                <span
-                  className="absolute inset-0 pointer-events-none border border-stone-200/50 dark:border-stone-800/60"
-                  style={{ width: `${emPx}px`, height: `${emPx}px` }}
-                />
-              )}
-              {g.char}
-            </span>
+              {line.glyphs.map((g, gIdx) => {
+                const vertStyle = getVerticalGlyphStyle(g.char, true);
+                return (
+                  <span
+                    key={gIdx}
+                    className={`inline-flex items-center justify-center relative ${
+                      g.isHanging
+                        ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                        : ''
+                    }`}
+                    style={{
+                      width: `${emPx}px`,
+                      minHeight: `${emPx}px`,
+                      fontSize: `${emPx}px`,
+                      lineHeight: 1,
+                      paddingTop: `${g.spacingBeforeEm * emPx}px`,
+                      paddingBottom: `${g.spacingAfterEm * emPx}px`,
+                    }}
+                  >
+                    {showGrid && (
+                      <span
+                        className="absolute inset-0 pointer-events-none border border-stone-200/50 dark:border-stone-800/60"
+                        style={{ width: `${emPx}px`, height: `${emPx}px` }}
+                      />
+                    )}
+                    <span style={vertStyle}>{g.char}</span>
+                  </span>
+                );
+              })}
+            </div>
           ))}
         </div>
-      ))}
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div
+        className="flex flex-col space-y-2 select-text"
+        style={{
+          gap: `${lineGapPx}px`,
+          fontFamily,
+        }}
+      >
+        {lines.map((line, lIdx) => (
+          <div
+            key={lIdx}
+            className={`flex flex-row items-baseline relative shrink-0 ${
+              line.isOverflown ? 'bg-rose-500/10' : ''
+            }`}
+            style={{ minHeight: `${emPx}px` }}
+          >
+            {line.glyphs.map((g, gIdx) => (
+              <span
+                key={gIdx}
+                className={`inline-block relative text-center ${
+                  g.isHanging
+                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                    : ''
+                }`}
+                style={{
+                  fontSize: `${emPx}px`,
+                  lineHeight: 1,
+                  paddingLeft: `${g.spacingBeforeEm * emPx}px`,
+                  paddingRight: `${g.spacingAfterEm * emPx}px`,
+                }}
+              >
+                {showGrid && (
+                  <span
+                    className="absolute inset-0 pointer-events-none border border-stone-200/50 dark:border-stone-800/60"
+                    style={{ width: `${emPx}px`, height: `${emPx}px` }}
+                  />
+                )}
+                {g.char}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full flex flex-col items-center justify-center p-2 sm:p-6 select-none">
@@ -119,7 +180,9 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             <span>·</span>
             <span>出典：『{title}』</span>
             <span>·</span>
-            <span className="text-[11px] font-mono text-stone-400">JIS X 4051 雑誌段組</span>
+            <span className="text-[11px] font-mono text-stone-400">
+              {isVertical ? 'JIS X 4051 雑誌縦組段組' : 'JIS X 4051 雑誌横組段組'}
+            </span>
           </div>
         </div>
 
@@ -141,29 +204,23 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
           {/* Middle column divider line */}
           <div className="hidden md:block absolute top-4 bottom-4 left-1/2 -translate-x-1/2 w-px bg-stone-200 dark:bg-stone-800" />
 
-          {/* Column 1 */}
+          {/* Left / Upper Column */}
           <div className="overflow-hidden">
             <div className="text-[11px] font-mono text-stone-400 mb-2 border-b pb-1 flex justify-between">
-              <span>第 1 段組</span>
+              <span>{isVertical ? '第 2 段組（左段）' : '第 1 段組（左段）'}</span>
               <span>{col1.length} 行</span>
             </div>
             {renderColumn(col1)}
           </div>
 
-          {/* Column 2 */}
+          {/* Right / Lower Column */}
           <div className="overflow-hidden">
             <div className="text-[11px] font-mono text-stone-400 mb-2 border-b pb-1 flex justify-between">
-              <span>第 2 段組</span>
+              <span>{isVertical ? '第 1 段組（右段）' : '第 2 段組（右段）'}</span>
               <span>{col2.length} 行</span>
             </div>
             {renderColumn(col2)}
           </div>
-        </div>
-
-        {/* Footer info strip */}
-        <div className="mt-8 pt-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-xs font-mono text-stone-400">
-          <div>段数: 2段組 · 段間: 24pt · 本文: {fontSizeQ}Q / 行送り {lineFeedH}H</div>
-          <div>エディトリアル多段組版プレビュー</div>
         </div>
       </div>
     </div>

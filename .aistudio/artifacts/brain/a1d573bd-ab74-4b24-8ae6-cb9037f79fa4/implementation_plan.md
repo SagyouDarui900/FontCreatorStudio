@@ -1,62 +1,154 @@
-# Implementation Plan: AI Studio Modularization & Review Refactoring (Phase 2)
+# ToolBar Component Modularization & Architecture Refactoring
 
-Refactor high-priority architectural hotspots identified in the code review to optimize developer velocity, reduce file sizes, prevent state desync in long pointer sessions, and ensure robust maintainability within AI Studio.
+Refactor the oversized `src/components/ToolBar.tsx` (~1,420 lines, ~50KB) into clean, focused subcomponents under `src/components/toolbar/`, reducing each file to under 350 lines while preserving 100% backward compatibility and zero regression in functionality.
 
-## Completed Sprints
+## User Review & Critical Decisions
 
-### Sprint 1: Critical Bug Fixes & Stored State Migration (Completed)
-- Dual-read fallback migration for `fcs_` localStorage keys.
-- Font compilation validation against non-finite metrics and open contours.
-- Baseline 37 unit tests for path utilities and vector boolean ops.
+> [!IMPORTANT]
+> The user confirmed the following two key decisions:
+> 1. **Target**: Refactor `ToolBar.tsx` and its popover/menu subcomponents first.
+> 2. **Organization**: Co-located subfolders (`src/components/toolbar/`) with a backward-compatible index/re-export structure.
 
-### Sprint 2: Font Compilation & Vector Boolean Extraction (Completed)
-- Modularized `fontCompiler.ts` into `src/utils/font/` submodules.
-- Extracted paper.js vector boolean algorithms into `src/utils/boolean/`.
-- Strengthened export validation with in-memory assertions.
+- **Confirmed Decision 1**: Extract shared toolbar constants (`SHAPE_TOOLS`, `PEN_ICONS`, `VERTICAL_GUIDES`, `JAPANESE_GUIDES`, `PRESSURE_MODES`, `PillIcon`) into `src/components/toolbar/toolbarConstants.ts`.
+- **Confirmed Decision 2**: Extract large desktop popover menus into dedicated components:
+  - `DesktopBrushMenuPopover.tsx` (~300 lines)
+  - `DesktopShapeMenuPopover.tsx` (~140 lines)
+  - `DesktopGridMenuPopover.tsx` (~320 lines)
+- **Confirmed Decision 3**: Extract primary tool buttons and view action groups into `PrimaryToolButtons.tsx` and `ViewToolButtons.tsx`.
+- **Confirmed Decision 4**: Keep `src/components/ToolBar.tsx` as a slim orchestrator (~120–160 lines) and re-export from `src/components/toolbar/index.ts` for full backwards compatibility.
 
-### Sprint 3: Modal Decomposition (Completed)
-- Split `ExportModal.tsx`, `FontInfoModal.tsx`, `MojikumiSettingsModal.tsx`, and `BatchTransformModal.tsx`.
-- Extracted shared modal tabs into focused subcomponents.
+---
 
-### Sprint 4: Layout & Shortcuts Extraction (Completed)
-- Extracted `useAppLayout.ts`, `useAppShortcuts.ts`.
-- Created `AppBottomBar.tsx` and `AppMobileNav.tsx`.
-- Reduced `App.tsx` from 934 to ~640 lines.
+## 1. Overview & Core Concept
 
-## Phase 2: Canvas & Brush Core Decomposition (Completed)
+- **What It Does**: Modularizes the application's central tool management UI, separating the orchestrator, tool buttons, and desktop popover configuration menus (Brush/Pen styles, 20 Geometric shapes, Grid/Guides/Snapping settings).
+- **Key Value**: 
+  - Prevents accidental regressions when editing pen settings or shape definitions.
+  - Improves maintainability and code readability within AI Studio.
+  - Eliminates the monolithic 1,420-line file while maintaining 100% parity of all shortcuts, responsiveness, and state.
 
-### 1. `src/types.ts` Domain Splitting
-- [x] Created `src/types/geometry.ts` (`Point`, `StrokePoint`, `NodeType`, `BezierNode`, `PathContour`).
-- [x] Created `src/types/brush.ts` (`BrushStyle`, `PenPresetInfo`, `PressureCurvePoint`, `PressureCurveConfig`, `UserPenPreset`).
-- [x] Created `src/types/glyph.ts` (`PixelDotShape`, `PixelGlyphData`, `GlyphData`, `CustomGuideline`, `SnapMetrics`, `RulerMeasurement`, `SnapGuideLine`).
-- [x] Created `src/types/canvas.ts` (`ToolMode`, `ShapeType`, `ShapePreset`, `GlyphOverlaySettings`, `TraceSettings`, `JapaneseGuidePattern`, `VerticalGuidePattern`, `GridSettings`).
-- [x] Created `src/types/mojikumi.ts` (`OpenTypeFeatureLigature`, `VerticalWritingGlyphSub`, `MojikumiPresetId`, `KinsokuSetId`, `BurasagariMode`, `KinsokuAdjustMode`, `ParagraphIndentPresetId`, `MojikumiRuleItem`, `MojikumiTable`, `MojikumiConfig`, `PaltGlyphMetric`, `VpalGlyphMetric`, `ProportionalMetricsConfig`, `OpenTypeFeaturesConfig`).
-- [x] Created `src/types/font.ts` (`FontMetadata`, `KanjiRadical`, `RadicalPlacement`, `PartCategory`, `CustomPart`, `CharCategory`, `PixelFontProjectSettings`, `FontProject`).
-- [x] Created `src/types/index.ts` re-exporting all domain modules.
-- [x] Preserved 100% backward compatibility with `src/types.ts` re-exporting `src/types/index.ts`.
+---
 
-### 2. `useBrushDrawing.ts` Logic Separation
-- [x] Created `src/utils/brush/brushPressure.ts` with hardware stylus calibration (`calibrateStylusPressure`), mouse velocity EMA dynamics (`computeMouseSpeedPressure`), and asymmetric pointer responsiveness blending (`blendStrokePressure`).
-- [x] Created `src/utils/brush/brushTapDetection.ts` with stroke terminal lift-off jitter trimming (`trimTerminalJitter`) and accidental stray touch rejection with deliberate stylus pressure bypass (`isAccidentalStrayTap`).
-- [x] Created `src/utils/brush/brushOutlinePreview.ts` with dynamic smoothing calculation (`calculateEffectiveSmoothing`) and 60fps live preview decimation (`getDecimatedPointsForLivePreview`).
-- [x] Created `src/utils/brush/index.ts` barrel export.
-- [x] Refactored `src/hooks/useBrushDrawing.ts` from 563 lines to modular ~365 lines.
+## 2. Component Hierarchy & Module Architecture
 
-### 3. `GlyphCanvas.tsx` Thinning & Cleanup Consolidation
-- [x] Created `src/components/canvas/hooks/useToolModeCleanup.ts` consolidating tool switch teardown, cross-glyph hygiene, and lost pointer capture recovery.
-- [x] Created `src/components/canvas/hooks/useCanvasContourActions.ts` extracting straight ruler stroke generation and full canvas clearing.
-- [x] Created `src/components/canvas/hooks/index.ts` barrel export.
-- [x] Refactored `GlyphCanvas.tsx` removing duplicate cleanup tables and simplifying hook dependencies.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        src/components/ToolBar.tsx                      │
+│                  (Slim Orchestrator ~140 lines)                        │
+└───────┬───────────────────┬───────────────────┬────────────────────────┘
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌──────────────────┐┌──────────────────┐┌────────────────────────────────┐
+│ toolbarConstants ││PrimaryToolButtons││ ViewToolButtons & QuickActions │
+│ • SHAPE_TOOLS    ││ • Select (V)     ││ • Grid Toggle (Anchor)         │
+│ • PEN_ICONS      ││ • Node (A)       ││ • Snap to Grid (Magnet)        │
+│ • Guides arrays  ││ • Pen (P)        ││ • Metrics Lines (Eye)          │
+│ • Pressure modes ││ • Brush (Anchor) ││ • Ruler Bars (Ruler)           │
+└──────────────────┘│ • Shape (Anchor) ││ • Cursor Crosshair             │
+                    │ • Eraser (E)     ││ • Quick Save / Trace Trigger   │
+                    │ • Ruler (R)      │└────────────────────────────────┘
+                    │ • Hand (H)       │
+                    └──────────────────┘
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌──────────────────┐┌──────────────────┐┌────────────────────────────────┐
+│ Desktop Popovers ││ Desktop Popovers ││ Desktop Popovers               │
+│ DesktopBrushMenu ││ DesktopShapeMenu ││ DesktopGridMenuPopover         │
+│ Popover (~300 L) ││ Popover (~140 L) ││ (~320 L)                       │
+│ • Preset list    ││ • 20 Shapes grid ││ • Size & opacity sliders       │
+│ • Pressure grid  ││ • Shape preview  ││ • Vertical & Japanese guides   │
+│ • Smoothing bar  ││ • Close handle   ││ • Body/Kana frame toggles      │
+└──────────────────┘└──────────────────┘└────────────────────────────────┘
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Existing Mobile Sheets (Already modularized):                          │
+│ • MobileBrushMenuSheet   • MobileShapeMenuSheet  • MobileGridMenuSheet │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-### 4. Drawing Core Robustness & Feedback Fixes
-- [x] **Tool switch cleanup**: Added explicit `resetBrushDrawing()` when `toolMode !== 'brush'` in `useToolModeCleanup`.
-- [x] **Dispatcher reset on tool change**: Added `useEffect` in `useCanvasPointerDispatcher` resetting `activeDrawingPointerIdRef`, touch caches, and pointer maps upon `toolMode` change.
-- [x] **Stroke config snapshotting**: Added `strokeBrushConfigRef` in `useBrushDrawing` snapshotting size, style, sensitivity, and smoothing on `handleBrushPointerDown`.
-- [x] **Decimated live preview**: Integrated `getDecimatedPointsForLivePreview` when stroke length exceeds 24 points to guarantee 60/120fps live preview on dense strokes.
-- [x] **Pointer capture fallback**: Cleared `activeDrawingPointerIdRef` whenever active touch count reaches 0 or capture is lost.
+---
 
-### 5. Verification & Testing
-- [x] Added `src/utils/brush/brushTapDetection.test.ts` with 10 comprehensive tests.
-- [x] Vitest suite: 4 test suites, 47/47 passing tests.
-- [x] TypeScript verification: `tsc --noEmit` passed with 0 errors.
-- [x] Production compilation: `compile_applet` passed successfully.
+## 3. Subcomponent Breakdown
+
+### 1. `src/components/toolbar/toolbarConstants.ts`
+- **Exports**:
+  - `PEN_ICONS`: Record mapping `BrushStyle` to Lucide icon components.
+  - `PillIcon`: Custom capsule SVG icon.
+  - `SHAPE_TOOLS`: Complete 20 geometric shapes with id, label, and icon.
+  - `PRESSURE_MODES`: High / Normal / Low / Off sensitivity descriptors.
+  - `VERTICAL_GUIDES`: None / Center / Thirds / Quarters / Eighths patterns.
+  - `JAPANESE_GUIDES`: None / Cross / Tian / Jiugong / Sixteen / Mi grid guides.
+
+### 2. `src/components/toolbar/DesktopBrushMenuPopover.tsx`
+- **Responsibilities**:
+  - User custom pen presets list (`customPresets`).
+  - Standard pen presets list (`PEN_PRESETS`).
+  - Pixel font studio launcher button.
+  - Stylus / Apple Pencil pressure sensitivity selector grid.
+  - Real-time hand-jitter smoothing intensity slider and preset chips.
+- **Props**: `isOpen`, `anchorTop`, `onClose`, `brushStyle`, `setBrushStyle`, `brushWidth`, `setBrushWidth`, `pressureSensitivity`, `onChangePressureSensitivity`, `smoothingIntensity`, `onChangeSmoothingIntensity`, `activePenPreset`, `customPresets`, `onApplyPreset`, `onOpenPenPresetsModal`, `onOpenPixelStudio`, `themeClasses`, `isLight`.
+
+### 3. `src/components/toolbar/DesktopShapeMenuPopover.tsx`
+- **Responsibilities**:
+  - Displays the 3 categorised sections of geometric shapes (Basic/Curved, Polygons/Lines, Ornaments/Stars).
+  - Handles shape selection and updates `lastSelectedShape` and `toolMode`.
+- **Props**: `isOpen`, `anchorTop`, `onClose`, `toolMode`, `setToolMode`, `setLastSelectedShape`, `themeClasses`, `isLight`.
+
+### 4. `src/components/toolbar/DesktopGridMenuPopover.tsx`
+- **Responsibilities**:
+  - Grid on/off and snap-to-grid toggle buttons.
+  - Grid size numeric input, steppers (- / +), range slider (5-200), and quick presets (10, 25, 50, 100, 128).
+  - Grid opacity slider and presets (極薄, 淡め, 標準, くっきり).
+  - Vertical guides selector (5 options).
+  - Japanese guide patterns selector (6 options).
+  - Kanji body frame (85%), Kana frame (78%), and vertical center axis toggles.
+  - Shortcut helper footer.
+- **Props**: `isOpen`, `anchorTop`, `onClose`, `gridSettings`, `setGridSettings`, `themeClasses`, `isLight`.
+
+### 5. `src/components/toolbar/PrimaryToolButtons.tsx`
+- **Responsibilities**:
+  - Renders the primary tool stack: Select, Node, Pen, Brush button (with popover anchor), Shape button (with popover anchor), Eraser, Ruler, Hand (desktop), and Mobile Grid button.
+- **Props**: Tool modes, active icons, anchor setter handlers, click/context menu handlers, `themeClasses`.
+
+### 6. `src/components/toolbar/ViewToolButtons.tsx`
+- **Responsibilities**:
+  - Desktop-only view & snapping toggles (Grid toggle with anchor, Snap magnet, Metrics eye, Outer ruler bars, Cursor crosshair).
+  - Desktop quick action buttons (Save glyph, Trace overlay modal).
+- **Props**: `gridSettings`, `setGridSettings`, `gridMenuRef`, `setGridAnchorTop`, `setShowGridMenu`, `onQuickSaveGlyph`, `onOpenTraceModal`, `themeClasses`.
+
+### 7. Refactored `src/components/ToolBar.tsx` (Slim Host)
+- **Responsibilities**:
+  - Owns UI state: `showShapeMenu`, `showBrushMenu`, `showGridMenu`, `brushAnchorTop`, `shapeAnchorTop`, `gridAnchorTop`, `isSmScreen`, `lastSelectedShape`.
+  - Outside click listeners (`mousedown`, `touchstart`) and window resize listener.
+  - Assembles `PrimaryToolButtons`, `ViewToolButtons`, the 3 desktop popovers, and the 3 mobile sheets.
+  - Total length: ~140 lines (down from 1,422 lines).
+
+### 8. `src/components/toolbar/index.ts`
+- Re-exports `ToolBar`, `ToolBarProps`, and constants for seamless imports across the app.
+
+---
+
+## 4. Verification Plan
+
+### Automated Tests
+- Run existing test suite:
+  ```bash
+  npm test
+  ```
+- Ensure all 47 tests pass without error.
+
+### Type & Lint Verification
+- Run TypeScript build check:
+  ```bash
+  compile_applet
+  lint_applet
+  ```
+- Ensure 0 errors, no missing imports, and strict type adherence.
+
+### Manual Verification
+- Test all tool modes (Select, Node, Pen, Brush, Shape, Eraser, Ruler, Hand).
+- Open Brush popover: change preset, adjust pressure sensitivity, adjust smoothing slider.
+- Open Shape popover: pick various shapes and draw them on canvas.
+- Open Grid popover: toggle grid, change size, toggle vertical and Japanese guides, toggle frames.
+- Verify mobile sheet behaviors on narrow screen sizes.

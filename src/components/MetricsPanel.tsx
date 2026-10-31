@@ -441,11 +441,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  type="button"
  onClick={onSelectPrevGlyph}
  disabled={!onSelectPrevGlyph}
- className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
- : 'bg-[#101813] hover:bg-[#1f2d24] border-[#25362b] text-emerald-200'
- }`}
+ className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="前の文字へ (ショートカット: Alt+← または PageUp)"
  >
  <ChevronLeft className="w-4 h-4 shrink-0" />
@@ -455,11 +451,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  type="button"
  onClick={onSelectNextGlyph}
  disabled={!onSelectNextGlyph}
- className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
- : 'bg-[#101813] hover:bg-[#1f2d24] border-[#25362b] text-emerald-200'
- }`}
+ className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="次の文字へ (ショートカット: Alt+→ または PageDown)"
  >
  <span>次グリフ</span>
@@ -470,11 +462,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  type="button"
  onClick={onSelectPrevUncompletedGlyph}
  disabled={!onSelectPrevUncompletedGlyph}
- className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
- : 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-800 text-amber-200'
- }`}
+ className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="前の未作成グリフへスキップ"
  >
  <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
@@ -484,11 +472,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  type="button"
  onClick={onSelectNextUncompletedGlyph}
  disabled={!onSelectNextUncompletedGlyph}
- className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
- : 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-800 text-amber-200'
- }`}
+ className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="次の未作成グリフへジャンプ"
  >
  <span>未作成文字</span>
@@ -527,10 +511,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  className={`p-2.5 rounded-lg border space-y-2 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
  >
  <div className="flex items-center justify-between">
- <label className={`text-xs font-bold whitespace-nowrap ${isLight ? 'text-stone-800' : 'text-emerald-300'}`}>
+ <label className={`text-xs font-bold whitespace-nowrap ${themeClasses.textPrimary}`}>
  送り幅 (Advance Width)
  </label>
- <span className="text-[10px] font-mono tabular-nums text-stone-500 whitespace-nowrap">標準: {upm} (全角)</span>
+ <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap ${themeClasses.textMuted}`}>標準: {upm} (全角)</span>
  </div>
 
  {/* Input Row with Large +/- buttons */}
@@ -538,9 +522,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  type="button"
  onClick={() => handleStepAdvance(-10)}
- className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
- isLight ? 'bg-white border-stone-300 hover:bg-stone-100 text-stone-800' : 'bg-[#1d2b21] border-[#2d4034] text-emerald-200'
- }`}
+ className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="10px 減らす"
  >
  -
@@ -554,11 +536,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onChangeAdvanceWidth(Number.isFinite(value) ? Math.max(0, Math.round(value)) : upm);
  }}
  onBlur={onCommitHistory}
- className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${
- isLight
- ? 'bg-white border-stone-300 text-stone-900 focus:border-emerald-700'
- : 'bg-[#0f1712] border-[#2d4034] text-emerald-200 focus:border-emerald-500'
- }`}
+ className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} focus:${themeClasses.accentBorder}`}
  step={10}
  />
  <span className="absolute right-2 text-[10px] font-mono text-stone-400 pointer-events-none font-bold">
@@ -568,9 +546,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  type="button"
  onClick={() => handleStepAdvance(10)}
- className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
- isLight ? 'bg-white border-stone-300 hover:bg-stone-100 text-stone-800' : 'bg-[#1d2b21] border-[#2d4034] text-emerald-200'
- }`}
+ className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="10px 増やす"
  >
  +
@@ -584,11 +560,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  key={step}
  type="button"
  onClick={() => handleStepAdvance(step)}
- className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${
- isLight
- ? 'bg-white border-stone-200 text-stone-700 hover:bg-emerald-50 hover:border-emerald-300'
- : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#1a261f]'
- }`}
+ className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  {step > 0 ? `+${step}` : `${step}`}
  </button>
@@ -610,12 +582,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onClick={() => handleSetAdvancePreset(p.val)}
  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-all cursor-pointer ${
  advanceWidth === p.val
- ? isLight
- ? 'bg-emerald-700 text-white border-emerald-800 '
- : 'bg-emerald-500 text-stone-950 border-emerald-400 font-extrabold'
- : isLight
- ? 'bg-white border-stone-200 text-stone-700 hover:bg-emerald-50'
- : 'bg-[#101813] border-[#25362b] text-stone-300 hover:bg-[#1a261f]'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  >
  {p.label}
@@ -626,15 +594,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* Left Sidebearing (LSB) Section */}
  <div
- className={`p-2.5 rounded-lg border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#121a14] border-[#223026]'
- }`}
+ className={`p-2.5 rounded-lg border space-y-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
  >
  <div className="flex items-center justify-between">
- <label className={`text-xs font-bold whitespace-nowrap ${isLight ? 'text-stone-800' : 'text-emerald-300'}`}>
+ <label className={`text-xs font-bold whitespace-nowrap ${themeClasses.textPrimary}`}>
  左余白 (Left Sidebearing / LSB)
  </label>
- <span className="text-[10px] font-mono tabular-nums text-stone-500 whitespace-nowrap">標準: 50px</span>
+ <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap ${themeClasses.textMuted}`}>標準: 50px</span>
  </div>
 
  {/* Input Row with Large +/- buttons */}
@@ -642,9 +608,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  type="button"
  onClick={() => handleStepLsb(-5)}
- className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
- isLight ? 'bg-white border-stone-300 hover:bg-stone-100 text-stone-800' : 'bg-[#1d2b21] border-[#2d4034] text-emerald-200'
- }`}
+ className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="5px 減らす"
  >
  -
@@ -657,11 +621,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onChangeLsb(Number(e.target.value) || 0);
  }}
  onBlur={onCommitHistory}
- className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${
- isLight
- ? 'bg-white border-stone-300 text-stone-900 focus:border-emerald-700'
- : 'bg-[#0f1712] border-[#2d4034] text-emerald-200 focus:border-emerald-500'
- }`}
+ className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} focus:${themeClasses.accentBorder}`}
  step={5}
  />
  <span className="absolute right-2 text-[10px] font-mono text-stone-400 pointer-events-none font-bold">
@@ -671,9 +631,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  type="button"
  onClick={() => handleStepLsb(5)}
- className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${
- isLight ? 'bg-white border-stone-300 hover:bg-stone-100 text-stone-800' : 'bg-[#1d2b21] border-[#2d4034] text-emerald-200'
- }`}
+ className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="5px 増やす"
  >
  +
@@ -687,11 +645,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  key={step}
  type="button"
  onClick={() => handleStepLsb(step)}
- className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${
- isLight
- ? 'bg-white border-stone-200 text-stone-700 hover:bg-emerald-50 hover:border-emerald-300'
- : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#1a261f]'
- }`}
+ className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  {step > 0 ? `+${step}` : `${step}`}
  </button>
@@ -712,12 +666,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onClick={() => handleSetLsbPreset(p.val)}
  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-all cursor-pointer ${
  lsb === p.val
- ? isLight
- ? 'bg-emerald-700 text-white border-emerald-800 '
- : 'bg-emerald-500 text-stone-950 border-emerald-400 font-extrabold'
- : isLight
- ? 'bg-white border-stone-200 text-stone-700 hover:bg-emerald-50'
- : 'bg-[#101813] border-[#25362b] text-stone-300 hover:bg-[#1a261f]'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  >
  {p.label}
@@ -737,9 +687,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  return (
  <div
- className={`p-2.5 rounded-lg border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#121a14] border-[#223026]'
- }`}
+ className={`p-2.5 rounded-lg border space-y-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
  >
  <div className="flex items-center justify-between text-xs font-bold">
  <span className={isLight ? 'text-stone-700' : 'text-emerald-300'}>余白バランス</span>
@@ -759,13 +707,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  <div className="grid grid-cols-2 gap-1.5 text-xs font-mono">
- <div className={`p-2 rounded-md border ${isLight ? 'bg-white border-stone-200' : 'bg-[#0f1712] border-stone-800'}`}>
+ <div className={`p-2 rounded-md border ${themeClasses.cardBg} ${themeClasses.border}`}>
  <div className="text-stone-500 text-[10px]">実測 LSB (左余白)</div>
- <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{actualLsb} px</div>
+ <div className={`font-bold text-sm ${themeClasses.accentText}`}>{actualLsb} px</div>
  </div>
- <div className={`p-2 rounded-md border ${isLight ? 'bg-white border-stone-200' : 'bg-[#0f1712] border-stone-800'}`}>
+ <div className={`p-2 rounded-md border ${themeClasses.cardBg} ${themeClasses.border}`}>
  <div className="text-stone-500 text-[10px]">実測 RSB (右余白)</div>
- <div className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{actualRsb} px</div>
+ <div className={`font-bold text-sm ${themeClasses.accentText}`}>{actualRsb} px</div>
  </div>
  </div>
 
@@ -773,14 +721,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  type="button"
  onClick={handleCenterWithinAdvance}
- className={`w-full min-h-[38px] py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 border transition-all active:scale-95 cursor-pointer ${
- isLight
- ? 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-900 '
- : 'bg-[#18261e] hover:bg-[#22352a] border-emerald-700 text-emerald-200'
- }`}
+ className={`w-full min-h-[38px] py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 border transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="送り幅の中で文字を左右中央にセンタリングして余白を均等化"
  >
- <MoveHorizontal className="w-3.5 h-3.5 text-emerald-600" />
+ <MoveHorizontal className="w-3.5 h-3.5" />
  <span>左右中央に自動センタリング</span>
  </button>
  </div>
@@ -792,18 +736,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* 3. Auto-Spacing (サイドベアリング自動設定) Section */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('autospace')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
- <span className="text-xs font-bold flex items-center space-x-1.5 text-emerald-800 dark:text-emerald-300">
- <AlignCenter className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+ <span className={`text-xs font-bold flex items-center space-x-1.5 ${themeClasses.accentText}`}>
+ <AlignCenter className="w-4 h-4 shrink-0" />
  <span>オートスペーシング (自動余白)</span>
  </span>
  <div className="p-0.5 text-stone-400">
@@ -812,8 +752,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.autospace && (
- <div className="p-3 pt-0 space-y-2.5 border-t border-stone-100 dark:border-stone-800/60">
- <p className="text-[11px] leading-relaxed text-stone-600 dark:text-emerald-300/80 pt-1">
+ <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
+ <p className={`text-[11px] leading-relaxed ${themeClasses.textMuted} pt-1`}>
  文字の実幅と形状の光学バランスに応じて、最適な送り幅(Advance)と左右余白(LSB/RSB)を一括計算します。
  </p>
 
@@ -837,17 +777,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  }}
  className={`p-2 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer active:scale-98 ${
  isSelected
- ? isLight
- ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold '
- : 'bg-emerald-950/80 border-emerald-600 text-emerald-200 font-bold'
- : isLight
- ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
- : 'bg-[#101813] border-[#25362b] text-stone-300 hover:bg-[#18231c]'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  >
  <div className="min-w-0 pr-1">
  <div className="font-extrabold flex items-center gap-1">
- {PIcon && <PIcon className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+ {PIcon && <PIcon className="w-3.5 h-3.5 shrink-0" />}
  <span>{preset.label}</span>
  </div>
  <div className="text-[10px] opacity-75 font-normal mt-0.5">
@@ -855,7 +791,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
  </div>
  {isSelected && (
- <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+ <span className="text-[10px] font-bold shrink-0 mt-0.5">
  ✓ 適用中
  </span>
  )}
@@ -869,11 +805,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  type="button"
  onClick={() => handleExecuteAutoSpacing(spacingPreset)}
  disabled={contours.length === 0}
- className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-2 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
- : 'bg-emerald-600 hover:bg-emerald-500 text-stone-950 font-extrabold'
- }`}
+ className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-2 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
  title="サイドベアリングを自動適用 (ショートカット: Shift+Alt+S)"
  >
  <AlignCenter className="w-4 h-4 shrink-0" />
@@ -885,22 +817,18 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* 4. Simplify (輪郭の単純化・頂点数削減) Section */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('simplify')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
- <span className="text-xs font-bold flex items-center space-x-1.5 text-emerald-800 dark:text-emerald-300">
- <Wand2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+ <span className={`text-xs font-bold flex items-center space-x-1.5 ${themeClasses.accentText}`}>
+ <Wand2 className="w-4 h-4" />
  <span>輪郭の単純化 (Simplify)</span>
  </span>
  <div className="flex items-center space-x-1.5">
- <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-stone-100 dark:bg-[#101813] text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+ <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
  {totalNodes} 頂点
  </span>
  <div className="p-0.5 text-stone-400">
@@ -910,7 +838,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.simplify && (
- <div className="p-3 pt-0 space-y-2.5 border-t border-stone-100 dark:border-stone-800/60">
+ <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
  <p className="text-[11px] leading-relaxed text-stone-600 dark:text-emerald-300/80 pt-1">
  不要なアンカーポイント（重複・共線点）を自動削除し、字形を保ちながらファイル容量を削減します。
  </p>
@@ -921,12 +849,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onClick={() => setSimplifyLevel('mild')}
  className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
  simplifyLevel === 'mild'
- ? isLight
- ? 'bg-emerald-100 border-emerald-400 text-emerald-950 '
- : 'bg-emerald-950 border-emerald-600 text-emerald-200'
- : isLight
- ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
- : 'bg-[#101813] border-[#25362b] text-stone-400'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  title="形状保持 100%: 直線上の不要ノードと重複ノードのみ除去"
  >
@@ -936,12 +860,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onClick={() => setSimplifyLevel('normal')}
  className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
  simplifyLevel === 'normal'
- ? isLight
- ? 'bg-emerald-700 text-white border-emerald-800 '
- : 'bg-emerald-600 text-stone-950 border-emerald-500 font-bold'
- : isLight
- ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
- : 'bg-[#101813] border-[#25362b] text-stone-400'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  title="推奨: 形状保持 99.8%、手描き線の微細ブレを整流してスリム化"
  >
@@ -951,12 +871,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onClick={() => setSimplifyLevel('strong')}
  className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
  simplifyLevel === 'strong'
- ? isLight
- ? 'bg-amber-600 text-white border-amber-700 '
- : 'bg-amber-600 text-stone-950 border-amber-500 font-bold'
- : isLight
- ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
- : 'bg-[#101813] border-[#25362b] text-stone-400'
+ ? `${themeClasses.activeTool} border`
+ : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
  }`}
  title="強力: 大幅な頂点削減。データ容量を最優先で削減"
  >
@@ -968,11 +884,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  onClick={handleExecuteSimplify}
  disabled={contours.length === 0 || totalNodes === 0}
- className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${
- isLight
- ? 'bg-emerald-800 hover:bg-emerald-700 text-white'
- : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold'
- }`}
+ className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
  title="現在のグリフの全輪郭を単純化 (ショートカット: Alt+S)"
  >
  <Zap className="w-4 h-4 fill-current shrink-0" />
@@ -984,17 +896,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* 5. Transform Tools (Slant, Flip, Scale, Center) */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('transform')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
- <span className={`text-xs font-bold uppercase tracking-wider ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+ <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textPrimary}`}>
  傾斜・変形・配置
  </span>
  <div className="p-0.5 text-stone-400">
@@ -1003,15 +911,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.transform && (
- <div className="p-3 pt-0 space-y-2.5 border-t border-stone-100 dark:border-stone-800/60">
+ <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
  {/* Slant Quick Presets */}
  <div
- className={`p-2.5 rounded-lg border space-y-1.5 mt-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#121a14] border-[#223026]'
- }`}
+ className={`p-2.5 rounded-lg border space-y-1.5 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
  >
- <div className="flex items-center space-x-1 text-xs font-bold">
- <Italic className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+ <div className={`flex items-center space-x-1 text-xs font-bold ${themeClasses.accentText}`}>
+ <Italic className="w-4 h-4 shrink-0" />
  <span>傾斜 (Slant / イタリック)</span>
  </div>
  <div className="grid grid-cols-4 gap-1.5">
@@ -1019,11 +925,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  key={deg}
  onClick={() => handleSlant(deg)}
- className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-100'
- : 'bg-[#121a14] border-[#25362b] text-emerald-200 hover:bg-[#1d2b20]'
- }`}
+ className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  {deg > 0 ? `+${deg}°` : `${deg}°`}
  </button>
@@ -1035,11 +937,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <div className="grid grid-cols-2 gap-2">
  <button
  onClick={handleFlipH}
- className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-[#f7faf8] border-[#d8e6df] text-stone-800 hover:bg-emerald-100'
- : 'bg-[#141d17] border-[#25362b] text-emerald-200 hover:bg-[#202e25]'
- }`}
+ className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  <FlipHorizontal className="w-4 h-4 shrink-0" />
  <span>左右反転</span>
@@ -1047,11 +945,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  <button
  onClick={handleFlipV}
- className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-[#f7faf8] border-[#d8e6df] text-stone-800 hover:bg-emerald-100'
- : 'bg-[#141d17] border-[#25362b] text-emerald-200 hover:bg-[#202e25]'
- }`}
+ className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  <FlipVertical className="w-4 h-4 shrink-0" />
  <span>上下反転</span>
@@ -1059,11 +953,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  <button
  onClick={() => handleScale(1.1)}
- className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-[#f7faf8] border-[#d8e6df] text-stone-800 hover:bg-emerald-100'
- : 'bg-[#141d17] border-[#25362b] text-emerald-200 hover:bg-[#202e25]'
- }`}
+ className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  <Maximize2 className="w-4 h-4 shrink-0" />
  <span>拡大 +10%</span>
@@ -1071,11 +961,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  <button
  onClick={() => handleScale(0.9)}
- className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-[#f7faf8] border-[#d8e6df] text-stone-800 hover:bg-emerald-100'
- : 'bg-[#141d17] border-[#25362b] text-emerald-200 hover:bg-[#202e25]'
- }`}
+ className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  <Minimize2 className="w-4 h-4 shrink-0" />
  <span>縮小 -10%</span>
@@ -1083,11 +969,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  <button
  onClick={() => handleAspectScale(0.85, 1.0)}
- className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-white border-[#d8e6df] text-stone-800 hover:bg-emerald-50'
- : 'bg-[#121a14] border-[#25362b] text-emerald-200 hover:bg-[#1d2b20]'
- }`}
+ className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="横幅をスリム化して縦長の長体に変換 (X:85%)"
  >
  <span>長体 (横縮小)</span>
@@ -1095,11 +977,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  <button
  onClick={() => handleAspectScale(1.15, 0.85)}
- className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-white border-[#d8e6df] text-stone-800 hover:bg-emerald-50'
- : 'bg-[#121a14] border-[#25362b] text-emerald-200 hover:bg-[#1d2b20]'
- }`}
+ className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="縦幅を抑えて横広の扁平に変換 (X:115%, Y:85%)"
  >
  <span>扁平 (横広化)</span>
@@ -1110,37 +988,25 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  <button
  onClick={handleSmoothAndFix}
  disabled={contours.length === 0}
- className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-40 ${
- isLight
- ? 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800'
- : 'bg-[#1b261f] hover:bg-[#23332a] border-[#2c3d31] text-emerald-200'
- }`}
+ className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="変形・拡大縮小時に生じたガタツキやベジェ曲線の折れ曲がり歪みを自動補正"
  >
- <Wand2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+ <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
  <span>変形後のガタツキ・歪みを滑らかに補正</span>
  </button>
 
  <button
  onClick={handleFitToEmBox}
- className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
- : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
- }`}
+ className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="はみ出た文字や大きすぎる文字を、キャンバスの字面枠（漢字85%/仮名78%）にぴったり収まるよう自動縮小・中央配置します"
  >
- <Maximize2 className="w-4 h-4 text-emerald-600 shrink-0" />
+ <Maximize2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
  <span>キャンバス枠内に自動収める (字面85%最適化)</span>
  </button>
 
  <button
  onClick={handleCenter}
- className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-[#f7faf8] border-[#d8e6df] text-stone-800 hover:bg-emerald-100'
- : 'bg-[#141d17] border-[#25362b] text-emerald-200 hover:bg-[#202e25]'
- }`}
+ className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  >
  <AlignCenter className="w-4 h-4 shrink-0" />
  <span>EM枠の中央に配置 ({upm}×{upm})</span>
@@ -1149,14 +1015,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  {/* Small Kana Helper */}
  <button
  onClick={handleConvertToSmallKana}
- className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight
- ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
- : 'bg-emerald-950/60 border-emerald-800 text-emerald-300 hover:bg-emerald-900/60'
- }`}
+ className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
  title="通常の文字を小文字用（ぁ, ッ等）の位置とサイズに自動縮小"
  >
- <Wand2 className="w-4 h-4 text-emerald-600 shrink-0" />
+ <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
  <span>小文字サイズ・位置に変換 (ぁ・ッ等)</span>
  </button>
  </div>
@@ -1165,17 +1027,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
  {/* 6. Outline Stroke Paths */}
  <div
- className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${
- isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-[#16211a] border-[#25362b]'
- }`}
+ className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
  >
  <div
  onClick={() => toggleSection('outline')}
- className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${
- isLight ? 'hover:bg-stone-50' : 'hover:bg-[#1f2d24]'
- }`}
+ className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
  >
- <span className={`text-xs font-bold ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+ <span className={`text-xs font-bold ${themeClasses.textPrimary}`}>
  骨格線の肉付け（アウトライン化）
  </span>
  <div className="p-0.5 text-stone-400">
@@ -1184,7 +1042,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  </div>
 
  {expandedSections.outline && (
- <div className="p-3 pt-0 space-y-2.5 border-t border-stone-100 dark:border-stone-800/60">
+ <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
  <div className="flex items-center space-x-2 pt-2">
  <input
  type="range"
@@ -1195,15 +1053,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
  onChange={(e) => setStrokeOutlineWidth(Number(e.target.value))}
  className="flex-1 accent-emerald-700 h-2"
  />
- <span className={`text-xs font-mono font-bold w-12 text-right ${isLight ? 'text-stone-700' : 'text-emerald-300'}`}>
+ <span className={`text-xs font-mono font-bold w-12 text-right ${themeClasses.textPrimary}`}>
  {strokeOutlineWidth}px
  </span>
  </div>
  <button
  onClick={handleOutlineStrokePaths}
- className={`w-full min-h-[40px] py-2 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${
- isLight ? 'bg-emerald-800 text-white hover:bg-emerald-900' : 'bg-emerald-600 text-white hover:bg-emerald-500'
- }`}
+ className={`w-full min-h-[40px] py-2 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.accentBtn}`}
  >
  <Layers className="w-4 h-4 shrink-0" />
  <span>骨格線をアウトライン化</span>

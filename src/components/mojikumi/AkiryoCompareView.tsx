@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
+import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
 
 interface AkiryoCompareViewProps {
   betaLayout: FormattedLayoutResult;
@@ -37,12 +38,11 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
     if (isVertical) {
       return (
         <div
-          className="flex flex-row-reverse items-start justify-end h-full select-text p-2"
+          className="flex flex-row-reverse items-start justify-start h-full select-text p-2 overflow-x-auto custom-scrollbar"
           style={{
             gap: `${lineGapPx}px`,
             fontFamily,
-            writingMode: 'vertical-rl',
-            textOrientation: 'mixed',
+            fontFeatureSettings: '"vert" 1, "vrt2" 1',
           }}
         >
           {layout.lines.map((line, lIdx) => (
@@ -53,33 +53,36 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
               }`}
               style={{ minWidth: `${emPx}px` }}
             >
-              {line.glyphs.map((g, gIdx) => (
-                <span
-                  key={gIdx}
-                  className={`inline-flex items-center justify-center relative ${
-                    g.isHanging
-                      ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded'
-                      : ''
-                  }`}
-                  style={{
-                    width: `${emPx}px`,
-                    minHeight: `${emPx}px`,
-                    fontSize: `${emPx}px`,
-                    lineHeight: 1,
-                    paddingTop: `${g.spacingBeforeEm * emPx}px`,
-                    paddingBottom: `${g.spacingAfterEm * emPx}px`,
-                  }}
-                  title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
-                >
-                  {showGrid && (
-                    <span
-                      className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
-                      style={{ width: `${emPx}px`, height: `${emPx}px` }}
-                    />
-                  )}
-                  {g.char}
-                </span>
-              ))}
+              {line.glyphs.map((g, gIdx) => {
+                const vertStyle = getVerticalGlyphStyle(g.char, true);
+                return (
+                  <span
+                    key={gIdx}
+                    className={`inline-flex items-center justify-center relative ${
+                      g.isHanging
+                        ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                        : ''
+                    }`}
+                    style={{
+                      width: `${emPx}px`,
+                      minHeight: `${emPx}px`,
+                      fontSize: `${emPx}px`,
+                      lineHeight: 1,
+                      paddingTop: `${g.spacingBeforeEm * emPx}px`,
+                      paddingBottom: `${g.spacingAfterEm * emPx}px`,
+                    }}
+                    title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
+                  >
+                    {showGrid && (
+                      <span
+                        className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
+                        style={{ width: `${emPx}px`, height: `${emPx}px` }}
+                      />
+                    )}
+                    <span style={vertStyle}>{g.char}</span>
+                  </span>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -107,7 +110,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                 key={gIdx}
                 className={`inline-block relative text-center ${
                   g.isHanging
-                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded'
+                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                     : ''
                 }`}
                 style={{

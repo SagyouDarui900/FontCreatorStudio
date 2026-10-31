@@ -236,6 +236,7 @@ export const GlyphGridCard = memo(
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.isLight === nextProps.isLight &&
       prevProps.density === nextProps.density &&
+      prevProps.themeClasses === nextProps.themeClasses &&
       prevProps.glyphData === nextProps.glyphData &&
       prevProps.glyphData?.locked === nextProps.glyphData?.locked &&
       prevProps.glyphData?.contours?.length === nextProps.glyphData?.contours?.length &&

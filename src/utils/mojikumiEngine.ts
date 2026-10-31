@@ -382,14 +382,18 @@ export function calculateTypesettingDimensions(
   fontSizeQ: number,
   lineFeedH: number,
   charsPerLine: number,
-  lineCount: number
+  lineCount: number,
+  isVertical?: boolean
 ): TypesettingDimensions {
   const mmPerUnit = 0.25;
   const ptPerUnit = 0.25 / 0.352778; // 1pt ≈ 0.3528mm -> 1Q ≈ 0.7087pt
 
-  const widthMm = fontSizeQ * charsPerLine * mmPerUnit;
-  const heightMm = (lineFeedH * Math.max(1, lineCount - 1) + fontSizeQ) * mmPerUnit;
+  const charAdvanceMm = fontSizeQ * charsPerLine * mmPerUnit;
+  const lineStackMm = (lineFeedH * Math.max(1, lineCount - 1) + fontSizeQ) * mmPerUnit;
   const lineGapH = lineFeedH - fontSizeQ;
+
+  const widthMm = isVertical ? lineStackMm : charAdvanceMm;
+  const heightMm = isVertical ? charAdvanceMm : lineStackMm;
 
   return {
     fontSizeQ,
@@ -402,8 +406,12 @@ export function calculateTypesettingDimensions(
     lineCount,
     widthMm: Math.round(widthMm * 10) / 10,
     heightMm: Math.round(heightMm * 10) / 10,
-    formulaWidth: `${fontSizeQ}Q × ${charsPerLine}字 = ${fontSizeQ * charsPerLine}Q (${(fontSizeQ * charsPerLine * mmPerUnit).toFixed(1)}mm)`,
-    formulaHeight: `${lineFeedH}H × (${lineCount} - 1) + ${fontSizeQ}Q = ${lineFeedH * (lineCount - 1) + fontSizeQ}H (${heightMm.toFixed(1)}mm)`,
+    formulaWidth: isVertical
+      ? `${lineFeedH}H × (${lineCount}行 - 1) + ${fontSizeQ}Q = ${widthMm.toFixed(1)}mm`
+      : `${fontSizeQ}Q × ${charsPerLine}字 = ${widthMm.toFixed(1)}mm`,
+    formulaHeight: isVertical
+      ? `${fontSizeQ}Q × ${charsPerLine}字 = ${heightMm.toFixed(1)}mm`
+      : `${lineFeedH}H × (${lineCount}行 - 1) + ${fontSizeQ}Q = ${heightMm.toFixed(1)}mm`,
   };
 }
 

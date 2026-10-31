@@ -217,7 +217,16 @@ export function useGlyphGridFilter({
   }, [charList.length, gridDensity]);
 
   const totalPages = Math.max(1, Math.ceil(charList.length / pageSize));
-  const validPage = Math.min(currentPage, totalPages);
+  const validPage = Math.max(1, Math.min(currentPage, totalPages));
+
+  // Automatically keep currentPage synchronized when filtered list or totalPages shrinks
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    } else if (currentPage < 1) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, totalPages]);
 
   const paginatedList = useMemo(() => {
     const start = (validPage - 1) * pageSize;

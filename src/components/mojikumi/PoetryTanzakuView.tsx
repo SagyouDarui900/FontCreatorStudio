@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
+import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
 
 interface PoetryTanzakuViewProps {
   layout: FormattedLayoutResult;
@@ -42,7 +43,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
         {/* Tanzaku Header Label */}
         <div className="flex items-center justify-between text-xs font-serif opacity-60 pb-6 border-b border-amber-900/10 dark:border-emerald-950/40">
           <div>『{title}』より</div>
-          <div className="font-mono text-[11px]">詩歌・短冊組版</div>
+          <div className="font-mono text-[11px]">詩歌・短冊組版（縦書き）</div>
         </div>
 
         {/* Vertical Poetry Center Stage */}
@@ -52,8 +53,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
             style={{
               gap: `${lineGapPx}px`,
               fontFamily,
-              writingMode: 'vertical-rl',
-              textOrientation: 'mixed',
+              fontFeatureSettings: '"vert" 1, "vrt2" 1',
             }}
           >
             {layout.lines.map((line, lIdx) => (
@@ -62,20 +62,23 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                 className="flex flex-col items-center relative shrink-0 tracking-widest leading-loose"
                 style={{ minWidth: `${emPx}px` }}
               >
-                {line.glyphs.map((g, gIdx) => (
-                  <span
-                    key={gIdx}
-                    className="inline-flex items-center justify-center relative my-0.5"
-                    style={{
-                      width: `${emPx}px`,
-                      minHeight: `${emPx}px`,
-                      fontSize: `${emPx}px`,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {g.char}
-                  </span>
-                ))}
+                {line.glyphs.map((g, gIdx) => {
+                  const vertStyle = getVerticalGlyphStyle(g.char, true);
+                  return (
+                    <span
+                      key={gIdx}
+                      className="inline-flex items-center justify-center relative my-0.5"
+                      style={{
+                        width: `${emPx}px`,
+                        minHeight: `${emPx}px`,
+                        fontSize: `${emPx}px`,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      <span style={vertStyle}>{g.char}</span>
+                    </span>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -86,7 +89,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
           <div className="flex items-center space-x-3">
             <span className="text-sm font-bold tracking-wider">{author} 詠</span>
             {/* Red Hanko Stamp */}
-            <div className="w-8 h-8 rounded border-2 border-red-700 bg-red-600/10 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-[10px] font-bold font-serif shadow-xs">
+            <div className="w-8 h-8 rounded-xs border-2 border-red-700 bg-red-600/10 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center text-[10px] font-bold font-serif shadow-xs">
               雅印
             </div>
           </div>

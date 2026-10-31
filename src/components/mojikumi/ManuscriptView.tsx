@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
+import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
 
 interface ManuscriptViewProps {
   layout: FormattedLayoutResult;
@@ -27,9 +28,9 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
 
   // Flatten the layout glyphs into a 20x20 grid of characters
   // In traditional vertical Japanese manuscript paper:
-  // - Columns flow from Right to Left (col 19 down to col 0)
+  // - Columns flow from Right to Left (col 0 on rightmost to col 19 on leftmost)
   // - Characters flow from Top to Bottom (row 0 to row 19)
-  const gridCells: { char: string; isHanging?: boolean; isYakumono?: boolean }[][] = Array.from(
+  const gridCells: { char: string; isHanging?: boolean }[][] = Array.from(
     { length: COLS },
     () => Array.from({ length: ROWS }, () => ({ char: '' }))
   );
@@ -46,11 +47,9 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
         }
         break;
       }
-      const isYakumono = g.kind === 'kuten' || g.kind === 'touten' || g.kind === 'end_bracket' || g.kind === 'start_bracket';
       gridCells[currentLineIdx][charRow] = {
         char: g.char,
         isHanging: g.isHanging,
-        isYakumono,
       };
       charRow++;
     }
@@ -86,43 +85,52 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
         </div>
 
         {/* 20x20 Manuscript Grid Layout (Right to Left vertical columns) */}
-        <div className="relative flex flex-row-reverse items-center justify-center border-2 border-emerald-700/50 dark:border-emerald-500/50 bg-white/40 dark:bg-black/20 p-2 rounded-lg">
-          {/* Halfway central separator (魚尾 / ぎょび) between line 10 and line 11 */}
+        <div className="relative flex items-center justify-center border-2 border-emerald-700/50 dark:border-emerald-500/50 bg-white/40 dark:bg-black/20 p-2 rounded-lg">
           <div className="flex flex-row-reverse items-center">
-            {/* First half: Lines 1 to 10 (displayed right to left) */}
+            {/* First half: Lines 1 to 10 (displayed right to left, col 0 is rightmost) */}
             <div className="flex flex-row-reverse">
-              {gridCells.slice(0, 10).map((col, colIdx) => (
-                <div key={colIdx} className="flex flex-col">
-                  {col.map((cell, rowIdx) => (
-                    <div
-                      key={rowIdx}
-                      className={`relative flex items-center justify-center border ${gridColor} transition-all`}
-                      style={{
-                        width: `${cellSizePx}px`,
-                        height: `${cellSizePx}px`,
-                        fontFamily,
-                      }}
-                    >
-                      {/* Character inside square */}
-                      <span
-                        className={`leading-none select-text ${
-                          cell.isYakumono ? 'translate-x-[20%] -translate-y-[20%]' : ''
-                        }`}
-                        style={{ fontSize: `${cellSizePx * 0.78}px` }}
-                      >
-                        {cell.char}
-                      </span>
+              {gridCells.slice(0, 10).map((col, colIdx) => {
+                const lineNum = colIdx + 1;
+                return (
+                  <div key={colIdx} className="flex flex-col">
+                    {col.map((cell, rowIdx) => {
+                      const vertStyle = getVerticalGlyphStyle(cell.char, true);
+                      return (
+                        <div
+                          key={rowIdx}
+                          className={`relative flex items-center justify-center border ${gridColor} transition-all`}
+                          style={{
+                            width: `${cellSizePx}px`,
+                            height: `${cellSizePx}px`,
+                            fontFamily,
+                          }}
+                        >
+                          {/* Character inside square with Japanese vertical glyph transformation */}
+                          {cell.char ? (
+                            <span
+                              className="leading-none select-text flex items-center justify-center"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                fontSize: `${cellSizePx * 0.78}px`,
+                              }}
+                            >
+                              <span style={vertStyle}>{cell.char}</span>
+                            </span>
+                          ) : null}
 
-                      {/* Small cell dots guide */}
-                      <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-emerald-600/10 dark:border-emerald-400/10 pointer-events-none" />
+                          {/* Small cell center guide */}
+                          <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-emerald-600/10 dark:border-emerald-400/10 pointer-events-none" />
+                        </div>
+                      );
+                    })}
+                    {/* Column index indicator at bottom */}
+                    <div className="h-4 text-[9px] font-mono text-center text-stone-400 pt-0.5">
+                      {lineNum % 5 === 0 ? lineNum : ''}
                     </div>
-                  ))}
-                  {/* Column index indicator at bottom */}
-                  <div className="h-4 text-[9px] font-mono text-center text-stone-400 pt-0.5">
-                    {(colIdx + 1) % 5 === 0 ? colIdx + 1 : ''}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Traditional Fish Tail Center (魚尾) Margin */}
@@ -130,46 +138,67 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
               className="flex flex-col items-center justify-between border-x-2 border-emerald-700/50 dark:border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/40 px-1 py-2 mx-1 select-none"
               style={{ width: `${Math.max(22, cellSizePx * 0.9)}px`, height: `${cellSizePx * 20}px` }}
             >
-              <div className="text-[9px] font-serif writing-mode-vertical text-emerald-800 dark:text-emerald-300 tracking-widest">
-                二十×二十
+              <div
+                className="text-[9px] font-serif text-emerald-800 dark:text-emerald-300 tracking-widest flex flex-col items-center"
+              >
+                <span>二</span>
+                <span>十</span>
+                <span>×</span>
+                <span>二</span>
+                <span>十</span>
               </div>
               {/* Fish tail diamond symbol */}
               <div className="w-2.5 h-2.5 rotate-45 border border-emerald-600 dark:border-emerald-400 bg-emerald-700 dark:bg-emerald-300" />
-              <div className="text-[9px] font-serif writing-mode-vertical text-emerald-800 dark:text-emerald-300 tracking-widest">
-                四百字詰
+              <div
+                className="text-[9px] font-serif text-emerald-800 dark:text-emerald-300 tracking-widest flex flex-col items-center"
+              >
+                <span>四</span>
+                <span>百</span>
+                <span>字</span>
+                <span>詰</span>
               </div>
             </div>
 
-            {/* Second half: Lines 11 to 20 */}
+            {/* Second half: Lines 11 to 20 (col 10 is next to 魚尾, col 19 is leftmost) */}
             <div className="flex flex-row-reverse">
-              {gridCells.slice(10, 20).map((col, colIdx) => (
-                <div key={colIdx} className="flex flex-col">
-                  {col.map((cell, rowIdx) => (
-                    <div
-                      key={rowIdx}
-                      className={`relative flex items-center justify-center border ${gridColor} transition-all`}
-                      style={{
-                        width: `${cellSizePx}px`,
-                        height: `${cellSizePx}px`,
-                        fontFamily,
-                      }}
-                    >
-                      <span
-                        className={`leading-none select-text ${
-                          cell.isYakumono ? 'translate-x-[20%] -translate-y-[20%]' : ''
-                        }`}
-                        style={{ fontSize: `${cellSizePx * 0.78}px` }}
-                      >
-                        {cell.char}
-                      </span>
-                      <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-emerald-600/10 dark:border-emerald-400/10 pointer-events-none" />
+              {gridCells.slice(10, 20).map((col, colIdx) => {
+                const lineNum = colIdx + 11;
+                return (
+                  <div key={colIdx} className="flex flex-col">
+                    {col.map((cell, rowIdx) => {
+                      const vertStyle = getVerticalGlyphStyle(cell.char, true);
+                      return (
+                        <div
+                          key={rowIdx}
+                          className={`relative flex items-center justify-center border ${gridColor} transition-all`}
+                          style={{
+                            width: `${cellSizePx}px`,
+                            height: `${cellSizePx}px`,
+                            fontFamily,
+                          }}
+                        >
+                          {cell.char ? (
+                            <span
+                              className="leading-none select-text flex items-center justify-center"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                fontSize: `${cellSizePx * 0.78}px`,
+                              }}
+                            >
+                              <span style={vertStyle}>{cell.char}</span>
+                            </span>
+                          ) : null}
+                          <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-t border-dashed border-emerald-600/10 dark:border-emerald-400/10 pointer-events-none" />
+                        </div>
+                      );
+                    })}
+                    <div className="h-4 text-[9px] font-mono text-center text-stone-400 pt-0.5">
+                      {lineNum % 5 === 0 ? lineNum : ''}
                     </div>
-                  ))}
-                  <div className="h-4 text-[9px] font-mono text-center text-stone-400 pt-0.5">
-                    {(colIdx + 11) % 5 === 0 ? colIdx + 11 : ''}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -177,7 +206,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
         {/* Manuscript Footer Info */}
         <div className="w-full mt-4 pt-3 border-t border-emerald-700/20 dark:border-emerald-500/20 flex items-center justify-between text-[11px] font-mono text-stone-500">
           <div>原稿用紙マス目組版シミュレーター（字間・約物の升目内アキ検証）</div>
-          <div>文字サイズ: {fontSizeQ}Q · 1マス均等全角配置</div>
+          <div>文字サイズ: {fontSizeQ}Q · 1マス均等全角配置（長音符・括弧の縦書き回転対応）</div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 {
-  "summary":  "Drawing core improvements implemented:\n1. Tool switch cleanup: toolMode changes now immediately cancel active brush drawing, clear activeDrawingPointerIdRef, and purge touch caches in both useCanvasPointerDispatcher and useToolModeCleanup.\n2. Stroke configuration snapshotting: brush parameters are frozen at stroke start (handleBrushPointerDown) into strokeBrushConfigRef, preventing mid-stroke parameter mutation while allowing immediate updates on the next stroke.\n3. 60/120fps live preview optimization: long strokes (> 24 points) use getDecimatedPointsForLivePreview for the SVG live preview path, while retaining full fidelity upon pointer-up finalization.\n4. Pointer capture robustness: activeDrawingPointerId is cleared whenever touch count reaches 0 or pointer capture is lost.",
-  "updatedAt":  "2026-10-30T08:53:11.031358956Z",
+  "summary":  "Implementation plan for refactoring and modularizing ToolBar.tsx (~1420 lines) into co-located subcomponents in src/components/toolbar/, separating desktop popovers, constants, and button bars while ensuring 100% backward compatibility.",
+  "updatedAt":  "2026-10-31T07:23:07.649110080Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

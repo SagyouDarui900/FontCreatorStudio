@@ -128,26 +128,49 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
     currentSelectedGlyph && currentSelectedGlyph.contours && currentSelectedGlyph.contours.length > 0
   );
 
+  // Keyboard paging shortcuts (PageUp / PageDown or Alt+Arrow)
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'PageDown' || (e.altKey && e.key === 'ArrowRight')) {
+        if (validPage < totalPages) {
+          e.preventDefault();
+          setCurrentPage(Math.min(totalPages, validPage + 1));
+        }
+      } else if (e.key === 'PageUp' || (e.altKey && e.key === 'ArrowLeft')) {
+        if (validPage > 1) {
+          e.preventDefault();
+          setCurrentPage(Math.max(1, validPage - 1));
+        }
+      }
+    },
+    [validPage, totalPages, setCurrentPage]
+  );
+
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Mobile/Overlay Click-Outside Dismiss */}
+      {/* Mobile/Overlay Click-Outside Dismiss Backdrop */}
       {effectiveIsOverlay && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-transparent sm:hidden z-35 pointer-events-auto"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-35 pointer-events-auto"
         />
       )}
 
       <aside
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
         style={{
           width: effectiveIsOverlay ? undefined : `${sidebarWidth}px`,
         }}
         className={`${
           effectiveIsOverlay
-            ? 'fixed inset-y-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200'
-            : 'relative z-10 shadow-none shrink-0'
+            ? 'fixed top-0 bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
+            : 'relative z-10 shadow-none shrink-0 outline-none'
         } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
         {/* Left Sidebar Drag Resizer Handle */}
@@ -183,6 +206,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
 
         {/* Toolbar & Filter Component */}
         <GlyphGridToolbar
+          themeClasses={themeClasses}
           charListLength={charList.length}
           validPage={validPage}
           totalPages={totalPages}

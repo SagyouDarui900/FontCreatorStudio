@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
+import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
 
 interface BookSpreadViewProps {
   layout: FormattedLayoutResult;
@@ -32,10 +33,17 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
   const lineGapPx = Math.max(6, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
-  // Split lines across two pages (Right Page = Page 1, Left Page = Page 2 in vertical-rl Japanese books)
+  // Split lines across two pages
   const linesPerPage = Math.max(6, Math.min(18, Math.floor(layout.lines.length / 2) || 8));
-  const rightPageLines = layout.lines.slice(0, linesPerPage);
-  const leftPageLines = layout.lines.slice(linesPerPage, linesPerPage * 2);
+  const firstPageLines = layout.lines.slice(0, linesPerPage);
+  const secondPageLines = layout.lines.slice(linesPerPage, linesPerPage * 2);
+
+  // In Japanese vertical books (右開き), Page 1 is on the Right, Page 2 on the Left.
+  // In horizontal books (左開き), Page 1 is on the Left, Page 2 on the Right.
+  const leftPageLines = isVertical ? secondPageLines : firstPageLines;
+  const rightPageLines = isVertical ? firstPageLines : secondPageLines;
+  const leftPageNum = isVertical ? 13 : 12;
+  const rightPageNum = isVertical ? 12 : 13;
 
   // Background and paper colors
   const paperBg = isLight ? 'bg-[#fcfaf2]' : 'bg-[#18231a]';
@@ -44,7 +52,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
   const subtleColor = isLight ? 'text-stone-400' : 'text-stone-500';
   const gridBorder = isLight ? 'border-amber-900/15' : 'border-emerald-500/20';
 
-  const renderPageLines = (lines: typeof layout.lines, pageNumber: number) => {
+  const renderPageLines = (lines: typeof layout.lines) => {
     if (lines.length === 0) {
       return (
         <div className={`h-full flex items-center justify-center text-xs ${subtleColor} italic`}>
@@ -56,12 +64,11 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     if (isVertical) {
       return (
         <div
-          className="flex flex-row-reverse items-start justify-end h-full select-text overflow-hidden"
+          className="flex flex-row-reverse items-start justify-start h-full select-text overflow-hidden"
           style={{
             gap: `${lineGapPx}px`,
             fontFamily,
-            writingMode: 'vertical-rl',
-            textOrientation: 'mixed',
+            fontFeatureSettings: '"vert" 1, "vrt2" 1',
           }}
         >
           {lines.map((line, lIdx) => (
@@ -72,33 +79,36 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
               }`}
               style={{ minWidth: `${emPx}px` }}
             >
-              {line.glyphs.map((g, gIdx) => (
-                <span
-                  key={gIdx}
-                  className={`inline-flex items-center justify-center relative ${
-                    g.isHanging
-                      ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded'
-                      : ''
-                  }`}
-                  style={{
-                    width: `${emPx}px`,
-                    minHeight: `${emPx}px`,
-                    fontSize: `${emPx}px`,
-                    lineHeight: 1,
-                    paddingTop: `${g.spacingBeforeEm * emPx}px`,
-                    paddingBottom: `${g.spacingAfterEm * emPx}px`,
-                  }}
-                  title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
-                >
-                  {showGrid && (
-                    <span
-                      className={`absolute inset-0 pointer-events-none border ${gridBorder}`}
-                      style={{ width: `${emPx}px`, height: `${emPx}px` }}
-                    />
-                  )}
-                  {g.char}
-                </span>
-              ))}
+              {line.glyphs.map((g, gIdx) => {
+                const vertStyle = getVerticalGlyphStyle(g.char, true);
+                return (
+                  <span
+                    key={gIdx}
+                    className={`inline-flex items-center justify-center relative ${
+                      g.isHanging
+                        ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                        : ''
+                    }`}
+                    style={{
+                      width: `${emPx}px`,
+                      minHeight: `${emPx}px`,
+                      fontSize: `${emPx}px`,
+                      lineHeight: 1,
+                      paddingTop: `${g.spacingBeforeEm * emPx}px`,
+                      paddingBottom: `${g.spacingAfterEm * emPx}px`,
+                    }}
+                    title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
+                  >
+                    {showGrid && (
+                      <span
+                        className={`absolute inset-0 pointer-events-none border ${gridBorder}`}
+                        style={{ width: `${emPx}px`, height: `${emPx}px` }}
+                      />
+                    )}
+                    <span style={vertStyle}>{g.char}</span>
+                  </span>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -108,7 +118,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     // Horizontal Book Layout
     return (
       <div
-        className="flex flex-col h-full select-text overflow-hidden"
+        className="flex flex-col items-start justify-start h-full select-text overflow-hidden"
         style={{
           gap: `${lineGapPx}px`,
           fontFamily,
@@ -127,7 +137,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
                 key={gIdx}
                 className={`inline-block relative text-center ${
                   g.isHanging
-                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded'
+                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                     : ''
                 }`}
                 style={{
@@ -162,7 +172,9 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
         <div className="px-6 sm:px-12 py-3 border-b border-amber-900/10 dark:border-emerald-950/40 flex items-center justify-between text-xs tracking-widest font-serif opacity-70">
           <div>『{title}』</div>
           <div className="text-[11px] font-mono tracking-normal text-stone-500">{author} 著</div>
-          <div className="hidden sm:block text-[11px] font-mono">文庫判 · 本文組版</div>
+          <div className="hidden sm:block text-[11px] font-mono">
+            {isVertical ? '文庫判 · 縦組見開き' : '文庫判 · 横組見開き'}
+          </div>
         </div>
 
         {/* Spread Two-Page Container */}
@@ -170,26 +182,26 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
           {/* Central Book Gutter & Spine Fold Shadow (ノドの影) */}
           <div className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-10 bg-gradient-to-r from-black/5 via-black/15 to-black/5 dark:from-black/20 dark:via-black/50 dark:to-black/20 border-x border-amber-950/10 dark:border-black/40" />
 
-          {/* Right Page (Page 1 in Japanese vertical books) */}
+          {/* Left Page */}
           <div className="p-6 sm:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-amber-900/10 dark:border-emerald-950/30 relative">
-            <div className="flex-1 flex items-start justify-end overflow-hidden">
-              {renderPageLines(rightPageLines, 1)}
+            <div className="flex-1 flex items-start justify-start overflow-hidden">
+              {renderPageLines(leftPageLines)}
             </div>
             {/* Folio (ノンブル) */}
             <div className="pt-4 flex items-center justify-between text-[11px] font-mono opacity-60">
               <span className="hidden sm:inline">第壱章</span>
-              <span>- 12 -</span>
+              <span>- {leftPageNum} -</span>
             </div>
           </div>
 
-          {/* Left Page (Page 2) */}
+          {/* Right Page */}
           <div className="p-6 sm:p-10 flex flex-col justify-between relative">
-            <div className="flex-1 flex items-start justify-end overflow-hidden">
-              {renderPageLines(leftPageLines, 2)}
+            <div className="flex-1 flex items-start justify-start overflow-hidden">
+              {renderPageLines(rightPageLines)}
             </div>
             {/* Folio (ノンブル) */}
             <div className="pt-4 flex items-center justify-between text-[11px] font-mono opacity-60">
-              <span>- 13 -</span>
+              <span>- {rightPageNum} -</span>
               <span className="hidden sm:inline">文庫組版見本</span>
             </div>
           </div>

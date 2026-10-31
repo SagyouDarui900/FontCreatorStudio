@@ -19,21 +19,21 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
 }) => {
   if (totalPages <= 1) return null;
 
-  const btnClass = `px-2 py-1 rounded flex items-center space-x-1 disabled:opacity-30 border transition-colors cursor-pointer ${
+  const btnClass = `px-2 py-1 rounded flex items-center space-x-1 border transition-colors cursor-pointer ${
     themeClasses
       ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
       : isLight
       ? 'bg-white border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
       : 'bg-[#1f2d24] border-[#2d4034] text-emerald-200 hover:bg-[#283b2f]'
-  }`;
+  } disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed`;
 
-  const smallBtnClass = `px-1.5 py-1 rounded disabled:opacity-30 border text-[10px] font-bold cursor-pointer ${
+  const smallBtnClass = `px-1.5 py-1 rounded border text-[10px] font-bold cursor-pointer ${
     themeClasses
       ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
       : isLight
       ? 'bg-white border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
       : 'bg-[#1f2d24] border-[#2d4034] text-emerald-200 hover:bg-[#283b2f]'
-  }`;
+  } disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed`;
 
   const jumpBtnClass = `px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
     themeClasses
@@ -42,13 +42,7 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
   }`;
 
   return (
-    <div
-      className={`p-2 border-t flex items-center justify-between text-xs shrink-0 select-none ${
-        themeClasses
-          ? `${themeClasses.cardBg} ${themeClasses.border}`
-          : isLight ? 'bg-white border-[#c8ded3]' : 'bg-[#121c15] border-[#25362b]'
-      }`}
-    >
+    <div className="flex items-center justify-between text-xs shrink-0 select-none pt-0.5">
       <div className="flex items-center space-x-1">
         <button
           disabled={validPage <= 1}
@@ -60,7 +54,7 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
         </button>
         <button
           disabled={validPage <= 1}
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          onClick={() => setCurrentPage(Math.max(1, validPage - 1))}
           className={btnClass}
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -72,7 +66,7 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
         <div className="flex items-center gap-1">
           {validPage > 3 && (
             <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 5))}
+              onClick={() => setCurrentPage(Math.max(1, validPage - 5))}
               className={jumpBtnClass}
               title="5ページ前へ"
             >
@@ -81,7 +75,7 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
           )}
           {validPage < totalPages - 2 && (
             <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 5))}
+              onClick={() => setCurrentPage(Math.min(totalPages, validPage + 5))}
               className={jumpBtnClass}
               title="5ページ先へ"
             >
@@ -94,7 +88,7 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
       <div className="flex items-center space-x-1">
         <button
           disabled={validPage >= totalPages}
-          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => setCurrentPage(Math.min(totalPages, validPage + 1))}
           className={btnClass}
         >
           <span className="text-[11px]">次へ</span>

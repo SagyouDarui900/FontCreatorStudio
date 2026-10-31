@@ -221,8 +221,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
 
   // Dimensions math
   const dimensions = useMemo(() => {
-    return calculateTypesettingDimensions(fontSizeQ, lineFeedH, charsPerLine, lineCount);
-  }, [fontSizeQ, lineFeedH, charsPerLine, lineCount]);
+    return calculateTypesettingDimensions(fontSizeQ, lineFeedH, charsPerLine, lineCount, isVertical);
+  }, [fontSizeQ, lineFeedH, charsPerLine, lineCount, isVertical]);
 
   // Simulated layouts
   const currentLayout = useMemo(() => {
@@ -976,7 +976,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             </div>
 
             {/* RENDER THE SELECTED EDITORIAL FORMAT */}
-            <div className="flex-1 p-2 sm:p-6 flex items-center justify-center">
+            <div className="flex-1 min-h-full min-w-fit p-2 sm:p-6 flex items-start justify-center">
               {layoutMode === 'book_spread' && (
                 <BookSpreadView
                   layout={currentLayout}
