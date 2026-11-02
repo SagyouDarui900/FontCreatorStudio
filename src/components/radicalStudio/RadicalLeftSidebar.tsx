@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   ChevronRight,
   ChevronLeft,
@@ -73,7 +73,220 @@ export interface RadicalLeftSidebarProps {
   isImportingAll: boolean;
 }
 
-export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = ({
+interface PresetCardProps {
+  radical: StudioRadicalPresetItem;
+  isLoadedInCanvas: boolean;
+  isLight: boolean;
+  selectedFontStyle: FontStyleOption;
+  selectedChar: string;
+  insertPlacement: RadicalPlacement;
+  isLoadingPreset: boolean;
+  onLoadPreset: (preset: StudioRadicalPresetItem) => void | Promise<void>;
+  onInsertPresetDirectly: (preset: StudioRadicalPresetItem, placement?: RadicalPlacement, isBackground?: boolean) => void | Promise<void>;
+}
+
+const PresetCard = React.memo<PresetCardProps>(({
+  radical,
+  isLoadedInCanvas,
+  isLight,
+  selectedFontStyle,
+  selectedChar,
+  insertPlacement,
+  isLoadingPreset,
+  onLoadPreset,
+  onInsertPresetDirectly,
+}) => {
+  return (
+    <div
+      className={`p-2 rounded-lg border flex items-center space-x-2.5 transition-all ${
+        isLoadedInCanvas
+          ? isLight
+            ? 'bg-emerald-50/90 border-emerald-600 ring-1 ring-emerald-600/30'
+            : 'bg-[#1e2d22] border-emerald-500 ring-1 ring-emerald-500/30'
+          : isLight
+          ? 'bg-white border-[#d8e6df] hover:border-emerald-600 hover:bg-[#fbfdfc]'
+          : 'bg-[#18231c] border-[#25362b] hover:border-emerald-600 hover:bg-[#202e25]'
+      }`}
+    >
+      <div
+        onClick={() => onLoadPreset(radical)}
+        className={`w-12 h-12 rounded-md border shrink-0 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${
+          isLoadedInCanvas
+            ? isLight
+              ? 'bg-emerald-100 border-emerald-500'
+              : 'bg-[#1a3324] border-emerald-600'
+            : isLight
+            ? 'bg-white border-stone-200 hover:border-emerald-400'
+            : 'bg-[#111c14] border-[#2a3c30] hover:border-emerald-600'
+        }`}
+        title={`クリックして「${radical.name}」を高精度ベクターとして読み込む`}
+      >
+        <span
+          className="text-2xl leading-none select-none flex items-center justify-center font-normal"
+          style={{
+            fontFamily: selectedFontStyle.fontFamily,
+            fontWeight: selectedFontStyle.fontWeight,
+            color: isLoadedInCanvas
+              ? (isLight ? '#064e3b' : '#34d399')
+              : (isLight ? '#1f2937' : '#f0fdf4'),
+          }}
+        >
+          {radical.char}
+        </span>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold truncate">
+            {radical.name}
+            <span className="font-normal text-[10px] text-stone-400 ml-1">({radical.char})</span>
+          </span>
+          <span
+            className={`text-[9px] px-1.5 py-0.2 rounded font-medium shrink-0 ml-1 ${
+              isLight
+                ? 'bg-stone-100 text-stone-600'
+                : 'bg-[#25362b] text-emerald-300'
+            }`}
+          >
+            {CATEGORY_TABS.find((c) => c.id === radical.category)?.label.split(' ')[0] || radical.category}
+          </span>
+        </div>
+        <div className="text-[10px] text-stone-400 mt-0.5 truncate" title={radical.description}>
+          {radical.description}
+        </div>
+
+        <div className="mt-1.5 flex items-center space-x-1.5">
+          <button
+            onClick={() => onLoadPreset(radical)}
+            disabled={isLoadingPreset}
+            className={`flex-1 py-1 px-1.5 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
+              isLoadedInCanvas
+                ? isLight
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-600 text-white'
+                : isLight
+                ? 'bg-emerald-100/80 text-emerald-950 hover:bg-emerald-200'
+                : 'bg-[#203427] text-emerald-200 hover:bg-[#2a4533]'
+            }`}
+          >
+            <PenTool className="w-3 h-3" />
+            <span>{isLoadedInCanvas ? '編集中' : '工房で編集'}</span>
+          </button>
+          <button
+            onClick={() => onInsertPresetDirectly(radical, insertPlacement, false)}
+            className={`py-1 px-2 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
+              isLight
+                ? 'bg-stone-100 hover:bg-emerald-600 hover:text-white text-stone-800 border border-stone-200'
+                : 'bg-[#18261e] hover:bg-emerald-500 hover:text-stone-950 text-emerald-200 border border-[#25362b]'
+            }`}
+            title={`現在の文字「${selectedChar}」に高精度ベクターを挿入`}
+          >
+            <ArrowRight className="w-3 h-3" />
+            <span>「{selectedChar}」へ挿入</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+PresetCard.displayName = 'PresetCard';
+
+interface CustomPartCardProps {
+  part: CustomPart;
+  isSelected: boolean;
+  isLight: boolean;
+  onSelect: (id: string) => void;
+  onDuplicate: (part: CustomPart, e: React.MouseEvent) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+  contoursToSvgPath: (contours: PathContour[]) => string;
+}
+
+const CustomPartCard = React.memo<CustomPartCardProps>(({
+  part,
+  isSelected,
+  isLight,
+  onSelect,
+  onDuplicate,
+  onDelete,
+  contoursToSvgPath,
+}) => {
+  const svgPath = useMemo(() => contoursToSvgPath(part.contours), [part.contours, contoursToSvgPath]);
+  return (
+    <div
+      onClick={() => onSelect(part.id)}
+      className={`group p-2 rounded-lg border flex items-center space-x-2.5 cursor-pointer transition-all ${
+        isSelected
+          ? isLight
+            ? 'bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700/30'
+            : 'bg-[#1e2d22] border-emerald-500 ring-1 ring-emerald-500/30'
+          : isLight
+          ? 'bg-white border-[#d8e6df] hover:border-emerald-600 hover:bg-[#fbfdfc]'
+          : 'bg-[#18231c] border-[#25362b] hover:border-emerald-600 hover:bg-[#202e25]'
+      }`}
+    >
+      <div
+        className={`w-12 h-12 rounded-md border shrink-0 flex items-center justify-center p-0.5 ${
+          isLight ? 'bg-white border-stone-200' : 'bg-[#0f1711] border-[#2a3c30]'
+        }`}
+      >
+        {part.contours && part.contours.length > 0 ? (
+          <svg viewBox="0 0 1000 1000" className="w-full h-full">
+            <path
+              d={svgPath}
+              fill={isSelected ? (isLight ? '#064e3b' : '#34d399') : isLight ? '#1f2937' : '#ecfdf5'}
+            />
+          </svg>
+        ) : (
+          <span className="text-[9px] text-stone-400 italic">空白</span>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold truncate">{part.name}</span>
+          {part.category && (
+            <span
+              className={`text-[9px] px-1.5 py-0.2 rounded font-medium ${
+                isLight ? 'bg-stone-100 text-stone-600' : 'bg-[#25362b] text-emerald-300'
+              }`}
+            >
+              {CATEGORY_TABS.find((c) => c.id === part.category)?.label.split(' ')[0] || part.category}
+            </span>
+          )}
+        </div>
+        <div className="text-[10px] text-stone-400 mt-0.5 flex items-center justify-between">
+          <span>輪郭: {part.contours?.length || 0}本</span>
+          <span>
+            {new Date(part.updatedAt || part.createdAt).toLocaleDateString('ja-JP', {
+              month: 'numeric',
+              day: 'numeric',
+            })}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => onDuplicate(part, e)}
+          className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-[#2d4032] text-stone-500 dark:text-stone-300"
+          title="パーツを複製"
+        >
+          <Copy className="w-3 h-3" />
+        </button>
+        <button
+          onClick={(e) => onDelete(part.id, e)}
+          className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950/70 text-rose-500"
+          title="パーツを削除"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+});
+CustomPartCard.displayName = 'CustomPartCard';
+
+export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(({
   isLeftSidebarOpen,
   setIsLeftSidebarOpen,
   leftSidebarTab,
@@ -117,6 +330,12 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = ({
   isLoadingPreset,
   isImportingAll,
 }) => {
+  const [presetDisplayLimit, setPresetDisplayLimit] = useState<number>(45);
+
+  useEffect(() => {
+    setPresetDisplayLimit(45);
+  }, [searchQuery, activeCategory]);
+
   const filteredParts = useMemo(() => {
     return parts.filter((part) => {
       const matchesCat = activeCategory === 'all' || part.category === activeCategory;
@@ -139,6 +358,10 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = ({
       return matchesCat && matchesSearch;
     });
   }, [activeCategory, searchQuery]);
+
+  const displayedPresets = useMemo(() => {
+    return filteredPresets.slice(0, presetDisplayLimit);
+  }, [filteredPresets, presetDisplayLimit]);
 
   return (
     <>
@@ -650,213 +873,75 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = ({
  フィルターをリセット
  </button>
  </div>
- ) : (
- filteredPresets.map((radical) => {
- const isLoadedInCanvas =
- activePart?.name === radical.name ||
- activePart?.name === `${radical.name} (${selectedFontStyle.label})`;
+              ) : (
+                <>
+                  {displayedPresets.map((radical) => {
+                    const isLoadedInCanvas =
+                      activePart?.name === radical.name ||
+                      activePart?.name === `${radical.name} (${selectedFontStyle.label})`;
 
- return (
- <div
- key={radical.id || radical.name}
- className={`p-2 rounded-lg border flex items-center space-x-2.5 transition-all ${
- isLoadedInCanvas
- ? isLight
- ? 'bg-emerald-50/90 border-emerald-600 ring-1 ring-emerald-600/30'
- : 'bg-[#1e2d22] border-emerald-500 ring-1 ring-emerald-500/30'
- : isLight
- ? 'bg-white border-[#d8e6df] hover:border-emerald-600 hover:bg-[#fbfdfc]'
- : 'bg-[#18231c] border-[#25362b] hover:border-emerald-600 hover:bg-[#202e25]'
- }`}
- >
- {/* High-fidelity Typographic Thumbnail Preview */}
- <div
- onClick={() => onLoadPreset(radical)}
- className={`w-12 h-12 rounded-md border shrink-0 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${
- isLoadedInCanvas
- ? isLight
- ? 'bg-emerald-100 border-emerald-500'
- : 'bg-[#1a3324] border-emerald-600'
- : isLight
- ? 'bg-white border-stone-200 hover:border-emerald-400'
- : 'bg-[#111c14] border-[#2a3c30] hover:border-emerald-600'
- }`}
- title={`クリックして「${radical.name}」を高精度ベクターとして読み込む`}
- >
- <span
- className="text-2xl leading-none select-none flex items-center justify-center font-normal"
- style={{
- fontFamily: selectedFontStyle.fontFamily,
- fontWeight: selectedFontStyle.fontWeight,
- color: isLoadedInCanvas
- ? (isLight ? '#064e3b' : '#34d399')
- : (isLight ? '#1f2937' : '#f0fdf4'),
- }}
- >
- {radical.char}
- </span>
- </div>
-
- {/* Info */}
- <div className="flex-1 min-w-0">
- <div className="flex items-center justify-between">
- <span className="text-xs font-bold truncate">
- {radical.name}
- <span className="font-normal text-[10px] text-stone-400 ml-1">({radical.char})</span>
- </span>
- <span
- className={`text-[9px] px-1.5 py-0.2 rounded font-medium shrink-0 ml-1 ${
- isLight
- ? 'bg-stone-100 text-stone-600'
- : 'bg-[#25362b] text-emerald-300'
- }`}
- >
- {CATEGORY_TABS.find((c) => c.id === radical.category)?.label.split(' ')[0] || radical.category}
- </span>
- </div>
- <div className="text-[10px] text-stone-400 mt-0.5 truncate" title={radical.description}>
- {radical.description}
- </div>
-
- {/* Action Buttons: Edit / Insert Directly */}
- <div className="mt-1.5 flex items-center space-x-1.5">
- <button
- onClick={() => onLoadPreset(radical)}
- disabled={isLoadingPreset}
- className={`flex-1 py-1 px-1.5 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
- isLoadedInCanvas
- ? isLight
- ? 'bg-emerald-700 text-white'
- : 'bg-emerald-600 text-white'
- : isLight
- ? 'bg-emerald-100/80 text-emerald-950 hover:bg-emerald-200'
- : 'bg-[#203427] text-emerald-200 hover:bg-[#2a4533]'
- }`}
- >
- <PenTool className="w-3 h-3" />
- <span>{isLoadedInCanvas ? '編集中' : '工房で編集'}</span>
- </button>
- <button
- onClick={() => onInsertPresetDirectly(radical, insertPlacement, false)}
- className={`py-1 px-2 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
- isLight
- ? 'bg-stone-100 hover:bg-emerald-600 hover:text-white text-stone-800 border border-stone-200'
- : 'bg-[#18261e] hover:bg-emerald-500 hover:text-stone-950 text-emerald-200 border border-[#25362b]'
- }`}
- title={`現在の文字「${selectedChar}」に高精度ベクターを挿入`}
- >
- <ArrowRight className="w-3 h-3" />
- <span>「{selectedChar}」へ挿入</span>
- </button>
- </div>
- </div>
- </div>
- );
- })
- )
- ) : (
- /* ================= MY CUSTOM PARTS VIEW ================= */
- filteredParts.length === 0 ? (
- <div className="py-12 text-center text-xs text-stone-400 space-y-2">
- <Shapes className="w-8 h-8 mx-auto opacity-40" />
- <p>該当するパーツがありません</p>
- <button
- onClick={() => onCreateNewPart(activeCategory)}
- className="text-emerald-700 dark:text-emerald-400 underline font-semibold text-[11px]"
- >
- このカテゴリで新規作成
- </button>
- </div>
- ) : (
- filteredParts.map((part) => {
- const isSelected = activePart?.id === part.id;
- const svgPath = contoursToSvgPath(part.contours);
-
- return (
- <div
- key={part.id}
- onClick={() => setSelectedPartId(part.id)}
- className={`group p-2 rounded-lg border flex items-center space-x-2.5 cursor-pointer transition-all ${
- isSelected
- ? isLight
- ? 'bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700/30'
- : 'bg-[#1e2d22] border-emerald-500 ring-1 ring-emerald-500/30'
- : isLight
- ? 'bg-white border-[#d8e6df] hover:border-emerald-600 hover:bg-[#fbfdfc]'
- : 'bg-[#18231c] border-[#25362b] hover:border-emerald-600 hover:bg-[#202e25]'
- }`}
- >
- {/* SVG Thumbnail Preview */}
- <div
- className={`w-12 h-12 rounded-md border shrink-0 flex items-center justify-center p-0.5 ${
- isLight ? 'bg-white border-stone-200' : 'bg-[#0f1711] border-[#2a3c30]'
- }`}
- >
- {part.contours && part.contours.length > 0 ? (
- <svg viewBox="0 0 1000 1000" className="w-full h-full">
- <path
- d={svgPath}
- fill={isSelected ? (isLight ? '#064e3b' : '#34d399') : isLight ? '#1f2937' : '#ecfdf5'}
- />
- </svg>
- ) : (
- <span className="text-[9px] text-stone-400 italic">空白</span>
- )}
- </div>
-
- {/* Part Name & Meta */}
- <div className="flex-1 min-w-0">
- <div className="flex items-center justify-between">
- <span className="text-xs font-bold truncate">{part.name}</span>
- {part.category && (
- <span
- className={`text-[9px] px-1.5 py-0.2 rounded font-medium ${
- isLight
- ? 'bg-stone-100 text-stone-600'
- : 'bg-[#25362b] text-emerald-300'
- }`}
- >
- {CATEGORY_TABS.find((c) => c.id === part.category)?.label.split(' ')[0] ||
- part.category}
- </span>
- )}
- </div>
- <div className="text-[10px] text-stone-400 mt-0.5 flex items-center justify-between">
- <span>輪郭: {part.contours?.length || 0}本</span>
- <span>
- {new Date(part.updatedAt || part.createdAt).toLocaleDateString('ja-JP', {
- month: 'numeric',
- day: 'numeric',
- })}
- </span>
- </div>
- </div>
-
- {/* Quick Actions (Duplicate / Delete) on hover */}
- <div className="flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity">
- <button
- onClick={(e) => onDuplicatePart(part, e)}
- className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-[#2d4032] text-stone-500 dark:text-stone-300"
- title="パーツを複製"
- >
- <Copy className="w-3 h-3" />
- </button>
- <button
- onClick={(e) => onDeletePart(part.id, e)}
- className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950/70 text-rose-500"
- title="パーツを削除"
- >
- <Trash2 className="w-3 h-3" />
- </button>
- </div>
- </div>
- );
- })
- )
- )}
- </div>
- </div>
- )}
+                    return (
+                      <PresetCard
+                        key={radical.id || radical.name}
+                        radical={radical}
+                        isLoadedInCanvas={isLoadedInCanvas}
+                        isLight={isLight}
+                        selectedFontStyle={selectedFontStyle}
+                        selectedChar={selectedChar}
+                        insertPlacement={insertPlacement}
+                        isLoadingPreset={isLoadingPreset}
+                        onLoadPreset={onLoadPreset}
+                        onInsertPresetDirectly={onInsertPresetDirectly}
+                      />
+                    );
+                  })}
+                  {filteredPresets.length > presetDisplayLimit && (
+                    <button
+                      type="button"
+                      onClick={() => setPresetDisplayLimit((prev) => prev + 45)}
+                      className={`w-full py-2 px-3 rounded-lg text-xs font-semibold border transition-colors flex items-center justify-center space-x-1 ${
+                        isLight
+                          ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-emerald-50 hover:border-emerald-300'
+                          : 'bg-[#152018] border-[#25382b] text-stone-300 hover:bg-[#1d2d22] hover:border-emerald-700'
+                      }`}
+                    >
+                      <span>さらに表示 (残り {filteredPresets.length - presetDisplayLimit} 件)</span>
+                    </button>
+                  )}
+                </>
+              )
+            ) : (
+              /* ================= MY CUSTOM PARTS VIEW ================= */
+              filteredParts.length === 0 ? (
+                <div className="py-12 text-center text-xs text-stone-400 space-y-2">
+                  <Shapes className="w-8 h-8 mx-auto opacity-40" />
+                  <p>該当するパーツがありません</p>
+                  <button
+                    onClick={() => onCreateNewPart(activeCategory)}
+                    className="text-emerald-700 dark:text-emerald-400 underline font-semibold text-[11px]"
+                  >
+                    このカテゴリで新規作成
+                  </button>
+                </div>
+              ) : (
+                filteredParts.map((part) => (
+                  <CustomPartCard
+                    key={part.id}
+                    part={part}
+                    isSelected={activePart?.id === part.id}
+                    isLight={isLight}
+                    onSelect={setSelectedPartId}
+                    onDuplicate={onDuplicatePart}
+                    onDelete={onDeletePart}
+                    contoursToSvgPath={contoursToSvgPath}
+                  />
+                ))
+              )
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
-};
+});
+RadicalLeftSidebar.displayName = 'RadicalLeftSidebar';

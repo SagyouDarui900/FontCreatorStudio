@@ -332,7 +332,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           id: generateId(),
           name: rad.name,
           category: rad.category as CustomPart['category'],
-          description: `高品質定番部首: ${rad.name} (${rad.char})`,
+          description: `定番部首: ${rad.name} (${rad.char})`,
           contours: JSON.parse(JSON.stringify(contours)),
           createdAt: Date.now(),
         });

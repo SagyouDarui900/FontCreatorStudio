@@ -45,7 +45,7 @@ export interface RadicalToolSettingsBarProps {
   isPenNearFirstNode: boolean;
 }
 
-export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = ({
+export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = React.memo(({
   toolMode,
   isLight,
   brushStyle,
@@ -472,4 +472,5 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = ({
  )}
  </div>
   );
-};
+});
+RadicalToolSettingsBar.displayName = 'RadicalToolSettingsBar';

@@ -187,12 +187,14 @@ export function pixelGridToContours(
 ): PathContour[] {
   const contours: PathContour[] = [];
 
-  const effectiveEm = ascender - descender;
-  const marginY = effectiveEm * marginPercent;
-  const marginX = advanceWidth * marginPercent;
+  if (width <= 0 || height <= 0 || !grid || grid.length === 0) return [];
 
-  const usableWidth = advanceWidth - 2 * marginX;
-  const usableHeight = effectiveEm - 2 * marginY;
+  const effectiveEm = Math.max(10, ascender - descender);
+  const marginY = effectiveEm * marginPercent;
+  const marginX = Math.max(10, advanceWidth) * marginPercent;
+
+  const usableWidth = Math.max(10, advanceWidth - 2 * marginX);
+  const usableHeight = Math.max(10, effectiveEm - 2 * marginY);
 
   const cellW = usableWidth / width;
   const cellH = usableHeight / height;
@@ -328,14 +330,40 @@ export function pixelGridToContours(
       rawPoints.push({ x: curr.x1, y: curr.y1 });
       const nextKey = pointKey(curr.x1, curr.y1);
       const candidates = edgeMap.get(nextKey) || [];
-      const nextEdge = candidates.find((cand) => !used.has(cand));
+      const available = candidates.filter((cand) => !used.has(cand));
 
-      if (nextEdge) {
-        used.add(nextEdge);
-        curr = nextEdge;
-      } else {
+      if (available.length === 0) {
         break;
       }
+
+      let nextEdge: Edge;
+      if (available.length === 1) {
+        nextEdge = available[0];
+      } else {
+        // When multiple edges branch (e.g. checkerboard diagonal contact),
+        // prioritize turning right (clockwise) to prevent figure-eight self-intersection.
+        const curDx = curr.x1 - curr.x0;
+        const curDy = curr.y1 - curr.y0;
+        let bestEdge = available[0];
+        let maxTurn = -Infinity;
+
+        for (const cand of available) {
+          const candDx = cand.x1 - cand.x0;
+          const candDy = cand.y1 - cand.y0;
+          // 2D cross product for turn direction: positive is right turn in SVG inverted Y coordinate
+          const cross = curDx * candDy - curDy * candDx;
+          const dot = curDx * candDx + curDy * candDy;
+          const angle = Math.atan2(cross, dot);
+          if (angle > maxTurn) {
+            maxTurn = angle;
+            bestEdge = cand;
+          }
+        }
+        nextEdge = bestEdge;
+      }
+
+      used.add(nextEdge);
+      curr = nextEdge;
     }
 
     if (rawPoints.length >= 3) {
@@ -387,6 +415,7 @@ export function rasterizeGlyphToPixelGrid(
   descender: number = -200,
   marginPercent: number = 0.08
 ): Uint8Array {
+  if (width <= 0 || height <= 0) return new Uint8Array(0);
   const grid = new Uint8Array(width * height);
   if (!glyph.contours || glyph.contours.length === 0) return grid;
 
@@ -398,12 +427,13 @@ export function rasterizeGlyphToPixelGrid(
   const ctx = canvas.getContext('2d');
   if (!ctx) return grid;
 
-  const effectiveEm = ascender - descender;
+  const effectiveEm = Math.max(10, ascender - descender);
   const marginY = effectiveEm * marginPercent;
-  const marginX = (glyph.advanceWidth || 1000) * marginPercent;
+  const advWidth = Math.max(10, glyph.advanceWidth || 1000);
+  const marginX = advWidth * marginPercent;
 
-  const usableWidth = (glyph.advanceWidth || 1000) - 2 * marginX;
-  const usableHeight = effectiveEm - 2 * marginY;
+  const usableWidth = Math.max(10, advWidth - 2 * marginX);
+  const usableHeight = Math.max(10, effectiveEm - 2 * marginY);
 
   const scaleX = width / usableWidth;
   const scaleY = height / usableHeight;

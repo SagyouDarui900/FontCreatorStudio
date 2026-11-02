@@ -50,7 +50,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+        className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col border overflow-hidden ${
           isLight
             ? 'bg-white border-stone-200 text-stone-800'
             : 'bg-[#121a14] border-[#25362b] text-emerald-100'
@@ -63,24 +63,24 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           }`}
         >
           <div className="flex items-center space-x-2 min-w-0">
-            <div className="p-1.5 rounded-lg bg-emerald-600 text-white shrink-0">
+            <div className="p-1.5 bg-emerald-600 text-white shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h2 className="text-xs sm:text-sm font-bold flex flex-wrap items-center gap-1.5">
-                <span>下絵・部首用フォントのライセンス一覧</span>
-                <span className="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-normal bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
-                  SIL OFL 1.1 準拠
+                <span>内蔵フォントライセンス情報</span>
+                <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-normal bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                  SIL OFL 1.1
                 </span>
               </h2>
               <p className="text-[10.5px] sm:text-[11px] text-stone-500 dark:text-stone-400 truncate">
-                本アプリに内蔵されている下絵用および部首抽出用フォントの権利・利用条件
+                下絵および部首抽出に使用されているフォントの権利・利用条件
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ml-2 ${
+            className={`p-1.5 transition-colors cursor-pointer shrink-0 ml-2 ${
               isLight
                 ? 'text-stone-400 hover:text-stone-700 hover:bg-stone-200'
                 : 'text-stone-400 hover:text-white hover:bg-[#25362b]'
@@ -90,22 +90,16 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           </button>
         </div>
 
-        {/* Legal & Commercial Safety Assurance Banner */}
+        {/* License Note */}
         <div
-          className={`p-3 sm:p-3.5 border-b shrink-0 text-xs flex items-start space-x-2.5 ${
-            isLight ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950' : 'bg-emerald-950/30 border-emerald-800/60 text-emerald-200'
+          className={`p-3 border-b shrink-0 text-xs flex items-start space-x-2 ${
+            isLight ? 'bg-stone-50 border-stone-200 text-stone-700' : 'bg-[#142017] border-[#25362b] text-stone-300'
           }`}
         >
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-          <div className="space-y-1 leading-relaxed">
-            <p className="font-bold text-[11.5px] sm:text-xs">
-              商用利用・改変・派生フォントの販売・無料配布は100%問題ありません
-            </p>
-            <p className="text-[10.5px] sm:text-[11px] opacity-90">
-              Font Creator Studio 内で下絵（お手本）として表示される書体や、部首スタジオでベクター輪郭として抽出される書体は、すべてオープンフォントライセンス（<strong>SIL Open Font License 1.1</strong>）に基づいて提供されています。
-              これらのフォントから輪郭をトレース・加工・合成して作成したフォントファイル（TTF / WOFF / SVG）は、商用・非商用問わず自由に公開・販売・組込配布いただけます。
-            </p>
-          </div>
+          <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-relaxed">
+            下絵の表示や部首のベクター輪郭抽出に使用している書体は、すべてオープンフォントライセンス（SIL Open Font License 1.1）に基づいて収録されています。
+          </p>
         </div>
 
         {/* Filter / Search Bar */}

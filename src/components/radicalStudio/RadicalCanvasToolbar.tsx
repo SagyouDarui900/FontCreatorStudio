@@ -85,7 +85,7 @@ export interface RadicalCanvasToolbarProps {
   activePart: CustomPart | null;
 }
 
-export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = ({
+export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.memo(({
   toolMode,
   setToolMode,
   activeShapeType,
@@ -764,4 +764,5 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = ({
  </div>
  </div>
   );
-};
+});
+RadicalCanvasToolbar.displayName = 'RadicalCanvasToolbar';

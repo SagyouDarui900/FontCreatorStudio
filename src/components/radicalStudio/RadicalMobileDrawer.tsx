@@ -70,7 +70,7 @@ export interface RadicalMobileDrawerProps {
   commitPartChange: (contours: PathContour[]) => void;
 }
 
-export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = ({
+export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.memo(({
   mobileSheetSnap,
   setMobileSheetSnap,
   mobileSheetTab,
@@ -632,4 +632,5 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = ({
  )}
  </div>
   );
-};
+});
+RadicalMobileDrawer.displayName = 'RadicalMobileDrawer';

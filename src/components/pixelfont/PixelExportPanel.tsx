@@ -92,20 +92,20 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             {/* 1. Direct OTF Font Export */}
             <button
               onClick={() => handleExportFontFile('otf')}
-              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-between active:scale-95 border border-emerald-400 min-h-[44px] cursor-pointer"
+              className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-between border border-emerald-400 min-h-[44px] cursor-pointer"
               title="作成したピクセルフォントを直接OTF形式でダウンロード (.otf)"
             >
               <span className="flex items-center space-x-2">
                 <Download className="w-4 h-4" />
                 <span>OTFフォント書き出し (.otf)</span>
               </span>
-              <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1.5 py-0.5 rounded-xs">OTF</span>
+              <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1.5 py-0.5">OTF</span>
             </button>
 
             {/* 2. Direct TTF Font Export */}
             <button
               onClick={() => handleExportFontFile('ttf')}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between active:scale-95 min-h-[44px] cursor-pointer ${
+              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
                 isLight
                   ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
                   : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
@@ -122,7 +122,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             {/* 3. Spritesheet */}
             <button
               onClick={handleExportSpritesheet}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between active:scale-95 min-h-[44px] cursor-pointer ${
+              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
                 isLight
                   ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
                   : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
@@ -138,7 +138,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             {/* 4. C/C++ Header */}
             <button
               onClick={handleExportCHeader}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between active:scale-95 min-h-[44px] cursor-pointer ${
+              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
                 isLight
                   ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
                   : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
@@ -154,7 +154,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             {/* 5. Single PNG */}
             <button
               onClick={handleExportSinglePng}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between active:scale-95 min-h-[44px] cursor-pointer ${
+              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
                 isLight
                   ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
                   : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
@@ -234,14 +234,14 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
           {/* 1. Direct OTF Font Export */}
           <button
             onClick={() => handleExportFontFile('otf')}
-            className="w-full py-2 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-between transition-all active:scale-95 border border-emerald-400 cursor-pointer"
+            className="w-full py-2 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-between border border-emerald-400 cursor-pointer"
             title="作成したピクセルフォントを直接OTF形式でダウンロード (.otf)"
           >
             <span className="flex items-center space-x-1.5">
               <Download className="w-3.5 h-3.5" />
               <span>OTFフォント書き出し</span>
             </span>
-            <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1 py-0.2 rounded-xs">.otf</span>
+            <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1 py-0.5">.otf</span>
           </button>
 
           {/* 2. Direct TTF Font Export */}
@@ -306,10 +306,6 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             ドットを打つたびにプロジェクトへ即座に記録されます。文字を切り替えても作業内容は保持されます。
           </div>
         </div>
-      </div>
-
-      <div className="text-[10px] text-stone-400 dark:text-stone-500 text-center pt-2 font-mono">
-        Bresenham・FloodFill・Spritesheet・C-Header出力対応
       </div>
     </div>
   );

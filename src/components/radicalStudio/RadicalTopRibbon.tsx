@@ -10,7 +10,7 @@ export interface RadicalTopRibbonProps {
   handleExtractFromCurrentGlyph: () => void;
 }
 
-export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = ({
+export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
   isLight,
   selectedChar,
   activePart,
@@ -112,4 +112,5 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = ({
       </div>
     </div>
   );
-};
+});
+RadicalTopRibbon.displayName = 'RadicalTopRibbon';

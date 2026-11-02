@@ -322,7 +322,7 @@ function AppMain({
   });
 
   return (
-    <div className={`h-screen w-screen flex flex-col font-sans select-none overflow-hidden pb-14 sm:pb-0 ${themeClasses.appBg} ${themeClasses.textPrimary}`}>
+    <div className={`h-full w-full max-h-full max-w-full flex flex-col font-sans select-none overflow-hidden pb-14 sm:pb-0 ${themeClasses.appBg} ${themeClasses.textPrimary}`}>
       {/* Top Main Navigation Header */}
       <Header
         project={project}
@@ -409,7 +409,7 @@ function AppMain({
         />
 
         {/* Center Canvas Workspace Area */}
-        <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden relative">
+        <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden relative">
           <ToolBar
             toolMode={toolMode}
             setToolMode={setToolMode}
@@ -432,7 +432,7 @@ function AppMain({
             activePenPreset={activePenPreset}
           />
 
-          <div className="flex-1 min-h-0 h-full relative overflow-hidden">
+          <div className="flex-1 min-h-0 w-full relative overflow-hidden">
             <GlyphCanvas
               contours={currentGlyph.contours || []}
               onChangeContours={handleUpdateContours}

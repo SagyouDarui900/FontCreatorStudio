@@ -51,7 +51,11 @@ export function parseSvgStringToContours(
   pathElements.forEach((path) => {
     const d = path.getAttribute('d');
     if (d) {
-      const parsed = parseSvgPathData(d);
+      let parsed = parseSvgPathData(d);
+      const transformAttr = path.getAttribute('transform');
+      if (transformAttr) {
+        parsed = applyElementTransform(parsed, transformAttr);
+      }
       contours.push(...parsed);
     }
   });
@@ -64,7 +68,12 @@ export function parseSvgStringToContours(
     const width = parseFloat(rect.getAttribute('width') || '0');
     const height = parseFloat(rect.getAttribute('height') || '0');
     if (width > 0 && height > 0) {
-      contours.push(createRectContourDirect(x, y, width, height));
+      let rectContour = [createRectContourDirect(x, y, width, height)];
+      const transformAttr = rect.getAttribute('transform');
+      if (transformAttr) {
+        rectContour = applyElementTransform(rectContour, transformAttr);
+      }
+      contours.push(...rectContour);
     }
   });
 
@@ -75,7 +84,12 @@ export function parseSvgStringToContours(
     const cy = parseFloat(c.getAttribute('cy') || '0');
     const r = parseFloat(c.getAttribute('r') || '0');
     if (r > 0) {
-      contours.push(createEllipseContourDirect(cx, cy, r, r));
+      let circleContour = [createEllipseContourDirect(cx, cy, r, r)];
+      const transformAttr = c.getAttribute('transform');
+      if (transformAttr) {
+        circleContour = applyElementTransform(circleContour, transformAttr);
+      }
+      contours.push(...circleContour);
     }
   });
 
@@ -86,7 +100,12 @@ export function parseSvgStringToContours(
     const rx = parseFloat(el.getAttribute('rx') || '0');
     const ry = parseFloat(el.getAttribute('ry') || '0');
     if (rx > 0 && ry > 0) {
-      contours.push(createEllipseContourDirect(cx, cy, rx, ry));
+      let ellipseContour = [createEllipseContourDirect(cx, cy, rx, ry)];
+      const transformAttr = el.getAttribute('transform');
+      if (transformAttr) {
+        ellipseContour = applyElementTransform(ellipseContour, transformAttr);
+      }
+      contours.push(...ellipseContour);
     }
   });
 
@@ -107,11 +126,16 @@ export function parseSvgStringToContours(
         });
       }
       if (nodes.length > 1) {
-        contours.push({
+        let polyContour = [{
           id: generateId(),
           closed: isClosed,
           nodes,
-        });
+        }];
+        const transformAttr = poly.getAttribute('transform');
+        if (transformAttr) {
+          polyContour = applyElementTransform(polyContour, transformAttr);
+        }
+        contours.push(...polyContour);
       }
     }
   });
@@ -362,6 +386,90 @@ export function parseSvgPathData(d: string): PathContour[] {
         break;
       }
 
+      case 'T': {
+        // Smooth Quadratic Bezier -> Elevate to Cubic Bezier
+        ensureContour();
+        while (argIdx + 1 < args.length) {
+          let qpx = currentPos.x;
+          let qpy = currentPos.y;
+          if (prevControlPoint) {
+            qpx = 2 * currentPos.x - prevControlPoint.x;
+            qpy = 2 * currentPos.y - prevControlPoint.y;
+          }
+
+          const x = isRelative ? currentPos.x + args[argIdx++] : args[argIdx++];
+          const y = isRelative ? currentPos.y + args[argIdx++] : args[argIdx++];
+
+          const cp1x = currentPos.x + (2 / 3) * (qpx - currentPos.x);
+          const cp1y = currentPos.y + (2 / 3) * (qpy - currentPos.y);
+          const cp2x = x + (2 / 3) * (qpx - x);
+          const cp2y = y + (2 / 3) * (qpy - y);
+
+          const lastNode = currentContour!.nodes[currentContour!.nodes.length - 1];
+          if (lastNode) {
+            lastNode.handleOut = { x: cp1x, y: cp1y };
+          }
+
+          const newNode: BezierNode = {
+            id: generateId(),
+            x,
+            y,
+            type: 'smooth',
+            handleIn: { x: cp2x, y: cp2y },
+          };
+          currentContour!.nodes.push(newNode);
+
+          prevControlPoint = { x: qpx, y: qpy };
+          currentPos = { x, y };
+        }
+        break;
+      }
+
+      case 'A': {
+        // Elliptical Arc -> Convert to Cubic Bezier segments
+        ensureContour();
+        while (argIdx + 6 < args.length) {
+          const rx = args[argIdx++];
+          const ry = args[argIdx++];
+          const angle = args[argIdx++];
+          const largeArcFlag = Boolean(args[argIdx++]);
+          const sweepFlag = Boolean(args[argIdx++]);
+          const endX = isRelative ? currentPos.x + args[argIdx++] : args[argIdx++];
+          const endY = isRelative ? currentPos.y + args[argIdx++] : args[argIdx++];
+
+          const segments = arcToBeziers(
+            currentPos.x,
+            currentPos.y,
+            rx,
+            ry,
+            angle,
+            largeArcFlag,
+            sweepFlag,
+            endX,
+            endY
+          );
+
+          for (const seg of segments) {
+            const lastNode = currentContour!.nodes[currentContour!.nodes.length - 1];
+            if (lastNode) {
+              lastNode.handleOut = { x: seg.cp1.x, y: seg.cp1.y };
+            }
+            const newNode: BezierNode = {
+              id: generateId(),
+              x: seg.end.x,
+              y: seg.end.y,
+              type: 'smooth',
+              handleIn: { x: seg.cp2.x, y: seg.cp2.y },
+            };
+            currentContour!.nodes.push(newNode);
+          }
+
+          currentPos = { x: endX, y: endY };
+          prevControlPoint = null;
+        }
+        break;
+      }
+
       case 'Z': {
         // Close Path
         if (currentContour) {
@@ -454,4 +562,154 @@ function createEllipseContourDirect(cx: number, cy: number, rx: number, ry: numb
       },
     ],
   };
+}
+
+interface BezierArcSegment {
+  cp1: Point;
+  cp2: Point;
+  end: Point;
+}
+
+function arcToBeziers(
+  x1: number,
+  y1: number,
+  rx: number,
+  ry: number,
+  angleDeg: number,
+  largeArcFlag: boolean,
+  sweepFlag: boolean,
+  x2: number,
+  y2: number
+): BezierArcSegment[] {
+  if (x1 === x2 && y1 === y2) return [];
+
+  let radX = Math.abs(rx);
+  let radY = Math.abs(ry);
+  if (radX === 0 || radY === 0) {
+    return [{
+      cp1: { x: x1, y: y1 },
+      cp2: { x: x2, y: y2 },
+      end: { x: x2, y: y2 },
+    }];
+  }
+
+  const phi = (angleDeg * Math.PI) / 180;
+  const cosPhi = Math.cos(phi);
+  const sinPhi = Math.sin(phi);
+
+  const dx = (x1 - x2) / 2;
+  const dy = (y1 - y2) / 2;
+  const x1p = cosPhi * dx + sinPhi * dy;
+  const y1p = -sinPhi * dx + cosPhi * dy;
+
+  const lambda = (x1p * x1p) / (radX * radX) + (y1p * y1p) / (radY * radY);
+  if (lambda > 1) {
+    const s = Math.sqrt(lambda);
+    radX *= s;
+    radY *= s;
+  }
+
+  const rxSq = radX * radX;
+  const rySq = radY * radY;
+  const x1pSq = x1p * x1p;
+  const y1pSq = y1p * y1p;
+
+  const num = rxSq * rySq - rxSq * y1pSq - rySq * x1pSq;
+  const denom = rxSq * y1pSq + rySq * x1pSq;
+  let factor = 0;
+  if (denom > 0 && num > 0) {
+    factor = Math.sqrt(num / denom);
+  }
+  if (largeArcFlag === sweepFlag) {
+    factor = -factor;
+  }
+
+  const cxp = factor * ((radX * y1p) / radY);
+  const cyp = factor * (-(radY * x1p) / radX);
+
+  const cx = cosPhi * cxp - sinPhi * cyp + (x1 + x2) / 2;
+  const cy = sinPhi * cxp + cosPhi * cyp + (y1 + y2) / 2;
+
+  const v1x = (x1p - cxp) / radX;
+  const v1y = (y1p - cyp) / radY;
+  const v2x = (-x1p - cxp) / radX;
+  const v2y = (-y1p - cyp) / radY;
+
+  const vectorAngle = (ux: number, uy: number, vx: number, vy: number) => {
+    const dot = ux * vx + uy * vy;
+    const len = Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
+    let a = Math.acos(Math.max(-1, Math.min(1, dot / (len || 1))));
+    if (ux * vy - uy * vx < 0) a = -a;
+    return a;
+  };
+
+  const theta1 = vectorAngle(1, 0, v1x, v1y);
+  let dTheta = vectorAngle(v1x, v1y, v2x, v2y);
+
+  if (!sweepFlag && dTheta > 0) {
+    dTheta -= 2 * Math.PI;
+  } else if (sweepFlag && dTheta < 0) {
+    dTheta += 2 * Math.PI;
+  }
+
+  const segments = Math.max(1, Math.ceil(Math.abs(dTheta) / (Math.PI / 2)));
+  const segDelta = dTheta / segments;
+  const result: BezierArcSegment[] = [];
+
+  for (let i = 0; i < segments; i++) {
+    const startAng = theta1 + i * segDelta;
+    const endAng = startAng + segDelta;
+    const halfDelta = segDelta / 2;
+    const alpha = (Math.sin(segDelta) * (Math.sqrt(4 + 3 * Math.tan(halfDelta) * Math.tan(halfDelta)) - 1)) / 3;
+
+    const cosS = Math.cos(startAng);
+    const sinS = Math.sin(startAng);
+    const cosE = Math.cos(endAng);
+    const sinE = Math.sin(endAng);
+
+    const ep1x = cosPhi * radX * cosS - sinPhi * radY * sinS + cx;
+    const ep1y = sinPhi * radX * cosS + cosPhi * radY * sinS + cy;
+    const ep2x = cosPhi * radX * cosE - sinPhi * radY * sinE + cx;
+    const ep2y = sinPhi * radX * cosE + cosPhi * radY * sinE + cy;
+
+    const dxS = -cosPhi * radX * sinS - sinPhi * radY * cosS;
+    const dyS = -sinPhi * radX * sinS + cosPhi * radY * cosS;
+    const dxE = -cosPhi * radX * sinE - sinPhi * radY * cosE;
+    const dyE = -sinPhi * radX * sinE + cosPhi * radY * cosE;
+
+    result.push({
+      cp1: { x: Math.round((ep1x + alpha * dxS) * 100) / 100, y: Math.round((ep1y + alpha * dyS) * 100) / 100 },
+      cp2: { x: Math.round((ep2x - alpha * dxE) * 100) / 100, y: Math.round((ep2y - alpha * dyE) * 100) / 100 },
+      end: { x: Math.round(ep2x * 100) / 100, y: Math.round(ep2y * 100) / 100 },
+    });
+  }
+
+  return result;
+}
+
+function applyElementTransform(contours: PathContour[], transformStr: string | null): PathContour[] {
+  if (!transformStr) return contours;
+  let t = contours;
+
+  // Support translate(tx, [ty])
+  const translateMatch = transformStr.match(/translate\(\s*([-\d.]+)(?:[,\s]+([-\d.]+))?\s*\)/);
+  if (translateMatch) {
+    const tx = parseFloat(translateMatch[1]);
+    const ty = translateMatch[2] ? parseFloat(translateMatch[2]) : 0;
+    if (!isNaN(tx) && !isNaN(ty)) {
+      t = transformContours(t, (p) => ({ x: p.x + tx, y: p.y + ty }));
+    }
+  }
+
+  // Support scale(sx, [sy])
+  const scaleMatch = transformStr.match(/scale\(\s*([-\d.]+)(?:[,\s]+([-\d.]+))?\s*\)/);
+  if (scaleMatch) {
+    const sx = parseFloat(scaleMatch[1]);
+    const sy = scaleMatch[2] ? parseFloat(scaleMatch[2]) : sx;
+    if (!isNaN(sx) && !isNaN(sy)) {
+      t = transformContours(t, (p) => ({ x: p.x * sx, y: p.y * sy }));
+    }
+  }
+
+  return t;
 }

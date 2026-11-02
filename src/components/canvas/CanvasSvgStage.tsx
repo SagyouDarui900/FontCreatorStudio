@@ -249,7 +249,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
 
   return (
     <svg
-      className="w-full h-full touch-none select-none"
+      className="absolute inset-0 w-full h-full touch-none select-none block"
       style={{
         touchAction: 'none',
         WebkitTouchCallout: 'none',

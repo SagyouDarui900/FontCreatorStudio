@@ -192,14 +192,24 @@ export function applyGridFittingToGlyph(
         targetY = n.y + (roundedY - n.y) * config.snapStrength;
       }
 
-      // Metrics Snapping (Baseline y=200/0, Cap Height y=700)
+      // Metrics Snapping (Baseline y=800, Cap Height y=300, Ascender y=200, Descender y=1000, Top y=0)
       if (config.snapMetrics) {
-        if (Math.abs(n.y - 200) < pixelSizeInUnits * 0.5) {
-          targetY = 200;
-        } else if (Math.abs(n.y - 0) < pixelSizeInUnits * 0.5) {
-          targetY = 0;
-        } else if (Math.abs(n.y - 700) < pixelSizeInUnits * 0.5) {
-          targetY = 700;
+        const baselineY = Math.round(upm * 0.8);
+        const capHeightY = Math.round(upm * 0.3);
+        const ascenderY = Math.round(upm * 0.2);
+        const descenderY = upm;
+        const threshold = pixelSizeInUnits * 0.5;
+
+        if (Math.abs(n.y - baselineY) < threshold) {
+          targetY = n.y + (baselineY - n.y) * config.snapStrength;
+        } else if (Math.abs(n.y - capHeightY) < threshold) {
+          targetY = n.y + (capHeightY - n.y) * config.snapStrength;
+        } else if (Math.abs(n.y - ascenderY) < threshold) {
+          targetY = n.y + (ascenderY - n.y) * config.snapStrength;
+        } else if (Math.abs(n.y - 0) < threshold) {
+          targetY = n.y + (0 - n.y) * config.snapStrength;
+        } else if (Math.abs(n.y - descenderY) < threshold) {
+          targetY = n.y + (descenderY - n.y) * config.snapStrength;
         }
       }
 

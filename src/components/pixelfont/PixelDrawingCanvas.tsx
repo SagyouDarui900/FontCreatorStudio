@@ -276,7 +276,7 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
   return (
     <div className="flex-1 flex items-center justify-center w-full h-full min-h-0 p-2 sm:p-4">
       <div
-        className="relative rounded-none overflow-hidden border-2 shadow-2xl touch-none flex items-center justify-center"
+        className="relative rounded-none overflow-hidden border-2 touch-none flex items-center justify-center"
         style={{
           borderColor: isLight ? '#047857' : '#34d399',
           maxHeight: 'calc(100vh - 180px)',

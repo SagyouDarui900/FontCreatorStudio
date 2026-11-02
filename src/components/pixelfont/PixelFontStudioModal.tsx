@@ -632,7 +632,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       <div
         className={`w-full ${
           isFullscreen ? 'h-full max-h-none' : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px]'
-        } rounded-none border-0 sm:border-2 shadow-2xl flex flex-col overflow-hidden select-none transition-colors ${
+        } rounded-none border-0 sm:border-2 flex flex-col overflow-hidden select-none transition-colors ${
           isLight ? 'bg-white border-stone-400 text-stone-900' : 'bg-[#0c130f] border-[#294232] text-emerald-100'
         }`}
       >
@@ -688,7 +688,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           <div className="flex items-center space-x-1.5 sm:space-x-2">
             <button
               onClick={() => handleExportFontFile('otf')}
-              className="px-2.5 py-1 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-1.5 border border-emerald-400 active:scale-95 transition-all cursor-pointer"
+              className="px-2.5 py-1 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-1.5 border border-emerald-400 transition-colors cursor-pointer"
               title="作成したピクセルフォントを直接OTF形式でダウンロード (.otf)"
             >
               <Download className="w-3.5 h-3.5" />
@@ -697,7 +697,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
             <button
               onClick={() => setShowGlyphDrawer(!showGlyphDrawer)}
-              className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${
                 showGlyphDrawer
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight
@@ -715,7 +715,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                 setShowTracePanel(!showTracePanel);
                 if (!showTrace) setShowTrace(true);
               }}
-              className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${
                 showTrace
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight
@@ -808,7 +808,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
             <button
               onClick={handleUndo}
               disabled={historyIdx <= 0}
-              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 disabled:opacity-30 active:scale-95 transition-all cursor-pointer"
+              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 disabled:opacity-30 transition-colors cursor-pointer"
               title="元に戻す"
             >
               <Undo2 className="w-4 h-4" />
@@ -816,14 +816,14 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
             <button
               onClick={handleRedo}
               disabled={historyIdx >= history.length - 1}
-              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 disabled:opacity-30 active:scale-95 transition-all cursor-pointer"
+              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 disabled:opacity-30 transition-colors cursor-pointer"
               title="やり直し"
             >
               <Redo2 className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 active:scale-95 transition-all cursor-pointer"
+              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
               title="閉じる"
             >
               <X className="w-5 h-5" />

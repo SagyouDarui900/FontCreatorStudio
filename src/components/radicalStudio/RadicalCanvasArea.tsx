@@ -94,7 +94,7 @@ export interface RadicalCanvasAreaProps {
   redoStack: any[];
 }
 
-export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = ({
+export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
   canvasContainerRef,
   svgCanvasRef,
   isLight,
@@ -179,6 +179,22 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = ({
     if (!activePart || !activePart.contours || activePart.contours.length === 0) return [];
     return groupContoursForRendering(activePart.contours);
   }, [activePart?.contours]);
+
+  const watermarkRenderGroups = useMemo(() => {
+    if (!showWatermark || !watermarkChar) return null;
+    const unicode = watermarkChar.codePointAt(0);
+    const bgGlyph = unicode !== undefined ? project.glyphs?.[unicode] : undefined;
+    if (bgGlyph && bgGlyph.contours && bgGlyph.contours.length > 0) {
+      return groupContoursForRendering(bgGlyph.contours);
+    }
+    if (project.glyphs) {
+      const found = Object.values(project.glyphs).find((g) => g?.char === watermarkChar);
+      if (found && found.contours && found.contours.length > 0) {
+        return groupContoursForRendering(found.contours);
+      }
+    }
+    return null;
+  }, [showWatermark, watermarkChar, project.glyphs]);
 
   return (
      <div ref={canvasContainerRef} className="flex-1 min-h-0 relative overflow-hidden bg-[#eaf2ec] dark:bg-[#0c130e]">
@@ -670,44 +686,35 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = ({
  : undefined
  }
  >
- {(() => {
- const allGlyphs = Object.values(project.glyphs || {}) as GlyphData[];
- const bgGlyph = allGlyphs.find((g) => g.char === watermarkChar || (watermarkChar && g.unicode === watermarkChar.codePointAt(0)));
- if (bgGlyph && bgGlyph.contours && bgGlyph.contours.length > 0) {
- return (
-   <>
-     {groupContoursForRendering(bgGlyph.contours).map((group) => (
-       <path
-         key={group.id}
-         d={group.d}
-         fill={isLight ? '#047857' : '#34d399'}
-         fillOpacity={watermarkOpacity}
-         fillRule={group.fillRule}
-         stroke={isLight ? '#059669' : '#10b981'}
-         strokeWidth={1.5}
-         strokeDasharray="4 4"
-         pointerEvents="none"
-       />
-     ))}
-   </>
- );
- }
- return (
- <text
- x={500}
- y={720}
- textAnchor="middle"
- fill={isLight ? '#10b981' : '#34d399'}
- fillOpacity={watermarkOpacity}
- fontSize={680}
- fontWeight="bold"
- pointerEvents="none"
- style={{ fontFamily: 'sans-serif' }}
- >
- {watermarkChar}
- </text>
- );
- })()}
+          {watermarkRenderGroups && watermarkRenderGroups.length > 0 ? (
+            watermarkRenderGroups.map((group) => (
+              <path
+                key={group.id}
+                d={group.d}
+                fill={isLight ? '#047857' : '#34d399'}
+                fillOpacity={watermarkOpacity}
+                fillRule={group.fillRule}
+                stroke={isLight ? '#059669' : '#10b981'}
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                pointerEvents="none"
+              />
+            ))
+          ) : (
+            <text
+              x={500}
+              y={720}
+              textAnchor="middle"
+              fill={isLight ? '#10b981' : '#34d399'}
+              fillOpacity={watermarkOpacity}
+              fontSize={680}
+              fontWeight="bold"
+              pointerEvents="none"
+              style={{ fontFamily: 'sans-serif' }}
+            >
+              {watermarkChar}
+            </text>
+          )}
  </g>
  )}
 
@@ -1083,4 +1090,5 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = ({
  </div>
  </div>
   );
-};
+});
+RadicalCanvasArea.displayName = 'RadicalCanvasArea';

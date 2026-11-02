@@ -258,10 +258,10 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4">
       <div
-        className={`flex flex-col min-h-0 bg-white dark:bg-[#18231c] text-stone-900 dark:text-stone-100 rounded-xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden transition-all duration-200 ${
-          isFullscreen ? 'w-full h-full rounded-none' : 'w-full max-w-5xl h-[92vh] max-h-[900px]'
+        className={`flex flex-col min-h-0 bg-white dark:bg-[#18231c] text-stone-900 dark:text-stone-100 border border-stone-300 dark:border-stone-800 overflow-hidden ${
+          isFullscreen ? 'w-full h-full' : 'w-full max-w-5xl h-[92vh] max-h-[900px]'
         }`}
       >
         {/* Header */}
@@ -270,7 +270,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={() => setShowPresetDrawer((prev) => !prev)}
-              className="p-1.5 rounded-md hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300 transition-colors flex items-center space-x-1 cursor-pointer"
+              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300 transition-colors flex items-center space-x-1 cursor-pointer"
               title="プリセット一覧を開く"
             >
               <span className="text-xs font-bold">ブラシ ({presets.length})</span>
@@ -286,7 +286,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                   type="text"
                   value={renameInput}
                   onChange={(e) => setRenameInput(e.target.value)}
-                  className="px-2 py-0.5 text-xs bg-white dark:bg-stone-900 border border-emerald-500 rounded text-stone-900 dark:text-stone-100 font-bold focus:outline-none"
+                  className="px-2 py-0.5 text-xs bg-white dark:bg-stone-900 border border-emerald-500 rounded-sm text-stone-900 dark:text-stone-100 font-bold focus:outline-none"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -313,7 +313,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                       saveUserPenPresets(next);
                     }
                   }}
-                  className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 rounded cursor-pointer"
+                  className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
@@ -327,7 +327,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                     setRenameInput(workingPreset.name);
                     setIsRenaming(true);
                   }}
-                  className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded transition-colors cursor-pointer"
+                  className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors cursor-pointer"
                   title="ブラシ名を変更"
                 >
                   <Edit2 className="w-3 h-3" />
@@ -338,11 +338,11 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
           <div className="flex items-center space-x-1.5">
             {/* Mobile View Switcher */}
-            <div className="flex md:hidden items-center bg-stone-200/80 dark:bg-stone-800 p-0.5 rounded-lg text-xs">
+            <div className="flex md:hidden items-center bg-stone-200/80 dark:bg-stone-800 p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setMobileView('params')}
-                className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                className={`px-2 py-0.5 font-bold transition-colors cursor-pointer ${
                   mobileView === 'params'
                     ? 'bg-white dark:bg-stone-900 text-emerald-600 dark:text-emerald-400'
                     : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
@@ -353,7 +353,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMobileView('scratchpad')}
-                className={`px-2 py-0.5 rounded-md font-bold transition-all flex items-center space-x-1 cursor-pointer ${
+                className={`px-2 py-0.5 font-bold transition-colors flex items-center space-x-1 cursor-pointer ${
                   mobileView === 'scratchpad'
                     ? 'bg-white dark:bg-stone-900 text-emerald-600 dark:text-emerald-400'
                     : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
@@ -368,7 +368,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen((prev) => !prev)}
-              className="p-1.5 rounded-md hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 dark:text-stone-400 transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 dark:text-stone-400 transition-colors cursor-pointer"
               title={isFullscreen ? '元に戻す' : '最大化'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -378,7 +378,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-rose-100 dark:hover:bg-rose-950/60 text-stone-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-stone-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
               title="閉じる"
             >
               <X className="w-4 h-4" />
@@ -564,7 +564,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               onApplyPreset(cleanDefault);
               showToast('ペン設定を完全な初期状態（標準筆）にリセットしました');
             }}
-            className="px-3 py-1.5 rounded-md text-xs font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer border border-transparent"
           >
             初期値に戻す
           </button>
@@ -574,7 +574,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <button
                 type="button"
                 onClick={handleOverwritePreset}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center space-x-1 cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center space-x-1 cursor-pointer border border-emerald-600"
                 title="選択中のプリセットに現在の設定を上書き保存します"
               >
                 <span>上書き保存</span>
@@ -583,14 +583,14 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={handleSaveAsNewPreset}
-              className="px-3 py-1.5 rounded-md text-xs font-semibold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
             >
               {isExistingCustomPreset ? '別名で新規保存' : '新規保存'}
             </button>
             <button
               type="button"
               onClick={handleApplyCurrentAndClose}
-              className="px-4 py-1.5 rounded-md text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+              className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center space-x-1.5 cursor-pointer border border-emerald-500"
             >
               <Check className="w-3.5 h-3.5" />
               <span>このペンを適用して閉じる</span>
@@ -600,7 +600,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
         {/* Floating Toast Notification */}
         {toastMessage && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-900/90 text-white text-xs font-medium rounded-full shadow-lg pointer-events-none z-50">
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-900/95 text-white text-xs font-medium border border-stone-700 pointer-events-none z-50">
             {toastMessage}
           </div>
         )}

@@ -1010,7 +1010,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
       <div
         ref={containerRef}
-        className={`relative flex-1 min-h-0 h-full w-full overflow-hidden select-none touch-none transition-colors ${
+        className={`relative flex-1 min-h-0 w-full overflow-hidden select-none touch-none transition-colors ${
           isLight ? 'bg-[#f0f4f1]' : 'bg-[#0c120e]'
         } ${isAnyModalOpen ? 'pointer-events-none' : ''}`}
         style={{

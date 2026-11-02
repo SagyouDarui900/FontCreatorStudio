@@ -95,6 +95,18 @@ export function useRadicalStudioState({
 
   const [selectedPartId, setSelectedPartId] = useState<string>(() => parts[0]?.id || '');
 
+  // Persist parts to localStorage with debouncing to avoid sync disk I/O on rapid edits
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(parts));
+      } catch (err) {
+        console.warn('Failed to save custom parts to localStorage:', err);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [parts]);
+
   const activePart = useMemo(() => {
     const found = parts.find((p) => p && p.id === selectedPartId) || parts[0] || null;
     if (!found) return null;
@@ -224,24 +236,26 @@ export function useRadicalStudioState({
   }, [activePart, redoStack]);
 
   // Create New Part
-  const handleCreateNewPart = (category: PartCategory = 'hen') => {
+  const handleCreateNewPart = useCallback((category: PartCategory = 'hen') => {
     const newId = generateId();
-    const newPart: CustomPart = {
-      id: newId,
-      name: `新規パーツ_${parts.length + 1}`,
-      category: category === 'all' ? 'hen' : category,
-      description: '',
-      contours: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    setParts((prev) => [newPart, ...prev]);
+    setParts((prev) => {
+      const newPart: CustomPart = {
+        id: newId,
+        name: `新規パーツ_${prev.length + 1}`,
+        category: category === 'all' ? 'hen' : category,
+        description: '',
+        contours: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return [newPart, ...prev];
+    });
     setSelectedPartId(newId);
     notify('新しいパーツを作成しました', 'success');
-  };
+  }, [notify]);
 
   // Duplicate Part
-  const handleDuplicatePart = (part: CustomPart, e?: React.MouseEvent) => {
+  const handleDuplicatePart = useCallback((part: CustomPart, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     const newId = generateId();
     const clonedContours: PathContour[] = part.contours.map((c) => ({
@@ -266,24 +280,24 @@ export function useRadicalStudioState({
     setParts((prev) => [cloned, ...prev]);
     setSelectedPartId(newId);
     notify(`「${part.name}」を複製しました`, 'success');
-  };
+  }, [notify]);
 
   // Delete Part
-  const handleDeletePart = (id: string, e?: React.MouseEvent) => {
+  const handleDeletePart = useCallback((id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const target = parts.find((p) => p.id === id);
-    if (!target) return;
-    if (parts.length <= 1) {
-      notify('最後のパーツは削除できません', 'warning');
-      return;
-    }
-    setParts((prev) => prev.filter((p) => p.id !== id));
-    if (selectedPartId === id) {
-      const remaining = parts.filter((p) => p.id !== id);
-      setSelectedPartId(remaining[0]?.id || '');
-    }
-    notify(`「${target.name}」を削除しました`, 'info');
-  };
+    setParts((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (!target) return prev;
+      if (prev.length <= 1) {
+        notify('最後のパーツは削除できません', 'warning');
+        return prev;
+      }
+      const remaining = prev.filter((p) => p.id !== id);
+      setSelectedPartId((curr) => (curr === id ? remaining[0]?.id || '' : curr));
+      notify(`「${target.name}」を削除しました`, 'info');
+      return remaining;
+    });
+  }, [notify]);
 
   // Magnetic guide & grid snapping helper
   const snapToGuides = useCallback(

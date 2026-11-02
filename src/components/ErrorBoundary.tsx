@@ -123,16 +123,16 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className={`min-h-screen w-full flex items-center justify-center p-6 font-sans ${bgClass}`}>
-          <div className={`max-w-md w-full rounded-2xl p-6 border flex flex-col items-center text-center ${cardClass}`}>
-            <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-4">
-              <AlertTriangle className="w-7 h-7" />
+          <div className={`max-w-md w-full p-6 border flex flex-col items-center text-center ${cardClass}`}>
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-4">
+              <AlertTriangle className="w-6 h-6" />
             </div>
-            <h1 className={`text-xl font-bold mb-2 ${titleClass}`}>画面の表示で予期せぬエラーが発生しました</h1>
+            <h1 className={`text-base font-bold mb-2 ${titleClass}`}>エラーが発生しました</h1>
             <p className={`text-xs mb-4 leading-relaxed ${subtitleClass}`}>
-              作業データの一時的な不整合または描画中に例外が生じました。初期化する前に、現在の作字データを安全にJSON保存できます。
+              画面描画中に例外が発生しました。初期化前にプロジェクトJSONを保存できます。
             </p>
             {this.state.error && (
-              <div className={`w-full max-h-28 overflow-y-auto p-2.5 rounded-lg text-left text-[11px] font-mono border mb-5 break-all ${errBoxClass}`}>
+              <div className={`w-full max-h-28 overflow-y-auto p-2.5 text-left text-[11px] font-mono border mb-5 break-all ${errBoxClass}`}>
                 {this.state.error.message || String(this.state.error)}
               </div>
             )}
@@ -142,14 +142,14 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleExportBackup}
-                className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                className={`w-full px-4 py-2 text-xs font-bold border transition-colors flex items-center justify-center gap-2 cursor-pointer ${
                   this.state.hasSavedBackup
                     ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-md'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
                 }`}
               >
                 <Download className="w-4 h-4" />
-                {this.state.hasSavedBackup ? '救済バックアップJSONを保存完了' : 'プロジェクトを救済保存 (JSONエクスポート)'}
+                {this.state.hasSavedBackup ? 'プロジェクトJSONを保存しました' : 'プロジェクトJSONを書き出す'}
               </button>
             </div>
 
@@ -157,7 +157,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="flex-1 px-4 py-2.5 bg-stone-800 hover:bg-stone-900 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer dark:bg-stone-700 dark:hover:bg-stone-600"
+                className="flex-1 px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer dark:bg-stone-700 dark:hover:bg-stone-600"
               >
                 <RotateCcw className="w-4 h-4" />
                 再読み込み
@@ -165,8 +165,8 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2.5 bg-stone-100 hover:bg-rose-50 hover:text-rose-700 text-stone-600 border border-stone-200 rounded-xl text-xs font-medium transition-colors cursor-pointer dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-rose-950 dark:hover:text-rose-300"
-                title="ローカル保存データを初期化して復元します"
+                className="px-4 py-2 bg-stone-100 hover:bg-rose-50 hover:text-rose-700 text-stone-600 border border-stone-200 text-xs font-medium transition-colors cursor-pointer dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                title="ローカル保存データを初期化します"
               >
                 キャッシュ初期化
               </button>

@@ -125,15 +125,15 @@ export const HeatmapTopBar: React.FC<HeatmapTopBarProps> = React.memo(({
 
         <button
           onClick={handleSafeOptimizeAll}
-          className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center space-x-1.5 border transition-colors ${
+          className={`px-3 py-1.5 font-bold text-xs flex items-center space-x-1.5 border transition-colors ${
             isLight
               ? 'bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'
           }`}
-          title="文字の形・角・筆先を保護しながら全体を安全に最適化します"
+          title="文字全体の過密ノードを一括最適化します"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>文字全体を安全最適化</span>
+          <span>文字全体を一括最適化</span>
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -66,7 +66,7 @@ export interface RadicalRightSidebarProps {
   notify: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
-export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = ({
+export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.memo(({
   isRightSidebarOpen,
   setIsRightSidebarOpen,
   rightTab,
@@ -103,6 +103,13 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = ({
   selectedUnicode,
   notify,
 }) => {
+  const previewGroups = useMemo(() => {
+    if (!activePart || !activePart.contours || activePart.contours.length === 0) return [];
+    return groupContoursForRendering(
+      transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category)
+    );
+  }, [activePart?.contours, insertPlacement, activePart?.category]);
+
   return (
     <>
               {!isRightSidebarOpen ? (
@@ -608,17 +615,15 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = ({
  </g>
  )}
 
- {/* Render Current Part positioned per insertPlacement */}
- {groupContoursForRendering(
-   transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category)
- ).map((group) => (
-   <path
-     key={group.id}
-     d={group.d}
-     fill={isLight ? '#064e3b' : '#34d399'}
-     fillRule={group.fillRule}
-   />
- ))}
+                    {/* Render Current Part positioned per insertPlacement */}
+                    {previewGroups.map((group) => (
+                      <path
+                        key={group.id}
+                        d={group.d}
+                        fill={isLight ? '#064e3b' : '#34d399'}
+                        fillRule={group.fillRule}
+                      />
+                    ))}
  </svg>
  </div>
  <p className="text-[10.5px] text-stone-500 leading-relaxed text-center break-words">
@@ -877,4 +882,5 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = ({
  )}
     </>
   );
-};
+});
+RadicalRightSidebar.displayName = 'RadicalRightSidebar';

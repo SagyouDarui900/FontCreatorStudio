@@ -56,41 +56,58 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
 
   // Auto-center canvas on initial mount, resize, or drawer toggle with optimal zoom
   const resetView = useCallback(
-    (mode: 'fit' | 'width' | '100%' = 'fit') => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) return;
+    (mode: 'fit' | 'width' | '100%' = 'fit', explicitW?: number, explicitH?: number) => {
+      let cWidth = explicitW && explicitW > 0 ? explicitW : 0;
+      let cHeight = explicitH && explicitH > 0 ? explicitH : 0;
 
-        if (mode === '100%') {
-          setZoom(1.0);
-          setPan({
-            x: (rect.width - upm) / 2,
-            y: (rect.height - upm) / 2,
-          });
-          return;
+      if (cWidth <= 0 || cHeight <= 0) {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          if (rect.width > 0) cWidth = rect.width;
+          if (rect.height > 0) cHeight = rect.height;
         }
-
-        if (mode === 'width') {
-          const margin = rect.width < 640 ? 12 : 24;
-          const widthZoom = Math.max(0.35, Math.min(3.5, (rect.width - margin) / upm));
-          setZoom(widthZoom);
-          setPan({
-            x: (rect.width - upm * widthZoom) / 2,
-            y: Math.max(16, (rect.height - upm * widthZoom) / 2),
-          });
-          return;
-        }
-
-        // Default 'fit': comfortable, optimal margin (12px on mobile, 28px on desktop/iPad)
-        const margin = rect.width < 640 ? 12 : 28;
-        const idealZoom = Math.min((rect.width - margin) / upm, (rect.height - margin) / upm);
-        const clampedZoom = Math.max(0.35, Math.min(3.5, idealZoom));
-        setZoom(clampedZoom);
-        setPan({
-          x: (rect.width - upm * clampedZoom) / 2,
-          y: (rect.height - upm * clampedZoom) / 2,
-        });
       }
+
+      // Safe fallback if measured in an unlaid-out iframe container
+      if (cWidth <= 0) {
+        cWidth = containerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 800) || 800;
+      }
+      if (cHeight <= 0) {
+        cHeight = containerRef.current?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight - 100 : 600) || 600;
+      }
+
+      if (mode === '100%') {
+        setZoom(1.0);
+        setPan({
+          x: Math.round((cWidth - upm) / 2),
+          y: Math.round((cHeight - upm) / 2),
+        });
+        return;
+      }
+
+      if (mode === 'width') {
+        const margin = cWidth < 640 ? 12 : 24;
+        const widthZoom = Math.max(0.35, Math.min(3.5, (cWidth - margin) / upm));
+        setZoom(widthZoom);
+        setPan({
+          x: Math.round((cWidth - upm * widthZoom) / 2),
+          y: Math.round(Math.max(16, (cHeight - upm * widthZoom) / 2)),
+        });
+        return;
+      }
+
+      // Default 'fit': comfortable, optimal margin (12px on mobile, 28px on desktop/iPad)
+      const margin = cWidth < 640 ? 12 : 28;
+      const idealZoom = Math.min(
+        Math.max(0.1, (cWidth - margin) / upm),
+        Math.max(0.1, (cHeight - margin) / upm)
+      );
+      const clampedZoom = Math.max(0.35, Math.min(3.5, idealZoom));
+      setZoom(clampedZoom);
+      setPan({
+        x: Math.round((cWidth - upm * clampedZoom) / 2),
+        y: Math.round((cHeight - upm * clampedZoom) / 2),
+      });
     },
     [upm]
   );
@@ -158,13 +175,22 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
     const handleInvalidateContainerRect = () => {
       containerRectRef.current = null;
     };
-    window.addEventListener('resize', handleInvalidateContainerRect);
+    const handleWindowResize = () => {
+      containerRectRef.current = null;
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          resetView('fit', rect.width, rect.height);
+        }
+      }
+    };
+    window.addEventListener('resize', handleWindowResize);
     window.addEventListener('scroll', handleInvalidateContainerRect);
     return () => {
-      window.removeEventListener('resize', handleInvalidateContainerRect);
+      window.removeEventListener('resize', handleWindowResize);
       window.removeEventListener('scroll', handleInvalidateContainerRect);
     };
-  }, []);
+  }, [resetView]);
 
   // Auto-recenter and fit canvas whenever project UPM (canvas size) changes
   const prevUpmRef = useRef<number>(upm);
@@ -175,9 +201,23 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
     }
   }, [upm, resetView]);
 
-  // Auto-fit on initial mount
+  // Auto-fit on initial mount with rAF and timeouts to handle iframe layout delays
   useEffect(() => {
     resetView('fit');
+    const rafId = requestAnimationFrame(() => {
+      resetView('fit');
+    });
+    const t1 = setTimeout(() => {
+      resetView('fit');
+    }, 60);
+    const t2 = setTimeout(() => {
+      resetView('fit');
+    }, 240);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [resetView]);
 
   // ResizeObserver to adapt cleanly when sidebar drawers slide open or close, or orientation changes
@@ -188,8 +228,8 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
           const prev = containerDimensionsRef.current;
-          if (prev.width === 0) {
-            resetView('fit');
+          if (prev.width === 0 || prev.height === 0 || Math.abs(prev.width - width) > 100) {
+            resetView('fit', width, height);
           } else {
             setPan((prevPan) => clampPan(prevPan, zoomRef.current));
           }

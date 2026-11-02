@@ -617,15 +617,21 @@ export function useRadicalOperations({
         const partName = `${item.name} (${selectedFontStyle.label})`;
         if (!existingNames.has(item.name) && !existingNames.has(partName)) {
           let contours: PathContour[] = [];
-          try {
-            contours = await getOrExtractRadicalContours(
-              item.char,
-              'full',
-              selectedFontStyle.fontFamily,
-              selectedFontStyle.fontWeight
-            );
-          } catch {
-            // fallback
+          // Fast path: Check predefined authentic contours first
+          const fallbackRad = KANJI_RADICALS.find((r) => r.name === item.name || r.char === item.char);
+          if (fallbackRad && fallbackRad.contours && fallbackRad.contours.length > 0) {
+            contours = JSON.parse(JSON.stringify(fallbackRad.contours));
+          } else {
+            try {
+              contours = await getOrExtractRadicalContours(
+                item.char,
+                'full',
+                selectedFontStyle.fontFamily,
+                selectedFontStyle.fontWeight
+              );
+            } catch {
+              // fallback
+            }
           }
           if (contours && contours.length > 0) {
             toAdd.push({
@@ -637,6 +643,9 @@ export function useRadicalOperations({
               createdAt: Date.now(),
               updatedAt: Date.now(),
             });
+          }
+          if (toAdd.length % 8 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }
       }
@@ -739,14 +748,17 @@ export function useRadicalOperations({
   };
 
   const handleRotatePart = (angleDeg: number) => {
-    if (!activePart) return;
+    if (!activePart || activePart.contours.length === 0) return;
     if (selectedContourId) {
       const updated = activePart.contours.map((c) =>
         c.id === selectedContourId ? rotateSingleContour(c, angleDeg) : c
       );
       commitPartChange(updated);
     } else {
-      const updated = activePart.contours.map((c) => rotateSingleContour(c, angleDeg, 500, 500));
+      const bbox = getContoursBoundingBox(activePart.contours);
+      const cx = bbox.width > 0 ? bbox.centerX : 500;
+      const cy = bbox.height > 0 ? bbox.centerY : 500;
+      const updated = activePart.contours.map((c) => rotateSingleContour(c, angleDeg, cx, cy));
       commitPartChange(updated);
     }
   };

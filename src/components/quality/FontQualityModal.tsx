@@ -554,7 +554,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
                   {report && totalAutoFixableCount > 0 && (
                     <button
                       onClick={() => handleBatchFix(undefined)}
-                      title="安全な修正（白抜き解消・極点最適化・線幅均一化・ベースライン整列）を一括実行します"
+                      title="修正（白抜き解消・極点最適化・線幅均一化・ベースライン整列）を一括実行します"
                       className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all active:scale-98 cursor-pointer ${
                         isLight
                           ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-800'
@@ -1178,7 +1178,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
                         {issue.canAutoFix && (
                           <button
                             onClick={() => handleFixIssue(issue)}
-                            title="文字の形や角・曲率を崩さずに安全に修正します"
+                            title="輪郭の重なりや極点を自動修正します"
                             className={`w-full sm:w-auto px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-all shrink-0 cursor-pointer ${
                               issue.autoFixType === 'merge_intersection'
                                 ? isLight
@@ -1216,7 +1216,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
                             ) : (
                               <>
                                 <Wand2 className="w-3.5 h-3.5" />
-                                <span>安全修正</span>
+                                <span>自動修正</span>
                               </>
                             )}
                           </button>
@@ -1267,7 +1267,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
         >
           <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400 text-[11px] leading-relaxed">
             <span className="hidden md:inline">
-              ※ 赤破線はベースライン (Y=800)。形状保護モードで安全に最適化。「元に戻す (Ctrl+Z)」でいつでも取り消せます。
+              ※ 赤破線はベースライン (Y=800)。「元に戻す (Ctrl+Z)」でいつでも取り消せます。
             </span>
             <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-200/60 dark:bg-stone-800/80 font-mono text-[10px] text-stone-600 dark:text-stone-300">
               <kbd className="font-bold">D</kbd>: 診断切替

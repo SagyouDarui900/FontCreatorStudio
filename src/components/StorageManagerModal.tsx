@@ -237,11 +237,11 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
  <span>保存・バックアップ管理</span>
  <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-mono">
- 容量制限対策 & 履歴
+ 容量と履歴
  </span>
  </h2>
  <p className="text-[11px] text-stone-500 dark:text-stone-400">
- ブラウザ保存容量（約5MB）の監視・スナップショット履歴の復元・安全なJSON外部書き出し
+ ブラウザ保存容量の確認、スナップショット履歴の復元、JSON入出力を行います
  </p>
  </div>
  </div>
@@ -427,7 +427,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  }`}
  >
  <Info className="w-3.5 h-3.5" />
- <span>容量制限・安全保存ガイド</span>
+ <span>保存仕様</span>
  </button>
  </div>
 
@@ -610,9 +610,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  }`}>
  <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
  <div>
- <div className="font-bold mb-0.5">IndexedDB 大容量常時オートセーブ（二重化インフラ）</div>
+ <div className="font-bold mb-0.5">IndexedDB オートセーブ履歴</div>
  <p className="text-[11px] opacity-90">
- 編集中の変更はバックグラウンドで IndexedDB（最大500MB+）へリアルタイム自動保存されています。ブラウザクラッシュや誤閉じ・タブ切り替え時も直前のデータが安全に保護され、いつでも任意の保存時点へ1クリック復元可能です。
+ 編集データは IndexedDB に自動保存されます。直近の保存時点を選択して復元できます。
  </p>
  </div>
  </div>

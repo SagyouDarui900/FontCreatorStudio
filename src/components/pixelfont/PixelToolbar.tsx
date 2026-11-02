@@ -71,9 +71,9 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
               <button
                 key={t.id}
                 onClick={() => setTool(t.id)}
-                className={`flex-1 min-w-[42px] min-h-[40px] flex flex-col items-center justify-center p-1 border transition-all cursor-pointer ${
+                className={`flex-1 min-w-[42px] min-h-[40px] flex flex-col items-center justify-center p-1 border transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-emerald-600 text-white border-emerald-500 scale-105'
+                    ? 'bg-emerald-600 text-white border-emerald-500'
                     : isLight
                     ? 'bg-stone-50 text-stone-700 border-stone-300'
                     : 'bg-[#142018] text-stone-300 border-stone-800'
@@ -172,7 +172,7 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
           <button
             key={t.id}
             onClick={() => setTool(t.id)}
-            className={`p-2 border transition-all relative cursor-pointer ${
+            className={`p-2 border transition-colors relative cursor-pointer ${
               isSelected
                 ? 'bg-emerald-600 text-white border-emerald-500'
                 : isLight
@@ -235,7 +235,7 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
       {/* Symmetry Toggles */}
       <button
         onClick={() => setSymmetryH(!symmetryH)}
-        className={`p-2 border text-xs font-bold transition-all cursor-pointer ${
+        className={`p-2 border text-xs font-bold transition-colors cursor-pointer ${
           symmetryH
             ? 'bg-emerald-600 text-white border-emerald-500'
             : isLight
@@ -249,7 +249,7 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
 
       <button
         onClick={() => setSymmetryV(!symmetryV)}
-        className={`p-2 border text-xs font-bold transition-all cursor-pointer ${
+        className={`p-2 border text-xs font-bold transition-colors cursor-pointer ${
           symmetryV
             ? 'bg-emerald-600 text-white border-emerald-500'
             : isLight

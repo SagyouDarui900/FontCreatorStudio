@@ -210,21 +210,21 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-50 ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 select-none'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${
           isFullscreen
             ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
+              ? 'w-screen h-screen bg-[#f7faf8] text-stone-800'
+              : 'w-screen h-screen bg-[#151e18] text-emerald-100'
             : isLight
-            ? 'w-full max-w-2xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-2xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
+            : 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
         }`}
       >
         {/* Header */}
@@ -242,7 +242,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             >
               <span>SVGインポート & 画像ベクター化スタジオ</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-medium">
                   全画面モード
                 </span>
               )}
@@ -252,7 +252,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors ${
+              className={`p-1 px-2 border text-xs font-semibold flex items-center space-x-1 transition-colors ${
                 isFullscreen
                   ? isLight
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
@@ -277,7 +277,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 rounded-lg border transition-colors ${
+              className={`p-1 border transition-colors ${
                 isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
               }`}
               title="閉じる (Esc)"
@@ -295,12 +295,12 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
         >
           <button
             onClick={() => setActiveTab('vectorizer')}
-            className={`py-2 px-2 sm:px-3 rounded flex items-center justify-center space-x-1.5 sm:space-x-2 transition-all ${
+            className={`py-2 px-2 sm:px-3 border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors ${
               activeTab === 'vectorizer'
                 ? isLight
-                  ? 'bg-white text-emerald-950 shadow-xs font-bold'
-                  : 'bg-[#1c2920] text-emerald-300 shadow-xs font-bold'
-                : 'text-stone-600 dark:text-stone-400 hover:text-emerald-800'
+                  ? 'bg-white border-stone-300 text-emerald-950 font-bold'
+                  : 'bg-[#1c2920] border-emerald-700 text-emerald-300 font-bold'
+                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-emerald-800'
             }`}
           >
             <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -309,12 +309,12 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
           <button
             onClick={() => setActiveTab('svg_import')}
-            className={`py-2 px-2 sm:px-3 rounded flex items-center justify-center space-x-1.5 sm:space-x-2 transition-all ${
+            className={`py-2 px-2 sm:px-3 border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors ${
               activeTab === 'svg_import'
                 ? isLight
-                  ? 'bg-white text-emerald-950 shadow-xs font-bold'
-                  : 'bg-[#1c2920] text-emerald-300 shadow-xs font-bold'
-                : 'text-stone-600 dark:text-stone-400 hover:text-emerald-800'
+                  ? 'bg-white border-stone-300 text-emerald-950 font-bold'
+                  : 'bg-[#1c2920] border-emerald-700 text-emerald-300 font-bold'
+                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-emerald-800'
             }`}
           >
             <FileCode className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -340,10 +340,10 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               />
               <button
                 onClick={() => imgFileInputRef.current?.click()}
-                className={`py-2 px-3 rounded-md border flex items-center space-x-1.5 font-bold ${
+                className={`py-2 px-3 border flex items-center space-x-1.5 font-bold ${
                   isLight
-                    ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900 shadow-xs'
-                    : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600 shadow-xs'
+                    ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900'
+                    : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600'
                 }`}
               >
                 <Upload className="w-3.5 h-3.5" />
@@ -352,7 +352,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
               <button
                 onClick={handlePasteClipboard}
-                className={`py-2 px-3 rounded-md border flex items-center space-x-1.5 ${
+                className={`py-2 px-3 border flex items-center space-x-1.5 ${
                   isLight
                     ? 'bg-white border-stone-300 hover:bg-emerald-50'
                     : 'bg-[#1a261f] border-[#25362b] hover:bg-[#223127]'
@@ -365,7 +365,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               {rawImageSrc && (
                 <button
                   onClick={() => setShowOriginalOverlay(!showOriginalOverlay)}
-                  className={`py-2 px-2.5 rounded-md border flex items-center space-x-1 ${
+                  className={`py-2 px-2.5 border flex items-center space-x-1 ${
                     showOriginalOverlay
                       ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-600 font-bold'
                       : 'border-stone-300 dark:border-stone-700'
@@ -381,7 +381,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="space-y-3">
                 <div
                   onClick={() => imgFileInputRef.current?.click()}
-                  className={`p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center space-y-3 cursor-pointer text-center transition-all ${
+                  className={`p-8 border-2 border-dashed flex flex-col items-center justify-center space-y-3 cursor-pointer text-center transition-colors ${
                     isLight
                       ? 'border-emerald-300 bg-white/70 hover:bg-emerald-50/50'
                       : 'border-emerald-800/60 bg-[#101813] hover:bg-[#141f18]'
@@ -398,7 +398,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
                 {/* Recommended Image Specification Guide */}
                 <div
-                  className={`p-3.5 rounded-lg border text-[11px] space-y-2 ${
+                  className={`p-3.5 border text-[11px] space-y-2 ${
                     isLight
                       ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
                       : 'bg-[#101b14] border-emerald-800/60 text-emerald-200'
@@ -435,7 +435,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 {/* Vectorizer Preview */}
                 <div
-                  className={`relative aspect-square border rounded-md overflow-hidden flex items-center justify-center ${
+                  className={`relative aspect-square border overflow-hidden flex items-center justify-center ${
                     isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#0f1611] border-[#25362b]'
                   }`}
                 >
@@ -480,7 +480,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 {/* Parameters Controls */}
                 <div className="space-y-3.5">
                   <div
-                    className={`p-3 rounded-md border space-y-3 ${
+                    className={`p-3 border space-y-3 ${
                       isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#121c15] border-[#25362b]'
                     }`}
                   >
@@ -555,7 +555,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         type="checkbox"
                         checked={invert}
                         onChange={(e) => setInvert(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-700"
+                        className="w-4 h-4 accent-emerald-700 rounded-sm"
                       />
                     </div>
                   </div>
@@ -568,12 +568,12 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         onClose();
                       }}
                       disabled={vectorContours.length === 0}
-                      className={`w-full py-2.5 px-3 rounded-md font-bold flex items-center justify-center space-x-1.5 transition-colors ${
+                      className={`w-full py-2.5 px-3 font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
                         vectorContours.length === 0
-                          ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                          ? 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
                           : isLight
-                          ? 'bg-emerald-800 hover:bg-emerald-900 text-white shadow-xs'
-                          : 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs'
+                          ? 'bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900'
+                          : 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-600'
                       }`}
                     >
                       <Check className="w-4 h-4" />
@@ -587,7 +587,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                           onClose();
                         }}
                         disabled={vectorContours.length === 0}
-                        className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
+                        className={`py-2 px-2.5 border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
                           isLight
                             ? 'bg-white border-emerald-700 text-emerald-950 hover:bg-emerald-50'
                             : 'bg-[#18231c] border-emerald-600 text-emerald-200 hover:bg-[#202d24]'
@@ -600,7 +600,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                       <button
                         onClick={handleDownloadSvg}
                         disabled={!generatedSvgString}
-                        className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
+                        className={`py-2 px-2.5 border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
                           isLight
                             ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
                             : 'bg-[#18231c] border-[#25362b] text-stone-300 hover:bg-[#202d24]'
@@ -636,7 +636,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => svgFileInputRef.current?.click()}
-                  className={`py-2 px-3 rounded-md border flex items-center space-x-1.5 font-bold ${
+                  className={`py-2 px-3 border flex items-center space-x-1.5 font-bold transition-colors ${
                     isLight
                       ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900'
                       : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600'
@@ -648,7 +648,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
                 <button
                   onClick={handlePasteClipboard}
-                  className={`py-2 px-3 rounded-md border flex items-center space-x-1.5 ${
+                  className={`py-2 px-3 border flex items-center space-x-1.5 transition-colors ${
                     isLight
                       ? 'bg-white border-stone-300 hover:bg-emerald-50'
                       : 'bg-[#1a261f] border-[#25362b] hover:bg-[#223127]'
@@ -667,7 +667,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                     setFitToEm(e.target.checked);
                     if (svgText) handleSvgTextChange(svgText);
                   }}
-                  className="w-4 h-4 accent-emerald-700 rounded"
+                  className="w-4 h-4 accent-emerald-700 /* 入力要素 */ rounded-xs"
                 />
                 <span>1000×1000 EM枠に自動フィット</span>
               </label>
@@ -681,7 +681,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   value={svgText}
                   onChange={(e) => handleSvgTextChange(e.target.value)}
                   placeholder={`<svg viewBox="0 0 1000 1000">\n  <path d="M 100 100 L 900 100 ..." />\n</svg>`}
-                  className={`flex-1 min-h-[220px] p-2.5 rounded-md border font-mono text-[11px] leading-relaxed resize-none ${
+                  className={`flex-1 min-h-[220px] p-2.5 rounded-sm /* 入力のみ最大rounded-sm */ border font-mono text-[11px] leading-relaxed resize-none ${
                     isLight
                       ? 'bg-white border-stone-300 text-stone-800'
                       : 'bg-[#101813] border-[#25362b] text-emerald-100'
@@ -696,7 +696,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="space-y-3 flex flex-col">
                 <span className="text-[11px] font-bold">抽出プレビュー:</span>
                 <div
-                  className={`flex-1 min-h-[220px] border rounded-md flex items-center justify-center p-2 relative ${
+                  className={`flex-1 min-h-[220px] border flex items-center justify-center p-2 relative ${
                     isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#0f1611] border-[#25362b]'
                   }`}
                 >
@@ -723,12 +723,12 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                       onClose();
                     }}
                     disabled={svgParsedContours.length === 0}
-                    className={`py-2 px-3 rounded-md font-bold flex items-center justify-center space-x-1.5 transition-colors ${
+                    className={`py-2 px-3 font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
                       svgParsedContours.length === 0
-                        ? 'bg-stone-300 text-stone-500 cursor-not-allowed'
+                        ? 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
                         : isLight
-                        ? 'bg-emerald-800 hover:bg-emerald-900 text-white'
-                        : 'bg-emerald-700 hover:bg-emerald-600 text-white'
+                        ? 'bg-emerald-800 hover:bg-emerald-900 border-emerald-900 text-white'
+                        : 'bg-emerald-700 hover:bg-emerald-600 border-emerald-600 text-white'
                     }`}
                   >
                     <Check className="w-4 h-4" />
@@ -741,7 +741,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                       onClose();
                     }}
                     disabled={svgParsedContours.length === 0}
-                    className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1 font-semibold ${
+                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1 font-semibold transition-colors ${
                       svgParsedContours.length === 0
                         ? 'border-stone-300 text-stone-400 cursor-not-allowed'
                         : isLight

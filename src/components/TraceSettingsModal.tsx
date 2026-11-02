@@ -147,21 +147,21 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-50 ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 select-none'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${
           isFullscreen
             ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
+              ? 'w-screen h-screen bg-[#f7faf8] text-stone-800'
+              : 'w-screen h-screen bg-[#151e18] text-emerald-100'
             : isLight
-            ? 'w-full max-w-lg xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-lg xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? 'w-full max-w-lg xl:max-w-2xl border max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
+            : 'w-full max-w-lg xl:max-w-2xl border max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
         }`}
       >
         {/* Header */}
@@ -179,7 +179,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             >
               <span className="truncate">下絵・レタリングトレース設定</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-medium shrink-0">
                   全画面
                 </span>
               )}
@@ -189,7 +189,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors ${
+              className={`p-1 px-2 border text-xs font-semibold flex items-center space-x-1 transition-colors ${
                 isFullscreen
                   ? isLight
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
@@ -214,7 +214,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 rounded-lg border transition-colors ${
+              className={`p-1 border transition-colors ${
                 isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
               }`}
               title="閉じる (Esc)"
@@ -228,7 +228,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3.5 text-xs">
           {/* Toggle Enable */}
           <div
-            className={`flex items-center justify-between p-2.5 rounded-md border ${
+            className={`flex items-center justify-between p-2.5 border ${
               isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
             }`}
           >
@@ -242,7 +242,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
               type="checkbox"
               checked={Boolean(traceSettings?.enabled)}
               onChange={(e) => setTraceSettings((s) => ({ ...s, enabled: e.target.checked }))}
-              className="w-4 h-4 accent-emerald-700 rounded"
+              className="w-4 h-4 accent-emerald-700 rounded-sm"
             />
           </div>
 
@@ -250,11 +250,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
-              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 min-w-0 transition-all ${
+              className={`p-2.5 border flex flex-col items-center space-y-1 min-w-0 transition-colors ${
                 traceSettings.type === 'image'
                   ? isLight
-                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold shadow-xs'
-                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold shadow-xs'
+                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold'
+                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold'
                   : isLight
                   ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
                   : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
@@ -266,11 +266,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'char' }))}
-              className={`p-2.5 rounded-md border flex flex-col items-center space-y-1 min-w-0 transition-all ${
+              className={`p-2.5 border flex flex-col items-center space-y-1 min-w-0 transition-colors ${
                 traceSettings.type === 'char'
                   ? isLight
-                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold shadow-xs'
-                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold shadow-xs'
+                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold'
+                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold'
                   : isLight
                   ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
                   : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
@@ -286,7 +286,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             <div className="space-y-3">
               {/* Photo Upload & Camera Buttons */}
               <div
-                className={`p-3 rounded-md border space-y-2.5 ${
+                className={`p-3 border space-y-2.5 ${
                   isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
                 }`}
               >
@@ -309,7 +309,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1.5 transition-colors ${
+                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
                       isLight
                         ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
                         : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
@@ -321,7 +321,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                   <button
                     onClick={() => cameraInputRef.current?.click()}
-                    className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1.5 transition-colors ${
+                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
                       isLight
                         ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
                         : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
@@ -333,7 +333,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                   <button
                     onClick={handlePasteClipboardImage}
-                    className={`py-2 px-2.5 rounded-md border flex items-center justify-center space-x-1.5 transition-colors ${
+                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
                       isLight
                         ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
                         : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
@@ -370,7 +370,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                 {/* Recommended Image Specification Guide */}
                 <div
-                  className={`p-2.5 rounded border text-[10.5px] space-y-1 ${
+                  className={`p-2.5 border text-[10.5px] space-y-1 ${
                     isLight
                       ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
                       : 'bg-[#121c15] border-emerald-800/50 text-emerald-200'
@@ -390,7 +390,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
               {/* Photo Positioning & Adjustments */}
               <div
-                className={`p-3 rounded-md border space-y-3 ${
+                className={`p-3 border space-y-3 ${
                   isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
                 }`}
               >
@@ -403,7 +403,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </div>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 rounded border flex items-center space-x-1 ${
+                    className={`text-[10px] px-2 py-0.5 border flex items-center space-x-1 ${
                       isLight
                         ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
                         : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
@@ -436,10 +436,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-300'
+                            ? 'bg-amber-600 border-amber-600 text-white'
+                            : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
                         }`}
                       >
                         仮名 78%
@@ -447,10 +447,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.85 }))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300'
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
                         }`}
                       >
                         漢字 85%
@@ -458,10 +458,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
-                            ? 'bg-sky-600 text-white'
-                            : 'bg-sky-100 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-300'
+                            ? 'bg-sky-600 border-sky-600 text-white'
+                            : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
                         }`}
                       >
                         100%
@@ -527,7 +527,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.grayscale)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, grayscale: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded"
+                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
                     />
                     <span className="text-[11px]">白黒化 (Monochrome)</span>
                   </label>
@@ -537,7 +537,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.invert)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, invert: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded"
+                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
                     />
                     <span className="text-[11px]">ネガ反転 (白黒逆転)</span>
                   </label>
@@ -547,7 +547,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.flipH)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, flipH: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded"
+                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
                     />
                     <span className="text-[11px]">左右反転</span>
                   </label>
@@ -559,7 +559,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         rotation: ((s.rotation || 0) + 90) % 360,
                       }))
                     }
-                    className={`py-1 px-2 rounded border text-[10px] font-semibold flex items-center justify-center space-x-1 ${
+                    className={`py-1 px-2 border text-[10px] font-semibold flex items-center justify-center space-x-1 ${
                       isLight
                         ? 'bg-stone-50 border-[#c8ded3] text-stone-700 hover:bg-stone-100'
                         : 'bg-[#18231c] border-[#25362b] text-emerald-300 hover:bg-[#223127]'
@@ -593,7 +593,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           ) : (
             /* SYSTEM FONT TRACE CONFIGURATION */
             <div
-              className={`space-y-2.5 p-3 rounded-md border ${
+              className={`space-y-2.5 p-3 border ${
                 isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
               }`}
             >
@@ -605,7 +605,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   type="text"
                   value={traceSettings.text ?? activeChar ?? ''}
                   onChange={(e) => setTraceSettings((s) => ({ ...s, text: e.target.value }))}
-                  className={`border rounded p-2 focus:outline-none ${
+                  className={`border rounded-sm p-2 focus:outline-none ${
                     isLight
                       ? 'bg-[#f7faf8] border-[#c8ded3] text-stone-800 focus:border-emerald-700'
                       : 'bg-[#16201a] border-[#2d4034] text-emerald-100 focus:border-emerald-500'
@@ -630,7 +630,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <select
                   value={traceSettings.fontFamily ?? "'Noto Sans JP', sans-serif"}
                   onChange={(e) => setTraceSettings((s) => ({ ...s, fontFamily: e.target.value }))}
-                  className={`border rounded p-2 focus:outline-none ${
+                  className={`border rounded-sm p-2 focus:outline-none ${
                     isLight
                       ? 'bg-[#f7faf8] border-[#c8ded3] text-stone-800 focus:border-emerald-700'
                       : 'bg-[#16201a] border-[#2d4034] text-emerald-100 focus:border-emerald-500'
@@ -656,7 +656,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </span>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 rounded border flex items-center space-x-1 ${
+                    className={`text-[10px] px-2 py-0.5 border flex items-center space-x-1 ${
                       isLight
                         ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
                         : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
@@ -687,10 +687,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}
-                        className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold transition-colors ${
+                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
-                            ? 'bg-amber-600 text-white'
-                            : 'bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-300'
+                            ? 'bg-amber-600 border-amber-600 text-white'
+                            : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
                         }`}
                       >
                         仮名78%
@@ -698,10 +698,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.85 }))}
-                        className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold transition-colors ${
+                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300'
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
                         }`}
                       >
                         漢字85%
@@ -709,10 +709,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
-                        className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold transition-colors ${
+                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
-                            ? 'bg-sky-600 text-white'
-                            : 'bg-sky-100 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-300'
+                            ? 'bg-sky-600 border-sky-600 text-white'
+                            : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
                         }`}
                       >
                         100%
@@ -758,7 +758,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
           {/* Opacity Slider */}
           <div
-            className={`p-3 rounded-md border space-y-1 ${
+            className={`p-3 border space-y-1 ${
               isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
             }`}
           >
@@ -789,10 +789,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           </span>
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 rounded text-xs font-semibold ${
+            className={`px-4 py-1.5 border text-xs font-semibold ${
               isLight
-                ? 'bg-emerald-800 hover:bg-emerald-900 text-white'
-                : 'bg-emerald-700 hover:bg-emerald-600 text-white'
+                ? 'bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900'
+                : 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-600'
             }`}
           >
             完了

@@ -121,7 +121,7 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['H'], description: '【品質診断】過密アンカー文字の輪郭密度ヒートマップ診断を即起動', category: 'view', badge: 'ヒートマップ' },
  { keys: ['/'], description: '【品質診断】文字・Unicode検索バーにフォーカス', category: 'view' },
  { keys: ['1 ~ 7'], description: '【品質診断】検査カテゴリ（重複・交差・過密・極値等）を瞬時に切替', category: 'view' },
- { keys: ['Enter'], description: '【ヒートマップ診断】表示中文字の全過密輪郭を一括安全単純化', category: 'drawing', badge: '一括単純化' },
+ { keys: ['Enter'], description: '【ヒートマップ診断】表示中文字の全過密輪郭を一括単純化', category: 'drawing', badge: '一括単純化' },
  { keys: ['1 / 2 / 3'], description: '【ヒートマップ診断】単純化強度（軽度 2px / 標準 3.5px / 強力 5px）を切替', category: 'drawing' },
  { keys: ['P'], description: '【ヒートマップ診断】アンカー密集度ドットの表示 / 非表示切替', category: 'drawing' },
 
