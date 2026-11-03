@@ -206,21 +206,21 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  return (
  <div
- className={`fixed inset-0 z-50 transition-all ${
+ className={`fixed inset-0 z-50 transition-colors ${
  isFullscreen
  ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
  : 'flex items-center justify-center p-2 sm:p-4 bg-black/65 animate-in fade-in duration-150'
  }`}
  >
  <div
- className={`flex flex-col transition-all overflow-hidden ${
+ className={`flex flex-col transition-colors overflow-hidden ${
  isFullscreen
  ? isLight
- ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-900'
- : 'w-screen h-screen rounded-none border-none shadow-none bg-[#141e17] text-emerald-100'
+ ? 'w-screen h-screen -none border-none shadow-none bg-white text-stone-900'
+ : 'w-screen h-screen -none border-none shadow-none bg-[#141e17] text-emerald-100'
  : isLight
- ? 'w-full max-w-3xl xl:max-w-4xl rounded-2xl border max-h-[92vh] bg-white border-stone-200 text-stone-900 shadow-xl'
- : 'w-full max-w-3xl xl:max-w-4xl rounded-2xl border max-h-[92vh] bg-[#141e17] border-[#25362b] text-emerald-100 shadow-xl'
+ ? 'w-full max-w-3xl xl:max-w-4xl border max-h-[92vh] bg-white border-stone-300 text-stone-900'
+ : 'w-full max-w-3xl xl:max-w-4xl border max-h-[92vh] bg-[#141e17] border-[#25362b] text-emerald-100'
  }`}
  >
  {/* Modal Top Header */}
@@ -231,8 +231,8 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  >
  <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
  <div
- className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${
- isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-900/60 text-emerald-300'
+ className={`p-2 border flex items-center justify-center shrink-0 ${
+ isLight ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-900/60 border-emerald-800 text-emerald-300'
  }`}
  >
  <BookOpen className="w-5 h-5" />
@@ -240,11 +240,11 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="min-w-0 flex-1">
  <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2 min-w-0">
  <span className="truncate">FontCreator 説明書 & ガイド</span>
- <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-normal bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className="text-[10px] px-1.5 py-0.2 font-mono font-normal bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  v2.0
  </span>
  {isFullscreen && (
- <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
+ <span className="text-[10px] px-1.5 py-0.2 bg-emerald-600 text-white font-medium">
  全画面モード
  </span>
  )}
@@ -256,7 +256,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  {/* Fullscreen Toggle */}
  <button
  onClick={() => setIsFullscreen(!isFullscreen)}
- className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+ className={`p-1.5 px-2.5 border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
  isFullscreen
  ? isLight
  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
@@ -281,10 +281,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  </button>
  <button
  onClick={onClose}
- className={`p-1.5 rounded-lg transition-colors ${
+ className={`p-1.5 border transition-colors cursor-pointer ${
  isLight
- ? 'text-stone-400 hover:bg-stone-200 hover:text-stone-700'
- : 'text-stone-400 hover:bg-[#202d24] hover:text-emerald-200'
+ ? 'bg-white border-stone-200 text-stone-400 hover:bg-stone-100 hover:text-stone-700'
+ : 'bg-[#101813] border-[#25362b] text-stone-400 hover:bg-[#1c2920] hover:text-emerald-200'
  }`}
  title="閉じる (Esc)"
  >
@@ -405,12 +405,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
  {/* Feature 1 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+ <div className="p-1.5  bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
  <Paintbrush className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">筆ツール & 手振れ補正</h4>
@@ -422,12 +422,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 2 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
+ <div className="p-1.5  bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
  <Wand2 className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">濁点・小書き自動合成</h4>
@@ -439,12 +439,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 3 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+ <div className="p-1.5  bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
  <Shapes className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">部首・パーツ機能</h4>
@@ -456,12 +456,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 4 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
+ <div className="p-1.5  bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
  <Layers className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">下絵・写真トレース</h4>
@@ -473,12 +473,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 5 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+ <div className="p-1.5  bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
  <FileCode className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">SVGベクターインポート</h4>
@@ -490,12 +490,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 6 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+ <div className="p-1.5  bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
  <ShieldCheck className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">フォント品質チェック & 最適化（全画面対応）</h4>
@@ -507,12 +507,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 7 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+ <div className="p-1.5  bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
  <Grid className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">10種類の作図基準ガイド & 凡例カード</h4>
@@ -524,12 +524,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 8 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
+ <div className="p-1.5  bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
  <Hand className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">パームリジェクション & タッチジェスチャー</h4>
@@ -541,12 +541,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 9 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300">
+ <div className="p-1.5  bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300">
  <Sliders className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">複数ウェイト自動補間 (ファミリー展開)</h4>
@@ -558,12 +558,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Feature 10 */}
  <div
- className={`p-3.5 rounded-xl border space-y-2 ${
+ className={`p-3.5  border space-y-2 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
  <div className="flex items-center space-x-2">
- <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300">
+ <div className="p-1.5  bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300">
  <Database className="w-4 h-4" />
  </div>
  <h4 className="text-xs font-bold">ストレージ管理 & スナップショット復元</h4>
@@ -576,7 +576,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Pro Tip Callout */}
  <div
- className={`p-4 rounded-xl border space-y-2 ${
+ className={`p-4  border space-y-2 ${
  isLight
  ? 'bg-amber-50/70 border-amber-200 text-amber-950'
  : 'bg-amber-950/30 border-amber-800/60 text-amber-100'
@@ -605,7 +605,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
  placeholder="ショートカットや機能を検索（例: ブラシ, 移動, 保存, 拡大）..."
- className={`w-full pl-9 pr-3 py-2 rounded-xl border text-xs outline-none transition-colors ${
+ className={`w-full pl-9 pr-3 py-2 rounded-sm /* 入力のみ最大rounded-sm */ border text-xs outline-none transition-colors ${
  isLight
  ? 'bg-stone-50 border-stone-300 text-stone-900 focus:bg-white focus:border-emerald-600'
  : 'bg-[#18241d] border-[#2c3d31] text-emerald-100 focus:border-emerald-500'
@@ -621,9 +621,9 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <button
  key={cat.id}
  onClick={() => setSelectedCategory(cat.id)}
- className={`px-2.5 py-1 rounded-lg font-medium flex items-center space-x-1.5 shrink-0 transition-all ${
+ className={`px-2.5 py-1  font-medium flex items-center space-x-1.5 shrink-0 transition-colors ${
  isActive
- ? 'bg-emerald-600 text-white font-bold shadow-xs'
+ ? 'bg-emerald-600 text-white font-bold '
  : isLight
  ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
  : 'bg-[#1a261f] hover:bg-[#23332a] text-emerald-300'
@@ -643,7 +643,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  filteredShortcuts.map((item, idx) => (
  <div
  key={idx}
- className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-xl border text-xs transition-colors ${
+ className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5  border text-xs transition-colors ${
  isLight
  ? 'bg-stone-50/50 hover:bg-stone-50 border-stone-200/80'
  : 'bg-[#18241d]/50 hover:bg-[#18241d] border-[#25362b]'
@@ -652,7 +652,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="flex items-center space-x-2 min-w-0 pr-1">
  <span className="jp-wrap">{item.description}</span>
  {item.badge && (
- <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono shrink-0 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className="text-[9.5px] px-1.5 py-0.2  font-mono shrink-0 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  {item.badge}
  </span>
  )}
@@ -661,7 +661,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  {item.keys.map((k, kIdx) => (
  <kbd
  key={kIdx}
- className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] shadow-xs border ${
+ className={`px-2 py-0.5  font-mono font-bold text-[11px]  border ${
  k === 'または' || k === '+' || k === '/'
  ? 'bg-transparent border-transparent shadow-none text-stone-400 font-sans text-xs px-0.5'
  : isLight
@@ -689,7 +689,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="space-y-4">
  {/* FAQ 1 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -704,7 +704,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 2 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -720,7 +720,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 3 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -735,7 +735,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 4 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -750,7 +750,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 5 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -776,7 +776,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 6 */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
  }`}
  >
@@ -796,7 +796,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* FAQ 7: 機能追加・ご要望について */}
  <div
- className={`p-4 rounded-xl border space-y-1.5 ${
+ className={`p-4  border space-y-1.5 ${
  isLight ? 'bg-amber-50/70 border-amber-200' : 'bg-[#1e1c14] border-amber-900/60'
  }`}
  >
@@ -825,14 +825,14 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  >
  <div className="flex items-center space-x-2">
  <span>キーボードショートカットはいつでも</span>
- <kbd className="px-1.5 py-0.5 rounded font-mono font-bold text-[10px] bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-emerald-200">
+ <kbd className="px-1.5 py-0.5  font-mono font-bold text-[10px] bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-emerald-200">
  ?
  </kbd>
  <span>キーで開けます</span>
  </div>
  <button
  onClick={onClose}
- className="px-4 py-1.5 rounded-xl font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-colors"
+ className="px-4 py-1.5  font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-colors"
  >
  閉じる
  </button>

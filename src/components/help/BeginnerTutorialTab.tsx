@@ -26,13 +26,13 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
     <div className="space-y-6">
       {/* Friendly Welcome Card */}
       <div
-        className={`p-4 rounded-2xl border flex items-start space-x-3.5 ${
+        className={`p-4  border flex items-start space-x-3.5 ${
           isLight
             ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
             : 'bg-[#1b261f] border-emerald-800/60 text-emerald-100'
         }`}
       >
-        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs font-black text-base">
+        <div className="w-10 h-10  bg-emerald-600 text-white flex items-center justify-center shrink-0  font-black text-base">
           FC
         </div>
         <div className="space-y-1">
@@ -40,9 +40,9 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
             <h3 className="text-sm font-extrabold">
               はじめてのフォント作りガイド（未経験者向け）
             </h3>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-600 text-white">
-              無料
-            </span>
+            <span className="text-[10px] px-1.5 py-0.5 font-mono text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
+ ガイド
+ </span>
           </div>
           <p className="text-xs leading-relaxed opacity-90">
             ブラウザ上で文字を描画し、PCや各種デザインアプリで使用可能なフォントファイル（.ttf / .otf）を作成・書き出しできます。マウス、スタイラスペン、タッチ操作に対応しています。
@@ -55,7 +55,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
       {/* 3 Reassuring Facts for Beginners */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         <div
-          className={`p-3 rounded-xl border space-y-1 ${
+          className={`p-3  border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
           }`}
         >
@@ -69,7 +69,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
         </div>
 
         <div
-          className={`p-3 rounded-xl border space-y-1 ${
+          className={`p-3  border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
           }`}
         >
@@ -83,7 +83,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
         </div>
 
         <div
-          className={`p-3 rounded-xl border space-y-1 ${
+          className={`p-3  border space-y-1 ${
             isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
           }`}
         >
@@ -107,18 +107,18 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Course 1 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2 ${
+            className={`p-3.5  border flex flex-col justify-between space-y-2 ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                <div className="p-1.5  bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
                   <Paintbrush className="w-4 h-4" />
                 </div>
                 <h5 className="text-xs font-extrabold">① 手書き入力コース</h5>
               </div>
-              <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 inline-block">
+              <span className="text-[9.5px] px-1.5 py-0.2  font-mono font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 inline-block">
                 フリーハンド
               </span>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
@@ -132,18 +132,18 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
           {/* Course 2 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2 ${
+            className={`p-3.5  border flex flex-col justify-between space-y-2 ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <div className="p-1.5 rounded-lg bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
+                <div className="p-1.5  bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
                   <Layers className="w-4 h-4" />
                 </div>
                 <h5 className="text-xs font-extrabold">② 下絵トレースコース</h5>
               </div>
-              <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 inline-block">
+              <span className="text-[9.5px] px-1.5 py-0.2  font-mono font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 inline-block">
                 画像参照
               </span>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
@@ -157,18 +157,18 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
           {/* Course 3 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2 ${
+            className={`p-3.5  border flex flex-col justify-between space-y-2 ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                <div className="p-1.5  bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
                   <Shapes className="w-4 h-4" />
                 </div>
                 <h5 className="text-xs font-extrabold">③ 幾何学・図形作図コース</h5>
               </div>
-              <span className="text-[9.5px] px-1.5 py-0.2 rounded font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 inline-block">
+              <span className="text-[9.5px] px-1.5 py-0.2  font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 inline-block">
                 幾何図形
               </span>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
@@ -192,13 +192,13 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Step 1 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+            className={`p-3.5  border flex flex-col justify-between ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                <span className="w-5 h-5  bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
                   1
                 </span>
                 <h5 className="text-xs font-bold">文字一覧から文字を選択</h5>
@@ -214,13 +214,13 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
           {/* Step 2 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+            className={`p-3.5  border flex flex-col justify-between ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                <span className="w-5 h-5  bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
                   2
                 </span>
                 <h5 className="text-xs font-bold">筆またはペンで描画</h5>
@@ -236,13 +236,13 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
           {/* Step 3 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+            className={`p-3.5  border flex flex-col justify-between ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                <span className="w-5 h-5  bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
                   3
                 </span>
                 <h5 className="text-xs font-bold">余白計算とグリフ合成の適用</h5>
@@ -258,13 +258,13 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
           {/* Step 4 */}
           <div
-            className={`p-3.5 rounded-xl border flex flex-col justify-between ${
+            className={`p-3.5  border flex flex-col justify-between ${
               isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
             }`}
           >
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                <span className="w-5 h-5  bg-emerald-600 text-white text-[11px] font-extrabold flex items-center justify-center">
                   4
                 </span>
                 <h5 className="text-xs font-bold">「試し打ち」で文章確認</h5>
@@ -281,14 +281,14 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
         {/* Step 5 */}
         <div
-          className={`p-3.5 rounded-xl border flex items-center justify-between ${
+          className={`p-3.5  border flex items-center justify-between ${
             isLight
               ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
               : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-100'
           }`}
         >
           <div className="flex items-center space-x-3">
-            <span className="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs font-extrabold flex items-center justify-center">
+            <span className="w-6 h-6  bg-emerald-700 text-white text-xs font-extrabold flex items-center justify-center">
               5
             </span>
             <div>
@@ -304,7 +304,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({ isLigh
 
       {/* Beginner FAQ / Troubleshooting Callout */}
       <div
-        className={`p-4 rounded-xl border space-y-2.5 ${
+        className={`p-4  border space-y-2.5 ${
           isLight
             ? 'bg-amber-50/80 border-amber-200 text-amber-950'
             : 'bg-amber-950/30 border-amber-800/60 text-amber-100'

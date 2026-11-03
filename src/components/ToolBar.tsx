@@ -182,7 +182,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
 
   return (
     <div
-      className={`flex sm:flex-col items-center justify-start gap-1 px-1 sm:px-1 py-1 sm:py-1 border-t sm:border-t-0 sm:border-r shrink-0 sm:shrink z-20 select-none transition-colors w-full sm:w-11 md:w-12 h-auto sm:h-full sm:min-h-0 overflow-x-auto sm:overflow-x-hidden sm:overflow-y-auto no-scrollbar ${themeClasses.toolbarBg}`}
+      className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none transition-colors w-full h-auto overflow-x-auto no-scrollbar ${themeClasses.toolbarBg}`}
     >
       {/* Mobile Backdrop for Popups */}
       {(showBrushMenu || showShapeMenu || showGridMenu) && !isSmScreen && (
@@ -223,7 +223,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
 
       {/* Divider */}
       <div
-        className={`hidden sm:block w-6 sm:w-7 h-[1px] my-0.5 mx-auto opacity-70 ${
+        className={`hidden sm:block w-[1px] h-5 my-auto mx-1 opacity-70 ${
           isLight ? 'bg-stone-200' : 'bg-[#222e25]'
         }`}
       />

@@ -59,7 +59,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
   themeClasses,
 }) => {
   return (
-    <div className="flex sm:flex-col items-center justify-start gap-1 shrink-0 w-max min-w-full sm:w-auto sm:min-w-0">
+    <div className="flex items-center justify-center gap-1 shrink-0">
       {/* Select Tool (Object & Contour Transform) */}
       <button
         onClick={() => setToolMode('select')}
@@ -113,7 +113,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
         <button
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            setBrushAnchorTop(Math.max(50, Math.min(window.innerHeight - 560, rect.top)));
+            setBrushAnchorTop(Math.max(40, rect.bottom + 4));
             setShowShapeMenu(false);
             setShowGridMenu(false);
             if (toolMode === 'brush') {
@@ -149,7 +149,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
           type="button"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            setShapeAnchorTop(Math.max(10, Math.min(window.innerHeight - 380, rect.top - 10)));
+            setShapeAnchorTop(Math.max(40, rect.bottom + 4));
             setShowBrushMenu(false);
             setShowGridMenu(false);
             if (isCurrentToolShape) {
@@ -162,7 +162,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
           onContextMenu={(e) => {
             e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
-            setShapeAnchorTop(Math.max(10, Math.min(window.innerHeight - 380, rect.top - 10)));
+            setShapeAnchorTop(Math.max(40, rect.bottom + 4));
             setShowBrushMenu(false);
             setShowGridMenu(false);
             setShowShapeMenu(true);

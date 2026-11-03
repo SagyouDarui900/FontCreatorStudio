@@ -663,6 +663,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     screenToCanvas,
     resetView,
     containerRef,
+    clampPan,
     isSpacePressed,
     isPanning,
     setIsPanning,

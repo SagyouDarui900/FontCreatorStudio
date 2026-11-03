@@ -15,6 +15,15 @@ export interface FontQualityModalProps {
 }
 
 export type TabFilter = 'all' | QualityIssueType;
+export type SeverityFilter = 'all' | 'error' | 'warning' | 'info';
+export type MainQualityView = 'quality' | 'diagnostics';
+
+export type {
+  QualityIssue,
+  FontQualityReport,
+  QualityIssueType,
+  QualitySeverity,
+} from '../../utils/quality/types';
 
 export type { EqualizationMode, EqualizationScope } from './panels/StrokeEqualizerPanel';
 export type { OptimizationLevel, OptimizationScope } from './panels/NodeOptimizerPanel';

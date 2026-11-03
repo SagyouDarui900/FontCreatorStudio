@@ -147,7 +147,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
               </span>
               <span className="text-[11px] opacity-60 shrink-0">|</span>
               <span
-                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
+                className={`text-[10px] font-bold px-1.5 py-0.5 shrink-0 ${
                   showTrace
                     ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                     : 'bg-stone-100 dark:bg-stone-800 text-stone-500'
@@ -160,7 +160,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
             {onReturnToCanvas && (
               <button
                 onClick={onReturnToCanvas}
-                className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-1 shrink-0 active:scale-95 transition-all cursor-pointer"
+                className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 <span>作図へ</span>
@@ -170,7 +170,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
 
           {/* 1. Resolution Presets */}
           <div
-            className={`p-3 rounded-xl border space-y-2.5 ${
+            className={`p-3 border space-y-2.5 ${
               isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#142018] border-[#25382b] text-emerald-100'
             }`}
           >
@@ -194,7 +194,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       onPresetSelect(p.id);
                       onShowToast(`解像度を ${p.label} に変更しました`, 'info');
                     }}
-                    className={`p-2.5 border text-left flex flex-col justify-between min-h-[58px] rounded-xl transition-all active:scale-95 cursor-pointer ${
+                    className={`p-2.5 border text-left flex flex-col justify-between min-h-[58px] transition-colors cursor-pointer ${
                       isSelected
                         ? 'bg-emerald-600 text-white border-emerald-500 font-bold'
                         : isLight
@@ -220,7 +220,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1">
+                  <div className="p-2 border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1">
                     <span className="text-[10.5px] font-bold opacity-70">幅 (Width):</span>
                     <div className="flex items-center gap-1">
                       <button
@@ -229,7 +229,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridWidth(val);
                           loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
-                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold active:scale-95 cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -243,7 +243,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridWidth(val);
                           loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
-                        className="flex-1 text-center font-mono font-bold text-xs py-1 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
+                        className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
                       <button
                         onClick={() => {
@@ -251,14 +251,14 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridWidth(val);
                           loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
-                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold active:scale-95 cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1">
+                  <div className="p-2 border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1">
                     <span className="text-[10.5px] font-bold opacity-70">高さ (Height):</span>
                     <div className="flex items-center gap-1">
                       <button
@@ -267,7 +267,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridHeight(val);
                           loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
-                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold active:scale-95 cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
@@ -281,7 +281,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridHeight(val);
                           loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
-                        className="flex-1 text-center font-mono font-bold text-xs py-1 rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
+                        className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
                       <button
                         onClick={() => {
@@ -289,7 +289,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setGridHeight(val);
                           loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
-                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold active:scale-95 cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                       </button>

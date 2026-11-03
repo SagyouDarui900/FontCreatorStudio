@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Download } from 'lucide-react';
+import { loadProjectFromIndexedDB } from '../utils/indexedDBStorage';
 
 interface Props {
   children: ReactNode;
@@ -39,7 +40,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
       if (!jsonString) {
         try {
-          const { loadProjectFromIndexedDB } = await import('../utils/indexedDBStorage');
           const result = await loadProjectFromIndexedDB();
           if (result && result.project) {
             jsonString = JSON.stringify(result.project, null, 2);

@@ -33,19 +33,19 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
     <div className="space-y-6">
       {/* Friendly Intro Hero */}
       <div
-        className={`p-4 rounded-2xl border flex items-start space-x-3.5 ${
+        className={`p-4  border flex items-start space-x-3.5 ${
           isLight
             ? 'bg-amber-50/80 border-amber-200/80 text-amber-950'
             : 'bg-[#222119] border-amber-800/60 text-amber-100'
         }`}
       >
-        <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs font-bold text-sm">
+        <div className="w-9 h-9  bg-amber-600 text-white flex items-center justify-center shrink-0  font-bold text-sm">
           <BookOpen className="w-5 h-5" />
         </div>
         <div>
           <h3 className="text-sm font-extrabold mb-1 flex items-center space-x-2">
             <span>フォントの専門用語・図解辞典</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-normal">
+            <span className="text-[10px] px-2 py-0.5  font-mono bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-normal">
               未経験者向け
             </span>
           </h3>
@@ -57,7 +57,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
 
       {/* Visual Diagram: Anatomy of a Font Glyph */}
       <div
-        className={`p-4 rounded-2xl border space-y-3 ${
+        className={`p-4  border space-y-3 ${
           isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
         }`}
       >
@@ -67,16 +67,16 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
         </h4>
 
         <div
-          className={`p-4 rounded-xl border relative overflow-hidden flex flex-col items-center justify-center ${
+          className={`p-4  border relative overflow-hidden flex flex-col items-center justify-center ${
             isLight ? 'bg-white border-stone-300' : 'bg-[#101712] border-[#223026]'
           }`}
         >
           {/* Simulated Glyph Box Diagram */}
-          <div className="w-full max-w-md aspect-[16/9] sm:aspect-[2/1] relative border-2 border-dashed border-emerald-500/70 rounded-lg flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md aspect-[16/9] sm:aspect-[2/1] relative border-2 border-dashed border-emerald-500/70  flex items-center justify-center p-2 sm:p-4">
             {/* Advance Width Indicator */}
             <div className="absolute top-1.5 inset-x-2 flex items-center justify-between text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
               <span>← 左端 (X=0)</span>
-              <span className="bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded font-bold">送り幅 (Advance Width: 1000)</span>
+              <span className="bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5  font-bold">送り幅 (Advance Width: 1000)</span>
               <span>右端 (X=1000) →</span>
             </div>
 
@@ -95,7 +95,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
             </div>
 
             {/* Inner Glyph Area */}
-            <div className="border border-emerald-400/50 bg-emerald-500/5 rounded p-3 text-center flex flex-col items-center justify-center z-10">
+            <div className="border border-emerald-400/50 bg-emerald-500/5  p-3 text-center flex flex-col items-center justify-center z-10">
               <span className="text-3xl sm:text-4xl font-serif font-black text-emerald-800 dark:text-emerald-200">
                 あ
               </span>
@@ -112,23 +112,23 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full mt-3 text-[11px]">
-            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+            <div className="p-2  bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
               <div className="flex items-center space-x-1.5 font-bold">
-                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500 inline-block shrink-0" />
+                <span className="w-2.5 h-2.5  bg-emerald-500 inline-block shrink-0" />
                 <span>仮想ボディ (外枠)</span>
               </div>
               <p className="text-[10px] opacity-85 mt-0.5">原稿用紙の1マス。正方形の全体サイズ。</p>
             </div>
-            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300">
+            <div className="p-2  bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300">
               <div className="flex items-center space-x-1.5 font-bold">
-                <span className="w-2.5 h-2.5 rounded-xs bg-amber-500 inline-block shrink-0" />
+                <span className="w-2.5 h-2.5  bg-amber-500 inline-block shrink-0" />
                 <span>余白 (サイドベアリング)</span>
               </div>
               <p className="text-[10px] opacity-85 mt-0.5">文字と文字がぶつからないための左右のすき間。</p>
             </div>
-            <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-800 dark:text-indigo-300">
+            <div className="p-2  bg-indigo-500/10 border border-indigo-500/20 text-indigo-800 dark:text-indigo-300">
               <div className="flex items-center space-x-1.5 font-bold">
-                <span className="w-2.5 h-2.5 rounded-xs bg-indigo-500 inline-block shrink-0" />
+                <span className="w-2.5 h-2.5  bg-indigo-500 inline-block shrink-0" />
                 <span>ベースライン (床基準線)</span>
               </div>
               <p className="text-[10px] opacity-85 mt-0.5">アルファベットが水平に並ぶ基準の高さ。</p>
@@ -146,7 +146,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="用語を検索（例: グリフ, 余白, ベジェ, TTF, 単純化）..."
-            className={`w-full pl-9 pr-3 py-2 rounded-xl border text-xs outline-none transition-colors ${
+ className={`w-full pl-9 pr-3 py-2 rounded-sm /* 入力のみ最大rounded-sm */ border text-xs outline-none transition-colors ${
               isLight
                 ? 'bg-stone-50 border-stone-300 text-stone-900 focus:bg-white focus:border-emerald-600'
                 : 'bg-[#18241d] border-[#2c3d31] text-emerald-100 focus:border-emerald-500'
@@ -161,9 +161,9 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg font-medium shrink-0 transition-all ${
+                className={`px-3 py-1.5  font-medium shrink-0 transition-colors ${
                   isActive
-                    ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                    ? 'bg-emerald-600 text-white font-bold '
                     : isLight
                     ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
                     : 'bg-[#1a261f] hover:bg-[#23332a] text-emerald-300'
@@ -181,7 +181,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
         {filteredTerms.map((t) => (
           <div
             key={t.id}
-            className={`p-4 rounded-xl border space-y-2.5 flex flex-col justify-between transition-colors ${
+            className={`p-4  border space-y-2.5 flex flex-col justify-between transition-colors ${
               isLight ? 'bg-stone-50/70 border-stone-200 hover:bg-stone-50' : 'bg-[#18241d] border-[#25362b] hover:bg-[#1b2b21]'
             }`}
           >
@@ -198,7 +198,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
                   )}
                 </div>
                 {t.badge && (
-                  <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  <span className="text-[9px] px-1.5 py-0.2  font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                     {t.badge}
                   </span>
                 )}
@@ -221,7 +221,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
 
             {t.appFeatureTip && (
               <div
-                className={`mt-2 p-2 rounded-lg text-[11px] flex items-start space-x-1.5 border ${
+                className={`mt-2 p-2  text-[11px] flex items-start space-x-1.5 border ${
                   isLight
                     ? 'bg-emerald-50/60 border-emerald-200/60 text-emerald-800'
                     : 'bg-emerald-950/20 border-emerald-900/30 text-emerald-300'

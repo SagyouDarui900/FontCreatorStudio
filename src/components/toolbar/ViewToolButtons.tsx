@@ -41,19 +41,19 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
   return (
     <>
       {/* Desktop-only View / Guide Toggles */}
-      <div className="hidden sm:flex sm:flex-col items-center gap-1 shrink-0 w-full">
+      <div className="hidden sm:flex items-center gap-1 shrink-0">
         {/* Grid Toggle & Settings Menu */}
-        <div className="relative shrink-0 flex flex-col items-center" ref={gridMenuRef}>
+        <div className="relative shrink-0 flex items-center" ref={gridMenuRef}>
           <button
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
-              setGridAnchorTop(Math.max(60, rect.top - 80));
+              setGridAnchorTop(Math.max(40, rect.bottom + 4));
               setGridSettings((s) => ({ ...s, showGrid: !s.showGrid }));
             }}
             onContextMenu={(e) => {
               e.preventDefault();
               const rect = e.currentTarget.getBoundingClientRect();
-              setGridAnchorTop(Math.max(60, rect.top - 80));
+              setGridAnchorTop(Math.max(40, rect.bottom + 4));
               setShowGridMenu((prev) => !prev);
             }}
             className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${

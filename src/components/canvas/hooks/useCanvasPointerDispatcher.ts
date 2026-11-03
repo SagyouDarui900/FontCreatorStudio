@@ -25,6 +25,7 @@ export interface UseCanvasPointerDispatcherOptions {
   screenToCanvas: (clientX: number, clientY: number) => Point;
   resetView: (mode?: 'fit' | '100%' | 'width') => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  clampPan?: (p: Point, z: number) => Point;
 
   // Panning & Space
   isSpacePressed: boolean;
@@ -149,6 +150,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     screenToCanvas,
     resetView,
     containerRef,
+    clampPan,
     isSpacePressed,
     isPanning,
     setIsPanning,
@@ -245,6 +247,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   const twoFingerStartDistRef = useRef<number | null>(null);
   const twoFingerStartCenterRef = useRef<{ x: number; y: number } | null>(null);
   const twoFingerCooldownUntilRef = useRef<number>(0);
+  const twoFingerCachedContainerRectRef = useRef<{ left: number; top: number } | null>(null);
+
+  // High-performance pinch RAF scheduler refs
+  const pinchRafIdRef = useRef<number | null>(null);
+  const pendingPinchUpdateRef = useRef<{ zoom: number; pan: Point } | null>(null);
 
   const touchStartTimeRef = useRef<number>(0);
   const maxTouchCountRef = useRef<number>(0);
@@ -261,6 +268,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
   // Reset any active pointer locks and in-progress sessions when toolMode changes
   useEffect(() => {
+    if (pinchRafIdRef.current !== null) {
+      cancelAnimationFrame(pinchRafIdRef.current);
+      pinchRafIdRef.current = null;
+    }
+    pendingPinchUpdateRef.current = null;
+    twoFingerCachedContainerRectRef.current = null;
     activeDrawingPointerIdRef.current = null;
     touchPointersRef.current.clear();
     pointerTypesRef.current.clear();
@@ -268,6 +281,15 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     activeTwoFingerIdsRef.current = null;
     isPenDrawingRef.current = false;
   }, [toolMode]);
+
+  // Clean up any pending pinch RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (pinchRafIdRef.current !== null) {
+        cancelAnimationFrame(pinchRafIdRef.current);
+      }
+    };
+  }, []);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     // If an existing drawing pointer is already active, reject secondary pointerdown unless 2-finger gesture
@@ -395,6 +417,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       twoFingerLastDistRef.current = dist;
       twoFingerStartDistRef.current = dist;
       twoFingerStartCenterRef.current = center;
+
+      // Cache container bounding rect once at gesture start to eliminate forced reflows during pinch
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        twoFingerCachedContainerRectRef.current = { left: rect.left, top: rect.top };
+      } else {
+        twoFingerCachedContainerRectRef.current = null;
+      }
       return;
     }
 
@@ -643,37 +673,79 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         const curDist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
         const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
 
-        if (twoFingerLastDistRef.current && twoFingerLastCenterRef.current) {
-          const moveDist = Math.hypot(curCenter.x - twoFingerLastCenterRef.current.x, curCenter.y - twoFingerLastCenterRef.current.y);
-          if (moveDist > 6 || Math.abs(curDist - twoFingerLastDistRef.current) > 6) {
+        if (twoFingerLastDistRef.current && twoFingerLastCenterRef.current && twoFingerStartCenterRef.current && twoFingerStartDistRef.current) {
+          // Detect gesture movement from start to avoid accidental undo on touch release
+          const totalCenterDist = Math.hypot(curCenter.x - twoFingerStartCenterRef.current.x, curCenter.y - twoFingerStartCenterRef.current.y);
+          const totalPinchDelta = Math.abs(curDist - twoFingerStartDistRef.current);
+          if (totalCenterDist > 8 || totalPinchDelta > 8) {
             hasMovedSignificantRef.current = true;
           }
 
-          const scaleRatio = curDist / twoFingerLastDistRef.current;
-          const nextZoom = Math.max(0.1, Math.min(32.0, zoomRef.current * scaleRatio));
-          const zoomFactor = nextZoom / zoomRef.current;
+          const distDelta = Math.abs(curDist - twoFingerLastDistRef.current);
+          const centerDelta = Math.hypot(curCenter.x - twoFingerLastCenterRef.current.x, curCenter.y - twoFingerLastCenterRef.current.y);
 
-          const panDeltaX = curCenter.x - twoFingerLastCenterRef.current.x;
-          const panDeltaY = curCenter.y - twoFingerLastCenterRef.current.y;
+          // Sub-pixel jitter deadband: skip minuscule finger trembling under 0.25px
+          if (distDelta > 0.25 || centerDelta > 0.25) {
+            const rawScaleRatio = curDist / twoFingerLastDistRef.current;
+            // Dampen scale factor to prevent erratic jumps on sudden touch drops
+            const clampedScaleRatio = Math.max(0.75, Math.min(1.35, rawScaleRatio));
+            const nextZoom = Math.max(0.1, Math.min(32.0, zoomRef.current * clampedScaleRatio));
+            const zoomFactor = nextZoom / zoomRef.current;
 
-          const containerRect = containerRef.current?.getBoundingClientRect();
-          const mouseX = containerRect ? curCenter.x - containerRect.left : curCenter.x;
-          const mouseY = containerRect ? curCenter.y - containerRect.top : curCenter.y;
+            const panDeltaX = curCenter.x - twoFingerLastCenterRef.current.x;
+            const panDeltaY = curCenter.y - twoFingerLastCenterRef.current.y;
 
-          const curPan = panRef.current as { x: number; y: number };
-          const nextPan = {
-            x: curPan.x + panDeltaX - (mouseX - curPan.x) * (zoomFactor - 1),
-            y: curPan.y + panDeltaY - (mouseY - curPan.y) * (zoomFactor - 1),
-          };
+            // Use cached container rect to avoid synchronous layout reflow
+            let cLeft = 0;
+            let cTop = 0;
+            if (twoFingerCachedContainerRectRef.current) {
+              cLeft = twoFingerCachedContainerRectRef.current.left;
+              cTop = twoFingerCachedContainerRectRef.current.top;
+            } else if (containerRef.current) {
+              const rect = containerRef.current.getBoundingClientRect();
+              twoFingerCachedContainerRectRef.current = { left: rect.left, top: rect.top };
+              cLeft = rect.left;
+              cTop = rect.top;
+            }
 
-          zoomRef.current = nextZoom;
-          (panRef.current as { x: number; y: number }) = nextPan;
-          setZoom(nextZoom);
-          setPan(nextPan);
+            const mouseX = curCenter.x - cLeft;
+            const mouseY = curCenter.y - cTop;
+
+            const curPan = panRef.current as { x: number; y: number };
+            let nextPan = {
+              x: curPan.x + panDeltaX - (mouseX - curPan.x) * (zoomFactor - 1),
+              y: curPan.y + panDeltaY - (mouseY - curPan.y) * (zoomFactor - 1),
+            };
+
+            if (clampPan) {
+              nextPan = clampPan(nextPan, nextZoom);
+            }
+
+            // Immediately update refs so successive pointermove events read correct state
+            zoomRef.current = nextZoom;
+            (panRef.current as { x: number; y: number }) = nextPan;
+
+            // Batch React state updates into requestAnimationFrame for ultra-smooth rendering
+            pendingPinchUpdateRef.current = { zoom: nextZoom, pan: nextPan };
+            if (pinchRafIdRef.current === null) {
+              pinchRafIdRef.current = requestAnimationFrame(() => {
+                if (pendingPinchUpdateRef.current) {
+                  setZoom(pendingPinchUpdateRef.current.zoom);
+                  setPan(pendingPinchUpdateRef.current.pan);
+                  pendingPinchUpdateRef.current = null;
+                }
+                pinchRafIdRef.current = null;
+              });
+            }
+
+            twoFingerLastDistRef.current = curDist;
+            twoFingerLastCenterRef.current = curCenter;
+          }
+        } else {
+          twoFingerLastDistRef.current = curDist;
+          twoFingerLastCenterRef.current = curCenter;
         }
 
-        twoFingerLastDistRef.current = curDist;
-        twoFingerLastCenterRef.current = curCenter;
         return;
       }
     }
@@ -829,6 +901,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     zoomRef,
     setZoom,
     containerRef,
+    clampPan,
     eraserReticleRef,
     drawingReticleRef,
   ]);
@@ -887,11 +960,23 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
+    // Flush pending pinch updates when fingers are lifted
+    if (pinchRafIdRef.current !== null) {
+      cancelAnimationFrame(pinchRafIdRef.current);
+      pinchRafIdRef.current = null;
+    }
+    if (pendingPinchUpdateRef.current) {
+      setZoom(pendingPinchUpdateRef.current.zoom);
+      setPan(pendingPinchUpdateRef.current.pan);
+      pendingPinchUpdateRef.current = null;
+    }
+
     if (isTwoFingerGestureRef.current) {
       if (touchPointersRef.current.size === 0) {
         isTwoFingerGestureRef.current = false;
         twoFingerCooldownUntilRef.current = Date.now() + 150;
         activeTwoFingerIdsRef.current = null;
+        twoFingerCachedContainerRectRef.current = null;
       }
       return;
     }
@@ -901,6 +986,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       twoFingerLastDistRef.current = null;
       twoFingerStartDistRef.current = null;
       twoFingerStartCenterRef.current = null;
+      twoFingerCachedContainerRectRef.current = null;
     }
 
     // Reset dragging states
