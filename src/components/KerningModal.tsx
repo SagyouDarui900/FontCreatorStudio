@@ -22,7 +22,7 @@ import {
  SidebearingBatchOptions,
  calculateAutoKernOffset,
 } from '../utils/metricsHelper';
-import { contoursToSvgPath, normalizeGlyphContoursWinding, getContoursBoundingBox } from '../utils/pathUtils';
+import { contoursToSvgPath, normalizeGlyphContoursWinding, getContoursBoundingBox } from '../utils/path';
 
 import { ThemeMode, isLightTheme } from '../utils/theme';
 

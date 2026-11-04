@@ -1,6 +1,6 @@
 import React from 'react';
 import { PathContour, BezierNode, Point, ToolMode, GridSettings } from '../../types';
-import { contoursToSvgPath } from '../../utils/pathUtils';
+import { contoursToSvgPath } from '../../utils/path';
 
 export interface BezierNodeControlsLayerProps {
   showNodes?: boolean;

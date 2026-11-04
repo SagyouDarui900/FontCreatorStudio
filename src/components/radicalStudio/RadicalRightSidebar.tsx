@@ -24,7 +24,7 @@ import {
   contoursToSvgPath,
   normalizeGlyphContoursWinding,
   groupContoursForRendering,
-} from '../../utils/pathUtils';
+} from '../../utils/path';
 import { KANJI_RADICALS } from '../../data/kanjiRadicals';
 import { RADICAL_KANJI_DATABASE } from '../../data/kanjiRadicalDatabase';
 

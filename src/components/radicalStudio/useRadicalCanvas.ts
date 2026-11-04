@@ -36,7 +36,7 @@ import {
   subtractEraserStrokeFromContours,
   expandStrokeContours,
   getContoursBoundingBox,
-} from '../../utils/pathUtils';
+} from '../../utils/path';
 
 export interface UseRadicalCanvasProps {
   activePart: CustomPart | null;

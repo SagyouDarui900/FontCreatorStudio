@@ -7,19 +7,20 @@ import {
   GlyphOverlaySettings,
   BrushStyle,
   PressureCurveConfig,
+  ThemeClasses,
 } from '../../types';
 import { ThemeMode, THEME_PRESETS } from '../../utils/theme';
 import { useModalContext } from '../../contexts/ModalContext';
 import { Palette, Check, X } from 'lucide-react';
 
 const TestPreviewModal = lazy(() =>
-  import('../TestPreviewModal').then((module) => ({ default: module.TestPreviewModal }))
+  import('../testpreview').then((module) => ({ default: module.TestPreviewModal }))
 );
 const SvgVectorizerModal = lazy(() =>
   import('../SvgVectorizerModal').then((module) => ({ default: module.SvgVectorizerModal }))
 );
 const FontQualityModal = lazy(() =>
-  import('../FontQualityModal').then((module) => ({ default: module.FontQualityModal }))
+  import('../quality').then((module) => ({ default: module.FontQualityModal }))
 );
 const WeightInterpolationModal = lazy(() =>
   import('../WeightInterpolationModal').then((module) => ({ default: module.WeightInterpolationModal }))
@@ -31,7 +32,7 @@ const RadicalStudioModal = lazy(() =>
   import('../RadicalStudioModal').then((module) => ({ default: module.RadicalStudioModal }))
 );
 const PixelFontStudioModal = lazy(() =>
-  import('../PixelFontStudioModal').then((module) => ({ default: module.PixelFontStudioModal }))
+  import('../pixelfont').then((module) => ({ default: module.PixelFontStudioModal }))
 );
 const MojikumiStudioModal = lazy(() =>
   import('../MojikumiStudioModal').then((module) => ({ default: module.MojikumiStudioModal }))
@@ -55,7 +56,7 @@ const StorageManagerModal = lazy(() =>
   import('../StorageManagerModal').then((module) => ({ default: module.StorageManagerModal }))
 );
 const PenPresetsModal = lazy(() =>
-  import('../PenPresetsModal').then((module) => ({ default: module.PenPresetsModal }))
+  import('../penpresets').then((module) => ({ default: module.PenPresetsModal }))
 );
 const ShortcutsHelpModal = lazy(() =>
   import('../ShortcutsHelpModal').then((module) => ({ default: module.ShortcutsHelpModal }))
@@ -77,7 +78,7 @@ export interface AppModalsHostProps {
   selectedUnicode: number;
   onSelectGlyph: (unicode: number, char?: string) => void;
   theme: ThemeMode;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   changeTheme: (mode: ThemeMode) => void;
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
@@ -141,57 +142,16 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   onApplyPenPreset,
   onChangePressureCurve,
 }) => {
-  const {
-    isMobileThemeModalOpen,
-    setIsMobileThemeModalOpen,
-    isTestModalOpen,
-    setIsTestModalOpen,
-    isFontInfoModalOpen,
-    setIsFontInfoModalOpen,
-    isTraceModalOpen,
-    setIsTraceModalOpen,
-    isSvgModalOpen,
-    setIsSvgModalOpen,
-    isBatchNormalizeModalOpen,
-    setIsBatchNormalizeModalOpen,
-    isQualityModalOpen,
-    setIsQualityModalOpen,
-    isSynthesisModalOpen,
-    setIsSynthesisModalOpen,
-    isKerningModalOpen,
-    setIsKerningModalOpen,
-    isWeightInterpModalOpen,
-    setIsWeightInterpModalOpen,
-    isGlyphCompareModalOpen,
-    setIsGlyphCompareModalOpen,
-    isRadicalStudioOpen,
-    setIsRadicalStudioOpen,
-    isStorageManagerOpen,
-    setIsStorageManagerOpen,
-    isShortcutsModalOpen,
-    setIsShortcutsModalOpen,
-    isExportModalOpen,
-    setIsExportModalOpen,
-    isOpenTypeFeaturesModalOpen,
-    setIsOpenTypeFeaturesModalOpen,
-    isGridFittingModalOpen,
-    setIsGridFittingModalOpen,
-    isPixelStudioOpen,
-    setIsPixelStudioOpen,
-    isMojikumiStudioOpen,
-    setIsMojikumiStudioOpen,
-    isPenPresetsModalOpen,
-    setIsPenPresetsModalOpen,
-  } = useModalContext();
+  const { activeModal, openModal, closeModal } = useModalContext();
 
   return (
     <Suspense fallback={null}>
       {/* Mobile Theme Selection Drawer */}
-      {isMobileThemeModalOpen && (
+      {activeModal === 'mobileTheme' && (
         <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <div
             className="fixed inset-0 bg-black/60 animate-in fade-in duration-150"
-            onClick={() => setIsMobileThemeModalOpen(false)}
+            onClick={closeModal}
           />
           <div
             onPointerDown={(e) => e.stopPropagation()}
@@ -205,7 +165,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setIsMobileThemeModalOpen(false)}
+                onClick={closeModal}
                 className="p-1.5 rounded-full text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 bg-stone-100 dark:bg-stone-800 cursor-pointer"
                 title="閉じる"
               >
@@ -224,7 +184,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
                       e.stopPropagation();
                       changeTheme(p.id);
                       showToast(`テーマを「${p.name}」に変更しました`, 'info');
-                      setIsMobileThemeModalOpen(false);
+                      closeModal();
                     }}
                     className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer active:scale-[0.98] ${
                       isActive
@@ -276,32 +236,29 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Test Preview Modal */}
-      {isTestModalOpen && (
+      {activeModal === 'test' && (
         <TestPreviewModal
-          isOpen={isTestModalOpen}
-          onClose={() => setIsTestModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           onSelectGlyphForEdit={(unicode) => {
             const g = project.glyphs?.[unicode];
             const char = g?.char || String.fromCodePoint(unicode);
             onSelectGlyph(unicode, char);
-            setIsTestModalOpen(false);
+            closeModal();
           }}
           theme={theme}
           onShowToast={showToast}
-          onOpenMojikumiStudio={() => {
-            setIsTestModalOpen(false);
-            setIsMojikumiStudioOpen(true);
-          }}
+          onOpenMojikumiStudio={() => openModal('mojikumi')}
         />
       )}
 
       {/* Font Info Modal */}
-      {isFontInfoModalOpen && (
+      {activeModal === 'fontInfo' && (
         <FontInfoModal
-          isOpen={isFontInfoModalOpen}
-          onClose={() => setIsFontInfoModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           theme={theme}
@@ -310,10 +267,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Trace Settings Modal */}
-      {isTraceModalOpen && (
+      {activeModal === 'trace' && (
         <TraceSettingsModal
-          isOpen={isTraceModalOpen}
-          onClose={() => setIsTraceModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           traceSettings={traceSettings}
           setTraceSettings={setTraceSettings}
           activeChar={selectedChar}
@@ -324,10 +281,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* SVG Vectorizer Modal */}
-      {isSvgModalOpen && (
+      {activeModal === 'svg' && (
         <SvgVectorizerModal
-          isOpen={isSvgModalOpen}
-          onClose={() => setIsSvgModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           onApplyContours={onApplySvgContours}
           selectedChar={selectedChar}
           theme={theme}
@@ -336,10 +293,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Batch Normalize Modal */}
-      {isBatchNormalizeModalOpen && (
+      {activeModal === 'batchNormalize' && (
         <BatchNormalizeModal
-          isOpen={isBatchNormalizeModalOpen}
-          onClose={() => setIsBatchNormalizeModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           selectedUnicode={selectedUnicode}
@@ -349,10 +306,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Font Quality Modal */}
-      {isQualityModalOpen && (
+      {activeModal === 'quality' && (
         <FontQualityModal
-          isOpen={isQualityModalOpen}
-          onClose={() => setIsQualityModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           onSelectGlyph={(unicode) => {
@@ -367,10 +324,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Glyph Synthesis Modal */}
-      {isSynthesisModalOpen && (
+      {activeModal === 'synthesis' && (
         <GlyphSynthesisModal
-          isOpen={isSynthesisModalOpen}
-          onClose={() => setIsSynthesisModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           onUpdateProject={setProject}
@@ -381,10 +338,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Kerning Modal */}
-      {isKerningModalOpen && (
+      {activeModal === 'kerning' && (
         <KerningModal
-          isOpen={isKerningModalOpen}
-          onClose={() => setIsKerningModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           onUpdateProject={setProject}
@@ -395,10 +352,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Weight Interpolation Modal */}
-      {isWeightInterpModalOpen && (
+      {activeModal === 'weightInterp' && (
         <WeightInterpolationModal
-          isOpen={isWeightInterpModalOpen}
-          onClose={() => setIsWeightInterpModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           selectedUnicode={selectedUnicode}
@@ -408,10 +365,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Glyph Compare Modal */}
-      {isGlyphCompareModalOpen && (
+      {activeModal === 'glyphCompare' && (
         <GlyphCompareModal
-          isOpen={isGlyphCompareModalOpen}
-          onClose={() => setIsGlyphCompareModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           activeChar={selectedChar}
           activeUnicode={selectedUnicode}
@@ -423,10 +380,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Radical Studio Modal */}
-      {isRadicalStudioOpen && (
+      {activeModal === 'radicalStudio' && (
         <RadicalStudioModal
-          isOpen={isRadicalStudioOpen}
-          onClose={() => setIsRadicalStudioOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           selectedChar={selectedChar}
           selectedUnicode={selectedUnicode}
@@ -438,10 +395,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Pen Presets Modal */}
-      {isPenPresetsModalOpen && (
+      {activeModal === 'penPresets' && (
         <PenPresetsModal
-          isOpen={isPenPresetsModalOpen}
-          onClose={() => setIsPenPresetsModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           currentParams={{
             brushStyle,
             brushWidth,
@@ -494,19 +451,19 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Shortcuts Help Modal */}
-      {isShortcutsModalOpen && (
+      {activeModal === 'shortcuts' && (
         <ShortcutsHelpModal
-          isOpen={isShortcutsModalOpen}
-          onClose={() => setIsShortcutsModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           theme={theme}
         />
       )}
 
       {/* Storage Manager Modal */}
-      {isStorageManagerOpen && (
+      {activeModal === 'storageManager' && (
         <StorageManagerModal
-          isOpen={isStorageManagerOpen}
-          onClose={() => setIsStorageManagerOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           theme={theme}
@@ -515,22 +472,22 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Export Modal */}
-      {isExportModalOpen && (
+      {activeModal === 'export' && (
         <ExportModal
-          isOpen={isExportModalOpen}
-          onClose={() => setIsExportModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           theme={theme}
           onShowToast={showToast}
-          onOpenQualityModal={() => setIsQualityModalOpen(true)}
+          onOpenQualityModal={() => openModal('quality')}
         />
       )}
 
       {/* OpenType Features Modal */}
-      {isOpenTypeFeaturesModalOpen && (
+      {activeModal === 'openTypeFeatures' && (
         <OpenTypeFeaturesModal
-          isOpen={isOpenTypeFeaturesModalOpen}
-          onClose={() => setIsOpenTypeFeaturesModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           isLight={isLight}
@@ -539,10 +496,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Grid Fitting Modal */}
-      {isGridFittingModalOpen && (
+      {activeModal === 'gridFitting' && (
         <GridFittingModal
-          isOpen={isGridFittingModalOpen}
-          onClose={() => setIsGridFittingModalOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           isLight={isLight}
@@ -551,12 +508,12 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Pixel Font Studio Modal */}
-      {isPixelStudioOpen && (
+      {activeModal === 'pixelStudio' && (
         <PixelFontStudioModal
           project={project}
           setProject={setProject}
-          isOpen={isPixelStudioOpen}
-          onClose={() => setIsPixelStudioOpen(false)}
+          isOpen
+          onClose={closeModal}
           isLight={isLight}
           selectedUnicode={selectedUnicode}
           onSelectGlyph={(u) => onSelectGlyph(u)}
@@ -565,22 +522,16 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       )}
 
       {/* Mojikumi Studio Modal */}
-      {isMojikumiStudioOpen && (
+      {activeModal === 'mojikumi' && (
         <MojikumiStudioModal
-          isOpen={isMojikumiStudioOpen}
-          onClose={() => setIsMojikumiStudioOpen(false)}
+          isOpen
+          onClose={closeModal}
           project={project}
           setProject={setProject}
           theme={theme}
           onShowToast={showToast}
-          onOpenOpenTypeModal={() => {
-            setIsMojikumiStudioOpen(false);
-            setIsOpenTypeFeaturesModalOpen(true);
-          }}
-          onOpenTestPreview={() => {
-            setIsMojikumiStudioOpen(false);
-            setIsTestModalOpen(true);
-          }}
+          onOpenOpenTypeModal={() => openModal('openTypeFeatures')}
+          onOpenTestPreview={() => openModal('test')}
         />
       )}
     </Suspense>

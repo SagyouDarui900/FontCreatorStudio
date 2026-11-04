@@ -1,5 +1,5 @@
 import React from 'react';
-import { SHAPE_PRESETS, generateShapeByType } from '../../utils/pathUtils';
+import { SHAPE_PRESETS, generateShapeByType } from '../../utils/path';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 import { PathContour } from '../../types';
 

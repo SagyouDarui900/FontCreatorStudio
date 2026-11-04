@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { BundledFontsModal } from './BundledFontsModal';
 import { GlyphData } from '../types';
-import { contoursToSvgPath } from '../utils/pathUtils';
+import { contoursToSvgPath } from '../utils/path';
 import { isLightTheme } from '../utils/theme';
 import { INITIAL_STUDIO_RADICAL_DEFS } from '../utils/radicalExtractor';
 import {

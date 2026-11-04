@@ -8,7 +8,7 @@ import {
   VerticalGuidePattern,
 } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
-import { PEN_PRESETS } from '../utils/pathUtils';
+import { PEN_PRESETS } from '../utils/path';
 import {
   PEN_ICONS,
   SHAPE_TOOLS,

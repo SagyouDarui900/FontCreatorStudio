@@ -23,7 +23,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../../types';
-import { shareOrDownloadFont } from '../../utils/fontCompiler';
+import { shareOrDownloadFont } from '../../utils/font';
 import { pixelGridToContours, rasterizeGlyphToPixelGrid } from '../../utils/pixelFontUtils';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
 import { PixelFontStudioModalProps } from './types';

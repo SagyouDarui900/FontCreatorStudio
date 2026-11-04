@@ -23,8 +23,8 @@ import {
   getContoursBoundingBox,
   interpolateContours,
   groupContoursForRendering,
-} from '../utils/pathUtils';
-import { compileFont } from '../utils/fontCompiler';
+} from '../utils/path';
+import { compileFont } from '../utils/font';
 
 interface WeightInterpolationModalProps {
   isOpen: boolean;

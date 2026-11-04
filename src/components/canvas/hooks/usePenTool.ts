@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { PathContour, Point, BezierNode } from '../../../types';
-import { contoursToSvgPath, unionContours, hasContourIntersections, expandStrokeContours } from '../../../utils/pathUtils';
+import { contoursToSvgPath, unionContours, hasContourIntersections, expandStrokeContours } from '../../../utils/path';
 
 interface UsePenToolOptions {
   contours: PathContour[];

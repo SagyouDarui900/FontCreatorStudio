@@ -18,7 +18,7 @@ import {
   safePreservingNodeOptimization,
   GlyphDensityAnalysis,
   NodeDensityInfo,
-} from '../utils/qualityChecker';
+} from '../utils/quality';
 import { HeatmapCanvasView, HeatmapContourSidebar, HeatmapTopBar } from './density';
 
 interface GlyphDensityHeatmapModalProps {

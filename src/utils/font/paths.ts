@@ -1,6 +1,6 @@
 import * as opentype from 'opentype.js';
 import { PathContour } from '../../types';
-import { generateId, optimizeContourNodes } from '../pathUtils';
+import { generateId, optimizeContourNodes } from '../path';
 import { SCREEN_BASELINE_Y } from './constants';
 
 /**

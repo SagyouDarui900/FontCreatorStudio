@@ -1,5 +1,6 @@
 import React from 'react';
 import { Undo2, Redo2 } from 'lucide-react';
+import { ThemeClasses } from '../../types';
 
 export interface AppBottomBarProps {
   selectedChar: string;
@@ -13,11 +14,7 @@ export interface AppBottomBarProps {
   handleRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  themeClasses: {
-    toolbarBg: string;
-    border: string;
-    [key: string]: any;
-  };
+  themeClasses: ThemeClasses;
 }
 
 export const AppBottomBar: React.FC<AppBottomBarProps> = React.memo(({

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Layers, CheckCircle2, HelpCircle, Zap } from 'lucide-react';
-import { GlyphDensityAnalysis } from '../../utils/qualityChecker';
+import { GlyphDensityAnalysis } from '../../utils/quality';
 
 export interface HeatmapContourSidebarProps {
   isLight: boolean;

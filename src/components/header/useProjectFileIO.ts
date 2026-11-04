@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { FontProject } from '../../types';
-import { createDefaultProject, loadFontFromFile } from '../../utils/fontCompiler';
+import { createDefaultProject, loadFontFromFile } from '../../utils/font';
 import { exportProjectJsonFile } from '../../utils/storageManager';
 
 interface UseProjectFileIOProps {

@@ -9,7 +9,7 @@ import {
 import {
   transformContoursForPlacement,
   groupContoursForRendering,
-} from '../../utils/pathUtils';
+} from '../../utils/path';
 
 interface FontExtractionTabProps {
   isLight: boolean;

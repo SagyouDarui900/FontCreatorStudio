@@ -2,7 +2,7 @@ import React, { memo, useMemo } from 'react';
 import { Lock, MoreHorizontal } from 'lucide-react';
 import { GlyphData } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
-import { groupContoursForRendering } from '../../utils/pathUtils';
+import { groupContoursForRendering } from '../../utils/path';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { GridDensity, ContextMenuItem } from './types';

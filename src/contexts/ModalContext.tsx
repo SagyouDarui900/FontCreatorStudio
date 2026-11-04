@@ -1,9 +1,35 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
+export type ModalId =
+  | 'mobileTheme'
+  | 'test'
+  | 'fontInfo'
+  | 'trace'
+  | 'svg'
+  | 'batchNormalize'
+  | 'quality'
+  | 'synthesis'
+  | 'kerning'
+  | 'weightInterp'
+  | 'glyphCompare'
+  | 'radicalStudio'
+  | 'storageManager'
+  | 'shortcuts'
+  | 'export'
+  | 'openTypeFeatures'
+  | 'gridFitting'
+  | 'pixelStudio'
+  | 'mojikumi'
+  | 'penPresets';
+
 export interface ModalContextType {
-  // Mobile / drawer
-  isMobileThemeModalOpen: boolean;
-  setIsMobileThemeModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  // Active modal ID state & direct controllers
+  activeModal: ModalId | null;
+  openModal: (id: ModalId) => void;
+  closeModal: () => void;
+  isModalOpen: (id: ModalId) => boolean;
+
+  // Mobile drawer / panels (managed independently from full modals)
   showRadicals: boolean;
   setShowRadicals: React.Dispatch<React.SetStateAction<boolean>>;
   showGridDrawer: boolean;
@@ -11,7 +37,9 @@ export interface ModalContextType {
   showMetricsDrawer: boolean;
   setShowMetricsDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 
-  // Feature modals
+  // Backward-compatible individual modal getters and setters
+  isMobileThemeModalOpen: boolean;
+  setIsMobileThemeModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isTestModalOpen: boolean;
   setIsTestModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isFontInfoModalOpen: boolean;
@@ -59,176 +87,147 @@ export interface ModalContextType {
 const ModalContext = createContext<ModalContextType | null>(null);
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
-  const [isMobileThemeModalOpen, setIsMobileThemeModalOpen] = useState(false);
+  // Single active modal identifier
+  const [activeModal, setActiveModal] = useState<ModalId | null>(null);
+
+  // Independent drawers / side panels
   const [showRadicals, setShowRadicals] = useState(false);
   const [showGridDrawer, setShowGridDrawer] = useState(() => {
     return typeof window !== 'undefined' ? window.innerWidth >= 1280 : false;
   });
   const [showMetricsDrawer, setShowMetricsDrawer] = useState(false);
 
-  const [isTestModalOpen, setIsTestModalOpen] = useState(false);
-  const [isFontInfoModalOpen, setIsFontInfoModalOpen] = useState(false);
-  const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
-  const [isSvgModalOpen, setIsSvgModalOpen] = useState(false);
-  const [isBatchNormalizeModalOpen, setIsBatchNormalizeModalOpen] = useState(false);
-  const [isQualityModalOpen, setIsQualityModalOpen] = useState(false);
-  const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
-  const [isKerningModalOpen, setIsKerningModalOpen] = useState(false);
-  const [isWeightInterpModalOpen, setIsWeightInterpModalOpen] = useState(false);
-  const [isGlyphCompareModalOpen, setIsGlyphCompareModalOpen] = useState(false);
-  const [isRadicalStudioOpen, setIsRadicalStudioOpen] = useState(false);
-  const [isStorageManagerOpen, setIsStorageManagerOpen] = useState(false);
-  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isOpenTypeFeaturesModalOpen, setIsOpenTypeFeaturesModalOpen] = useState(false);
-  const [isGridFittingModalOpen, setIsGridFittingModalOpen] = useState(false);
-  const [isPixelStudioOpen, setIsPixelStudioOpen] = useState(false);
-  const [isMojikumiStudioOpen, setIsMojikumiStudioOpen] = useState(false);
-  const [isPenPresetsModalOpen, setIsPenPresetsModalOpen] = useState(false);
-
-  const closeAllModals = useCallback(() => {
-    setIsMobileThemeModalOpen(false);
-    setShowRadicals(false);
-    setIsTestModalOpen(false);
-    setIsFontInfoModalOpen(false);
-    setIsTraceModalOpen(false);
-    setIsSvgModalOpen(false);
-    setIsBatchNormalizeModalOpen(false);
-    setIsQualityModalOpen(false);
-    setIsSynthesisModalOpen(false);
-    setIsKerningModalOpen(false);
-    setIsWeightInterpModalOpen(false);
-    setIsGlyphCompareModalOpen(false);
-    setIsRadicalStudioOpen(false);
-    setIsStorageManagerOpen(false);
-    setIsShortcutsModalOpen(false);
-    setIsExportModalOpen(false);
-    setIsOpenTypeFeaturesModalOpen(false);
-    setIsGridFittingModalOpen(false);
-    setIsPixelStudioOpen(false);
-    setIsMojikumiStudioOpen(false);
-    setIsPenPresetsModalOpen(false);
+  // Primary controllers
+  const openModal = useCallback((id: ModalId) => {
+    setActiveModal(id);
   }, []);
 
-  const isAnyModalOpen = useMemo(() => {
-    return (
-      isTestModalOpen ||
-      isFontInfoModalOpen ||
-      isTraceModalOpen ||
-      isSvgModalOpen ||
-      isBatchNormalizeModalOpen ||
-      isQualityModalOpen ||
-      isSynthesisModalOpen ||
-      isKerningModalOpen ||
-      isWeightInterpModalOpen ||
-      isGlyphCompareModalOpen ||
-      isRadicalStudioOpen ||
-      isPenPresetsModalOpen ||
-      isShortcutsModalOpen ||
-      isStorageManagerOpen ||
-      isExportModalOpen ||
-      isOpenTypeFeaturesModalOpen ||
-      isGridFittingModalOpen ||
-      isPixelStudioOpen ||
-      isMojikumiStudioOpen
-    );
-  }, [
-    isTestModalOpen,
-    isFontInfoModalOpen,
-    isTraceModalOpen,
-    isSvgModalOpen,
-    isBatchNormalizeModalOpen,
-    isQualityModalOpen,
-    isSynthesisModalOpen,
-    isKerningModalOpen,
-    isWeightInterpModalOpen,
-    isGlyphCompareModalOpen,
-    isRadicalStudioOpen,
-    isPenPresetsModalOpen,
-    isShortcutsModalOpen,
-    isStorageManagerOpen,
-    isExportModalOpen,
-    isOpenTypeFeaturesModalOpen,
-    isGridFittingModalOpen,
-    isPixelStudioOpen,
-    isMojikumiStudioOpen,
-  ]);
+  const closeModal = useCallback(() => {
+    setActiveModal(null);
+  }, []);
+
+  const isModalOpen = useCallback((id: ModalId) => activeModal === id, [activeModal]);
+
+  const closeAllModals = useCallback(() => {
+    setActiveModal(null);
+    setShowRadicals(false);
+  }, []);
+
+  // Stable setters for backward compatibility
+  const makeSetter = (id: ModalId) => (action: React.SetStateAction<boolean>) => {
+    setActiveModal((curr) => {
+      const isCurr = curr === id;
+      const next = typeof action === 'function' ? action(isCurr) : action;
+      return next ? id : curr === id ? null : curr;
+    });
+  };
+
+  const setIsMobileThemeModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('mobileTheme'), []);
+  const setIsTestModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('test'), []);
+  const setIsFontInfoModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('fontInfo'), []);
+  const setIsTraceModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('trace'), []);
+  const setIsSvgModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('svg'), []);
+  const setIsBatchNormalizeModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('batchNormalize'), []);
+  const setIsQualityModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('quality'), []);
+  const setIsSynthesisModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('synthesis'), []);
+  const setIsKerningModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('kerning'), []);
+  const setIsWeightInterpModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('weightInterp'), []);
+  const setIsGlyphCompareModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('glyphCompare'), []);
+  const setIsRadicalStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('radicalStudio'), []);
+  const setIsStorageManagerOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('storageManager'), []);
+  const setIsShortcutsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('shortcuts'), []);
+  const setIsExportModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('export'), []);
+  const setIsOpenTypeFeaturesModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('openTypeFeatures'), []);
+  const setIsGridFittingModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('gridFitting'), []);
+  const setIsPixelStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('pixelStudio'), []);
+  const setIsMojikumiStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('mojikumi'), []);
+  const setIsPenPresetsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('penPresets'), []);
+
+  const isAnyModalOpen = activeModal !== null;
 
   const value = useMemo<ModalContextType>(
     () => ({
-      isMobileThemeModalOpen,
-      setIsMobileThemeModalOpen,
+      activeModal,
+      openModal,
+      closeModal,
+      isModalOpen,
       showRadicals,
       setShowRadicals,
       showGridDrawer,
       setShowGridDrawer,
       showMetricsDrawer,
       setShowMetricsDrawer,
-      isTestModalOpen,
+      isMobileThemeModalOpen: activeModal === 'mobileTheme',
+      setIsMobileThemeModalOpen,
+      isTestModalOpen: activeModal === 'test',
       setIsTestModalOpen,
-      isFontInfoModalOpen,
+      isFontInfoModalOpen: activeModal === 'fontInfo',
       setIsFontInfoModalOpen,
-      isTraceModalOpen,
+      isTraceModalOpen: activeModal === 'trace',
       setIsTraceModalOpen,
-      isSvgModalOpen,
+      isSvgModalOpen: activeModal === 'svg',
       setIsSvgModalOpen,
-      isBatchNormalizeModalOpen,
+      isBatchNormalizeModalOpen: activeModal === 'batchNormalize',
       setIsBatchNormalizeModalOpen,
-      isQualityModalOpen,
+      isQualityModalOpen: activeModal === 'quality',
       setIsQualityModalOpen,
-      isSynthesisModalOpen,
+      isSynthesisModalOpen: activeModal === 'synthesis',
       setIsSynthesisModalOpen,
-      isKerningModalOpen,
+      isKerningModalOpen: activeModal === 'kerning',
       setIsKerningModalOpen,
-      isWeightInterpModalOpen,
+      isWeightInterpModalOpen: activeModal === 'weightInterp',
       setIsWeightInterpModalOpen,
-      isGlyphCompareModalOpen,
+      isGlyphCompareModalOpen: activeModal === 'glyphCompare',
       setIsGlyphCompareModalOpen,
-      isRadicalStudioOpen,
+      isRadicalStudioOpen: activeModal === 'radicalStudio',
       setIsRadicalStudioOpen,
-      isStorageManagerOpen,
+      isStorageManagerOpen: activeModal === 'storageManager',
       setIsStorageManagerOpen,
-      isShortcutsModalOpen,
+      isShortcutsModalOpen: activeModal === 'shortcuts',
       setIsShortcutsModalOpen,
-      isExportModalOpen,
+      isExportModalOpen: activeModal === 'export',
       setIsExportModalOpen,
-      isOpenTypeFeaturesModalOpen,
+      isOpenTypeFeaturesModalOpen: activeModal === 'openTypeFeatures',
       setIsOpenTypeFeaturesModalOpen,
-      isGridFittingModalOpen,
+      isGridFittingModalOpen: activeModal === 'gridFitting',
       setIsGridFittingModalOpen,
-      isPixelStudioOpen,
+      isPixelStudioOpen: activeModal === 'pixelStudio',
       setIsPixelStudioOpen,
-      isMojikumiStudioOpen,
+      isMojikumiStudioOpen: activeModal === 'mojikumi',
       setIsMojikumiStudioOpen,
-      isPenPresetsModalOpen,
+      isPenPresetsModalOpen: activeModal === 'penPresets',
       setIsPenPresetsModalOpen,
       isAnyModalOpen,
       closeAllModals,
     }),
     [
-      isMobileThemeModalOpen,
+      activeModal,
+      openModal,
+      closeModal,
+      isModalOpen,
       showRadicals,
       showGridDrawer,
       showMetricsDrawer,
-      isTestModalOpen,
-      isFontInfoModalOpen,
-      isTraceModalOpen,
-      isSvgModalOpen,
-      isBatchNormalizeModalOpen,
-      isQualityModalOpen,
-      isSynthesisModalOpen,
-      isKerningModalOpen,
-      isWeightInterpModalOpen,
-      isGlyphCompareModalOpen,
-      isRadicalStudioOpen,
-      isStorageManagerOpen,
-      isShortcutsModalOpen,
-      isExportModalOpen,
-      isOpenTypeFeaturesModalOpen,
-      isGridFittingModalOpen,
-      isPixelStudioOpen,
-      isMojikumiStudioOpen,
-      isPenPresetsModalOpen,
+      setIsMobileThemeModalOpen,
+      setIsTestModalOpen,
+      setIsFontInfoModalOpen,
+      setIsTraceModalOpen,
+      setIsSvgModalOpen,
+      setIsBatchNormalizeModalOpen,
+      setIsQualityModalOpen,
+      setIsSynthesisModalOpen,
+      setIsKerningModalOpen,
+      setIsWeightInterpModalOpen,
+      setIsGlyphCompareModalOpen,
+      setIsRadicalStudioOpen,
+      setIsStorageManagerOpen,
+      setIsShortcutsModalOpen,
+      setIsExportModalOpen,
+      setIsOpenTypeFeaturesModalOpen,
+      setIsGridFittingModalOpen,
+      setIsPixelStudioOpen,
+      setIsMojikumiStudioOpen,
+      setIsPenPresetsModalOpen,
       isAnyModalOpen,
       closeAllModals,
     ]

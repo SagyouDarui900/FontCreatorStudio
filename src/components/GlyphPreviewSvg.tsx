@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { PathContour } from '../types';
-import { groupContoursForRendering } from '../utils/pathUtils';
+import { groupContoursForRendering } from '../utils/path';
 
 export interface GlyphPreviewSvgProps {
   contours: PathContour[] | undefined | null;

@@ -6,7 +6,7 @@ import {
   getContoursBoundingBox,
   normalizeGlyphContoursWinding,
   unionContours,
-} from '../pathUtils';
+} from '../path';
 import { pixelGridToContours } from '../pixelFontUtils';
 import {
   DEFAULT_UPM,

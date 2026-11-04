@@ -1,7 +1,7 @@
 import React from 'react';
 import { FontProject } from '../../types';
 import { ThemeMode } from '../../utils/theme';
-import { QualityIssueType } from '../../utils/qualityChecker';
+import { QualityIssueType } from '../../utils/quality';
 
 export interface FontQualityModalProps {
   isOpen: boolean;

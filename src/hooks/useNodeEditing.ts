@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { generateId } from '../utils/path/id';
 import { toggleNodeType, insertNodeOnContourAtPoint } from '../utils/path/stroke';
-import { snapSinglePoint } from '../utils/snapUtils';
+import { snapSinglePoint } from '../utils/snap';
 
 export interface NodeDragSession {
   contourId: string;

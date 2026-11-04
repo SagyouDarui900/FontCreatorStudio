@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme } from '../utils/theme';
-import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/pathUtils';
+import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
 import {
   AlignHorizontal,
   AlignVertical,

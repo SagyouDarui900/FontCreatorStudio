@@ -7,7 +7,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { BrushStyle } from '../../../types';
-import { PEN_PRESETS } from '../../../utils/pathUtils';
+import { PEN_PRESETS } from '../../../utils/path';
 
 interface BrushSubToolbarProps {
   brushStyle: BrushStyle;

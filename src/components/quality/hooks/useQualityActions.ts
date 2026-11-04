@@ -9,7 +9,7 @@ import {
   batchOptimizeProjectExtrema,
   QualityIssue,
   QualityIssueType,
-} from '../../../utils/qualityChecker';
+} from '../../../utils/quality';
 import { runProjectDiagnostics, DiagnosticScope } from '../../../utils/projectDiagnostics';
 import { QualityState } from './useQualityState';
 

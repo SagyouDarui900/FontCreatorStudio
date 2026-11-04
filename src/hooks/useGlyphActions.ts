@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
-import { createSmallKanaContours, generateId, simplifyGlyphContours } from '../utils/pathUtils';
+import { createSmallKanaContours, generateId, simplifyGlyphContours } from '../utils/path';
 import { createDakutenContours, createHandakutenContours, cloneContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
 import { KANA_PAIRS } from '../data/unicodeTables';

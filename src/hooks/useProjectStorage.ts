@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontProject } from '../types';
-import { createDefaultProject } from '../utils/fontCompiler';
+import { createDefaultProject } from '../utils/font';
 import { DEFAULT_SAMPLE_GLYPHS, isLegacyMockGlyph } from '../data/defaultSampleGlyphs';
 import {
   setLastAutoSaveTimestamp,

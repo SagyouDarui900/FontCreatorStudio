@@ -1,5 +1,5 @@
 import { FontProject, PaltGlyphMetric, VpalGlyphMetric } from '../../types';
-import { getContoursBoundingBox } from '../pathUtils';
+import { getContoursBoundingBox } from '../path';
 import { DEFAULT_UPM } from './constants';
 
 /**

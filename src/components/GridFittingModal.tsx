@@ -14,7 +14,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import { FontProject, GlyphData, PathContour, BezierNode } from '../types';
-import { groupContoursForRendering } from '../utils/pathUtils';
+import { groupContoursForRendering } from '../utils/path';
 
 interface GridFittingModalProps {
   project: FontProject;

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { PathContour, RulerMeasurement } from '../../../types';
-import { createLineContour } from '../../../utils/pathUtils';
+import { createLineContour } from '../../../utils/path';
 
 export interface UseCanvasContourActionsOptions {
   contours: PathContour[];

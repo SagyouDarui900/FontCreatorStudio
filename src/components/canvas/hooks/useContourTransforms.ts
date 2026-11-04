@@ -26,7 +26,7 @@ import {
   convertContourToCorners,
   convertContourToSmooth,
   expandStrokeContours,
-} from '../../../utils/pathUtils';
+} from '../../../utils/path';
 
 export interface UseContourTransformsOptions {
   contours: PathContour[];

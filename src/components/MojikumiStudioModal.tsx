@@ -54,7 +54,7 @@ import {
   BURASAGARI_CHARS,
   FormattedLayoutResult,
 } from '../utils/mojikumiEngine';
-import { compileFont } from '../utils/fontCompiler';
+import { compileFont } from '../utils/font';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 import { AOZORA_TEXTS, AozoraWork } from './mojikumi/aozoraTexts';
 import { BookSpreadView } from './mojikumi/BookSpreadView';

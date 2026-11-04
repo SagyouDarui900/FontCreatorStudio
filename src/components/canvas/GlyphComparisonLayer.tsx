@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { GlyphOverlaySettings, FontProject, GlyphData } from '../../types';
-import { contoursToSvgPath, groupContoursForRendering } from '../../utils/pathUtils';
+import { contoursToSvgPath, groupContoursForRendering } from '../../utils/path';
 
 interface GlyphComparisonLayerProps {
   overlaySettings?: GlyphOverlaySettings;

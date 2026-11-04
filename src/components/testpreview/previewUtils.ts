@@ -1,5 +1,5 @@
 import { PathContour, Point } from '../../types';
-import { getContoursBoundingBox, smoothAndFixTransformedContours } from '../../utils/pathUtils';
+import { getContoursBoundingBox, smoothAndFixTransformedContours } from '../../utils/path';
 
 /**
  * Converts a PathContour into an SVG path data string ('M ... C ... Z')

@@ -12,7 +12,7 @@ import {
   UserPenPreset,
 } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
-import { PEN_PRESETS } from '../../utils/pathUtils';
+import { PEN_PRESETS } from '../../utils/path';
 import { PEN_ICONS, PRESSURE_MODES } from './toolbarConstants';
 
 export interface DesktopBrushMenuPopoverProps {

@@ -8,7 +8,7 @@ import {
   RadicalPlacement,
   Point,
 } from '../../../types';
-import { generateId } from '../../../utils/pathUtils';
+import { generateId } from '../../../utils/path';
 import { KANJI_RADICALS } from '../../../data/kanjiRadicals';
 import {
   RADICAL_FONT_OPTIONS,

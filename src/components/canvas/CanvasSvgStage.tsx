@@ -17,7 +17,7 @@ import {
   contoursToSvgPath,
   getContoursBoundingBox,
   isPointNearContour,
-} from '../../utils/pathUtils';
+} from '../../utils/path';
 import { getCachedContourSvgPath } from './cursors';
 import { CanvasBackgroundLayer } from './CanvasBackgroundLayer';
 import { JapaneseGuidesLayer } from './JapaneseGuidesLayer';

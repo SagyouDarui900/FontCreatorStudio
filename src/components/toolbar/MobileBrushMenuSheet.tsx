@@ -1,13 +1,13 @@
 import React from 'react';
 import { Sliders, X, ChevronRight, Paintbrush } from 'lucide-react';
-import { BrushStyle, ToolMode, UserPenPreset } from '../../types';
-import { PEN_PRESETS } from '../../utils/pathUtils';
+import { BrushStyle, ToolMode, UserPenPreset, ThemeClasses } from '../../types';
+import { PEN_PRESETS } from '../../utils/path';
 
 export interface MobileBrushMenuSheetProps {
   isOpen: boolean;
   onClose: () => void;
   sheetRef: React.RefObject<HTMLDivElement | null>;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   onOpenPenPresetsModal?: () => void;
   customPresets: UserPenPreset[];

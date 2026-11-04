@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Eye } from 'lucide-react';
 import { UserPenPreset, StrokePoint, BezierNode } from '../../types';
-import { strokePointsToOutline, contoursToSvgPath } from '../../utils/pathUtils';
+import { strokePointsToOutline, contoursToSvgPath } from '../../utils/path';
 
 interface PenPreviewSectionProps {
   workingPreset: UserPenPreset;

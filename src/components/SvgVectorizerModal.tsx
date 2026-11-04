@@ -20,7 +20,7 @@ import {
 import { PathContour } from '../types';
 import { parseSvgStringToContours } from '../utils/svgParser';
 import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
-import { contoursToSvgPath } from '../utils/pathUtils';
+import { contoursToSvgPath } from '../utils/path';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 
 interface SvgVectorizerModalProps {

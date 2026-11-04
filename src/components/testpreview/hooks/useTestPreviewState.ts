@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FontProject, PathContour, Point } from '../../../types';
-import { compileFont, balanceProjectGlyphMargins } from '../../../utils/fontCompiler';
-import { getContoursBoundingBox } from '../../../utils/pathUtils';
+import { compileFont, balanceProjectGlyphMargins } from '../../../utils/font';
+import { getContoursBoundingBox } from '../../../utils/path';
 import { ThemeMode, isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
 import { transformGlyphContours } from '../previewUtils';

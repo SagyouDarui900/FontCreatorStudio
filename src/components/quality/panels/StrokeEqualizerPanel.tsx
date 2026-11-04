@@ -9,7 +9,7 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react';
-import { BatchStrokeEqualizationResult } from '../../../utils/qualityChecker';
+import { BatchStrokeEqualizationResult } from '../../../utils/quality';
 
 export type EqualizationMode = 'balanced' | 'boost_thin' | 'shrink_thick';
 export type EqualizationScope = 'all' | 'uneven' | 'filtered';

@@ -3,7 +3,7 @@ import { X, Type, ShieldCheck } from 'lucide-react';
 import { BundledFontsModal } from './BundledFontsModal';
 import { KANJI_RADICALS } from '../data/kanjiRadicals';
 import { PathContour, CustomPart, RadicalPlacement } from '../types';
-import { generateId, transformContoursForPlacement } from '../utils/pathUtils';
+import { generateId, transformContoursForPlacement } from '../utils/path';
 import {
   extractRadicalFromFont,
   getOrExtractRadicalContours,

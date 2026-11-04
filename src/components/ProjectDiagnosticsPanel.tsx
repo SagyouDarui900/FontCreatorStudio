@@ -22,7 +22,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
-import { contoursToSvgPath } from '../utils/pathUtils';
+import { contoursToSvgPath } from '../utils/path';
 import {
   ProjectDiagnosticsReport,
   DiagnosticItem,

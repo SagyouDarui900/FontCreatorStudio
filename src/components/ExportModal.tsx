@@ -26,7 +26,7 @@ import {
   validateFontProject,
   FontValidationResult,
   CompileFontOptions,
-} from '../utils/fontCompiler';
+} from '../utils/font';
 
 interface ExportModalProps {
   isOpen: boolean;

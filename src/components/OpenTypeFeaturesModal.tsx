@@ -28,7 +28,7 @@ import {
   PaltGlyphMetric,
   ProportionalMetricsConfig,
 } from '../types';
-import { deriveProjectPaltMetrics } from '../utils/fontCompiler';
+import { deriveProjectPaltMetrics } from '../utils/font';
 
 interface OpenTypeFeaturesModalProps {
   project: FontProject;

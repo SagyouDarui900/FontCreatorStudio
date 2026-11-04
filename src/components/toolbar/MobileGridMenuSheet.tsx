@@ -1,13 +1,13 @@
 import React from 'react';
 import { X, Grid, Magnet, Eye, Move, Bookmark, Save, Download, Ruler, Crosshair, Layers } from 'lucide-react';
-import { GridSettings, JapaneseGuidePattern } from '../../types';
+import { GridSettings, JapaneseGuidePattern, ThemeClasses } from '../../types';
 import { VERTICAL_GUIDES, JAPANESE_GUIDES } from '../ToolBar';
 
 export interface MobileGridMenuSheetProps {
   isOpen: boolean;
   onClose: () => void;
   sheetRef: React.RefObject<HTMLDivElement | null>;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   gridSettings: GridSettings;
   setGridSettings: React.Dispatch<React.SetStateAction<GridSettings>>;

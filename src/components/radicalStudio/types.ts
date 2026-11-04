@@ -1,5 +1,5 @@
 import { CustomPart, PartCategory, PathContour, FontProject } from '../../types';
-import { generateId } from '../../utils/pathUtils';
+import { generateId } from '../../utils/path';
 import { ThemeMode } from '../../utils/theme';
 import { KANGXI_214_RADICALS } from '../../data/kangxi214Radicals';
 

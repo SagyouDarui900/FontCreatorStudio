@@ -22,8 +22,8 @@ import {
   contoursToSvgPath,
   getContoursBoundingBox,
   groupContoursForRendering,
-} from '../../utils/pathUtils';
-import { SCREEN_BASELINE_Y } from '../../utils/fontCompiler';
+} from '../../utils/path';
+import { SCREEN_BASELINE_Y } from '../../utils/font';
 
 export interface RadicalCanvasAreaProps {
   canvasContainerRef: React.RefObject<HTMLDivElement | null>;

@@ -1,15 +1,12 @@
 import React from 'react';
 import { PenTool, Grid, Ruler, Shapes } from 'lucide-react';
 import { MobileTab } from '../../hooks/useAppLayout';
+import { ThemeClasses } from '../../types';
 
 export interface AppMobileNavProps {
   mobileActiveTab: MobileTab;
   handleSwitchMobileTab: (tab: MobileTab) => void;
-  themeClasses: {
-    toolbarBg: string;
-    border: string;
-    [key: string]: any;
-  };
+  themeClasses: ThemeClasses;
 }
 
 export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({

@@ -16,7 +16,7 @@ import {
   Save,
 } from 'lucide-react';
 import { FontProject } from '../../types';
-import { groupContoursForRendering } from '../../utils/pathUtils';
+import { groupContoursForRendering } from '../../utils/path';
 import { TestPreviewState } from './hooks/useTestPreviewState';
 
 interface CharAdjustPanelProps {

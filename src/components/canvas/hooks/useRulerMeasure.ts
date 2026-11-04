@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Point, PathContour, GridSettings, SnapGuideLine, CustomGuideline, SnapMetrics, RulerMeasurement } from '../../../types';
-import { snapSinglePoint } from '../../../utils/snapUtils';
-import { generateId } from '../../../utils/pathUtils';
+import { snapSinglePoint } from '../../../utils/snap';
+import { generateId } from '../../../utils/path';
 
 interface UseRulerMeasureOptions {
   contours: PathContour[];

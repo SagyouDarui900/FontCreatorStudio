@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ThemeMode } from '../../utils/theme';
 import { PathContour } from '../../types';
-import { contoursToSvgPath, groupContoursForRendering, RenderGroup } from '../../utils/pathUtils';
+import { contoursToSvgPath, groupContoursForRendering, RenderGroup } from '../../utils/path';
 
 export interface MainGlyphContoursLayerProps {
   contours?: PathContour[];

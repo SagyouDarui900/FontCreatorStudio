@@ -28,7 +28,7 @@ import {
   slantContours,
   flipContoursHorizontal,
   flipContoursVertical,
-} from '../../utils/pathUtils';
+} from '../../utils/path';
 
 export type MobileSheetSnap = 'peek' | 'half' | 'full';
 export type MobileSheetTab = 'radicals' | 'parts' | 'transform' | 'compose';

@@ -1,5 +1,5 @@
 import { DEFAULT_PEN_PRESETS } from "./src/utils/presetData";
-import { strokePointsToOutline, contoursToSvgPath } from "./src/utils/pathUtils";
+import { strokePointsToOutline, contoursToSvgPath } from "./src/utils/path";
 
 const preset = DEFAULT_PEN_PRESETS[0];
 

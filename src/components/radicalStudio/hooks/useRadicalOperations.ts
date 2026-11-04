@@ -27,7 +27,7 @@ import {
   simplifyGlyphContours,
   flipMultipleContoursH,
   flipMultipleContoursV,
-} from '../../../utils/pathUtils';
+} from '../../../utils/path';
 import { parseSvgStringToContours } from '../../../utils/svgParser';
 import { KANJI_RADICALS } from '../../../data/kanjiRadicals';
 import {

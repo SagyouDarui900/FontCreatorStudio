@@ -8,7 +8,7 @@ import {
   BatchNodeOptimizationResult,
   BatchStrokeEqualizationResult,
   BatchExtremaOptimizationResult,
-} from '../../../utils/qualityChecker';
+} from '../../../utils/quality';
 import {
   ProjectDiagnosticsReport,
   DiagnosticScope,

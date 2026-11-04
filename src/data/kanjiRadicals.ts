@@ -1,5 +1,5 @@
 import { KanjiRadical, PathContour, BezierNode } from '../types';
-import { generateId } from '../utils/pathUtils';
+import { generateId } from '../utils/path';
 
 // Helper to create a corner node
 function cNode(x: number, y: number): BezierNode {

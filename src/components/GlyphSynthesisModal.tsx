@@ -27,7 +27,7 @@ import {
   SmallKanaOptions,
   contoursToSvgPath,
   normalizeGlyphContoursWinding,
-} from '../utils/pathUtils';
+} from '../utils/path';
 import { batchGenerateSmallKana } from '../utils/kanaHelper';
 
 import { ThemeMode, isLightTheme } from '../utils/theme';

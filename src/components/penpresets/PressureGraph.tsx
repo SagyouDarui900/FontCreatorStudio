@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Sliders } from 'lucide-react';
 import { PressureCurveConfig, PressureCurvePoint } from '../../types';
-import { evaluatePressureCurve } from '../../utils/pathUtils';
+import { evaluatePressureCurve } from '../../utils/path';
 import { DEFAULT_PRESSURE_CURVES } from '../../utils/presetData';
 import { CURVE_PRESET_LABELS } from './constants';
 

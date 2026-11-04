@@ -1,12 +1,12 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { ToolMode } from '../../types';
+import { ToolMode, ThemeClasses } from '../../types';
 
 export interface MobileShapeMenuSheetProps {
   isOpen: boolean;
   onClose: () => void;
   sheetRef: React.RefObject<HTMLDivElement | null>;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   toolMode: ToolMode;
   setToolMode: (mode: ToolMode) => void;

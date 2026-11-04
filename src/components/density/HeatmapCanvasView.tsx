@@ -1,8 +1,8 @@
 import React from 'react';
 import { ZoomIn, ZoomOut, X, Zap } from 'lucide-react';
 import { PathContour } from '../../types';
-import { contoursToSvgPath } from '../../utils/pathUtils';
-import { GlyphDensityAnalysis, NodeDensityInfo } from '../../utils/qualityChecker';
+import { contoursToSvgPath } from '../../utils/path';
+import { GlyphDensityAnalysis, NodeDensityInfo } from '../../utils/quality';
 
 export interface HeatmapCanvasViewProps {
   isLight: boolean;

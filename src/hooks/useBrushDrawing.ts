@@ -15,7 +15,7 @@ import {
   contoursToSvgPath,
   generateStraightStrokePoints,
   snapToStraightAngle,
-} from '../utils/pathUtils';
+} from '../utils/path';
 import {
   calibrateStylusPressure,
   computeMouseSpeedPressure,

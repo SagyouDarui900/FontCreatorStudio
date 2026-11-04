@@ -9,7 +9,7 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react';
-import { BatchExtremaOptimizationResult } from '../../../utils/qualityChecker';
+import { BatchExtremaOptimizationResult } from '../../../utils/quality';
 
 export type ExtremaSensitivity = 'normal' | 'strict' | 'fine';
 export type ExtremaScope = 'all' | 'missing' | 'filtered';

@@ -8,7 +8,7 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react';
-import { BatchNodeOptimizationResult } from '../../../utils/qualityChecker';
+import { BatchNodeOptimizationResult } from '../../../utils/quality';
 
 export type OptimizationLevel = 'mild' | 'normal' | 'strong';
 export type OptimizationScope = 'all' | 'excessive' | 'filtered';

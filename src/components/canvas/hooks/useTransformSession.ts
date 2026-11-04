@@ -7,8 +7,8 @@ import {
   CustomGuideline,
   SnapMetrics,
 } from '../../../types';
-import { getContoursBoundingBox } from '../../../utils/pathUtils';
-import { snapContourMovement, snapSinglePoint } from '../../../utils/snapUtils';
+import { getContoursBoundingBox } from '../../../utils/path';
+import { snapContourMovement, snapSinglePoint } from '../../../utils/snap';
 
 export type TransformHandleType =
   | 'move'

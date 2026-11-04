@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { PathContour, Point, ToolMode } from '../../../types';
-import { eraseContoursAtPoint, subtractEraserStrokeFromContours } from '../../../utils/pathUtils';
+import { eraseContoursAtPoint, subtractEraserStrokeFromContours } from '../../../utils/path';
 
 interface UseCanvasEraserOptions {
   toolMode: ToolMode;

@@ -11,8 +11,11 @@ import {
   RulerMeasurement,
   TraceSettings,
 } from '../../../types';
-import { snapSinglePoint } from '../../../utils/snapUtils';
-import { generateId } from '../../../utils/pathUtils';
+import { snapSinglePoint } from '../../../utils/snap';
+import { generateId } from '../../../utils/path';
+import { usePointerMetricsDrag } from './usePointerMetricsDrag';
+import { usePointerTransformDispatch } from './usePointerTransformDispatch';
+import { usePointerGuidelineDrag } from './usePointerGuidelineDrag';
 
 export interface UseCanvasPointerDispatcherOptions {
   // Viewport
@@ -210,6 +213,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleRulerPointerMove,
     handleRulerPointerUp,
     lockGuidelines,
+    draggingGuidelineId,
     setDraggingGuidelineId,
     updateDraggingGuideline,
     handleTracePointerMove,
@@ -290,6 +294,44 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     };
   }, []);
+
+  const isDrawingTool = toolMode === 'brush' || toolMode === 'pen' || toolMode === 'eraser' || isShapeTool;
+
+  // Sub-hook delegations
+  const {
+    handleMetricsPointerDown,
+    handleMetricsPointerMove,
+    handleMetricsPointerUp,
+  } = usePointerMetricsDrag({
+    zoom,
+    lsb,
+    advanceWidth,
+    onChangeLsb,
+    onChangeAdvanceWidth,
+    draggingMetric,
+    setDraggingMetric,
+    lockGuidelines,
+    toolMode,
+    isDrawingTool,
+    showCanvasToast,
+  });
+
+  const {
+    dispatchTransformMove,
+    dispatchTransformUp,
+  } = usePointerTransformDispatch({
+    handleTransformPointerMove,
+    handleTransformPointerUp,
+  });
+
+  const {
+    handleGuidelinePointerMove,
+    handleGuidelinePointerUp,
+  } = usePointerGuidelineDrag({
+    draggingGuidelineId,
+    setDraggingGuidelineId,
+    updateDraggingGuideline,
+  });
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     // If an existing drawing pointer is already active, reject secondary pointerdown unless 2-finger gesture
@@ -446,24 +488,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     const pos = screenToCanvas(e.clientX, e.clientY);
-    const isTouch = e.pointerType === 'touch';
-    const metricHitDist = isTouch ? Math.max(30 / zoom, 26) : 18 / zoom;
 
-    // Metrics drag detection (LSB or RSB)
-    const isDrawingTool = toolMode === 'brush' || toolMode === 'pen' || toolMode === 'eraser' || isShapeTool;
-    const isMetricDragAllowed = !lockGuidelines && !isDrawingTool && (toolMode === 'select' || toolMode === 'ruler');
-
-    if (isMetricDragAllowed) {
-      if (Math.abs(pos.x - lsb) <= metricHitDist) {
-        setDraggingMetric('lsb');
-        return;
-      }
-      if (Math.abs(pos.x - advanceWidth) <= metricHitDist) {
-        setDraggingMetric('rsb');
-        return;
-      }
-    } else if (lockGuidelines && toolMode === 'select' && (Math.abs(pos.x - lsb) <= metricHitDist || Math.abs(pos.x - advanceWidth) <= metricHitDist)) {
-      showCanvasToast('ガイド・文字幅線はロックされています', 'ヘッダーの鍵アイコンでロック解除できます');
+    // Metrics drag detection (LSB or RSB delegated to hook)
+    if (handleMetricsPointerDown(pos, e)) {
+      return;
     }
 
     // TRACE ADJUST DRAG
@@ -649,6 +677,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setActiveSnapGuides,
     onCommitHistory,
     onChangeContours,
+    handleMetricsPointerDown,
     handleShapePointerDown,
     handleEraserPointerDown,
     handleBrushPointerDown,
@@ -807,8 +836,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       setHoverCanvasPos(null);
     }
 
-    // Guideline drag
-    if (updateDraggingGuideline(pos)) {
+    // Guideline drag (delegated to hook)
+    if (handleGuidelinePointerMove(pos)) {
       return;
     }
 
@@ -818,13 +847,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Metric drag
-    if (draggingMetric === 'lsb') {
-      onChangeLsb(Math.max(0, Math.min(pos.x, advanceWidth - 50)));
-      return;
-    }
-    if (draggingMetric === 'rsb') {
-      onChangeAdvanceWidth(Math.max(lsb + 50, Math.min(2000, pos.x)));
+    // Metric drag (delegated to hook)
+    if (handleMetricsPointerMove(pos)) {
       return;
     }
 
@@ -834,8 +858,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Active bounding box transform
-    if (handleTransformPointerMove(pos, e)) {
+    // Active bounding box transform (delegated to hook)
+    if (dispatchTransformMove(pos, e)) {
       return;
     }
 
@@ -875,17 +899,13 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isSpacePressed,
     hoverCanvasPos,
     setHoverCanvasPos,
-    updateDraggingGuideline,
+    handleGuidelinePointerMove,
     rulerMeasurement,
     handleRulerPointerMove,
-    draggingMetric,
-    onChangeLsb,
-    advanceWidth,
-    onChangeAdvanceWidth,
-    lsb,
+    handleMetricsPointerMove,
     marqueeSelection,
     setMarqueeSelection,
-    handleTransformPointerMove,
+    dispatchTransformMove,
     isErasingRef,
     handleEraserPointerMove,
     handleBrushPointerMove,
@@ -992,8 +1012,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     // Reset dragging states
     setIsPanning(false);
     resetTraceDragState();
-    setDraggingMetric(null);
-    setDraggingGuidelineId(null);
+    handleMetricsPointerUp();
+    handleGuidelinePointerUp();
     nodeDragSessionRef.current = null;
 
     // Finish Ruler
@@ -1002,8 +1022,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Finish Transform
-    if (handleTransformPointerUp()) {
+    // Finish Transform (delegated to hook)
+    if (dispatchTransformUp()) {
       return;
     }
 
@@ -1034,12 +1054,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     onRedo,
     setIsPanning,
     resetTraceDragState,
-    setDraggingMetric,
-    setDraggingGuidelineId,
+    handleMetricsPointerUp,
+    handleGuidelinePointerUp,
     nodeDragSessionRef,
     toolMode,
     handleRulerPointerUp,
-    handleTransformPointerUp,
+    dispatchTransformUp,
     handleEraserPointerUp,
     isShapeTool,
     shapeStartPoint,

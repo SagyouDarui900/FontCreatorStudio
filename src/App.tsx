@@ -10,8 +10,9 @@ import {
   UserPenPreset,
   GlyphOverlaySettings,
   PressureCurveConfig,
+  ThemeClasses,
 } from './types';
-import { createDefaultProject } from './utils/fontCompiler';
+import { createDefaultProject } from './utils/font';
 import { DEFAULT_SAMPLE_GLYPHS } from './data/defaultSampleGlyphs';
 import { loadUserPenPresets, loadStickyBrushConfigs, saveStickyBrushConfig, DEFAULT_PRESSURE_CURVES, DEFAULT_PEN_PRESETS } from './utils/presetData';
 import { Header } from './components/Header';
@@ -38,7 +39,7 @@ import { AppModalsHost } from './components/modals/AppModalsHost';
 
 interface AppMainProps {
   theme: ThemeMode;
-  themeClasses: any;
+  themeClasses: ThemeClasses;
   isLight: boolean;
   changeTheme: (mode: ThemeMode) => void;
   toasts: ToastMessage[];

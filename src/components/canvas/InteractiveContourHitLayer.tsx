@@ -1,6 +1,6 @@
 import React from 'react';
 import { PathContour, Point, ToolMode } from '../../types';
-import { contoursToSvgPath, insertNodeOnContourAtPoint } from '../../utils/pathUtils';
+import { contoursToSvgPath, insertNodeOnContourAtPoint } from '../../utils/path';
 
 export interface InteractiveContourHitLayerProps {
   contours: PathContour[];

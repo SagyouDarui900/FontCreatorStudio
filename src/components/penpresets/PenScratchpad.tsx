@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { PenTool, RotateCcw } from 'lucide-react';
 import { UserPenPreset, StrokePoint } from '../../types';
-import { strokePointsToOutline, contoursToSvgPath } from '../../utils/pathUtils';
+import { strokePointsToOutline, contoursToSvgPath } from '../../utils/path';
 
 interface PenScratchpadProps {
   workingPreset: UserPenPreset;

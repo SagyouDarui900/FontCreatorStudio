@@ -11,7 +11,7 @@ import { FontProject, Point } from '../../../types';
 import {
   contoursToSvgPath,
   normalizeGlyphContoursWinding,
-} from '../../../utils/pathUtils';
+} from '../../../utils/path';
 import { QualityIssue } from '../types';
 
 interface QualityIssueCardProps {

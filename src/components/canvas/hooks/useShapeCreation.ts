@@ -19,8 +19,8 @@ import {
   createCrescentContour,
   createLineContour,
   snapToStraightAngle,
-} from '../../../utils/pathUtils';
-import { snapSinglePoint } from '../../../utils/snapUtils';
+} from '../../../utils/path';
+import { snapSinglePoint } from '../../../utils/snap';
 
 interface UseShapeCreationOptions {
   toolMode: ToolMode;
