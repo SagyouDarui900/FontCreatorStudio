@@ -1,3 +1,5 @@
+export type ToolbarPosition = 'top' | 'left' | 'right';
+
 export type ToolMode =
   | 'select'
   | 'node'

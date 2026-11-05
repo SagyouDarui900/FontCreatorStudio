@@ -18,6 +18,8 @@ import { PEN_ICONS, PRESSURE_MODES } from './toolbarConstants';
 export interface DesktopBrushMenuPopoverProps {
   isOpen: boolean;
   anchorTop: number;
+  anchorLeft?: number;
+  anchorRight?: number;
   onClose: () => void;
   brushStyle: BrushStyle;
   setBrushStyle?: (style: BrushStyle) => void;
@@ -40,6 +42,8 @@ export interface DesktopBrushMenuPopoverProps {
 export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = React.memo(({
   isOpen,
   anchorTop,
+  anchorLeft,
+  anchorRight,
   onClose,
   brushStyle,
   setBrushStyle,
@@ -72,9 +76,13 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
     <div
       style={{
         top: `${anchorTop}px`,
+        ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
+        ...(anchorRight !== undefined ? { right: `${anchorRight}px` } : {}),
         maxHeight: `calc(100vh - ${anchorTop}px - 24px)`,
       }}
-      className={`fixed inset-x-3 max-w-sm mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed sm:left-14 md:left-16 sm:w-80 z-50 p-2.5 pb-8 rounded-2xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      className={`fixed inset-x-3 max-w-sm mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
+        anchorLeft === undefined && anchorRight === undefined ? 'sm:left-14 md:left-16' : ''
+      } sm:w-80 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className="px-2 py-1 text-[11px] font-bold border-b mb-1.5 flex items-center justify-between border-stone-200 dark:border-[#223025]">
         <div className="flex items-center space-x-1.5">

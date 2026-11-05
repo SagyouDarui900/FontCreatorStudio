@@ -20,6 +20,8 @@ export interface ViewToolButtonsProps {
   setShowBrushMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setShowShapeMenu: React.Dispatch<React.SetStateAction<boolean>>;
   setGridAnchorTop: (top: number) => void;
+  onSetGridAnchor?: (rect: DOMRect) => void;
+  orientation?: 'horizontal' | 'vertical';
   onQuickSaveGlyph?: () => void;
   onOpenTraceModal?: () => void;
   themeClasses: ThemeClasses;
@@ -34,6 +36,8 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
   setShowBrushMenu,
   setShowShapeMenu,
   setGridAnchorTop,
+  onSetGridAnchor,
+  orientation = 'horizontal',
   onQuickSaveGlyph,
   onOpenTraceModal,
   themeClasses,
@@ -41,19 +45,31 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
   return (
     <>
       {/* Desktop-only View / Guide Toggles */}
-      <div className="hidden sm:flex items-center gap-1 shrink-0">
+      <div
+        className={`hidden sm:flex ${
+          orientation === 'vertical' ? 'flex-col' : 'flex-row'
+        } items-center gap-1 shrink-0`}
+      >
         {/* Grid Toggle & Settings Menu */}
         <div className="relative shrink-0 flex items-center" ref={gridMenuRef}>
           <button
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
-              setGridAnchorTop(Math.max(40, rect.bottom + 4));
+              if (onSetGridAnchor) {
+                onSetGridAnchor(rect);
+              } else {
+                setGridAnchorTop(Math.max(40, rect.bottom + 4));
+              }
               setGridSettings((s) => ({ ...s, showGrid: !s.showGrid }));
             }}
             onContextMenu={(e) => {
               e.preventDefault();
               const rect = e.currentTarget.getBoundingClientRect();
-              setGridAnchorTop(Math.max(40, rect.bottom + 4));
+              if (onSetGridAnchor) {
+                onSetGridAnchor(rect);
+              } else {
+                setGridAnchorTop(Math.max(40, rect.bottom + 4));
+              }
               setShowGridMenu((prev) => !prev);
             }}
             className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
@@ -68,7 +84,11 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
               onClick={(e) => {
                 e.stopPropagation();
                 const rect = e.currentTarget.getBoundingClientRect();
-                setGridAnchorTop(Math.max(50, Math.min(window.innerHeight - 380, rect.top - 80)));
+                if (onSetGridAnchor) {
+                  onSetGridAnchor(rect);
+                } else {
+                  setGridAnchorTop(Math.max(50, Math.min(window.innerHeight - 380, rect.top - 80)));
+                }
                 setShowBrushMenu(false);
                 setShowShapeMenu(false);
                 setShowGridMenu((prev) => !prev);
@@ -140,7 +160,11 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
       </div>
 
       {/* Quick Actions (Desktop only) */}
-      <div className="hidden sm:flex sm:flex-col items-center gap-1 mt-1 shrink-0 pb-1">
+      <div
+        className={`hidden sm:flex ${
+          orientation === 'vertical' ? 'flex-col mt-1 pb-1' : 'flex-row'
+        } items-center gap-1 shrink-0`}
+      >
         {/* Quick Save Current Glyph */}
         {onQuickSaveGlyph && (
           <button

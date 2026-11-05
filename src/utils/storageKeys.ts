@@ -58,6 +58,10 @@ export const STORAGE_KEYS = {
     primary: 'fcs_project_data',
     legacy: ['font_editor_project_data_v2'],
   },
+  TOOLBAR_POSITION: {
+    primary: 'fcs_toolbar_position',
+    legacy: ['font_editor_toolbar_position'],
+  },
 } as const;
 
 export function getStorageItem(keyDef: StorageKeyDefinition, defaultValue: string | null = null): string | null {

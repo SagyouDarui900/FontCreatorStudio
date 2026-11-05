@@ -7,6 +7,8 @@ import { VERTICAL_GUIDES, JAPANESE_GUIDES } from './toolbarConstants';
 export interface DesktopGridMenuPopoverProps {
   isOpen: boolean;
   anchorTop: number;
+  anchorLeft?: number;
+  anchorRight?: number;
   onClose: () => void;
   gridSettings: GridSettings;
   setGridSettings: React.Dispatch<React.SetStateAction<GridSettings>>;
@@ -17,6 +19,8 @@ export interface DesktopGridMenuPopoverProps {
 export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = React.memo(({
   isOpen,
   anchorTop,
+  anchorLeft,
+  anchorRight,
   onClose,
   gridSettings,
   setGridSettings,
@@ -29,9 +33,13 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
     <div
       style={{
         top: `${anchorTop}px`,
+        ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
+        ...(anchorRight !== undefined ? { right: `${anchorRight}px` } : {}),
         maxHeight: `calc(100vh - ${anchorTop}px - 24px)`,
       }}
-      className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed sm:left-13 md:left-14 sm:w-72 z-50 p-3 pb-6 rounded-2xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
+        anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
+      } sm:w-72 z-50 p-3 pb-6 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-stone-200 dark:border-[#223025]">
         <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700 dark:text-emerald-400">

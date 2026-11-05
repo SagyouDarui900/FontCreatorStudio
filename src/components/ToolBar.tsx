@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { PanelTop, PanelLeft, PanelRight } from 'lucide-react';
 import {
   ToolMode,
   GridSettings,
@@ -6,6 +7,7 @@ import {
   UserPenPreset,
   JapaneseGuidePattern,
   VerticalGuidePattern,
+  ToolbarPosition,
 } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { PEN_PRESETS } from '../utils/path';
@@ -23,6 +25,7 @@ import { DesktopGridMenuPopover } from './toolbar/DesktopGridMenuPopover';
 import { MobileBrushMenuSheet } from './toolbar/MobileBrushMenuSheet';
 import { MobileShapeMenuSheet } from './toolbar/MobileShapeMenuSheet';
 import { MobileGridMenuSheet } from './toolbar/MobileGridMenuSheet';
+import { ToolbarPositionMenu } from './toolbar/ToolbarPositionMenu';
 
 export { VERTICAL_GUIDES, JAPANESE_GUIDES };
 export type { JapaneseGuidePattern, VerticalGuidePattern };
@@ -49,6 +52,8 @@ export interface ToolBarProps {
   activePenPreset?: UserPenPreset;
   userPresets?: UserPenPreset[];
   onApplyPreset?: (preset: UserPenPreset) => void;
+  position?: ToolbarPosition;
+  onPositionChange?: (position: ToolbarPosition) => void;
 }
 
 export const ToolBar: React.FC<ToolBarProps> = React.memo(({
@@ -73,18 +78,27 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   activePenPreset,
   userPresets = [],
   onApplyPreset,
+  position = 'top',
+  onPositionChange,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
   const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [showBrushMenu, setShowBrushMenu] = useState(false);
   const [showGridMenu, setShowGridMenu] = useState(false);
-  const [brushAnchorTop, setBrushAnchorTop] = useState(100);
-  const [shapeAnchorTop, setShapeAnchorTop] = useState(140);
-  const [gridAnchorTop, setGridAnchorTop] = useState(300);
+  const [showPositionMenu, setShowPositionMenu] = useState(false);
+  const [positionMenuAnchorStyle, setPositionMenuAnchorStyle] = useState<React.CSSProperties>({});
+
   const [isSmScreen, setIsSmScreen] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 640 : true
   );
+
+  const effectivePosition: ToolbarPosition = isSmScreen ? position : 'top';
+  const orientation = effectivePosition === 'top' ? 'horizontal' : 'vertical';
+
+  const [brushAnchor, setBrushAnchor] = useState<{ top: number; left?: number; right?: number }>({ top: 100 });
+  const [shapeAnchor, setShapeAnchor] = useState<{ top: number; left?: number; right?: number }>({ top: 140 });
+  const [gridAnchor, setGridAnchor] = useState<{ top: number; left?: number; right?: number }>({ top: 300 });
 
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const brushMenuRef = useRef<HTMLDivElement>(null);
@@ -92,6 +106,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   const mobileBrushSheetRef = useRef<HTMLDivElement>(null);
   const mobileShapeSheetRef = useRef<HTMLDivElement>(null);
   const mobileGridSheetRef = useRef<HTMLDivElement>(null);
+  const positionMenuBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -125,6 +140,12 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       ) {
         setShowGridMenu(false);
       }
+      if (
+        positionMenuBtnRef.current &&
+        !positionMenuBtnRef.current.contains(target)
+      ) {
+        // ToolbarPositionMenu handles its own internal outside click listener
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
@@ -133,6 +154,82 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
+
+  const calculateAnchor = useCallback(
+    (rect: DOMRect): { top: number; left?: number; right?: number } => {
+      if (effectivePosition === 'top') {
+        return {
+          top: Math.max(40, rect.bottom + 4),
+          left: Math.max(8, Math.min(window.innerWidth - 330, rect.left)),
+        };
+      } else if (effectivePosition === 'left') {
+        return {
+          top: Math.max(12, Math.min(rect.top - 16, window.innerHeight - 460)),
+          left: rect.right + 6,
+        };
+      } else {
+        return {
+          top: Math.max(12, Math.min(rect.top - 16, window.innerHeight - 460)),
+          right: Math.max(8, window.innerWidth - rect.left + 6),
+        };
+      }
+    },
+    [effectivePosition]
+  );
+
+  const handleSetBrushAnchor = useCallback(
+    (rect: DOMRect) => {
+      setBrushAnchor(calculateAnchor(rect));
+    },
+    [calculateAnchor]
+  );
+
+  const handleSetShapeAnchor = useCallback(
+    (rect: DOMRect) => {
+      setShapeAnchor(calculateAnchor(rect));
+    },
+    [calculateAnchor]
+  );
+
+  const handleSetGridAnchor = useCallback(
+    (rect: DOMRect) => {
+      setGridAnchor(calculateAnchor(rect));
+    },
+    [calculateAnchor]
+  );
+
+  const handleOpenPositionMenu = useCallback(
+    (rect: DOMRect) => {
+      if (effectivePosition === 'top') {
+        setPositionMenuAnchorStyle({
+          top: `${Math.max(40, rect.bottom + 4)}px`,
+          left: `${Math.max(8, Math.min(window.innerWidth - 270, rect.left - 100))}px`,
+        });
+      } else if (effectivePosition === 'left') {
+        setPositionMenuAnchorStyle({
+          top: `${Math.max(12, Math.min(rect.top - 40, window.innerHeight - 200))}px`,
+          left: `${rect.right + 6}px`,
+        });
+      } else {
+        setPositionMenuAnchorStyle({
+          top: `${Math.max(12, Math.min(rect.top - 40, window.innerHeight - 200))}px`,
+          right: `${Math.max(8, window.innerWidth - rect.left + 6)}px`,
+        });
+      }
+      setShowPositionMenu(true);
+    },
+    [effectivePosition]
+  );
+
+  const handleCyclePosition = useCallback(() => {
+    if (!onPositionChange) return;
+    const next: Record<ToolbarPosition, ToolbarPosition> = {
+      top: 'left',
+      left: 'right',
+      right: 'top',
+    };
+    onPositionChange(next[effectivePosition]);
+  }, [effectivePosition, onPositionChange]);
 
   const isCurrentToolShape = SHAPE_TOOLS.some((s) => s.id === toolMode);
   const [lastSelectedShape, setLastSelectedShape] = useState<ToolMode>(() => {
@@ -182,7 +279,13 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
 
   return (
     <div
-      className={`flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none transition-colors w-full h-auto overflow-x-auto no-scrollbar ${themeClasses.toolbarBg}`}
+      className={`${
+        orientation === 'vertical'
+          ? `flex flex-col items-center justify-start gap-1 sm:gap-1.5 px-1 py-2 ${
+              effectivePosition === 'left' ? 'border-r' : 'border-l'
+            } shrink-0 z-20 select-none transition-colors h-full w-12 sm:w-11 overflow-y-auto overflow-x-hidden no-scrollbar`
+          : 'flex flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none transition-colors w-full h-auto overflow-x-auto no-scrollbar'
+      } ${themeClasses.toolbarBg}`}
     >
       {/* Mobile Backdrop for Popups */}
       {(showBrushMenu || showShapeMenu || showGridMenu) && !isSmScreen && (
@@ -209,8 +312,11 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         setShowGridMenu={setShowGridMenu}
         brushMenuRef={brushMenuRef}
         shapeMenuRef={shapeMenuRef}
-        setBrushAnchorTop={setBrushAnchorTop}
-        setShapeAnchorTop={setShapeAnchorTop}
+        setBrushAnchorTop={(top) => setBrushAnchor((prev) => ({ ...prev, top }))}
+        setShapeAnchorTop={(top) => setShapeAnchor((prev) => ({ ...prev, top }))}
+        onSetBrushAnchor={handleSetBrushAnchor}
+        onSetShapeAnchor={handleSetShapeAnchor}
+        orientation={orientation}
         currentPenPreset={currentPenPreset}
         isCustomPen={isCustomPen}
         CurrentPenIcon={CurrentPenIcon}
@@ -223,9 +329,9 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
 
       {/* Divider */}
       <div
-        className={`hidden sm:block w-[1px] h-5 my-auto mx-1 opacity-70 ${
-          isLight ? 'bg-stone-200' : 'bg-[#222e25]'
-        }`}
+        className={`hidden sm:block ${
+          orientation === 'vertical' ? 'w-5 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
+        } opacity-70 ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`}
       />
 
       {/* Desktop View & Snapping Toggles + Quick Actions */}
@@ -237,17 +343,74 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         setShowGridMenu={setShowGridMenu}
         setShowBrushMenu={setShowBrushMenu}
         setShowShapeMenu={setShowShapeMenu}
-        setGridAnchorTop={setGridAnchorTop}
+        setGridAnchorTop={(top) => setGridAnchor((prev) => ({ ...prev, top }))}
+        onSetGridAnchor={handleSetGridAnchor}
+        orientation={orientation}
         onQuickSaveGlyph={onQuickSaveGlyph}
         onOpenTraceModal={onOpenTraceModal}
         themeClasses={themeClasses}
       />
 
+      {/* Toolbar Dock Position Switcher (Desktop only) */}
+      {onPositionChange && (
+        <div
+          className={`hidden sm:flex ${
+            orientation === 'vertical' ? 'flex-col mt-auto pt-1' : 'flex-row items-center'
+          } shrink-0`}
+        >
+          {/* Divider before position button */}
+          <div
+            className={`hidden sm:block ${
+              orientation === 'vertical' ? 'w-5 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
+            } opacity-70 ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`}
+          />
+
+          <button
+            ref={positionMenuBtnRef}
+            type="button"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              handleOpenPositionMenu(rect);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handleCyclePosition();
+            }}
+            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+              showPositionMenu ? themeClasses.activeTool : themeClasses.activeToolHover
+            }`}
+            title={`ツールバー配置を変更 (現在: ${
+              effectivePosition === 'top' ? '上部' : effectivePosition === 'left' ? '左側' : '右側'
+            }) [右クリックで順次切替]`}
+            aria-label="ツールバーの配置位置を変更"
+          >
+            {effectivePosition === 'top' && <PanelTop className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />}
+            {effectivePosition === 'left' && <PanelLeft className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />}
+            {effectivePosition === 'right' && <PanelRight className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />}
+          </button>
+        </div>
+      )}
+
+      {/* Toolbar Position Selector Popover */}
+      {showPositionMenu && isSmScreen && onPositionChange && (
+        <ToolbarPositionMenu
+          isOpen={showPositionMenu}
+          onClose={() => setShowPositionMenu(false)}
+          position={effectivePosition}
+          onPositionChange={onPositionChange}
+          anchorStyle={positionMenuAnchorStyle}
+          themeClasses={themeClasses}
+          isLight={isLight}
+        />
+      )}
+
       {/* Desktop Brush Popover */}
       {showBrushMenu && isSmScreen && (
         <DesktopBrushMenuPopover
           isOpen={showBrushMenu && isSmScreen}
-          anchorTop={brushAnchorTop}
+          anchorTop={brushAnchor.top}
+          anchorLeft={brushAnchor.left}
+          anchorRight={brushAnchor.right}
           onClose={() => setShowBrushMenu(false)}
           brushStyle={brushStyle}
           setBrushStyle={setBrushStyle}
@@ -272,7 +435,9 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       {showShapeMenu && isSmScreen && (
         <DesktopShapeMenuPopover
           isOpen={showShapeMenu && isSmScreen}
-          anchorTop={shapeAnchorTop}
+          anchorTop={shapeAnchor.top}
+          anchorLeft={shapeAnchor.left}
+          anchorRight={shapeAnchor.right}
           onClose={() => setShowShapeMenu(false)}
           toolMode={toolMode}
           setToolMode={setToolMode}
@@ -286,7 +451,9 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       {showGridMenu && isSmScreen && (
         <DesktopGridMenuPopover
           isOpen={showGridMenu && isSmScreen}
-          anchorTop={gridAnchorTop}
+          anchorTop={gridAnchor.top}
+          anchorLeft={gridAnchor.left}
+          anchorRight={gridAnchor.right}
           onClose={() => setShowGridMenu(false)}
           gridSettings={gridSettings}
           setGridSettings={setGridSettings}

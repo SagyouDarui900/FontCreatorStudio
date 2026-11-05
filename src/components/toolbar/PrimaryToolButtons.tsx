@@ -25,6 +25,9 @@ export interface PrimaryToolButtonsProps {
   shapeMenuRef: React.RefObject<HTMLDivElement | null>;
   setBrushAnchorTop: (top: number) => void;
   setShapeAnchorTop: (top: number) => void;
+  onSetBrushAnchor?: (rect: DOMRect) => void;
+  onSetShapeAnchor?: (rect: DOMRect) => void;
+  orientation?: 'horizontal' | 'vertical';
   currentPenPreset: UserPenPreset | { name: string; id: string };
   isCustomPen: boolean;
   CurrentPenIcon: React.FC<{ className?: string }>;
@@ -49,6 +52,9 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
   shapeMenuRef,
   setBrushAnchorTop,
   setShapeAnchorTop,
+  onSetBrushAnchor,
+  onSetShapeAnchor,
+  orientation = 'horizontal',
   currentPenPreset,
   isCustomPen,
   CurrentPenIcon,
@@ -59,7 +65,11 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
   themeClasses,
 }) => {
   return (
-    <div className="flex items-center justify-center gap-1 shrink-0">
+    <div
+      className={`flex ${
+        orientation === 'vertical' ? 'flex-col items-center justify-start' : 'flex-row items-center justify-center'
+      } gap-1 shrink-0`}
+    >
       {/* Select Tool (Object & Contour Transform) */}
       <button
         onClick={() => setToolMode('select')}
@@ -113,7 +123,11 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
         <button
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            setBrushAnchorTop(Math.max(40, rect.bottom + 4));
+            if (onSetBrushAnchor) {
+              onSetBrushAnchor(rect);
+            } else {
+              setBrushAnchorTop(Math.max(40, rect.bottom + 4));
+            }
             setShowShapeMenu(false);
             setShowGridMenu(false);
             if (toolMode === 'brush') {
@@ -149,7 +163,11 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
           type="button"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            setShapeAnchorTop(Math.max(40, rect.bottom + 4));
+            if (onSetShapeAnchor) {
+              onSetShapeAnchor(rect);
+            } else {
+              setShapeAnchorTop(Math.max(40, rect.bottom + 4));
+            }
             setShowBrushMenu(false);
             setShowGridMenu(false);
             if (isCurrentToolShape) {
@@ -162,7 +180,11 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
           onContextMenu={(e) => {
             e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
-            setShapeAnchorTop(Math.max(40, rect.bottom + 4));
+            if (onSetShapeAnchor) {
+              onSetShapeAnchor(rect);
+            } else {
+              setShapeAnchorTop(Math.max(40, rect.bottom + 4));
+            }
             setShowBrushMenu(false);
             setShowGridMenu(false);
             setShowShapeMenu(true);

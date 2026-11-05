@@ -11,6 +11,7 @@ import {
   GlyphOverlaySettings,
   PressureCurveConfig,
   ThemeClasses,
+  ToolbarPosition,
 } from './types';
 import { createDefaultProject } from './utils/font';
 import { DEFAULT_SAMPLE_GLYPHS } from './data/defaultSampleGlyphs';
@@ -266,6 +267,23 @@ function AppMain({
     showToast,
   });
 
+  // Toolbar Dock Position (top / left / right)
+  const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition>(() => {
+    try {
+      const saved = getStorageItem(STORAGE_KEYS.TOOLBAR_POSITION);
+      if (saved === 'top' || saved === 'left' || saved === 'right') return saved;
+    } catch (e) {}
+    return 'top';
+  });
+
+  useEffect(() => {
+    try {
+      setStorageItem(STORAGE_KEYS.TOOLBAR_POSITION, toolbarPosition);
+    } catch (e) {}
+  }, [toolbarPosition]);
+
+  const effectiveToolbarPosition: ToolbarPosition = viewportWidth >= 640 ? toolbarPosition : 'top';
+
   const openPenPresetsModal = useCallback(() => setIsPenPresetsModalOpen(true), [setIsPenPresetsModalOpen]);
 
   const handleOpenTestModal = useCallback(() => setIsTestModalOpen(true), [setIsTestModalOpen]);
@@ -410,8 +428,18 @@ function AppMain({
         />
 
         {/* Center Canvas Workspace Area */}
-        <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden relative">
+        <div
+          className={`flex-1 min-h-0 w-full flex ${
+            effectiveToolbarPosition === 'top'
+              ? 'flex-col'
+              : effectiveToolbarPosition === 'left'
+              ? 'flex-row'
+              : 'flex-row-reverse'
+          } overflow-hidden relative`}
+        >
           <ToolBar
+            position={effectiveToolbarPosition}
+            onPositionChange={setToolbarPosition}
             toolMode={toolMode}
             setToolMode={setToolMode}
             brushStyle={brushStyle}
@@ -433,7 +461,7 @@ function AppMain({
             activePenPreset={activePenPreset}
           />
 
-          <div className="flex-1 min-h-0 w-full relative overflow-hidden">
+          <div className="flex-1 min-h-0 h-full w-full relative overflow-hidden">
             <GlyphCanvas
               contours={currentGlyph.contours || []}
               onChangeContours={handleUpdateContours}

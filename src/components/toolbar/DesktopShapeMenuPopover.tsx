@@ -7,6 +7,8 @@ import { SHAPE_TOOLS } from './toolbarConstants';
 export interface DesktopShapeMenuPopoverProps {
   isOpen: boolean;
   anchorTop: number;
+  anchorLeft?: number;
+  anchorRight?: number;
   onClose: () => void;
   toolMode: ToolMode;
   setToolMode: (mode: ToolMode) => void;
@@ -18,6 +20,8 @@ export interface DesktopShapeMenuPopoverProps {
 export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = React.memo(({
   isOpen,
   anchorTop,
+  anchorLeft,
+  anchorRight,
   onClose,
   toolMode,
   setToolMode,
@@ -37,9 +41,13 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
     <div
       style={{
         top: `${anchorTop}px`,
+        ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
+        ...(anchorRight !== undefined ? { right: `${anchorRight}px` } : {}),
         maxHeight: `calc(100vh - ${anchorTop}px - 24px)`,
       }}
-      className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed sm:left-13 md:left-14 sm:w-72 z-50 p-2.5 pb-8 rounded-2xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
+        anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
+      } sm:w-72 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className="px-1 py-0.5 text-[11px] font-bold border-b mb-2 flex items-center justify-between border-stone-200 dark:border-[#223025]">
         <span className={isLight ? 'text-emerald-800' : 'text-emerald-400'}>図形を選択</span>

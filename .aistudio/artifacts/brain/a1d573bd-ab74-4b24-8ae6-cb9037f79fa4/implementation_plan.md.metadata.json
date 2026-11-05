@@ -1,6 +1,6 @@
 {
-  "summary": "ErrorBoundaryにおけるindexedDBStorageの静的インポートへの統一により、Viteビルド時の動的・静的インポート混在警告を解消。全テスト・ビルドが成功。",
-  "updatedAt": "2026-11-03T08:26:34.158720036Z",
+  "summary": "ツールバー配置のカスタマイズ機能（上部・左側・右側のドッキング切替および永続化）の追加実装と検証記録",
+  "updatedAt": "2026-11-05T08:17:26.943274231Z",
   "requestFeedback": true,
   "userFacing": true
 }
