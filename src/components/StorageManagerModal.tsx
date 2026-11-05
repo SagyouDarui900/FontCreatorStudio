@@ -801,7 +801,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* CONFIRM RESTORE DIALOG */}
  {confirmRestoreId && (
- <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-60 animate-in fade-in">
+ <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60] animate-in fade-in">
  <div
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${
  isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#16201a] border-[#25362b] text-emerald-100'
@@ -839,7 +839,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* CONFIRM DELETE DIALOG */}
  {confirmDeleteId && (
- <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-60 animate-in fade-in">
+ <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60] animate-in fade-in">
  <div
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${
  isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#16201a] border-[#25362b] text-emerald-100'
@@ -874,7 +874,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* CONFIRM CLEAR ALL DIALOG */}
  {confirmClearAll && (
- <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-60 animate-in fade-in">
+ <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60] animate-in fade-in">
  <div
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${
  isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#16201a] border-[#25362b] text-emerald-100'

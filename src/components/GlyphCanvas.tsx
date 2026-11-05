@@ -247,6 +247,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const hoverRafRef = useRef<number | null>(null);
 
   // Throttled RAF references for ultra-smooth 60fps canvas operations
+  const generalCrosshairRef = useRef<SVGGElement | null>(null);
   const eraserReticleRef = useRef<SVGGElement | null>(null);
   const drawingReticleRef = useRef<SVGGElement | null>(null);
   const eraseRafRef = useRef<number | null>(null);
@@ -555,6 +556,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   // Synchronize reticle elements immediately when showCursorCrosshair is turned off
   useEffect(() => {
     if (!gridSettings.showCursorCrosshair) {
+      if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
       if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
       if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
       setHoverCanvasPos(null);
@@ -717,6 +719,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleEraserPointerUp,
     eraserReticleRef,
     drawingReticleRef,
+    generalCrosshairRef,
     resetEraserVisuals,
     activePenContour,
     setActivePenContour,
@@ -757,6 +760,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const handlePointerCancel = handlePointerUp;
 
   const handlePointerLeave = useCallback(() => {
+    if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
     if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     setHoverCanvasPos(null);
@@ -1157,6 +1161,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           isAnyModalOpen={isAnyModalOpen}
           screenToCanvas={screenToCanvas}
           toolMode={toolMode}
+          generalCrosshairRef={generalCrosshairRef}
           drawingReticleRef={drawingReticleRef}
           eraserReticleRef={eraserReticleRef}
           isSpacePressed={isSpacePressed}

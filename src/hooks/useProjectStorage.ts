@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontProject } from '../types';
-import { createDefaultProject } from '../utils/font';
+import { createDefaultProject, validateStoredFontProject } from '../utils/font';
 import { DEFAULT_SAMPLE_GLYPHS, isLegacyMockGlyph } from '../data/defaultSampleGlyphs';
 import {
   setLastAutoSaveTimestamp,
@@ -16,26 +16,19 @@ interface UseProjectStorageOptions {
 }
 
 export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
-  // Main Project State with LocalStorage hydration
+  const corruptedStorageDetectedRef = useRef(false);
+
+  // Main Project State with LocalStorage hydration and input validation
   const [project, setProject] = useState<FontProject>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.metadata && parsed.glyphs) {
-          // Sanitize glyph structures to ensure arrays are valid
-          for (const u of Object.keys(parsed.glyphs)) {
-            const g = parsed.glyphs[u];
-            if (g) {
-              if (!Array.isArray(g.contours)) g.contours = [];
-              if (!Array.isArray(g.strokes)) g.strokes = [];
-              if (!Array.isArray(g.anchors)) g.anchors = [];
-            }
-          }
-
+        const validated = validateStoredFontProject(parsed);
+        if (validated) {
           // Detect legacy/deformed mock sample glyphs and seamlessly upgrade them to authentic outlines
           let upgraded = false;
-          const updatedGlyphs = { ...parsed.glyphs };
+          const updatedGlyphs = { ...validated.glyphs };
           for (const u of [65, 12354, 26085]) {
             if (updatedGlyphs[u] && isLegacyMockGlyph(updatedGlyphs[u])) {
               updatedGlyphs[u] = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_GLYPHS[u]));
@@ -43,21 +36,39 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
             }
           }
           if (upgraded) {
-            parsed.glyphs = updatedGlyphs;
+            validated.glyphs = updatedGlyphs;
           }
-          return parsed;
+          return validated;
+        } else {
+          corruptedStorageDetectedRef.current = true;
+          console.warn('LocalStorage data failed integrity validation; falling back to default project.');
         }
       }
     } catch (e) {
+      corruptedStorageDetectedRef.current = true;
       console.warn('Failed to load project from localStorage:', e);
     }
     return createDefaultProject();
   });
 
   const projectRef = useRef<FontProject>(project);
+  const initialUpdatedAtRef = useRef<number>(project.updatedAt || 0);
+  const hasUserEditedSinceMountRef = useRef(false);
+
   useEffect(() => {
     projectRef.current = project;
+    if ((project.updatedAt || 0) !== initialUpdatedAtRef.current) {
+      hasUserEditedSinceMountRef.current = true;
+    }
   }, [project]);
+
+  // Show warning if corrupted localStorage was detected and sanitized
+  useEffect(() => {
+    if (corruptedStorageDetectedRef.current) {
+      onShowToast('保存データが破損していたため、安全な初期プロジェクトを読み込みました', 'warning');
+      corruptedStorageDetectedRef.current = false;
+    }
+  }, [onShowToast]);
 
   // Quota warning throttle ref & timers
   const lastQuotaWarningRef = useRef<number>(0);
@@ -88,11 +99,27 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   useEffect(() => {
     loadProjectFromIndexedDB()
       .then((dbData) => {
+        // If user already edited while IndexedDB was loading, ABORT restore to avoid overwriting edits
+        if (hasUserEditedSinceMountRef.current) {
+          return;
+        }
+
         if (dbData && dbData.project) {
+          const validated = validateStoredFontProject(dbData.project);
+          if (!validated) {
+            console.warn('IndexedDB auto-save data failed integrity validation; recovery skipped.');
+            return;
+          }
+
           const localUpdatedAt = projectRef.current?.updatedAt || 0;
-          if (dbData.updatedAt > localUpdatedAt + 3000) {
-            setProject(dbData.project);
-            onShowToast('IndexedDBから最新の自動保存プロジェクトをクラッシュ復元しました', 'success');
+          const dbUpdatedAt = dbData.updatedAt || validated.updatedAt || 0;
+
+          // Only restore if IndexedDB data is strictly newer than current local project
+          if (dbUpdatedAt > localUpdatedAt + 1000) {
+            // Check once more that no user edit occurred in between
+            if (hasUserEditedSinceMountRef.current) return;
+            setProject(validated);
+            onShowToast('IndexedDBから最新の自動保存プロジェクトを復元しました', 'success');
           }
         }
       })

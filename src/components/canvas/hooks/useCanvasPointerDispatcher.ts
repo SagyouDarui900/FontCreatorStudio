@@ -97,6 +97,7 @@ export interface UseCanvasPointerDispatcherOptions {
   handleEraserPointerUp: (e?: React.PointerEvent<SVGSVGElement>) => boolean | void;
   eraserReticleRef: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
+  generalCrosshairRef?: React.RefObject<SVGGElement | null>;
   resetEraserVisuals: () => void;
 
   activePenContour: PathContour | null;
@@ -202,6 +203,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleEraserPointerUp,
     eraserReticleRef,
     drawingReticleRef,
+    generalCrosshairRef,
     activePenContour,
     setActivePenContour,
     setPenMousePos,
@@ -798,6 +800,20 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     const pos = screenToCanvas(e.clientX, e.clientY);
 
+    // General Crosshair direct DOM positioning (0ms latency, zero drift)
+    if (generalCrosshairRef?.current) {
+      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning || toolMode === 'brush' || toolMode === 'eraser') {
+        if (generalCrosshairRef.current.style.display !== 'none') {
+          generalCrosshairRef.current.style.display = 'none';
+        }
+      } else {
+        generalCrosshairRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+        if (generalCrosshairRef.current.style.display !== '') {
+          generalCrosshairRef.current.style.display = '';
+        }
+      }
+    }
+
     // Eraser Reticle direct DOM positioning
     if (toolMode === 'eraser' && eraserReticleRef.current) {
       if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) {
@@ -829,7 +845,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     // Update hover position
     const needsHoverPos = gridSettings.showCursorCrosshair !== false;
     if (needsHoverPos) {
-      if (!hoverCanvasPos || Math.abs(hoverCanvasPos.x - pos.x) > 0.5 || Math.abs(hoverCanvasPos.y - pos.y) > 0.5) {
+      if (!hoverCanvasPos || Math.abs(hoverCanvasPos.x - pos.x) > 0.05 || Math.abs(hoverCanvasPos.y - pos.y) > 0.05) {
         setHoverCanvasPos(pos);
       }
     } else if (hoverCanvasPos !== null) {
@@ -924,6 +940,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     clampPan,
     eraserReticleRef,
     drawingReticleRef,
+    generalCrosshairRef,
   ]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {

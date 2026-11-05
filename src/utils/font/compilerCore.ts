@@ -807,8 +807,11 @@ export function compileFont(
   // Self-Validation: Verify binary TrueType can be parsed cleanly by OpenType parser
   try {
     opentype.parse(buffer);
-  } catch (parseErr) {
-    console.warn('OpenType sanity parse warning:', parseErr);
+  } catch (parseErr: any) {
+    console.error('OpenType sanity parse failed after compilation:', parseErr);
+    throw new Error(
+      `生成されたフォントバイナリの検証に失敗しました: ${parseErr?.message || '破損したOpenTypeデータです'}`
+    );
   }
 
   let blobUrl = '';

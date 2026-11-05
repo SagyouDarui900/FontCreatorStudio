@@ -101,7 +101,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   });
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+    if (!showToolsMenu && !showThemeMenu) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
       const target = e.target as Node;
       if (toolsMenuRef.current && !toolsMenuRef.current.contains(target)) {
         setShowToolsMenu(false);
@@ -110,13 +112,11 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         setShowThemeMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    document.addEventListener('pointerdown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, []);
+  }, [showToolsMenu, showThemeMenu]);
 
   const glyphCount = Object.keys(project.glyphs).length;
   const isLight = isLightTheme(theme);
@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   return (
     <header
-      className={`min-h-[44px] h-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:h-[calc(3rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] border-b flex items-center justify-between px-2 sm:px-3 shrink-0 z-40 select-none relative transition-colors overflow-x-auto no-scrollbar gap-1.5 sm:gap-2 ${themeClasses.headerBg}`}
+      className={`min-h-[44px] h-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:h-[calc(3rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] border-b flex items-center justify-between px-2 sm:px-3 shrink-0 z-40 select-none relative transition-colors overflow-x-auto sm:overflow-x-visible no-scrollbar gap-1 sm:gap-2 ${themeClasses.headerBg}`}
     >
       {/* Hidden file inputs */}
       <input
@@ -164,11 +164,11 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         <div className={`h-4 w-[1px] hidden sm:block ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`} />
 
         {/* Brand & Project Info (Compact on tablet/mobile) */}
-        <div className="flex items-center gap-1.5 shrink min-w-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink min-w-0">
           <div className="flex flex-col min-w-0 justify-center">
-            <span className="text-xs font-bold tracking-tight flex items-center gap-1.5 min-w-0 leading-tight whitespace-nowrap">
+            <span className="text-xs font-bold tracking-tight flex items-center gap-1 min-w-0 leading-tight whitespace-nowrap">
               <span
-                className="truncate max-w-[85px] xs:max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-[220px] whitespace-nowrap"
+                className="truncate max-w-[65px] xs:max-w-[100px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-[220px] whitespace-nowrap"
                 title={project.metadata.familyName || 'FontCreator'}
               >
                 {project.metadata.familyName && project.metadata.familyName !== 'OTEdit-Style Font' && project.metadata.familyName !== '新規フォント'
@@ -295,7 +295,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {onOpenMojikumiStudio && (
           <button
             onClick={onOpenMojikumiStudio}
-            className={`h-8 px-2 sm:px-2.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 transition-all active:scale-95 border shrink-0 cursor-pointer ${
+            className={`h-8 px-2 sm:px-2.5 rounded-lg text-xs font-bold hidden md:inline-flex items-center gap-1 transition-all active:scale-95 border shrink-0 cursor-pointer ${
               isLight
                 ? 'bg-emerald-50/90 text-emerald-950 hover:bg-emerald-100 border-emerald-300'
                 : 'bg-[#1b2b20] text-emerald-300 hover:bg-[#23382a] border-[#2b4032]'

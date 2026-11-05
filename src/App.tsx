@@ -519,7 +519,7 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-0 bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-80 max-w-[85vw]'
+                ? 'fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-80 max-w-[85vw]'
                 : 'w-72 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
@@ -563,7 +563,7 @@ function AppMain({
         {/* BackDrop for Right Drawer when in overlay mode */}
         {showMetricsDrawer && isMetricsOverlay && (
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-35"
+            className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30"
             onClick={handleCloseMetricsDrawer}
           />
         )}

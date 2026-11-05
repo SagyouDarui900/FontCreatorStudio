@@ -62,20 +62,24 @@ export async function saveProjectToIndexedDB(project: FontProject): Promise<bool
       const autoStore = tx.objectStore(STORE_AUTOSAVE);
 
       const now = Date.now();
+      const projectUpdatedAt =
+        typeof project.updatedAt === 'number' && Number.isFinite(project.updatedAt) && project.updatedAt > 0
+          ? project.updatedAt
+          : now;
       const glyphCount = Object.keys(project.glyphs || {}).length;
 
       // 1. Put primary current project
       projectStore.put({
         id: 'active_project',
-        updatedAt: now,
+        updatedAt: projectUpdatedAt,
         project,
       });
 
       // 2. Put rolling autosave entry
       const autoEntry: IndexedDBAutoSaveEntry = {
         id: `auto_${now}_${Math.random().toString(36).substring(2, 6)}`,
-        timestamp: now,
-        projectName: project.name || project.metadata.familyName || '無題フォント',
+        timestamp: projectUpdatedAt,
+        projectName: project.name || project.metadata?.familyName || '無題フォント',
         glyphCount,
         project,
       };
@@ -111,9 +115,16 @@ export async function loadProjectFromIndexedDB(): Promise<{ project: FontProject
 
       request.onsuccess = () => {
         if (request.result && request.result.project) {
+          const rawProject = request.result.project as FontProject;
+          const fallbackUpdatedAt =
+            typeof rawProject?.updatedAt === 'number' && Number.isFinite(rawProject.updatedAt) && rawProject.updatedAt > 0
+              ? rawProject.updatedAt
+              : (typeof request.result.updatedAt === 'number' && Number.isFinite(request.result.updatedAt)
+                  ? request.result.updatedAt
+                  : 0);
           resolve({
-            project: request.result.project as FontProject,
-            updatedAt: request.result.updatedAt || Date.now(),
+            project: rawProject,
+            updatedAt: fallbackUpdatedAt,
           });
         } else {
           resolve(null);

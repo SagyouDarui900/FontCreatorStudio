@@ -117,9 +117,12 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+    if (!showShapeMenu && !showBrushMenu && !showGridMenu) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
       const target = e.target as Node;
       if (
+        showShapeMenu &&
         shapeMenuRef.current &&
         !shapeMenuRef.current.contains(target) &&
         (!mobileShapeSheetRef.current || !mobileShapeSheetRef.current.contains(target))
@@ -127,6 +130,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         setShowShapeMenu(false);
       }
       if (
+        showBrushMenu &&
         brushMenuRef.current &&
         !brushMenuRef.current.contains(target) &&
         (!mobileBrushSheetRef.current || !mobileBrushSheetRef.current.contains(target))
@@ -134,26 +138,19 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         setShowBrushMenu(false);
       }
       if (
+        showGridMenu &&
         gridMenuRef.current &&
         !gridMenuRef.current.contains(target) &&
         (!mobileGridSheetRef.current || !mobileGridSheetRef.current.contains(target))
       ) {
         setShowGridMenu(false);
       }
-      if (
-        positionMenuBtnRef.current &&
-        !positionMenuBtnRef.current.contains(target)
-      ) {
-        // ToolbarPositionMenu handles its own internal outside click listener
-      }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
-  }, []);
+  }, [showShapeMenu, showBrushMenu, showGridMenu]);
 
   const calculateAnchor = useCallback(
     (rect: DOMRect): { top: number; left?: number; right?: number } => {
@@ -287,18 +284,6 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           : 'flex flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none transition-colors w-full h-auto overflow-x-auto no-scrollbar'
       } ${themeClasses.toolbarBg}`}
     >
-      {/* Mobile Backdrop for Popups */}
-      {(showBrushMenu || showShapeMenu || showGridMenu) && !isSmScreen && (
-        <div
-          className="fixed inset-0 z-40 sm:hidden bg-black/50"
-          onClick={() => {
-            setShowBrushMenu(false);
-            setShowShapeMenu(false);
-            setShowGridMenu(false);
-          }}
-        />
-      )}
-
       {/* Primary Drawing and Editing Tools */}
       <PrimaryToolButtons
         toolMode={toolMode}

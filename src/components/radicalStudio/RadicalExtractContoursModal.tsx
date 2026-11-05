@@ -34,7 +34,7 @@ export const RadicalExtractContoursModal: React.FC<RadicalExtractContoursModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 animate-fadeIn">
       <div
         className={`w-full max-w-lg rounded-xl border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden ${
           isLight ? 'bg-white border-[#c8ded3]' : 'bg-[#16221a] border-[#25362b]'

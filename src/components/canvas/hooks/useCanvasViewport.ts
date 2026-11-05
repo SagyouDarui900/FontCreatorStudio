@@ -135,38 +135,28 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
     [clampPan]
   );
 
-  // Screen to Canvas Coordinates Converter (Pure geometric mapping with zero drift & zero layout thrashing)
+  // Screen to Canvas Coordinates Converter (Always fresh rect with exact subpixel mapping and zero drift)
   const screenToCanvas = useCallback((clientX: number, clientY: number): Point => {
-    let rect = containerRectRef.current;
-    if (!rect) {
-      rect = containerRef.current?.getBoundingClientRect() || null;
-      if (rect) {
-        containerRectRef.current = rect;
-      }
-    }
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
+    containerRectRef.current = rect;
     const currentZoom = zoomRef.current || 1;
     const currentPan = panRef.current || { x: 0, y: 0 };
     const x = (clientX - rect.left - currentPan.x) / currentZoom;
     const y = (clientY - rect.top - currentPan.y) / currentZoom;
-    return { x: Math.round(x), y: Math.round(y) };
+    return { x, y };
   }, []);
 
   // Canvas to Screen Coordinates Converter
   const canvasToScreen = useCallback((canvasX: number, canvasY: number): Point => {
-    let rect = containerRectRef.current;
-    if (!rect) {
-      rect = containerRef.current?.getBoundingClientRect() || null;
-      if (rect) {
-        containerRectRef.current = rect;
-      }
-    }
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
+    containerRectRef.current = rect;
     const currentZoom = zoomRef.current || 1;
     const currentPan = panRef.current || { x: 0, y: 0 };
     return {
-      x: Math.round(rect.left + currentPan.x + canvasX * currentZoom),
-      y: Math.round(rect.top + currentPan.y + canvasY * currentZoom),
+      x: rect.left + currentPan.x + canvasX * currentZoom,
+      y: rect.top + currentPan.y + canvasY * currentZoom,
     };
   }, []);
 
@@ -224,6 +214,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver((entries) => {
+      containerRectRef.current = null;
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {

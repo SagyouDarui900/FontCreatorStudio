@@ -7,11 +7,11 @@ export const HIGH_CONTRAST_RETICLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg
   <circle cx="16" cy="16" r="7.5" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-opacity="0.95"/>
   <circle cx="16" cy="16" r="7.5" fill="none" stroke="#047857" stroke-width="1.6"/>
   <line x1="16" y1="1" x2="16" y2="6.5" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-  <line x1="16" y1="25.5" x2="31" y2="16" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="16" y1="25.5" x2="16" y2="31" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
   <line x1="1" y1="16" x2="6.5" y2="16" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
   <line x1="25.5" y1="16" x2="31" y2="16" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
   <line x1="16" y1="1.5" x2="16" y2="6.5" stroke="#047857" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="16" y1="25.5" x2="30.5" y2="16" stroke="#047857" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="16" y1="25.5" x2="16" y2="30.5" stroke="#047857" stroke-width="1.5" stroke-linecap="round"/>
   <line x1="1.5" y1="16" x2="6.5" y2="16" stroke="#047857" stroke-width="1.5" stroke-linecap="round"/>
   <line x1="25.5" y1="16" x2="30.5" y2="16" stroke="#047857" stroke-width="1.5" stroke-linecap="round"/>
   <circle cx="16" cy="16" r="2.8" fill="#ffffff"/>

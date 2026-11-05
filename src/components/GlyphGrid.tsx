@@ -157,7 +157,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       {effectiveIsOverlay && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-35 pointer-events-auto"
+          className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30 pointer-events-auto"
         />
       )}
 
@@ -169,7 +169,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         }}
         className={`${
           effectiveIsOverlay
-            ? 'fixed top-0 bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
+            ? 'fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
             : 'relative z-10 shadow-none shrink-0 outline-none'
         } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >

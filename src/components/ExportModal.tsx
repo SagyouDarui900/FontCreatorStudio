@@ -178,14 +178,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleCopyCss = async () => {
     try {
+      if (!navigator || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        throw new Error('Clipboard API is not supported in this environment');
+      }
       await navigator.clipboard.writeText(cssSnippet);
       setCopiedCss(true);
       if (onShowToast) {
         onShowToast('CSSコードをクリップボードにコピーしました', 'info');
       }
       setTimeout(() => setCopiedCss(false), 2000);
-    } catch {
-      // ignore
+    } catch (err) {
+      if (onShowToast) {
+        onShowToast('クリップボードへのコピーに失敗しました', 'error');
+      }
     }
   };
 

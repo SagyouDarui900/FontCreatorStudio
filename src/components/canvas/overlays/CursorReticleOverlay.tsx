@@ -7,6 +7,7 @@ export interface CursorReticleOverlayProps {
   toolMode: ToolMode;
   zoom: number;
   selectionColor: string;
+  generalCrosshairRef?: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
   eraserReticleRef: React.RefObject<SVGGElement | null>;
   brushWidth: number;
@@ -20,6 +21,7 @@ export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.m
   toolMode,
   zoom,
   selectionColor,
+  generalCrosshairRef,
   drawingReticleRef,
   eraserReticleRef,
   brushWidth,
@@ -28,24 +30,29 @@ export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.m
 }) => {
   return (
     <>
-      {/* ---------------- HIGH-CONTRAST CURSOR CROSSHAIR OVERLAY ---------------- */}
-      {gridSettings.showCursorCrosshair && hoverCanvasPos && toolMode !== 'brush' && (
-        <g className="canvas-cursor-crosshair pointer-events-none select-none">
+      {/* ---------------- HARDWARE-ACCELERATED GENERAL CURSOR CROSSHAIR (0ms DIRECT GPU DOM TRACKING) ---------------- */}
+      {gridSettings.showCursorCrosshair && toolMode !== 'brush' && toolMode !== 'eraser' && (
+        <g
+          ref={generalCrosshairRef}
+          id="live-general-crosshair"
+          className="canvas-cursor-crosshair pointer-events-none select-none"
+          style={{ display: 'none' }}
+        >
           {/* Horizontal full line with dual-tone white/dark contrast */}
           <line
-            x1={-300}
-            y1={hoverCanvasPos.y}
-            x2={1300}
-            y2={hoverCanvasPos.y}
+            x1={-10000}
+            y1={0}
+            x2={10000}
+            y2={0}
             stroke="#ffffff"
             strokeWidth={2.5 / zoom}
             strokeOpacity={0.6}
           />
           <line
-            x1={-300}
-            y1={hoverCanvasPos.y}
-            x2={1300}
-            y2={hoverCanvasPos.y}
+            x1={-10000}
+            y1={0}
+            x2={10000}
+            y2={0}
             stroke="#059669"
             strokeWidth={1.2 / zoom}
             strokeDasharray="4 3"
@@ -53,19 +60,19 @@ export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.m
 
           {/* Vertical full line with dual-tone white/dark contrast */}
           <line
-            x1={hoverCanvasPos.x}
-            y1={-300}
-            x2={hoverCanvasPos.x}
-            y2={1300}
+            x1={0}
+            y1={-10000}
+            x2={0}
+            y2={10000}
             stroke="#ffffff"
             strokeWidth={2.5 / zoom}
             strokeOpacity={0.6}
           />
           <line
-            x1={hoverCanvasPos.x}
-            y1={-300}
-            x2={hoverCanvasPos.x}
-            y2={1300}
+            x1={0}
+            y1={-10000}
+            x2={0}
+            y2={10000}
             stroke="#059669"
             strokeWidth={1.2 / zoom}
             strokeDasharray="4 3"
@@ -73,30 +80,30 @@ export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.m
 
           {/* Central Target Reticle Ring */}
           <circle
-            cx={hoverCanvasPos.x}
-            cy={hoverCanvasPos.y}
+            cx={0}
+            cy={0}
             r={12 / zoom}
             fill="none"
             stroke="#ffffff"
             strokeWidth={2.5 / zoom}
           />
           <circle
-            cx={hoverCanvasPos.x}
-            cy={hoverCanvasPos.y}
+            cx={0}
+            cy={0}
             r={12 / zoom}
             fill="rgba(16, 185, 129, 0.1)"
             stroke={selectionColor}
             strokeWidth={1.5 / zoom}
           />
           <circle
-            cx={hoverCanvasPos.x}
-            cy={hoverCanvasPos.y}
+            cx={0}
+            cy={0}
             r={2.5 / zoom}
             fill="#ffffff"
           />
           <circle
-            cx={hoverCanvasPos.x}
-            cy={hoverCanvasPos.y}
+            cx={0}
+            cy={0}
             r={1.5 / zoom}
             fill={selectionColor}
           />

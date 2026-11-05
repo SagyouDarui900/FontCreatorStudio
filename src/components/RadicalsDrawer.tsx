@@ -380,11 +380,11 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       {/* Mobile Click-Outside Dismiss */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-transparent sm:hidden z-45"
+        className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-transparent sm:hidden z-30"
       />
 
       <div
-        className={`fixed inset-y-0 right-0 w-full sm:w-[430px] sm:max-w-md border-l shadow-2xl z-50 flex flex-col select-none transition-colors animate-in slide-in-from-right duration-200 ${themeClasses.sidebarBg}`}
+        className={`fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 w-full sm:w-[430px] sm:max-w-md border-l shadow-2xl z-40 flex flex-col select-none transition-colors animate-in slide-in-from-right duration-200 ${themeClasses.sidebarBg}`}
       >
         {/* Header */}
         <div

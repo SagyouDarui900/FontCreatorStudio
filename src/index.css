@@ -273,8 +273,7 @@ p {
  * zero transparency artifacts, and crisp typography contrast.
  */
 @media (min-width: 640px) {
-  .modal-backdrop,
-  [class*="backdrop-blur"] {
+  .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.75) !important;
   }
 
@@ -282,6 +281,14 @@ p {
   .shadow-xl,
   .shadow-lg {
     box-shadow: 0 4px 18px rgba(15, 23, 42, 0.15) !important;
+  }
+}
+
+/* Guard dialogs and modal containers against virtual keyboard overflow */
+@media (max-width: 639px) {
+  .modal-container,
+  [role="dialog"] {
+    max-height: min(92vh, calc(100dvh - 1.5rem));
   }
 }
 

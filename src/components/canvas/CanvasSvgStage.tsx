@@ -55,6 +55,7 @@ export interface CanvasSvgStageProps {
   isAnyModalOpen: boolean;
   screenToCanvas: (x: number, y: number) => Point;
   toolMode: ToolMode;
+  generalCrosshairRef?: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
   eraserReticleRef: React.RefObject<SVGGElement | null>;
   isSpacePressed: boolean;
@@ -149,6 +150,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   isAnyModalOpen,
   screenToCanvas,
   toolMode,
+  generalCrosshairRef,
   drawingReticleRef,
   eraserReticleRef,
   isSpacePressed,
@@ -259,16 +261,17 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
       }}
       onPointerDown={handlePointerDown}
       onPointerEnter={(e) => {
-        if (
-          toolMode === 'brush' &&
-          drawingReticleRef.current &&
-          !isSpacePressed &&
-          !isPanning &&
-          gridSettings.showCursorCrosshair
-        ) {
-          const pos = screenToCanvas(e.clientX, e.clientY);
+        if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) return;
+        const pos = screenToCanvas(e.clientX, e.clientY);
+        if (toolMode === 'brush' && drawingReticleRef.current) {
           drawingReticleRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
           drawingReticleRef.current.style.display = '';
+        } else if (toolMode === 'eraser' && eraserReticleRef.current) {
+          eraserReticleRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+          eraserReticleRef.current.style.display = '';
+        } else if (generalCrosshairRef?.current && toolMode !== 'brush' && toolMode !== 'eraser') {
+          generalCrosshairRef.current.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+          generalCrosshairRef.current.style.display = '';
         }
       }}
       onPointerMove={handlePointerMove}
@@ -545,6 +548,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           toolMode={toolMode}
           zoom={zoom}
           selectionColor={selectionColor}
+          generalCrosshairRef={generalCrosshairRef}
           drawingReticleRef={drawingReticleRef}
           eraserReticleRef={eraserReticleRef}
           brushWidth={brushWidth}
