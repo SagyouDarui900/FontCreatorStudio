@@ -23,6 +23,7 @@ export interface UseToolModeCleanupOptions {
   setActiveSnapGuides: (guides: SnapGuideLine[]) => void;
   setTouchLoupeState: React.Dispatch<React.SetStateAction<TouchLoupeState>>;
   resetBrushDrawing: () => void;
+  finalizeBrushDrawing?: () => boolean;
   setActivePenContour: (val: any) => void;
   setShapeStartPoint: (pt: Point | null) => void;
   setShapeCurrentPoint: (pt: Point | null) => void;
@@ -60,6 +61,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     setActiveSnapGuides,
     setTouchLoupeState,
     resetBrushDrawing,
+    finalizeBrushDrawing,
     setActivePenContour,
     setShapeStartPoint,
     setShapeCurrentPoint,
@@ -101,6 +103,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       resetEraserVisuals();
     }
     if (toolMode !== 'brush') {
+      finalizeBrushDrawing?.();
       resetBrushDrawing();
     }
     if (toolMode !== 'ruler' || gridSettingsShowRulers === false) {
@@ -115,6 +118,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     handleResetPenContour,
     resetShapeCreation,
     resetEraserVisuals,
+    finalizeBrushDrawing,
     resetBrushDrawing,
     cancelTransformSession,
     setActiveSnapGuides,
@@ -171,6 +175,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     if (activeDrawingPointerIdRef) {
       activeDrawingPointerIdRef.current = null;
     }
+    finalizeBrushDrawing?.();
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     if (isErasingRef.current) resetEraserVisuals();
     isPenDrawingRef.current = false;
@@ -182,6 +187,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     setMarqueeSelection(null);
     nodeDragSessionRef.current = null;
   }, [
+    finalizeBrushDrawing,
     isErasingRef,
     resetEraserVisuals,
     isPenDrawingRef,

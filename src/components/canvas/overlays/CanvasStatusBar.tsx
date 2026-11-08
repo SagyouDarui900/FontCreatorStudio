@@ -148,70 +148,87 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
 
   return (
     
- <div className="absolute bottom-2 left-2 right-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 z-20 select-none pointer-events-none">
- {/* Left: Real-time Coordinates & Active Tool Tips (Desktop only) */}
- {!isBottomBarCollapsed && (
- <div
- className={`hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs pointer-events-auto transition-colors ${
- isLight
- ? 'bg-white/95 border-[#c8ded3] text-stone-800'
- : 'bg-[#142018]/95 border-[#25382c] text-emerald-100'
- }`}
- >
- {/* Tool Icon & Name */}
- <div className="flex items-center space-x-1.5 font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
- {toolMode === 'select' && <span>選択モード</span>}
- {toolMode === 'node' && <span>ノード編集</span>}
- {toolMode === 'pen' && <span>ペンツール</span>}
- {toolMode === 'brush' && <span>筆ストローク</span>}
- {toolMode === 'eraser' && <span>消しゴム</span>}
- {toolMode === 'ruler' && <span>定規計測</span>}
- {toolMode === 'hand' && <span>画面移動</span>}
- {toolMode === 'rect' && <span>四角形</span>}
- {toolMode === 'square' && <span>正方形</span>}
- {toolMode === 'ellipse' && <span>楕円</span>}
- {toolMode === 'circle' && <span>正円</span>}
- {toolMode === 'rounded_rect' && <span>角丸四角形</span>}
- {toolMode === 'triangle' && <span>三角形</span>}
- {toolMode === 'star' && <span>星型</span>}
- {toolMode === 'heart' && <span>ハート</span>}
- {toolMode === 'sparkle' && <span>4芒星</span>}
- {toolMode === 'starburst' && <span>8芒星</span>}
- {toolMode === 'diamond' && <span>菱形</span>}
- {toolMode === 'polygon' && <span>正六角形</span>}
- {toolMode === 'trace_adjust' && <span>下絵位置調整</span>}
- {isSpacePressed && <span className="text-emerald-500 font-normal ml-1">(Spaceドラッグ移動)</span>}
- </div>
+  <div className="absolute bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-[calc(0.5rem+env(safe-area-inset-left,0px))] right-[calc(0.5rem+env(safe-area-inset-right,0px))] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 z-20 select-none pointer-events-none">
+  {/* Left: Real-time Coordinates & Active Tool Tips (Desktop only) */}
+  {!isBottomBarCollapsed && (
+  <div
+  className={`hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs pointer-events-auto transition-colors ${
+  isLight
+  ? 'bg-white/95 border-[#c8ded3] text-stone-800'
+  : 'bg-[#142018]/95 border-[#25382c] text-emerald-100'
+  }`}
+  >
+  {/* Tool Icon & Name */}
+  <div className="flex items-center space-x-1.5 font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
+  {toolMode === 'select' && <span>選択モード</span>}
+  {toolMode === 'node' && <span>ノード編集</span>}
+  {toolMode === 'pen' && <span>ペンツール</span>}
+  {toolMode === 'brush' && <span>筆ストローク</span>}
+  {toolMode === 'eraser' && <span>消しゴム</span>}
+  {toolMode === 'ruler' && <span>定規計測</span>}
+  {toolMode === 'hand' && <span>画面移動</span>}
+  {toolMode === 'rect' && <span>四角形</span>}
+  {toolMode === 'square' && <span>正方形</span>}
+  {toolMode === 'ellipse' && <span>楕円</span>}
+  {toolMode === 'circle' && <span>正円</span>}
+  {toolMode === 'rounded_rect' && <span>角丸四角形</span>}
+  {toolMode === 'triangle' && <span>三角形</span>}
+  {toolMode === 'star' && <span>星型</span>}
+  {toolMode === 'heart' && <span>ハート</span>}
+  {toolMode === 'sparkle' && <span>4芒星</span>}
+  {toolMode === 'starburst' && <span>8芒星</span>}
+  {toolMode === 'diamond' && <span>菱形</span>}
+  {toolMode === 'polygon' && <span>正六角形</span>}
+  {toolMode === 'trace_adjust' && <span>下絵位置調整</span>}
+  {isSpacePressed && <span className="text-emerald-500 font-normal ml-1">(Spaceドラッグ移動)</span>}
+  </div>
 
- <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800 shrink-0" />
+  <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800 shrink-0" />
 
- {/* Real-time Cursor Coordinates */}
- <div className="font-mono text-[11px] text-stone-600 dark:text-emerald-300 shrink-0">
- {hoverCanvasPos ? (
- <span>
- X: <strong className="text-emerald-700 dark:text-emerald-300">{hoverCanvasPos.x}</strong> Y:{' '}
- <strong className="text-emerald-700 dark:text-emerald-300">{hoverCanvasPos.y}</strong>
- </span>
- ) : (
- <span className="text-stone-400">キャンバス内</span>
- )}
- </div>
+  {/* Real-time Cursor Coordinates */}
+  <div className="font-mono text-[11px] text-stone-600 dark:text-emerald-300 shrink-0">
+  {hoverCanvasPos ? (
+  <span>
+  X: <strong className="text-emerald-700 dark:text-emerald-300">{hoverCanvasPos.x}</strong> Y:{' '}
+  <strong className="text-emerald-700 dark:text-emerald-300">{hoverCanvasPos.y}</strong>
+  </span>
+  ) : (
+  <span className="text-stone-400">キャンバス内</span>
+  )}
+  </div>
 
- <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800 hidden md:block shrink-0" />
+  <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800 hidden md:block shrink-0" />
 
- {/* Contextual Operation Hints */}
- <div className="text-[11px] text-stone-500 dark:text-emerald-400/80 hidden md:block truncate max-w-[280px]">
- {toolMode === 'ruler' &&
- 'ドラッグして寸法・角度を計測 (Shiftで15°刻みスナップ、斜め/直交ガイド化、Enterで直線化)'}
- {toolMode === 'select' && '輪郭をクリックして移動・8方向変形・回転'}
- {toolMode === 'node' && 'ノードやハンドルをクリック・ドラッグして編集'}
- {toolMode === 'pen' && 'クリックで頂点追加 / 始点クリックでパスを閉じる'}
- {toolMode === 'brush' && 'ドラッグでストローク (Shiftで定規のように水平/垂直/45度の直線を引く)'}
- {toolMode === 'eraser' && 'ドラッグまたはクリックで不要な輪郭を消去'}
- {toolMode === 'trace_adjust' && 'ドラッグして下絵の位置を移動'}
- {toolMode === 'hand' && 'ドラッグしてキャンバスを自由に移動'}
- {isShapeTool && 'ドラッグして図形を描画 (Shiftで1:1、Altで中心基準)'}
- </div>
+  {/* Contextual Operation Hints (Concise & Legible) */}
+  <div className="text-[11px] text-stone-500 dark:text-emerald-400/90 hidden md:flex items-center gap-1.5 shrink-0">
+  {toolMode === 'ruler' && (
+    <span>ドラッグ計測 <span className="opacity-60">(Shift: 15°スナップ / Enter: 直線化)</span></span>
+  )}
+  {toolMode === 'select' && (
+    <span>輪郭選択 <span className="opacity-60">(ドラッグ: 移動 / 四隅: 拡大回転)</span></span>
+  )}
+  {toolMode === 'node' && (
+    <span>頂点編集 <span className="opacity-60">(クリック: 選択 / Alt: 角切替)</span></span>
+  )}
+  {toolMode === 'pen' && (
+    <span>ペン作図 <span className="opacity-60">(クリック: 頂点追加 / 始点: 閉じる)</span></span>
+  )}
+  {toolMode === 'brush' && (
+    <span>筆描画 <span className="opacity-60">(Shift: 水平垂直の直線)</span></span>
+  )}
+  {toolMode === 'eraser' && (
+    <span>消しゴム <span className="opacity-60">(ドラッグ: 消去)</span></span>
+  )}
+  {toolMode === 'trace_adjust' && (
+    <span>下絵調整 <span className="opacity-60">(ドラッグ: 位置移動)</span></span>
+  )}
+  {toolMode === 'hand' && (
+    <span>画面移動 <span className="opacity-60">(Space+ドラッグ)</span></span>
+  )}
+  {isShapeTool && (
+    <span>図形描画 <span className="opacity-60">(Shift: 正比率 / Alt: 中心基準)</span></span>
+  )}
+  </div>
 
  {/* Ruler Actions if measured */}
  {rulerMeasurement && (

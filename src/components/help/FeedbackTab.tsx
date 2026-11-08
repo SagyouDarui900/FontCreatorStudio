@@ -9,6 +9,7 @@ import {
   Laptop,
   Code2,
 } from 'lucide-react';
+import { copyTextToClipboard } from '../../utils/clipboard';
 
 interface FeedbackTabProps {
   isLight: boolean;
@@ -41,14 +42,14 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 - プロジェクトJSONファイルの添付可否: (有 / 無)
 - スクリーンショットやエラー画面の有無:`;
 
-  const handleCopyTemplate = () => {
-    navigator.clipboard.writeText(issueTemplateText);
+  const handleCopyTemplate = async () => {
+    await copyTextToClipboard(issueTemplateText);
     setCopiedTemplate(true);
     setTimeout(() => setCopiedTemplate(false), 2000);
   };
 
-  const handleCopyRepoUrl = () => {
-    navigator.clipboard.writeText(GITHUB_REPO_URL);
+  const handleCopyRepoUrl = async () => {
+    await copyTextToClipboard(GITHUB_REPO_URL);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2000);
   };

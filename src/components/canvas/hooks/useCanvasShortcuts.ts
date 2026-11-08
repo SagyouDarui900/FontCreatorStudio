@@ -32,6 +32,7 @@ export interface UseCanvasShortcutsProps {
   setSelectedNodeId: (id: string | null) => void;
   setIsSpacePressed: (pressed: boolean) => void;
   showCanvasToast: (msg: string, sub?: string) => void;
+  onNudgeSelection?: (dx: number, dy: number) => void;
 }
 
 export function useCanvasShortcuts({
@@ -65,6 +66,7 @@ export function useCanvasShortcuts({
   setSelectedNodeId,
   setIsSpacePressed,
   showCanvasToast,
+  onNudgeSelection,
 }: UseCanvasShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,6 +78,36 @@ export function useCanvasShortcuts({
           activeEl.tagName === 'SELECT' ||
           (activeEl as HTMLElement).isContentEditable);
       if (isInputActive || isAnyModalOpen) return;
+
+      // Illustrator-style Arrow Key Nudging for selected nodes and contours
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (selectedNodeId || selectedContourIds.length > 0) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : (e.altKey ? 0.1 : 1);
+          let dx = 0;
+          let dy = 0;
+          if (e.key === 'ArrowLeft') dx = -step;
+          if (e.key === 'ArrowRight') dx = step;
+          if (e.key === 'ArrowUp') dy = -step;
+          if (e.key === 'ArrowDown') dy = step;
+
+          onNudgeSelection?.(dx, dy);
+          return;
+        }
+      }
+
+      // Toggle Grid with 'G' key
+      if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey && !activePenContour) {
+        e.preventDefault();
+        if (onChangeGridSettings) {
+          onChangeGridSettings((prev) => {
+            const next = !prev.showGrid;
+            showCanvasToast(next ? 'グリッド表示: ON' : 'グリッド表示: OFF');
+            return { ...prev, showGrid: next };
+          });
+        }
+        return;
+      }
 
       // Spacebar panning key trigger
       if (e.code === 'Space' || e.key === ' ') {
@@ -268,5 +300,6 @@ export function useCanvasShortcuts({
     setSelectedNodeId,
     setIsSpacePressed,
     showCanvasToast,
+    onNudgeSelection,
   ]);
 }

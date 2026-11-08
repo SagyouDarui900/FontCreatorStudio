@@ -63,6 +63,10 @@ export function getContoursBoundingBox(contours: PathContour[]): {
   };
 }
 
+export function getContourBoundingBox(contour: PathContour) {
+  return getContoursBoundingBox([contour]);
+}
+
 /**
  * Smooth and re-align transformed contours to eliminate jaggedness and handle kinks
  */

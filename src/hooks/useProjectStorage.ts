@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontProject } from '../types';
 import { createDefaultProject, validateStoredFontProject } from '../utils/font';
-import { DEFAULT_SAMPLE_GLYPHS, isLegacyMockGlyph } from '../data/defaultSampleGlyphs';
 import {
   setLastAutoSaveTimestamp,
   LOCAL_STORAGE_PROJECT_KEY,
@@ -16,6 +15,7 @@ interface UseProjectStorageOptions {
 }
 
 export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
+  const isDefaultProjectRef = useRef(false);
   const corruptedStorageDetectedRef = useRef(false);
 
   // Main Project State with LocalStorage hydration and input validation
@@ -26,18 +26,6 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
         const parsed = JSON.parse(saved);
         const validated = validateStoredFontProject(parsed);
         if (validated) {
-          // Detect legacy/deformed mock sample glyphs and seamlessly upgrade them to authentic outlines
-          let upgraded = false;
-          const updatedGlyphs = { ...validated.glyphs };
-          for (const u of [65, 12354, 26085]) {
-            if (updatedGlyphs[u] && isLegacyMockGlyph(updatedGlyphs[u])) {
-              updatedGlyphs[u] = JSON.parse(JSON.stringify(DEFAULT_SAMPLE_GLYPHS[u]));
-              upgraded = true;
-            }
-          }
-          if (upgraded) {
-            validated.glyphs = updatedGlyphs;
-          }
           return validated;
         } else {
           corruptedStorageDetectedRef.current = true;
@@ -48,6 +36,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
       corruptedStorageDetectedRef.current = true;
       console.warn('Failed to load project from localStorage:', e);
     }
+    isDefaultProjectRef.current = true;
     return createDefaultProject();
   });
 
@@ -114,10 +103,15 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           const localUpdatedAt = projectRef.current?.updatedAt || 0;
           const dbUpdatedAt = dbData.updatedAt || validated.updatedAt || 0;
 
-          // Only restore if IndexedDB data is strictly newer than current local project
-          if (dbUpdatedAt > localUpdatedAt + 1000) {
+          // If current project is an unedited default fallback, restore IndexedDB unconditionally!
+          // Otherwise, only restore if IndexedDB data is strictly newer than current local project.
+          const shouldRestore =
+            isDefaultProjectRef.current || dbUpdatedAt > localUpdatedAt + 1000;
+
+          if (shouldRestore) {
             // Check once more that no user edit occurred in between
             if (hasUserEditedSinceMountRef.current) return;
+            isDefaultProjectRef.current = false;
             setProject(validated);
             onShowToast('IndexedDBから最新の自動保存プロジェクトを復元しました', 'success');
           }

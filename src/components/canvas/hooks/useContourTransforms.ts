@@ -27,6 +27,12 @@ import {
   convertContourToSmooth,
   expandStrokeContours,
 } from '../../../utils/path';
+import {
+  alignContours,
+  distributeContours,
+  AlignDirection,
+  DistributeDirection,
+} from '../../../utils/geometry/alignment';
 
 export interface UseContourTransformsOptions {
   contours: PathContour[];
@@ -479,6 +485,31 @@ export function useContourTransforms({
     showCanvasToast,
   ]);
 
+  const handleAlignSelected = useCallback(
+    (direction: AlignDirection) => {
+      if (selectedContourIds.length === 0) return;
+      const updated = alignContours(contours, selectedContourIds, direction);
+      onChangeContours(updated);
+      onCommitHistory?.();
+      showCanvasToast('パスを整列しました');
+    },
+    [contours, selectedContourIds, onChangeContours, onCommitHistory, showCanvasToast]
+  );
+
+  const handleDistributeSelected = useCallback(
+    (direction: DistributeDirection) => {
+      if (selectedContourIds.length < 3) {
+        showCanvasToast('等間隔分布には3つ以上のパスが必要です');
+        return;
+      }
+      const updated = distributeContours(contours, selectedContourIds, direction);
+      onChangeContours(updated);
+      onCommitHistory?.();
+      showCanvasToast('パスを等間隔に分布しました');
+    },
+    [contours, selectedContourIds, onChangeContours, onCommitHistory, showCanvasToast]
+  );
+
   return {
     handleSlantSelected,
     handleRotateSelected,
@@ -501,5 +532,7 @@ export function useContourTransforms({
     handleConvertToSmoothSelected,
     handleToggleClosedSelected,
     handleExpandStrokeSelected,
+    handleAlignSelected,
+    handleDistributeSelected,
   };
 }

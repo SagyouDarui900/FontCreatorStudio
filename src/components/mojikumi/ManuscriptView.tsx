@@ -69,7 +69,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
     <div className="w-full flex flex-col items-center justify-center p-2 sm:p-6 select-none overflow-x-auto custom-scrollbar">
       {/* 400-Character Manuscript Paper Frame */}
       <div
-        className={`rounded-2xl border-2 p-4 sm:p-8 shadow-xl transition-all flex flex-col items-center ${paperBg} ${gridColor} ${textColor}`}
+        className={`rounded-2xl border-2 p-4 sm:p-8 shadow-md flex flex-col items-center ${paperBg} ${gridColor} ${textColor}`}
         style={{ minWidth: `${cellSizePx * 22 + 80}px` }}
       >
         {/* Manuscript Paper Title Header */}
@@ -98,7 +98,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
                       return (
                         <div
                           key={rowIdx}
-                          className={`relative flex items-center justify-center border ${gridColor} transition-all`}
+                          className={`relative flex items-center justify-center border ${gridColor}`}
                           style={{
                             width: `${cellSizePx}px`,
                             height: `${cellSizePx}px`,
@@ -170,7 +170,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
                       return (
                         <div
                           key={rowIdx}
-                          className={`relative flex items-center justify-center border ${gridColor} transition-all`}
+                          className={`relative flex items-center justify-center border ${gridColor}`}
                           style={{
                             width: `${cellSizePx}px`,
                             height: `${cellSizePx}px`,

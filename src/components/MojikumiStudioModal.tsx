@@ -183,6 +183,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
     return `'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif`;
   }, [fontSource, compiledFontName]);
 
+  const drawnGlyphsCount = useMemo(() => {
+    return Object.values(project.glyphs || {}).filter(
+      (g) =>
+        (g.contours && g.contours.length > 0) ||
+        (g.pixelData?.data && g.pixelData.data.some((p: number) => p === 1))
+    ).length;
+  }, [project.glyphs]);
+
   // Mojikumi configuration state
   const initialConfig: MojikumiConfig = useMemo(() => {
     return (
@@ -206,6 +214,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
     setIsVertical(work.defaultDirection === 'vertical');
     setLayoutMode(work.recommendedMode);
     onShowToast(`青空文庫『${work.title}』（${work.author}）を読み込みました`, 'info');
+    setMobileTab('preview');
   };
 
   // Update preset
@@ -233,7 +242,9 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
     });
   }, [customText, charsPerLine, currentConfig, isVertical]);
 
+  // Lazy calculate comparison layouts ONLY when in compare3 mode to save mobile CPU/memory
   const betaLayout = useMemo(() => {
+    if (layoutMode !== 'compare3') return currentLayout;
     const betaConfig: MojikumiConfig = {
       ...currentConfig,
       preset: 'beta',
@@ -244,9 +255,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
       usePalt: false,
       trackingEm: 0,
     });
-  }, [customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
 
   const tsumeLayout = useMemo(() => {
+    if (layoutMode !== 'compare3') return currentLayout;
     const tsumeConfig: MojikumiConfig = {
       ...currentConfig,
       preset: 'tsume',
@@ -257,9 +269,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
       usePalt: true,
       trackingEm: 0,
     });
-  }, [customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
 
   const akeLayout = useMemo(() => {
+    if (layoutMode !== 'compare3') return currentLayout;
     const akeConfig: MojikumiConfig = {
       ...currentConfig,
       preset: 'beta',
@@ -270,7 +283,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
       usePalt: false,
       trackingEm: 0.15,
     });
-  }, [customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
 
   // Save to project
   const handleSaveToProject = () => {
@@ -305,7 +318,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 select-none"
     >
       <div
         className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${
@@ -375,10 +388,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={handleSaveToProject}
-              className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm transition-all"
+              className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>設定を保存</span>
+              <span>保存</span>
             </button>
 
             {/* Export JSON Button */}
@@ -490,7 +503,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                       : 'bg-emerald-700 text-white'
                     : 'text-stone-500'
                 }`}
-                title="現在制作中のグリフ"
+                title={
+                  drawnGlyphsCount === 0
+                    ? '現在制作中のフォント（未描画の文字は明朝体で自動補完）'
+                    : `現在制作中のフォント（描画済み: ${drawnGlyphsCount} 字）`
+                }
               >
                 制作中
               </button>
@@ -576,7 +593,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           <button
             type="button"
             onClick={() => setMobileTab('preview')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
+            className={`px-3 py-1.5 rounded-lg ${
               mobileTab === 'preview'
                 ? 'bg-emerald-700 text-white shadow-xs'
                 : 'text-stone-500'
@@ -586,8 +603,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setMobileTab('texts')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
+            onClick={() => {
+              setMobileTab('texts');
+              setSidebarTab('text');
+            }}
+            className={`px-3 py-1.5 rounded-lg ${
               mobileTab === 'texts'
                 ? 'bg-emerald-700 text-white shadow-xs'
                 : 'text-stone-500'
@@ -597,8 +617,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setMobileTab('settings')}
-            className={`px-3 py-1.5 rounded-lg transition-all ${
+            onClick={() => {
+              setMobileTab('settings');
+              setSidebarTab('dimensions');
+            }}
+            className={`px-3 py-1.5 rounded-lg ${
               mobileTab === 'settings'
                 ? 'bg-emerald-700 text-white shadow-xs'
                 : 'text-stone-500'
@@ -953,9 +976,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           <main
             className={`${
               mobileTab !== 'preview' ? 'hidden md:flex' : 'flex'
-            } flex-1 min-h-0 flex-col overflow-auto custom-scrollbar relative ${
+            } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden md:overflow-x-auto relative ${
               isLight ? 'bg-stone-200/50' : 'bg-[#0a100c]'
             }`}
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {/* STAGE HEADER STRIP */}
             <div
@@ -976,7 +1000,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             </div>
 
             {/* RENDER THE SELECTED EDITORIAL FORMAT */}
-            <div className="flex-1 min-h-full min-w-fit p-2 sm:p-6 flex items-start justify-center">
+            <div className="flex-1 w-full p-2 sm:p-4 md:p-6 flex flex-col items-center justify-start">
               {layoutMode === 'book_spread' && (
                 <BookSpreadView
                   layout={currentLayout}
@@ -1051,26 +1075,6 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   zoom={zoom}
                 />
               )}
-            </div>
-
-            {/* Mobile Bottom Dismiss Bar (Always Available on Phone screens) */}
-            <div className="md:hidden sticky bottom-2 mx-auto z-40 bg-stone-900/90 text-white rounded-full px-4 py-2 shadow-2xl border border-white/20 flex items-center space-x-3 text-xs backdrop-blur-md">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex items-center space-x-1 text-stone-300 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-                <span>スタジオを閉じる</span>
-              </button>
-              <span className="text-stone-500">|</span>
-              <button
-                type="button"
-                onClick={handleSaveToProject}
-                className="text-emerald-400 font-bold"
-              >
-                設定保存
-              </button>
             </div>
           </main>
         </div>

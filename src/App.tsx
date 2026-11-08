@@ -267,6 +267,17 @@ function AppMain({
     showToast,
   });
 
+  // Canvas selection state for precision inspector sync
+  const [canvasSelection, setCanvasSelection] = useState<{
+    contourIds: string[];
+    nodeId: string | null;
+    handleType: 'node' | 'handleIn' | 'handleOut' | null;
+  }>({
+    contourIds: [],
+    nodeId: null,
+    handleType: null,
+  });
+
   // Toolbar Dock Position (top / left / right)
   const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition>(() => {
     try {
@@ -510,6 +521,7 @@ function AppMain({
               activePenPreset={activePenPreset}
               isAnyModalOpen={isAnyModalOpen}
               onOpenGlyphCompareModal={handleOpenGlyphCompareModal}
+              onSelectionChange={setCanvasSelection}
             />
           </div>
         </div>
@@ -556,6 +568,9 @@ function AppMain({
               onAutoSpaceGlyph={handleAutoSpaceCurrentGlyph}
               onSimplifyGlyph={handleSimplifyCurrentGlyph}
               onShowToast={showToast}
+              selectedContourIds={canvasSelection.contourIds}
+              selectedNodeId={canvasSelection.nodeId}
+              selectedHandleType={canvasSelection.handleType}
             />
           </div>
         )}

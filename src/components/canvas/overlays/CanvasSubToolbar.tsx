@@ -111,6 +111,8 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   setIsShiftLockRatio,
   isAltFromCenter,
   setIsAltFromCenter,
+  handleAlignSelected,
+  handleDistributeSelected,
 }) => {
   const subToolbarRef = useRef<HTMLDivElement>(null);
   const [subToolbarCanScrollLeft, setSubToolbarCanScrollLeft] = useState(false);
@@ -369,6 +371,8 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
               penStrokeWidth={penStrokeWidth}
               smoothStrength={smoothStrength}
               smoothPreserveCorners={smoothPreserveCorners}
+              handleAlignSelected={handleAlignSelected}
+              handleDistributeSelected={handleDistributeSelected}
             />
           </div>
 

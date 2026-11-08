@@ -8,6 +8,7 @@ import {
   ToolMode,
 } from '../../../types';
 import { ThemeClasses } from '../../../utils/theme';
+import { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 
 export interface CanvasSubToolbarProps {
   isMobileFocusMode: boolean;
@@ -105,4 +106,6 @@ export interface CanvasSubToolbarProps {
   setIsShiftLockRatio: React.Dispatch<React.SetStateAction<boolean>>;
   isAltFromCenter: boolean;
   setIsAltFromCenter: React.Dispatch<React.SetStateAction<boolean>>;
+  handleAlignSelected?: (direction: AlignDirection) => void;
+  handleDistributeSelected?: (direction: DistributeDirection) => void;
 }

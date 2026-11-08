@@ -12,8 +12,15 @@ import {
   Italic,
   Copy,
   Trash2,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
 } from 'lucide-react';
 import { ToolMode } from '../../../types';
+import { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 
 interface SelectionSubToolbarProps {
   toolMode: ToolMode;
@@ -40,6 +47,8 @@ interface SelectionSubToolbarProps {
   penStrokeWidth: number;
   smoothStrength: 'mild' | 'standard' | 'strong';
   smoothPreserveCorners: boolean;
+  handleAlignSelected?: (direction: AlignDirection) => void;
+  handleDistributeSelected?: (direction: DistributeDirection) => void;
 }
 
 export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
@@ -67,6 +76,8 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
   penStrokeWidth,
   smoothStrength,
   smoothPreserveCorners,
+  handleAlignSelected,
+  handleDistributeSelected,
 }) => {
   if (!((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0)) {
     return null;
@@ -132,6 +143,87 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
             <span>交差</span>
           </button>
         </>
+      )}
+
+      {selectedContourIds.length >= 2 && handleAlignSelected && (
+        <div className="flex items-center space-x-0.5 border-l border-stone-300 dark:border-stone-600 pl-1 mr-1">
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('left')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="左揃え"
+          >
+            <AlignLeft className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('centerH')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="水平中央揃え"
+          >
+            <AlignCenter className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('right')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="右揃え"
+          >
+            <AlignRight className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('top')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="上揃え"
+          >
+            <AlignStartVertical className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('centerV')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="垂直中央揃え"
+          >
+            <AlignCenterVertical className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('bottom')}
+            className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors"
+            title="下揃え"
+          >
+            <AlignEndVertical className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAlignSelected('emBoxCenterH')}
+            className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100"
+            title="全角仮想ボディの中央に配置"
+          >
+            全角中央
+          </button>
+          {selectedContourIds.length >= 3 && handleDistributeSelected && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleDistributeSelected('horizontal')}
+                className="px-1 py-0.5 rounded text-[9px] font-bold bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300"
+                title="水平等間隔に分布"
+              >
+                等間隔H
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDistributeSelected('vertical')}
+                className="px-1 py-0.5 rounded text-[9px] font-bold bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-300"
+                title="垂直等間隔に分布"
+              >
+                等間隔V
+              </button>
+            </>
+          )}
+        </div>
       )}
 
       <button

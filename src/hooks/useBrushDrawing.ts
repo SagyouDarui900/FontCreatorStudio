@@ -55,6 +55,7 @@ export interface UseBrushDrawingReturn {
   activeBrushPathRef: React.RefObject<SVGPathElement | null>;
   activeBrushSvgDRef: React.MutableRefObject<string>;
   resetBrushDrawing: () => void;
+  finalizeBrushDrawing: () => boolean;
   handleBrushPointerDown: (e: React.PointerEvent<SVGSVGElement>, pos: Point) => void;
   handleBrushPointerMove: (e: React.PointerEvent<SVGSVGElement>) => boolean;
   handleBrushPointerUp: (e: React.PointerEvent<SVGSVGElement>) => boolean;
@@ -84,6 +85,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   } = options;
 
   const brushStrokePointsRef = useRef<StrokePoint[]>([]);
+  const freehandPointsRef = useRef<StrokePoint[]>([]);
   const brushStrokeStartTimeRef = useRef<number>(0);
   const brushStrokeStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const pendingBrushEventsRef = useRef<
@@ -111,6 +113,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       brushRafIdRef.current = null;
     }
     brushStrokePointsRef.current = [];
+    freehandPointsRef.current = [];
     pendingBrushEventsRef.current = [];
     strokeBrushConfigRef.current = null;
     activeBrushSvgDRef.current = '';
@@ -285,19 +288,27 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           y: lastBrushPointRef.current.y,
           pressure: pres,
           time: Date.now() - 50,
+          pointerType: e.pointerType,
         };
-        const pCurr: StrokePoint = { x: pos.x, y: pos.y, pressure: pres, time: Date.now() };
+        const pCurr: StrokePoint = { x: pos.x, y: pos.y, pressure: pres, time: Date.now(), pointerType: e.pointerType };
         const straightPts = generateStraightStrokePoints(pPrev, pCurr);
         brushStrokePointsRef.current = straightPts;
+        freehandPointsRef.current = straightPts;
         if (activeBrushPathRef.current) {
           const d = getLivePreviewSvgPath(brushStrokePointsRef.current);
           activeBrushSvgDRef.current = d;
           activeBrushPathRef.current.setAttribute('d', d);
         }
       } else {
-        brushStrokePointsRef.current = [
-          { x: pos.x, y: pos.y, pressure: pres, time: Date.now(), pointerType: e.pointerType },
-        ];
+        const firstPt: StrokePoint = {
+          x: pos.x,
+          y: pos.y,
+          pressure: pres,
+          time: Date.now(),
+          pointerType: e.pointerType,
+        };
+        brushStrokePointsRef.current = [firstPt];
+        freehandPointsRef.current = [firstPt];
         activeBrushSvgDRef.current = '';
         if (activeBrushPathRef.current) {
           activeBrushPathRef.current.setAttribute('d', '');
@@ -305,7 +316,14 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       }
     },
     [
+      brushWidth,
+      brushStyle,
       pressureSensitivity,
+      pressureCurve,
+      smoothingIntensity,
+      autoSmoothBrush,
+      smoothStrength,
+      activePenPreset,
       isStylusActive,
       setIsStylusActive,
       onPressureUpdate,
@@ -325,7 +343,8 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
       // Straight Ruler Assist: When Shift is held or straight mode is ON
       if (e.shiftKey || brushStraightMode) {
-        const p0 = brushStrokePointsRef.current[0];
+        const originPts = freehandPointsRef.current.length > 0 ? freehandPointsRef.current : brushStrokePointsRef.current;
+        const p0 = originPts[0] || { x: 0, y: 0 };
         const subPos = screenToCanvas(e.clientX, e.clientY);
         const snapped = snapToStraightAngle(p0.x, p0.y, subPos.x, subPos.y);
         let endX = snapped.x;
@@ -354,6 +373,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           y: endY,
           pressure: pres,
           time: e.timeStamp || Date.now(),
+          pointerType: e.pointerType,
         };
 
         brushStrokePointsRef.current = generateStraightStrokePoints(p0, pEnd);
@@ -396,6 +416,9 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           pendingBrushEventsRef.current = [];
 
           const hasNewPoints = ingestRawEvents(events);
+          if (hasNewPoints) {
+            freehandPointsRef.current = [...brushStrokePointsRef.current];
+          }
 
           if (hasNewPoints && activeBrushPathRef.current && brushStrokePointsRef.current.length > 0) {
             const d = getLivePreviewSvgPath(brushStrokePointsRef.current);
@@ -419,73 +442,90 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     ]
   );
 
+  const finalizeBrushDrawing = useCallback((): boolean => {
+    if (brushRafIdRef.current != null) {
+      cancelAnimationFrame(brushRafIdRef.current);
+      brushRafIdRef.current = null;
+    }
+
+    if (pendingBrushEventsRef.current.length > 0) {
+      const events = pendingBrushEventsRef.current;
+      pendingBrushEventsRef.current = [];
+      ingestRawEvents(events);
+    }
+
+    if (activeBrushPathRef.current) {
+      activeBrushPathRef.current.setAttribute('d', '');
+    }
+    activeBrushSvgDRef.current = '';
+
+    const pts =
+      brushStrokePointsRef.current.length > 0
+        ? [...brushStrokePointsRef.current]
+        : [...freehandPointsRef.current];
+
+    brushStrokePointsRef.current = [];
+    freehandPointsRef.current = [];
+
+    if (pts.length === 0) {
+      strokeBrushConfigRef.current = null;
+      return false;
+    }
+
+    // Trim micro-jitter at stroke end
+    trimTerminalJitter(pts);
+
+    // Distinguish accidental stray tap vs intentional mark
+    const duration = Date.now() - brushStrokeStartTimeRef.current;
+    const isAccidental = isAccidentalStrayTap(
+      pts,
+      brushStrokeStartPosRef.current,
+      duration,
+      pts[0]?.pointerType
+    );
+
+    if (isAccidental) {
+      strokeBrushConfigRef.current = null;
+      return true;
+    }
+
+    if (pts.length > 0) {
+      const finalizedContour = getProcessedBrushContour(pts, true);
+      const currentContours = contoursRef.current || [];
+      const nextContours = [...currentContours, finalizedContour];
+      contoursRef.current = nextContours;
+      onChangeContours(nextContours);
+      lastBrushPointRef.current = {
+        x: pts[pts.length - 1].x,
+        y: pts[pts.length - 1].y,
+        time: Date.now(),
+      };
+      onCommitHistory?.();
+    }
+    strokeBrushConfigRef.current = null;
+    return true;
+  }, [
+    ingestRawEvents,
+    getProcessedBrushContour,
+    contoursRef,
+    onChangeContours,
+    onCommitHistory,
+  ]);
+
   const handleBrushPointerUp = useCallback(
-    (e: React.PointerEvent<SVGSVGElement>): boolean => {
+    (_e: React.PointerEvent<SVGSVGElement>): boolean => {
       if (
         toolMode !== 'brush' ||
-        (brushStrokePointsRef.current.length === 0 && pendingBrushEventsRef.current.length === 0)
+        (brushStrokePointsRef.current.length === 0 &&
+          pendingBrushEventsRef.current.length === 0 &&
+          freehandPointsRef.current.length === 0)
       ) {
         return false;
       }
 
-      if (pendingBrushEventsRef.current.length > 0) {
-        const events = pendingBrushEventsRef.current;
-        pendingBrushEventsRef.current = [];
-        ingestRawEvents(events);
-      }
-
-      if (brushRafIdRef.current != null) {
-        cancelAnimationFrame(brushRafIdRef.current);
-        brushRafIdRef.current = null;
-      }
-      if (activeBrushPathRef.current) {
-        activeBrushPathRef.current.setAttribute('d', '');
-      }
-      activeBrushSvgDRef.current = '';
-      const pts = brushStrokePointsRef.current;
-      brushStrokePointsRef.current = [];
-
-      // Trim micro-jitter at stroke end
-      trimTerminalJitter(pts);
-
-      // Distinguish accidental stray tap vs intentional mark
-      const duration = Date.now() - brushStrokeStartTimeRef.current;
-      const isAccidental = isAccidentalStrayTap(
-        pts,
-        brushStrokeStartPosRef.current,
-        duration,
-        e.pointerType
-      );
-
-      if (isAccidental) {
-        strokeBrushConfigRef.current = null;
-        return true;
-      }
-
-      if (pts.length > 0) {
-        const finalizedContour = getProcessedBrushContour(pts, true);
-        const currentContours = contoursRef.current || [];
-        const nextContours = [...currentContours, finalizedContour];
-        contoursRef.current = nextContours;
-        onChangeContours(nextContours);
-        lastBrushPointRef.current = {
-          x: pts[pts.length - 1].x,
-          y: pts[pts.length - 1].y,
-          time: Date.now(),
-        };
-        onCommitHistory?.();
-      }
-      strokeBrushConfigRef.current = null;
-      return true;
+      return finalizeBrushDrawing();
     },
-    [
-      toolMode,
-      ingestRawEvents,
-      getProcessedBrushContour,
-      contoursRef,
-      onChangeContours,
-      onCommitHistory,
-    ]
+    [toolMode, finalizeBrushDrawing]
   );
 
   const isActivelyDrawing = useCallback(() => {
@@ -497,6 +537,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     activeBrushPathRef,
     activeBrushSvgDRef,
     resetBrushDrawing,
+    finalizeBrushDrawing,
     handleBrushPointerDown,
     handleBrushPointerMove,
     handleBrushPointerUp,

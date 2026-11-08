@@ -188,7 +188,13 @@ export function compileFont(
 
     const scaleFactor = options?.scaleFactor !== undefined ? options.scaleFactor : 1.35;
     const shouldBalance = options?.balanceSideBearings !== false;
-    const shouldMerge = options?.mergeOverlaps !== false;
+    const shouldMerge = options?.mergeOverlaps === true;
+
+    // Filter degenerate or single-node contours that cannot form a valid polygon/path
+    glyphContours = glyphContours.filter((c) => {
+      if (!c || !c.nodes || c.nodes.length < 2) return false;
+      return true;
+    });
 
     if (glyphContours.length > 0) {
       const origBbox = getContoursBoundingBox(glyphContours);

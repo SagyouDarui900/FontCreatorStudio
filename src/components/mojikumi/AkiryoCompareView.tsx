@@ -43,6 +43,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
             gap: `${lineGapPx}px`,
             fontFamily,
             fontFeatureSettings: '"vert" 1, "vrt2" 1',
+            contain: 'content',
           }}
         >
           {layout.lines.map((line, lIdx) => (
@@ -95,6 +96,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         style={{
           gap: `${lineGapPx}px`,
           fontFamily,
+          contain: 'content',
         }}
       >
         {layout.lines.map((line, lIdx) => (
@@ -220,7 +222,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
           return (
             <div
               key={col.id}
-              className={`flex flex-col rounded-2xl border overflow-hidden transition-all shadow-sm ${col.borderActive} ${
+              className={`flex flex-col rounded-2xl border overflow-hidden shadow-sm ${col.borderActive} ${
                 isLight ? 'bg-white border-stone-200' : 'bg-[#152319] border-[#25382b]'
               }`}
             >

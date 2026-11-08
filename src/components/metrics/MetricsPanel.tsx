@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Sliders, X } from 'lucide-react';
+import { Sliders, X, Layers } from 'lucide-react';
 import { PathContour, ThemeClasses } from '../../types';
+import { PrecisionInspector } from '../precision/PrecisionInspector';
 import {
   flipContoursHorizontal,
   flipContoursVertical,
@@ -51,6 +52,9 @@ export interface MetricsPanelProps {
   onAutoSpaceGlyph?: (preset: AutoSpacingPreset) => void;
   onSimplifyGlyph?: (level: 'mild' | 'normal' | 'strong') => void;
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  selectedContourIds?: string[];
+  selectedNodeId?: string | null;
+  selectedHandleType?: 'node' | 'handleIn' | 'handleOut' | null;
 }
 
 export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
@@ -75,8 +79,12 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   onAutoSpaceGlyph,
   onSimplifyGlyph,
   onShowToast,
+  selectedContourIds = [],
+  selectedNodeId = null,
+  selectedHandleType = null,
 }) => {
   const upm = unitsPerEm || 1000;
+  const [activeTab, setActiveTab] = useState<'metrics' | 'precision'>('metrics');
   const [strokeOutlineWidth, setStrokeOutlineWidth] = useState<number>(60);
   const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
   const [simplifyLevel, setSimplifyLevel] = useState<'mild' | 'normal' | 'strong'>('normal');
@@ -348,13 +356,15 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           </div>
 
           <div className="flex items-center space-x-1.5 shrink-0">
-            <button
-              onClick={handleToggleAll}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
-              title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
-            >
-              {isAllExpanded ? '全閉' : '全開'}
-            </button>
+            {activeTab === 'metrics' && (
+              <button
+                onClick={handleToggleAll}
+                className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
+              >
+                {isAllExpanded ? '全閉' : '全開'}
+              </button>
+            )}
 
             {onClose && (
               <button
@@ -369,12 +379,69 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           </div>
         </div>
 
-        {/* Scrollable Panel Content */}
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-3"
-          style={{
-            paddingBottom: effectiveIsOverlay
-              ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
+        {/* Panel Tabs: Metrics vs Precision Design */}
+        <div className={`flex border-b px-2 py-1.5 gap-1 shrink-0 ${themeClasses.border} ${themeClasses.cardBg}`}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('metrics')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'metrics'
+                ? `${themeClasses.activeTool} shadow-sm`
+                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>メトリクス</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('precision')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'precision'
+                ? `${themeClasses.activeTool} shadow-sm`
+                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>精密整列・数値</span>
+            {selectedContourIds && selectedContourIds.length > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-emerald-500 text-white">
+                {selectedContourIds.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === 'precision' ? (
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain p-3"
+            style={{
+              paddingBottom: effectiveIsOverlay
+                ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
+                : 'max(env(safe-area-inset-bottom, 0px) + 20px, 24px)',
+            }}
+          >
+            <PrecisionInspector
+              contours={contours}
+              selectedContourIds={selectedContourIds || []}
+              selectedNodeId={selectedNodeId || null}
+              selectedHandleType={selectedHandleType || null}
+              onChangeContours={onChangeContours}
+              onCommitHistory={onCommitHistory}
+              unitsPerEm={upm}
+              advanceWidth={advanceWidth}
+              showToast={(title, desc) => onShowToast?.(desc ? `${title}: ${desc}` : title, 'info')}
+              isLight={isLight}
+              themeClasses={themeClasses}
+            />
+          </div>
+        ) : (
+          /* Scrollable Panel Content */
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-3"
+            style={{
+              paddingBottom: effectiveIsOverlay
+                ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
               : 'max(env(safe-area-inset-bottom, 0px) + 20px, 24px)',
           }}
         >
@@ -466,9 +533,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             themeClasses={themeClasses}
           />
         </div>
-      </div>
-    </>
-  );
+      )}
+    </div>
+  </>
+);
 });
 
 MetricsPanel.displayName = 'MetricsPanel';

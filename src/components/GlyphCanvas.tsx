@@ -105,6 +105,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   onOpenGlyphCompareModal,
   outlineOnly: propOutlineOnly,
   onChangeOutlineOnly,
+  onSelectionChange,
 }) => {
   const onUndoRef = useRef(onUndo);
   onUndoRef.current = onUndo;
@@ -327,6 +328,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     activeBrushPathRef,
     activeBrushSvgDRef,
     resetBrushDrawing,
+    finalizeBrushDrawing,
     handleBrushPointerDown,
     handleBrushPointerMove,
     handleBrushPointerUp,
@@ -781,6 +783,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setActiveSnapGuides,
     setTouchLoupeState,
     resetBrushDrawing,
+    finalizeBrushDrawing,
     setActivePenContour,
     setShapeStartPoint,
     setShapeCurrentPoint,
@@ -855,6 +858,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleConvertToSmoothSelected,
     handleToggleClosedSelected,
     handleExpandStrokeSelected,
+    handleAlignSelected,
+    handleDistributeSelected,
   } = useContourTransforms({
     contours,
     selectedContourIds,
@@ -877,6 +882,69 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   });
 
   handleDeleteSelectedRef.current = handleDeleteSelected;
+
+  const handleNudgeSelection = useCallback(
+    (dx: number, dy: number) => {
+      if (selectedNodeId) {
+        const updated = contours.map((c) => {
+          const hasNode = c.nodes.some((n) => n.id === selectedNodeId);
+          if (!hasNode) return c;
+          return {
+            ...c,
+            nodes: c.nodes.map((n) => {
+              if (n.id !== selectedNodeId) return n;
+              return {
+                ...n,
+                x: Math.round((n.x + dx) * 10) / 10,
+                y: Math.round((n.y + dy) * 10) / 10,
+                handleIn: n.handleIn
+                  ? {
+                      x: Math.round((n.handleIn.x + dx) * 10) / 10,
+                      y: Math.round((n.handleIn.y + dy) * 10) / 10,
+                    }
+                  : undefined,
+                handleOut: n.handleOut
+                  ? {
+                      x: Math.round((n.handleOut.x + dx) * 10) / 10,
+                      y: Math.round((n.handleOut.y + dy) * 10) / 10,
+                    }
+                  : undefined,
+              };
+            }),
+          };
+        });
+        onChangeContours(updated);
+        onCommitHistory?.();
+      } else if (selectedContourIds.length > 0) {
+        const updated = contours.map((c) => {
+          if (!selectedContourIds.includes(c.id)) return c;
+          return {
+            ...c,
+            nodes: c.nodes.map((n) => ({
+              ...n,
+              x: Math.round((n.x + dx) * 10) / 10,
+              y: Math.round((n.y + dy) * 10) / 10,
+              handleIn: n.handleIn
+                ? {
+                    x: Math.round((n.handleIn.x + dx) * 10) / 10,
+                    y: Math.round((n.handleIn.y + dy) * 10) / 10,
+                  }
+                : undefined,
+              handleOut: n.handleOut
+                ? {
+                    x: Math.round((n.handleOut.x + dx) * 10) / 10,
+                    y: Math.round((n.handleOut.y + dy) * 10) / 10,
+                  }
+                : undefined,
+            })),
+          };
+        });
+        onChangeContours(updated);
+        onCommitHistory?.();
+      }
+    },
+    [contours, selectedNodeId, selectedContourIds, onChangeContours, onCommitHistory]
+  );
 
   // Canvas keyboard shortcuts & spacebar pan navigation
   useCanvasShortcuts({
@@ -910,7 +978,16 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedNodeId,
     setIsSpacePressed,
     showCanvasToast,
+    onNudgeSelection: handleNudgeSelection,
   });
+
+  useEffect(() => {
+    onSelectionChange?.({
+      contourIds: selectedContourIds,
+      nodeId: selectedNodeId,
+      handleType: selectedHandleType,
+    });
+  }, [selectedContourIds, selectedNodeId, selectedHandleType, onSelectionChange]);
 
   return (
     <div className={`w-full h-full flex flex-col min-h-0 relative overflow-hidden select-none ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>
@@ -1011,6 +1088,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         setIsShiftLockRatio={setIsShiftLockRatio}
         isAltFromCenter={isAltFromCenter}
         setIsAltFromCenter={setIsAltFromCenter}
+        handleAlignSelected={handleAlignSelected}
+        handleDistributeSelected={handleDistributeSelected}
       />
 
       <div

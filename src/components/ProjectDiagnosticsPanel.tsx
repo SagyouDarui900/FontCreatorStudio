@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
 import { contoursToSvgPath } from '../utils/path';
+import { copyTextToClipboard } from '../utils/clipboard';
 import {
   ProjectDiagnosticsReport,
   DiagnosticItem,
@@ -223,10 +224,13 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
 
     const fullExport = `【フォント制作診断 未完了・要確認文字リスト (${attentionItems.length}字)】\n対象スコープ: ${diagScope}\n要確認文字一覧:\n${charsText}\n\n詳細リスト:\n${detailText}`;
 
-    navigator.clipboard
-      .writeText(fullExport)
-      .then(() => {
-        notify(`要確認文字 ${attentionItems.length} 字のリストをクリップボードにコピーしました`, 'success');
+    copyTextToClipboard(fullExport)
+      .then((ok) => {
+        if (ok) {
+          notify(`要確認文字 ${attentionItems.length} 字のリストをクリップボードにコピーしました`, 'success');
+        } else {
+          notify('クリップボードへのコピーに失敗しました', 'error');
+        }
       })
       .catch(() => {
         notify('クリップボードへのコピーに失敗しました', 'error');

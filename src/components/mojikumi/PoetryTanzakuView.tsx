@@ -34,7 +34,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
     <div className="w-full flex flex-col items-center justify-center p-4 sm:p-8 select-none overflow-x-auto custom-scrollbar">
       {/* Traditional Tanzaku Paper Slip */}
       <div
-        className={`w-full max-w-2xl min-h-[580px] rounded-2xl border-2 transition-all p-8 sm:p-14 flex flex-col justify-between relative ${paperBg} ${paperBorder} ${textColor}`}
+        className={`w-full max-w-2xl min-h-[580px] rounded-2xl border-2 p-8 sm:p-14 flex flex-col justify-between relative ${paperBg} ${paperBorder} ${textColor}`}
       >
         {/* Subtle gold/vermilion decorative top & bottom borders */}
         <div className="absolute top-3 inset-x-8 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />

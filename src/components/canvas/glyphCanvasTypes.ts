@@ -62,4 +62,9 @@ export interface GlyphCanvasProps {
   onOpenGlyphCompareModal?: () => void;
   outlineOnly?: boolean;
   onChangeOutlineOnly?: (val: boolean) => void;
+  onSelectionChange?: (selection: {
+    contourIds: string[];
+    nodeId: string | null;
+    handleType: 'node' | 'handleIn' | 'handleOut' | null;
+  }) => void;
 }

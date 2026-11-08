@@ -20,7 +20,7 @@ export function trimTerminalJitter(pts: StrokePoint[], minDistanceSq: number = 2
 
 /**
  * Determines whether a stroke is an accidental stray tap / palm brush vs an intentional mark.
- * Deliberate stylus taps (pressure > 0.38) are preserved.
+ * Mouse clicks and deliberate stylus marks are preserved.
  */
 export function isAccidentalStrayTap(
   pts: StrokePoint[],
@@ -29,6 +29,11 @@ export function isAccidentalStrayTap(
   pointerType?: string
 ): boolean {
   if (pts.length === 0) return true;
+
+  // Mouse input is always intentional user interaction (never palm touch)
+  if (pointerType === 'mouse') {
+    return false;
+  }
 
   // Deliberate stylus firm tap check
   const isDeliberatePenTap =

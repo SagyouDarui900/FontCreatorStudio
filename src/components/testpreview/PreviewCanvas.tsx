@@ -52,6 +52,14 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     getGlyphMetric,
   } = state;
 
+  const drawnGlyphsCount = useMemo(() => {
+    return Object.values(project.glyphs || {}).filter(
+      (g) =>
+        (g.contours && g.contours.length > 0) ||
+        (g.pixelData?.data && g.pixelData.data.some((p: number) => p === 1))
+    ).length;
+  }, [project.glyphs]);
+
   // Highlight space tokens, character boxes, and interactive character tokens
   const renderedText = useMemo(() => {
     const lines = testText.split('\n');
@@ -332,6 +340,14 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 : 'bg-[#151e18] border-[#25362b]'
             }`}
           >
+            {/* Empty Glyph Feedback Notice */}
+            {drawnGlyphsCount === 0 && (
+              <div className="mb-4 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2 select-none">
+                <span className="font-bold shrink-0">※ 未描画グリフ補完表示中:</span>
+                <span>文字の輪郭を描画すると手書きフォントが反映されます。未描画の文字はブラウザ標準フォントで試し打ち表示されています。</span>
+              </div>
+            )}
+
             {/* Notebook Guide Legend Badge */}
             {showNotebookGuides && (
               <div className="mb-3 px-2.5 py-1 rounded bg-stone-100/90 dark:bg-stone-900/90 border border-stone-200/80 dark:border-stone-800 text-[10px] flex flex-wrap items-center gap-3 shrink-0 select-none pointer-events-none opacity-90">

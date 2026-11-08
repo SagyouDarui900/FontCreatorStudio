@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Download } from 'lucide-react';
-import { loadProjectFromIndexedDB } from '../utils/indexedDBStorage';
+import { loadProjectFromIndexedDB, LOCAL_STORAGE_PROJECT_KEY } from '../utils/storageManager';
+import { THEME_STORAGE_KEY } from '../hooks/useTheme';
 
 interface Props {
   children: ReactNode;
@@ -36,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleExportBackup = async () => {
     try {
-      let jsonString = localStorage.getItem('font_editor_project_data_v2');
+      let jsonString = localStorage.getItem(LOCAL_STORAGE_PROJECT_KEY);
 
       if (!jsonString) {
         try {
@@ -70,8 +71,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     try {
-      localStorage.removeItem('font_editor_project_data_v2');
-      localStorage.removeItem('font_editor_theme_mode');
+      localStorage.removeItem(LOCAL_STORAGE_PROJECT_KEY);
+      localStorage.removeItem(THEME_STORAGE_KEY);
     } catch {
       // Ignored
     }
@@ -86,7 +87,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       let themeMode = 'light';
       try {
-        const saved = localStorage.getItem('font_editor_theme_mode');
+        const saved = localStorage.getItem(THEME_STORAGE_KEY);
         if (saved) themeMode = saved;
       } catch {}
 
