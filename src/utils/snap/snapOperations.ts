@@ -239,8 +239,10 @@ export function snapSinglePoint(
   otherContours: PathContour[],
   metrics: MetricsTargets,
   customGuides: CustomGuideTarget[] = [],
-  threshold: number = 10,
-  gridSettings?: GridSettings
+  threshold: number = 8,
+  gridSettings?: GridSettings,
+  currentContourNodes?: { id?: string; x: number; y: number }[],
+  excludeNodeId?: string
 ): SnapPointResult {
   const allowGuideSnap = gridSettings ? gridSettings.snapToGuides === true : true;
   const allowGridSnap = gridSettings ? gridSettings.snapToGrid === true : false;
@@ -250,8 +252,12 @@ export function snapSinglePoint(
     return { point: { x: Math.round(rawPos.x), y: Math.round(rawPos.y) }, activeGuides: [] };
   }
 
-  const hTargets = allowGuideSnap ? getHorizontalSnapTargets(metrics, otherContours, customGuides, gridSettings) : [];
-  const vTargets = allowGuideSnap ? getVerticalSnapTargets(metrics, otherContours, customGuides, gridSettings) : [];
+  const hTargets = allowGuideSnap
+    ? getHorizontalSnapTargets(metrics, otherContours, customGuides, gridSettings, currentContourNodes, excludeNodeId)
+    : [];
+  const vTargets = allowGuideSnap
+    ? getVerticalSnapTargets(metrics, otherContours, customGuides, gridSettings, currentContourNodes, excludeNodeId)
+    : [];
 
   const activeGuides: SnapGuideLine[] = [];
 

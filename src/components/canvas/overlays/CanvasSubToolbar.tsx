@@ -290,8 +290,6 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
             {/* Pen Tool options */}
             {toolMode === 'pen' && (
               <PenSubToolbar
-                penMode={penMode}
-                setPenMode={setPenMode}
                 penStrokeWidth={penStrokeWidth}
                 handleSetPenStrokeWidth={handleSetPenStrokeWidth}
                 penCapStyle={penCapStyle}

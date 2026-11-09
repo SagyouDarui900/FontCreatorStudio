@@ -210,7 +210,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
           : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 select-none'

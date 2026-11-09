@@ -7,6 +7,7 @@ export interface UseCanvasShortcutsProps {
   activePenContour: PathContour | null;
   selectedContourIds: string[];
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   selectedContourId: string | null;
   rulerMeasurement: RulerMeasurement | null;
   gridSettings: GridSettings;
@@ -20,6 +21,7 @@ export interface UseCanvasShortcutsProps {
   handleFinishPenContour: (closed: boolean) => void;
   handleDeleteSelectedNode: () => void;
   handleDeleteSelected: () => void;
+  handleToggleNodeType?: (contourId?: string, nodeId?: string) => void;
   handleSmoothStrokeSelected: () => void;
   handleDrawRulerAsStroke: () => void;
   onSelectPrevGlyph?: () => void;
@@ -41,6 +43,7 @@ export function useCanvasShortcuts({
   activePenContour,
   selectedContourIds,
   selectedNodeId,
+  selectedNodeIds,
   selectedContourId,
   rulerMeasurement,
   gridSettings,
@@ -54,6 +57,7 @@ export function useCanvasShortcuts({
   handleFinishPenContour,
   handleDeleteSelectedNode,
   handleDeleteSelected,
+  handleToggleNodeType,
   handleSmoothStrokeSelected,
   handleDrawRulerAsStroke,
   onSelectPrevGlyph,
@@ -78,6 +82,41 @@ export function useCanvasShortcuts({
           activeEl.tagName === 'SELECT' ||
           (activeEl as HTMLElement).isContentEditable);
       if (isInputActive || isAnyModalOpen) return;
+
+      // In-progress Pen Drawing Shortcuts
+      if (activePenContour) {
+        // Ctrl+Z / Cmd+Z: undo last placed node (prevents triggering full glyph history undo)
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleUndoPenNode();
+          return;
+        }
+
+        // Backspace / Delete: undo last placed node
+        if (e.key === 'Backspace' || e.key === 'Delete') {
+          e.preventDefault();
+          e.stopPropagation();
+          handleUndoPenNode();
+          return;
+        }
+
+        // Escape: cancel and discard in-progress pen path
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          handleResetPenContour();
+          return;
+        }
+
+        // Enter: finish and commit open path
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          handleFinishPenContour(false);
+          return;
+        }
+      }
 
       // Illustrator-style Arrow Key Nudging for selected nodes and contours
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {

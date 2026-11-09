@@ -2,6 +2,7 @@ import React from 'react';
 import { Sliders, Edit3 } from 'lucide-react';
 import { TestPreviewModalProps } from './types';
 import { useTestPreviewState } from './hooks/useTestPreviewState';
+import { getThemeClasses } from '../../utils/theme';
 import { PreviewToolbar } from './PreviewToolbar';
 import { TextControlsPanel } from './TextControlsPanel';
 import { TopControlsBar } from './TopControlsBar';
@@ -12,6 +13,7 @@ import { PreviewFooter } from './PreviewFooter';
 export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
   const { isOpen, onClose, project, setProject, onSelectGlyphForEdit, onOpenMojikumiStudio } = props;
   const state = useTestPreviewState(props);
+  const themeClasses = getThemeClasses(props.theme);
 
   if (!isOpen) return null;
 
@@ -44,21 +46,19 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 select-none transition-all ${
+      className={`fixed inset-0 z-[60] select-none ${
         isFullscreen
           ? 'flex flex-col w-screen h-screen p-0 bg-black/90 overflow-hidden'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs'
+          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75'
       }`}
     >
       <div
-        className={`w-full flex flex-col transition-all overflow-hidden ${
+        className={`w-full flex flex-col transition-colors duration-150 overflow-hidden ${
           isFullscreen
             ? isLight
               ? 'w-screen h-screen rounded-none border-none bg-[#f7faf8] text-stone-800'
               : 'w-screen h-screen rounded-none border-none bg-[#141c16] text-emerald-100'
-            : isLight
-            ? 'w-full sm:max-w-7xl border border-[#c8ded3] rounded-none sm:rounded-xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] bg-[#f7faf8] text-stone-800'
-            : 'w-full sm:max-w-7xl border border-[#25362b] rounded-none sm:rounded-xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] bg-[#141c16] text-emerald-100'
+            : `w-full sm:max-w-7xl border rounded-none sm:rounded-2xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg}`
         }`}
       >
         {/* Header Bar and Guidance Banner */}

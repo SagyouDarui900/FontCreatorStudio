@@ -617,7 +617,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2 bg-black/85 animate-in fade-in duration-150 pointer-events-auto"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-2 bg-black/85 animate-in fade-in duration-150 pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}

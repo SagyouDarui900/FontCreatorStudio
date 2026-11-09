@@ -55,7 +55,7 @@ import {
   FormattedLayoutResult,
 } from '../utils/mojikumiEngine';
 import { compileFont } from '../utils/font';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { AOZORA_TEXTS, AozoraWork } from './mojikumi/aozoraTexts';
 import { BookSpreadView } from './mojikumi/BookSpreadView';
 import { ManuscriptView } from './mojikumi/ManuscriptView';
@@ -92,6 +92,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
   onOpenTestPreview,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Active Editorial Layout Mode
   const [layoutMode, setLayoutMode] = useState<EditorialLayoutMode>('book_spread');
@@ -318,22 +319,16 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 select-none"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/80 select-none"
     >
       <div
-        className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${
-          isLight
-            ? 'bg-stone-100 border-stone-300 text-stone-900'
-            : 'bg-[#0f1712] border-[#25382b] text-stone-100'
-        }`}
+        className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${themeClasses.modalBg}`}
       >
         {/* =========================================================================
             HEADER BAR 1: Brand & Top Quick Action Bar
            ========================================================================= */}
         <header
-          className={`px-4 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${
-            isLight ? 'bg-white border-stone-200' : 'bg-[#152319] border-[#25382b]'
-          }`}
+          className={`px-4 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg}`}
         >
           {/* Left: Title & Literary Attribution */}
           <div className="flex items-center space-x-3 min-w-0">
@@ -356,8 +351,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   青空文庫収録 · 著作権満了
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500 truncate hidden sm:block">
-                文庫見開き・四百字詰原稿用紙・雑誌段組・詩歌短冊・JIS X 4051アキ量精密検証
+              <p className={`text-[11px] ${themeClasses.textMuted} truncate hidden sm:block`}>
+                JIS X 4051準拠の約物アキ量・組版プレビュー
               </p>
             </div>
           </div>
@@ -372,7 +367,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   onClose();
                   onOpenTestPreview();
                 }}
-                className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors duration-150 ${
                   isLight
                     ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-950'
                     : 'bg-emerald-950/70 hover:bg-emerald-900 border-emerald-700 text-emerald-200'
@@ -388,7 +383,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={handleSaveToProject}
-              className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm"
+              className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm transition-colors duration-150"
             >
               <Save className="w-3.5 h-3.5" />
               <span>保存</span>
@@ -398,10 +393,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={handleExportJson}
-              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs transition-all flex items-center space-x-1 ${
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs transition-colors duration-150 flex items-center space-x-1 ${
                 isLight
                   ? 'bg-stone-100 border-stone-200 hover:bg-stone-200 text-stone-700'
-                  : 'bg-[#1b2b20] border-[#2b4032] hover:bg-[#23382a] text-stone-300'
+                  : 'bg-stone-800/60 border-stone-700 hover:bg-stone-700/60 text-stone-200'
               }`}
               title="文字組み設定JSONエクスポート"
             >
@@ -414,10 +409,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="文字組みスタジオを閉じる"
-              className={`min-w-[40px] min-h-[40px] p-2 rounded-xl border flex items-center justify-center transition-all ${
+              className={`min-w-[40px] min-h-[40px] p-2 rounded-lg border flex items-center justify-center transition-colors duration-150 ${
                 isLight
                   ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300 hover:border-stone-400'
-                  : 'bg-[#1b2b20] hover:bg-[#23382a] text-stone-200 border-[#2b4032]'
+                  : 'bg-stone-800/60 hover:bg-stone-700/60 text-stone-200 border-stone-700'
               }`}
               title="閉じる (Esc)"
             >
@@ -431,7 +426,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
            ========================================================================= */}
         <div
           className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#121c15] border-[#25382b]'
+            isLight ? 'bg-stone-50/80 border-stone-200' : `${themeClasses.cardBg}`
           }`}
         >
           {/* Mode Switcher Tabs */}
@@ -450,14 +445,12 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   key={m.id}
                   type="button"
                   onClick={() => setLayoutMode(m.id as EditorialLayoutMode)}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 shrink-0 ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150 flex items-center space-x-1.5 shrink-0 ${
                     isSel
-                      ? isLight
-                        ? 'bg-emerald-700 text-white shadow-xs'
-                        : 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-emerald-700 text-white shadow-xs'
                       : isLight
                       ? 'text-stone-600 hover:bg-stone-200/60'
-                      : 'text-stone-400 hover:bg-[#1a281e]'
+                      : `${themeClasses.textMuted} hover:bg-white/10`
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -473,14 +466,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={() => setIsVertical(!isVertical)}
-              className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center space-x-1 ${
+              className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors duration-150 flex items-center space-x-1 ${
                 isVertical
                   ? isLight
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                     : 'bg-emerald-950 border-emerald-800 text-emerald-300'
                   : isLight
                   ? 'bg-white border-stone-200 text-stone-700'
-                  : 'bg-[#1b2b20] border-[#2b4032] text-stone-300'
+                  : 'bg-stone-800/60 border-stone-700 text-stone-300'
               }`}
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
@@ -490,18 +483,18 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             {/* Font Source Switcher */}
             <div
               className={`flex items-center p-0.5 rounded-lg border text-xs ${
-                isLight ? 'bg-stone-200/60 border-stone-300' : 'bg-[#1b2b20] border-[#2b4032]'
+                isLight ? 'bg-stone-200/60 border-stone-300' : 'bg-stone-800/60 border-stone-700'
               }`}
             >
               <button
                 type="button"
                 onClick={() => setFontSource('custom')}
-                className={`px-2 py-0.5 rounded transition-all font-bold ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 font-bold ${
                   fontSource === 'custom'
                     ? isLight
                       ? 'bg-white text-emerald-950 shadow-xs'
                       : 'bg-emerald-700 text-white'
-                    : 'text-stone-500'
+                    : themeClasses.textMuted
                 }`}
                 title={
                   drawnGlyphsCount === 0
@@ -514,12 +507,12 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFontSource('mincho')}
-                className={`px-2 py-0.5 rounded transition-all ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 ${
                   fontSource === 'mincho'
                     ? isLight
                       ? 'bg-white text-emerald-950 font-bold shadow-xs'
                       : 'bg-emerald-700 text-white'
-                    : 'text-stone-500'
+                    : themeClasses.textMuted
                 }`}
               >
                 明朝
@@ -527,12 +520,12 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFontSource('gothic')}
-                className={`px-2 py-0.5 rounded transition-all ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 ${
                   fontSource === 'gothic'
                     ? isLight
                       ? 'bg-white text-emerald-950 font-bold shadow-xs'
                       : 'bg-emerald-700 text-white'
-                    : 'text-stone-500'
+                    : themeClasses.textMuted
                 }`}
               >
                 ゴシック
@@ -543,14 +536,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={() => setShowBodyGrid(!showBodyGrid)}
-              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-all ${
+              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-colors duration-150 ${
                 showBodyGrid
                   ? isLight
                     ? 'bg-emerald-100 border-emerald-300 text-emerald-900 font-bold'
                     : 'bg-emerald-900 border-emerald-700 text-emerald-200 font-bold'
                   : isLight
                   ? 'bg-white border-stone-200 text-stone-600'
-                  : 'bg-[#1b2b20] border-[#2b4032] text-stone-400'
+                  : 'bg-stone-800/60 border-stone-700 text-stone-300'
               }`}
               title="文字の仮想ボディマス目を表示"
             >
@@ -562,18 +555,22 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.max(0.7, Number((z - 0.1).toFixed(1))))}
-                className={`p-1 rounded border ${isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#1b2b20] border-[#2b4032] text-stone-400'}`}
+                className={`p-1 rounded-lg border transition-colors duration-150 ${
+                  isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-stone-800/60 border-stone-700 text-stone-300'
+                }`}
                 title="縮小"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="font-mono text-[11px] w-9 text-center text-stone-500">
+              <span className={`font-mono text-[11px] w-9 text-center ${themeClasses.textMuted}`}>
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(1))))}
-                className={`p-1 rounded border ${isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#1b2b20] border-[#2b4032] text-stone-400'}`}
+                className={`p-1 rounded-lg border transition-colors duration-150 ${
+                  isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-stone-800/60 border-stone-700 text-stone-300'
+                }`}
                 title="拡大"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -587,7 +584,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
            ========================================================================= */}
         <div
           className={`flex md:hidden items-center justify-around border-b py-1.5 px-2 text-xs font-bold shrink-0 ${
-            isLight ? 'bg-stone-200/60 border-stone-300' : 'bg-[#141e17] border-[#25382b]'
+            isLight ? 'bg-stone-200/60 border-stone-300' : `${themeClasses.cardBg}`
           }`}
         >
           <button
@@ -641,15 +638,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           <aside
             className={`${
               mobileTab === 'preview' ? 'hidden md:flex' : 'flex'
-            } w-full md:w-[360px] xl:w-[400px] flex-col border-r shrink-0 min-h-0 overflow-hidden ${
-              isLight ? 'bg-white border-stone-200' : 'bg-[#121c15] border-[#25382b]'
-            }`}
+            } w-full md:w-[360px] xl:w-[400px] flex-col border-r shrink-0 min-h-0 overflow-hidden ${themeClasses.sidebarBg}`}
           >
             {/* Sidebar Navigation Tabs */}
             <div
-              className={`grid grid-cols-4 items-center px-2 py-2 border-b text-xs font-bold gap-1 shrink-0 ${
-                isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-              }`}
+              className={`grid grid-cols-4 items-center px-2 py-2 border-b text-xs font-bold gap-1 shrink-0 ${themeClasses.headerBg}`}
             >
               {[
                 { id: 'text', label: '文学作品' },
@@ -663,14 +656,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setSidebarTab(tab.id as any)}
-                    className={`py-1.5 px-1 rounded-md text-[11px] text-center transition-all truncate ${
+                    className={`py-1.5 px-1 rounded-md text-[11px] text-center transition-colors duration-150 truncate ${
                       isSel
                         ? isLight
                           ? 'bg-white text-emerald-900 shadow-xs border border-stone-200 font-bold'
                           : 'bg-emerald-800 text-white font-bold shadow-xs'
                         : isLight
                         ? 'text-stone-500 hover:text-stone-900'
-                        : 'text-stone-400 hover:text-stone-200'
+                        : `${themeClasses.textMuted} hover:text-stone-100`
                     }`}
                   >
                     {tab.label}
@@ -685,7 +678,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               {sidebarTab === 'text' && (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="font-bold flex items-center justify-between text-stone-700 dark:text-stone-300">
+                    <label className={`font-bold flex items-center justify-between ${themeClasses.textPrimary}`}>
                       <span>青空文庫 著作権満了名作</span>
                       <Bookmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     </label>
@@ -697,14 +690,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                           <div
                             key={work.id}
                             onClick={() => handleSelectWork(work)}
-                            className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            className={`p-2.5 rounded-lg border cursor-pointer transition-colors duration-150 ${
                               isSelected
                                 ? isLight
                                   ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 font-medium ring-1 ring-emerald-500'
                                   : 'bg-emerald-950/60 border-emerald-500 text-emerald-100 font-medium ring-1 ring-emerald-500'
                                 : isLight
                                 ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
-                                : 'bg-[#17241b] border-[#25382b] hover:bg-[#1d2f23] text-stone-300'
+                                : `${themeClasses.cardBg} hover:opacity-90`
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -713,10 +706,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                                 {work.author}
                               </span>
                             </div>
-                            <div className="text-[10px] text-stone-500 pt-0.5 line-clamp-1">
+                            <div className={`text-[10px] ${themeClasses.textMuted} pt-0.5 line-clamp-1`}>
                               {work.genreName} · {work.publishedYear}
                             </div>
-                            <div className="text-[10px] text-stone-400 italic pt-1 line-clamp-1">
+                            <div className={`text-[10px] ${themeClasses.textMuted} italic pt-1 line-clamp-1`}>
                               {work.summary}
                             </div>
                           </div>
@@ -726,10 +719,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   </div>
 
                   {/* Custom Text Area */}
-                  <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-stone-800">
-                    <label className="font-bold text-stone-700 dark:text-stone-300 flex items-center justify-between">
+                  <div className={`space-y-1.5 pt-2 border-t ${themeClasses.border}`}>
+                    <label className={`font-bold flex items-center justify-between ${themeClasses.textPrimary}`}>
                       <span>組版テキストの編集</span>
-                      <span className="text-[10px] font-mono text-stone-400">
+                      <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
                         {customText.length} 文字
                       </span>
                     </label>
@@ -737,10 +730,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                       value={customText}
                       onChange={(e) => setCustomText(e.target.value)}
                       rows={5}
-                      className={`w-full p-2.5 rounded-xl border text-xs resize-none font-sans leading-relaxed ${
+                      className={`w-full p-2.5 rounded-lg border text-xs resize-none font-sans leading-relaxed ${
                         isLight
                           ? 'bg-white border-stone-300 text-stone-900 focus:ring-1 focus:ring-emerald-500'
-                          : 'bg-[#1a281e] border-[#2b4032] text-stone-100 focus:ring-1 focus:ring-emerald-400'
+                          : `${themeClasses.cardBg} focus:ring-1 focus:ring-emerald-400`
                       }`}
                       placeholder="組版を検証する文章を入力..."
                     />
@@ -869,21 +862,21 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                           key={pid}
                           type="button"
                           onClick={() => handleSelectPreset(pid)}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                          className={`p-2.5 rounded-lg border text-left transition-colors duration-150 ${
                             isSelected
                               ? isLight
                                 ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-500'
                                 : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-bold ring-1 ring-emerald-500'
                               : isLight
                               ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
-                              : 'bg-[#17241b] border-[#25382b] hover:bg-[#1d2f23] text-stone-300'
+                              : `${themeClasses.cardBg} hover:opacity-90`
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold">{p.name}</span>
                             {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
                           </div>
-                          <p className="text-[10px] text-stone-500 pt-0.5 line-clamp-1">{p.description}</p>
+                          <p className={`text-[11px] ${themeClasses.textMuted} pt-0.5 line-clamp-1`}>{p.description}</p>
                         </button>
                       );
                     })}
@@ -895,7 +888,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               {sidebarTab === 'kinsoku' && (
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="font-bold text-stone-700 dark:text-stone-300">
+                    <label className={`font-bold ${themeClasses.textPrimary}`}>
                       禁則処理セット（JIS基準）
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -909,14 +902,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                           key={ks.id}
                           type="button"
                           onClick={() => setCurrentConfig((prev) => ({ ...prev, kinsoku: ks.id as any }))}
-                          className={`p-2 rounded-xl border text-left text-xs transition-all ${
+                          className={`p-2 rounded-lg border text-left text-xs transition-colors duration-150 ${
                             currentConfig.kinsoku === ks.id
                               ? isLight
                                 ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold'
                                 : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-bold'
                               : isLight
                               ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
-                              : 'bg-[#17241b] border-[#25382b] hover:bg-[#1d2f23] text-stone-300'
+                              : `${themeClasses.cardBg} hover:opacity-90`
                           }`}
                         >
                           {ks.name}
@@ -925,8 +918,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-stone-800">
-                    <label className="font-bold text-stone-700 dark:text-stone-300">
+                  <div className={`space-y-1.5 pt-2 border-t ${themeClasses.border}`}>
+                    <label className={`font-bold ${themeClasses.textPrimary}`}>
                       句読点ぶら下がり設定
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -939,14 +932,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                           key={bg.id}
                           type="button"
                           onClick={() => setCurrentConfig((prev) => ({ ...prev, burasagari: bg.id as any }))}
-                          className={`p-2 rounded-xl border text-center text-xs transition-all ${
+                          className={`p-2 rounded-lg border text-center text-xs transition-colors duration-150 ${
                             currentConfig.burasagari === bg.id
                               ? isLight
                                 ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold'
                                 : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-bold'
                               : isLight
                               ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
-                              : 'bg-[#17241b] border-[#25382b] hover:bg-[#1d2f23] text-stone-300'
+                              : `${themeClasses.cardBg} hover:opacity-90`
                           }`}
                         >
                           {bg.name}
@@ -959,11 +952,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             </div>
 
             {/* Mobile Done / Close drawer button */}
-            <div className="p-3 border-t border-stone-200 dark:border-stone-800 md:hidden bg-stone-50 dark:bg-stone-900">
+            <div className={`p-3 border-t ${themeClasses.border} md:hidden ${themeClasses.headerBg}`}>
               <button
                 type="button"
                 onClick={() => setMobileTab('preview')}
-                className="w-full py-2.5 rounded-xl bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-sm"
+                className="w-full py-2.5 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors duration-150"
               >
                 <span>プレビューに戻る</span>
               </button>
@@ -977,14 +970,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             className={`${
               mobileTab !== 'preview' ? 'hidden md:flex' : 'flex'
             } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden md:overflow-x-auto relative ${
-              isLight ? 'bg-stone-200/50' : 'bg-[#0a100c]'
+              isLight ? 'bg-stone-200/50' : 'bg-black/30'
             }`}
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {/* STAGE HEADER STRIP */}
             <div
               className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between text-xs font-mono shrink-0 ${
-                isLight ? 'bg-white/80 border-stone-200 text-stone-500' : 'bg-[#101912]/80 border-[#25382b] text-stone-400'
+                isLight ? 'bg-white/80 border-stone-200 text-stone-500' : 'bg-black/20 border-white/10 text-stone-300'
               }`}
             >
               <div className="flex items-center space-x-2">

@@ -161,7 +161,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             <div className="flex items-center justify-between pb-2.5 border-b border-stone-200/80 dark:border-stone-800/80 mb-3 shrink-0">
               <div className="flex items-center space-x-2">
                 <Palette className="w-5 h-5 text-amber-500" />
-                <span className="font-extrabold text-sm">カラーテーマ・目の保護設定</span>
+                <span className="font-extrabold text-sm">カラーテーマ設定</span>
               </div>
               <button
                 type="button"
@@ -215,11 +215,11 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold truncate">{p.name}</span>
-                        <span className={`text-[9px] px-1.5 py-0.2 rounded border font-semibold ${p.badgeClass}`}>
+                        <span className={`text-[11px] px-1.5 py-0.5 rounded border font-semibold ${p.badgeClass}`}>
                           {p.badge}
                         </span>
                       </div>
-                      <p className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug mt-0.5">
+                      <p className="text-xs text-stone-500 dark:text-stone-400 leading-snug mt-0.5">
                         {p.description}
                       </p>
                     </div>

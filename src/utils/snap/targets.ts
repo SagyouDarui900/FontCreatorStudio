@@ -9,7 +9,9 @@ export function getHorizontalSnapTargets(
   metrics: MetricsTargets,
   otherContours: PathContour[],
   customGuides: CustomGuideTarget[] = [],
-  gridSettings?: GridSettings
+  gridSettings?: GridSettings,
+  currentContourNodes?: { id?: string; x: number; y: number }[],
+  excludeNodeId?: string
 ): { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] {
   const targets: { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] = [];
 
@@ -30,7 +32,7 @@ export function getHorizontalSnapTargets(
       name: `アセンダー (Y: ${Math.round(metrics.ascender)})`,
       type: 'metric',
       color: '#3b82f6', // Blue
-      priority: 8,
+      priority: 9,
     });
   }
 
@@ -40,7 +42,7 @@ export function getHorizontalSnapTargets(
       name: `キャップハイト (Y: ${Math.round(metrics.capHeight)})`,
       type: 'metric',
       color: '#3b82f6',
-      priority: 7,
+      priority: 8,
     });
   }
 
@@ -60,23 +62,47 @@ export function getHorizontalSnapTargets(
       name: `ディセンダー (Y: ${Math.round(metrics.descender)})`,
       type: 'metric',
       color: '#ef4444',
-      priority: 8,
+      priority: 9,
     });
   }
 
-  // 3. Canvas Center (Y: 500)
+  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ 1000x1000 & 実字面 820x820)
+  targets.push(
+    { position: 0, name: 'ボディ枠上端 (Y: 0)', type: 'metric', color: '#10b981', priority: 8 },
+    { position: 1000, name: 'ボディ枠下端 (Y: 1000)', type: 'metric', color: '#10b981', priority: 8 },
+    { position: 90, name: '字面枠上端 (820x820 / Y: 90)', type: 'metric', color: '#059669', priority: 8 },
+    { position: 910, name: '字面枠下端 (820x820 / Y: 910)', type: 'metric', color: '#059669', priority: 8 }
+  );
+
+  // 4. Canvas Center (十文字中央ガイド Y: 500)
   targets.push({
     position: 500,
-    name: 'キャンバス中央 (Y: 500)',
+    name: '十文字中央ガイド (Y: 500)',
     type: 'center',
-    color: '#8b5cf6',
-    priority: 5,
+    color: '#06b6d4',
+    priority: 8,
   });
 
-  // 4. Japanese Guide Frames (田字格、九宮格、漢字枠、仮名枠)
-  if (gridSettings?.japaneseGuide === 'tian' || gridSettings?.japaneseGuide === 'mi') {
-    // 500 is already added
+  // 5. Same-contour node alignment (水平整列)
+  if (currentContourNodes && currentContourNodes.length > 0) {
+    const seenPositions = new Set<number>();
+    for (const node of currentContourNodes) {
+      if (node.id && node.id === excludeNodeId) continue;
+      const roundedY = Math.round(node.y);
+      if (!seenPositions.has(roundedY)) {
+        seenPositions.add(roundedY);
+        targets.push({
+          position: node.y,
+          name: `同パス頂点 (Y: ${roundedY})`,
+          type: 'node',
+          color: '#06b6d4',
+          priority: 8,
+        });
+      }
+    }
   }
+
+  // 6. Japanese Guide Frames (田字格、九宮格、漢字枠、仮名枠)
   if (gridSettings?.japaneseGuide === 'jiugong') {
     targets.push(
       { position: 333.3, name: '九宮格 (Y: 333)', type: 'metric', color: '#0284c7', priority: 6 },
@@ -102,7 +128,7 @@ export function getHorizontalSnapTargets(
     );
   }
 
-  // 5. Custom User Horizontal Guidelines
+  // 7. Custom User Horizontal Guidelines
   for (const guide of customGuides) {
     if (guide.type === 'h') {
       targets.push({
@@ -115,7 +141,7 @@ export function getHorizontalSnapTargets(
     }
   }
 
-  // 6. Bounding boxes & nodes of other contours
+  // 8. Bounding boxes & nodes of other contours
   for (let i = 0; i < otherContours.length; i++) {
     const contour = otherContours[i];
     const bbox = getContoursBoundingBox([contour]);
@@ -154,7 +180,9 @@ export function getVerticalSnapTargets(
   metrics: MetricsTargets,
   otherContours: PathContour[],
   customGuides: CustomGuideTarget[] = [],
-  gridSettings?: GridSettings
+  gridSettings?: GridSettings,
+  currentContourNodes?: { id?: string; x: number; y: number }[],
+  excludeNodeId?: string
 ): { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] {
   const targets: { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] = [];
 
@@ -176,16 +204,43 @@ export function getVerticalSnapTargets(
     priority: 9,
   });
 
-  // 3. Canvas Center (X: 500)
+  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ 1000x1000 & 実字面 820x820)
+  targets.push(
+    { position: 0, name: 'ボディ枠左端 (X: 0)', type: 'metric', color: '#10b981', priority: 8 },
+    { position: 1000, name: 'ボディ枠右端 (X: 1000)', type: 'metric', color: '#10b981', priority: 8 },
+    { position: 90, name: '字面枠左端 (820x820 / X: 90)', type: 'metric', color: '#059669', priority: 8 },
+    { position: 910, name: '字面枠右端 (820x820 / X: 910)', type: 'metric', color: '#059669', priority: 8 }
+  );
+
+  // 4. Canvas Center (十文字中央ガイド X: 500)
   targets.push({
     position: 500,
-    name: 'キャンバス中央 (X: 500)',
+    name: '十文字中央ガイド (X: 500)',
     type: 'center',
-    color: '#8b5cf6',
-    priority: 5,
+    color: '#06b6d4',
+    priority: 8,
   });
 
-  // 4. Japanese Guide Frames (九宮格、十六宮格、縦分割ガイド、漢字枠、仮名枠)
+  // 5. Same-contour node alignment (垂直整列)
+  if (currentContourNodes && currentContourNodes.length > 0) {
+    const seenPositions = new Set<number>();
+    for (const node of currentContourNodes) {
+      if (node.id && node.id === excludeNodeId) continue;
+      const roundedX = Math.round(node.x);
+      if (!seenPositions.has(roundedX)) {
+        seenPositions.add(roundedX);
+        targets.push({
+          position: node.x,
+          name: `同パス頂点 (X: ${roundedX})`,
+          type: 'node',
+          color: '#06b6d4',
+          priority: 8,
+        });
+      }
+    }
+  }
+
+  // 6. Japanese Guide Frames (九宮格、十六宮格、縦分割ガイド、漢字枠、仮名枠)
   if (gridSettings?.japaneseGuide === 'jiugong' || gridSettings?.verticalGuide === 'thirds') {
     targets.push(
       { position: 333.3, name: '九宮格/3分割 (X: 333)', type: 'metric', color: '#0284c7', priority: 6 },

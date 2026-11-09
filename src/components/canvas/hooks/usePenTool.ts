@@ -75,6 +75,8 @@ export function usePenTool({
     if (activePenContour.nodes.length <= 1) {
       setActivePenContour(null);
       setSelectedNodeId(null);
+      setSelectedHandleType(null);
+      showCanvasToast('パスを消去しました');
     } else {
       const remainingNodes = activePenContour.nodes.slice(0, -1);
       setActivePenContour({
@@ -82,8 +84,9 @@ export function usePenTool({
         nodes: remainingNodes,
       });
       setSelectedNodeId(remainingNodes[remainingNodes.length - 1].id);
+      showCanvasToast('直前の頂点を取り消しました', `残り ${remainingNodes.length} 点`);
     }
-  }, [activePenContour, setSelectedNodeId]);
+  }, [activePenContour, setSelectedHandleType, setSelectedNodeId, showCanvasToast]);
 
   // Reset/Discard the entire in-progress pen path
   const handleResetPenContour = useCallback(() => {

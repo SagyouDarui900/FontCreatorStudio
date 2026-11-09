@@ -82,7 +82,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
         >
           <button
             onClick={() => setShowHeatmapNodes(!showHeatmapNodes)}
-            className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors ${
               showHeatmapNodes
                 ? isLight
                   ? 'bg-amber-100 text-amber-900'
@@ -95,7 +95,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
           </button>
           <button
             onClick={() => setShowHotspots(!showHotspots)}
-            className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors ${
               showHotspots
                 ? isLight
                   ? 'bg-rose-100 text-rose-900'
@@ -108,7 +108,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
           </button>
           <button
             onClick={() => setShowMetricsGuides(!showMetricsGuides)}
-            className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-colors ${
               showMetricsGuides
                 ? isLight
                   ? 'bg-stone-200 text-stone-900'
@@ -126,7 +126,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
       <div className="absolute bottom-6 left-6 z-10 flex items-center space-x-1 border rounded-xl p-1 shadow-md bg-white/90 dark:bg-[#101912]/90 border-stone-200 dark:border-[#223528]">
         <button
           onClick={() => setZoomLevel((z) => Math.max(0.7, Math.round((z - 0.2) * 10) / 10))}
-          className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-700 dark:text-emerald-200"
+          className="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-700 dark:text-emerald-200"
           title="縮小"
         >
           <ZoomOut className="w-3.5 h-3.5" />
@@ -136,14 +136,14 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
         </span>
         <button
           onClick={() => setZoomLevel((z) => Math.min(2.5, Math.round((z + 0.2) * 10) / 10))}
-          className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-700 dark:text-emerald-200"
+          className="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-700 dark:text-emerald-200"
           title="拡大"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => setZoomLevel(1.0)}
-          className="px-2 py-1 rounded text-[10px] font-semibold hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-600 dark:text-emerald-300"
+          className="px-2 py-1 rounded-lg text-[11px] font-semibold hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-600 dark:text-emerald-300"
           title="100%リセット"
         >
           Reset

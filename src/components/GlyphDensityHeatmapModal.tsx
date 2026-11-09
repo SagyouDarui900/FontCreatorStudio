@@ -377,7 +377,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
   if (!isOpen || unicode === null) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/75 animate-fade-in ${
+    <div className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/75 animate-fade-in ${
       isFullscreen ? 'p-0' : 'p-3 sm:p-5'
     }`}>
       <div

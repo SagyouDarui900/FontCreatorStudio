@@ -44,10 +44,10 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
     <div
       ref={contextMenuRef}
       style={{ top: y, left: x }}
-      className={`fixed z-[60] w-52 p-1.5 rounded-lg border shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 ${
+      className={`fixed z-[60] w-52 p-1.5 rounded-lg border shadow-xl animate-in fade-in zoom-in-95 duration-100 ${
         isLight
-          ? 'bg-white/98 border-[#c8ded3] text-stone-800'
-          : 'bg-[#16211a]/98 border-[#2e4235] text-emerald-100'
+          ? 'bg-white border-[#c8ded3] text-stone-800'
+          : 'bg-[#16211a] border-[#2e4235] text-emerald-100'
       }`}
     >
       <div className="px-2 py-1 border-b border-stone-200 dark:border-stone-800 text-[11px] font-bold flex items-center justify-between text-emerald-800 dark:text-emerald-300 mb-1">

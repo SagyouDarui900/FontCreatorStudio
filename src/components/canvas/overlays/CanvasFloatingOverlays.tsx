@@ -46,7 +46,7 @@ export interface CanvasFloatingOverlaysProps {
   showGuideAssist: boolean;
   handleToggleGuideAssist: (open?: boolean) => void;
   activePenContour: PathContour | null;
-  penHudPos: Point;
+  penHudPos: Point | null;
   handlePenHudPointerDown: (e: React.PointerEvent) => void;
   handlePenHudPointerMove: (e: React.PointerEvent) => void;
   handlePenHudPointerUp: (e: React.PointerEvent) => void;
@@ -67,6 +67,7 @@ export interface CanvasFloatingOverlaysProps {
   isBottomBarCollapsed: boolean;
   toggleBottomBarCollapse: () => void;
   hoverCanvasPos: Point | null;
+  showSubToolbar?: boolean;
   rulerMeasurement?: RulerMeasurement | null;
   setRulerMeasurement?: (val: RulerMeasurement | null) => void;
   handleDrawRulerAsStroke?: () => void;
@@ -177,6 +178,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   isBottomBarCollapsed,
   toggleBottomBarCollapse,
   hoverCanvasPos,
+  showSubToolbar = true,
   rulerMeasurement,
   setRulerMeasurement,
   handleDrawRulerAsStroke,
@@ -357,6 +359,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleSetPenCapStyle={handleSetPenCapStyle}
         handleResetPenContour={handleResetPenContour}
         setPenHudPos={setPenHudPos}
+        showSubToolbar={showSubToolbar}
       />
 
       {/* Mobile & Tablet Precision Touch Loupe */}

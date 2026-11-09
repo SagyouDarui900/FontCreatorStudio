@@ -57,7 +57,7 @@ export interface SnapGuideLine {
   type: 'h' | 'v' | 'diagonal';
   position: number;
   targetName: string;
-  targetType: 'baseline' | 'lsb' | 'rsb' | 'metric' | 'contour' | 'center' | 'custom' | 'grid';
+  targetType: 'baseline' | 'lsb' | 'rsb' | 'metric' | 'contour' | 'center' | 'custom' | 'grid' | 'node';
   color?: string;
   snapPoint?: Point;
   matchedSource?: string;

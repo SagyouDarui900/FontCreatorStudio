@@ -89,7 +89,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
 
     return (
       <div
-        className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+        className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/75 animate-in fade-in duration-200"
         onClick={onClose}
       >
         <div

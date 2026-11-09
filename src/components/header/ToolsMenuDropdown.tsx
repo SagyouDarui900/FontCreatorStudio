@@ -201,7 +201,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   <SlidersHorizontal className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">メトリクスパネル</div>
-                    <div className="text-[10px] text-stone-500 dark:text-stone-400 jp-wrap leading-tight">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 jp-wrap leading-tight">
                       {showMetricsDrawer ? '表示中 (タップで閉じる)' : '文字枠・送り幅の調整'}
                     </div>
                   </div>
@@ -214,7 +214,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 
             {/* Section 1: 作字・編集ツール */}
             <div>
-              <div className="px-1 pb-1 text-[10px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
                 作字・編集ツール
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
@@ -341,7 +341,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 
             {/* Section 2: 自動化・フォント調整 */}
             <div>
-              <div className="px-1 pb-1 text-[10px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
                 自動化・フォント調整
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
@@ -572,7 +572,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 
             {/* Section 3: ファイル・設定 */}
             <div className="pt-1 border-t border-stone-200/80 dark:border-[#223025]">
-              <div className="px-1 pb-1 text-[10px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
                 ファイル・設定
               </div>
               <div className="grid grid-cols-2 gap-1.5 mt-0.5">
@@ -651,7 +651,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     <HardDrive className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate">保存管理・バックアップ</div>
-                      <div className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+                      <div className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
                         ストレージ容量・履歴スナップショット
                       </div>
                     </div>
@@ -690,7 +690,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   <Palette className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium truncate">カラーテーマ・目の保護</div>
-                    <div className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
+                    <div className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
                       現在のテーマ: {getThemePreset(theme).name}
                     </div>
                   </div>

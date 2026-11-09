@@ -77,22 +77,24 @@ export function useAppLayout({
   const toggleMetricsDrawer = useCallback(() => {
     setShowMetricsDrawer((prev) => {
       const next = !prev;
-      if (next && viewportWidth < 1280) {
+      // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
+      if (next) {
         setShowRadicals(false);
       }
       return next;
     });
-  }, [setShowMetricsDrawer, setShowRadicals, viewportWidth]);
+  }, [setShowMetricsDrawer, setShowRadicals]);
 
   const toggleRadicals = useCallback(() => {
     setShowRadicals((prev) => {
       const next = !prev;
-      if (next && viewportWidth < 1280) {
+      // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
+      if (next) {
         setShowMetricsDrawer(false);
       }
       return next;
     });
-  }, [setShowRadicals, setShowMetricsDrawer, viewportWidth]);
+  }, [setShowRadicals, setShowMetricsDrawer]);
 
   const handleCloseGridDrawer = useCallback(() => setShowGridDrawer(false), [setShowGridDrawer]);
   const handleCloseMetricsDrawer = useCallback(() => setShowMetricsDrawer(false), [setShowMetricsDrawer]);

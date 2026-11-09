@@ -290,7 +290,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  return (
  <div
- className={`fixed inset-0 z-50 transition-all ${
+ className={`fixed inset-0 z-[60] transition-all ${
  isFullscreen
  ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
  : 'flex items-center justify-center p-4 bg-black/60 animate-in fade-in duration-150'

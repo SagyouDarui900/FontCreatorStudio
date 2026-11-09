@@ -12,6 +12,7 @@ export interface BezierNodeControlsLayerProps {
   hoverCanvasPos: Point | null;
   selectedContourId: string | null;
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   nodeStyle: 'clean' | 'full' | 'selected_only';
   gridSettings: GridSettings;
   zoom: number;
@@ -36,6 +37,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     hoverCanvasPos,
     selectedContourId,
     selectedNodeId,
+    selectedNodeIds,
     nodeStyle,
     gridSettings,
     zoom,
@@ -90,7 +92,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
           return (
             <g key={contour.id}>
               {contour.nodes.map((node) => {
-                const isSelected = selectedNodeId === node.id;
+                const isSelected = selectedNodeIds ? selectedNodeIds.includes(node.id) : selectedNodeId === node.id;
 
                 // In Anchor Eraser Mode: Check if node falls inside the eraser sweep circle
                 const isInsideEraser =

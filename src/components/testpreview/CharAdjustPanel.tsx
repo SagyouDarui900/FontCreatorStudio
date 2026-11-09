@@ -736,12 +736,12 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
   return (
     <div
       style={{ left: `${floatingPos.x}px`, top: `${floatingPos.y}px`, width: `${rightAdjusterWidth}px` }}
-      className={`absolute z-40 max-h-[calc(100%-2rem)] rounded-2xl border shadow-2xl backdrop-blur-md flex flex-col p-3 sm:p-3.5 transition-shadow ${
+      className={`absolute z-40 max-h-[calc(100%-2rem)] rounded-2xl border shadow-2xl flex flex-col p-3 sm:p-3.5 transition-shadow ${
         isDragging ? ' ring-2 ring-emerald-500 cursor-grabbing' : ''
       } ${
         isLight
-          ? 'bg-white/95 border-stone-200 text-stone-800 '
-          : 'bg-[#121c15]/95 border-[#233527] text-emerald-100 '
+          ? 'bg-white border-stone-200 text-stone-800 '
+          : 'bg-[#121c15] border-[#233527] text-emerald-100 '
       }`}
     >
       {panelContent}

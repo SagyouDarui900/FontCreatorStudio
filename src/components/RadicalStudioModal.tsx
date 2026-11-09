@@ -556,7 +556,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 select-none animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/60 select-none animate-fadeIn">
       <input
         type="file"
         ref={svgFileInputRef}
@@ -576,8 +576,8 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         className={`w-full h-full flex flex-col overflow-hidden transition-all ${
           isFullscreen
             ? isLight
-              ? 'fixed inset-0 z-50 w-screen h-screen bg-[#f4f8f5] text-stone-800'
-              : 'fixed inset-0 z-50 w-screen h-screen bg-[#121b15] text-emerald-100'
+              ? 'fixed inset-0 z-[60] w-screen h-screen bg-[#f4f8f5] text-stone-800'
+              : 'fixed inset-0 z-[60] w-screen h-screen bg-[#121b15] text-emerald-100'
             : isLight
             ? 'w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-xl border border-stone-200/60 shadow-xl bg-[#f4f8f5] text-stone-800'
             : 'w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-xl border border-stone-800/60 shadow-xl bg-[#121b15] text-emerald-100'

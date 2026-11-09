@@ -92,6 +92,7 @@ export interface CanvasSvgStageProps {
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   selectedContourId: string | null;
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   setSelectedNodeId: (id: string | null) => void;
   selectedHandleType: 'node' | 'handleIn' | 'handleOut' | null;
   setSelectedHandleType: (type: 'node' | 'handleIn' | 'handleOut' | null) => void;
@@ -187,6 +188,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   setSelectedContourIds,
   selectedContourId,
   selectedNodeId,
+  selectedNodeIds,
   setSelectedNodeId,
   selectedHandleType,
   setSelectedHandleType,
@@ -519,6 +521,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           contours={contours}
           selectedContourId={selectedContourId}
           selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
           contourSvgMap={contourSvgMap}
           nodeStyle={nodeStyle}
           zoom={zoom}

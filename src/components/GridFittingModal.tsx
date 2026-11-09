@@ -581,7 +581,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   const currentSvgPath = contoursToSvgPath(enablePreview ? fittedGlyph.contours : currentGlyph.contours);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 md:p-6 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-4 md:p-6 bg-black/75 animate-in fade-in duration-200">
       <div
         className={`w-full max-w-6xl h-[98vh] sm:h-[94vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border transition-colors ${
           isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#101812] border-[#223326] text-stone-100'

@@ -206,7 +206,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  return (
  <div
- className={`fixed inset-0 z-50 transition-colors ${
+ className={`fixed inset-0 z-[60] transition-colors ${
  isFullscreen
  ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
  : 'flex items-center justify-center p-2 sm:p-4 bg-black/65 animate-in fade-in duration-150'

@@ -50,8 +50,8 @@ export interface CanvasSubToolbarProps {
   smoothStrength: 'mild' | 'standard' | 'strong';
   setSmoothStrength: (val: 'mild' | 'standard' | 'strong') => void;
   handleStraightenWobblySelected: () => void;
-  penMode: 'bezier' | 'corner';
-  setPenMode: (mode: 'bezier' | 'corner') => void;
+  penMode?: 'bezier' | 'corner';
+  setPenMode?: (mode: 'bezier' | 'corner') => void;
   penStrokeWidth: number;
   handleSetPenStrokeWidth: (w: number) => void;
   penCapStyle: 'round' | 'butt' | 'square';

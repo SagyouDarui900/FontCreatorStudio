@@ -27,6 +27,7 @@ export interface ActivePenDrawingHudProps {
   handleSetPenCapStyle: (cap: 'round' | 'butt' | 'square') => void;
   handleResetPenContour: () => void;
   setPenHudPos: (pos: Point | null) => void;
+  showSubToolbar?: boolean;
 }
 
 export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.memo(({
@@ -46,6 +47,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
   handleSetPenCapStyle,
   handleResetPenContour,
   setPenHudPos,
+  showSubToolbar = true,
 }) => {
   if (!activePenContour) {
     return null;
@@ -56,7 +58,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
       style={
         penHudPos
           ? { left: `${penHudPos.x}px`, top: `${penHudPos.y}px` }
-          : { left: '50%', transform: 'translateX(-50%)', top: '12px' }
+          : { left: '50%', transform: 'translateX(-50%)', top: showSubToolbar ? '56px' : '12px' }
       }
       className="absolute z-30 pointer-events-auto select-none animate-in fade-in zoom-in-95 duration-100"
       onPointerDown={(e) => e.stopPropagation()}

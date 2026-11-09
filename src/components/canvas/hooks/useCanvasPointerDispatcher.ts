@@ -40,7 +40,7 @@ export interface UseCanvasPointerDispatcherOptions {
   toolMode: ToolMode;
   isShapeTool: boolean;
   eraserMode: 'stroke' | 'node' | 'all' | 'cut' | string;
-  penMode: 'bezier' | 'corner' | 'tangent';
+  penMode?: 'bezier' | 'corner' | 'tangent';
 
   // Stylus & Palm Rejection
   palmRejectionMode: 'auto' | 'strict_pen_only' | 'off';
@@ -272,8 +272,19 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     initOffsetY: 0,
   });
 
+  // Pen tool node handle dragging session ref & active contour ref
+  const penDragHandleSessionRef = useRef<{
+    startPos: Point;
+    nodeId: string;
+    isDraggingHandle: boolean;
+  } | null>(null);
+
+  const activePenContourRef = useRef<PathContour | null>(activePenContour);
+  activePenContourRef.current = activePenContour;
+
   // Reset any active pointer locks and in-progress sessions when toolMode changes
   useEffect(() => {
+    penDragHandleSessionRef.current = null;
     if (pinchRafIdRef.current !== null) {
       cancelAnimationFrame(pinchRafIdRef.current);
       pinchRafIdRef.current = null;
@@ -528,7 +539,23 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     // PEN TOOL
     if (toolMode === 'pen') {
       let penPos = pos;
-      if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
+      const currentContour = activePenContourRef.current;
+
+      // Shift key for next node placement: snap to 45 degree angle relative to previous node
+      if (e.shiftKey && currentContour && currentContour.nodes.length > 0) {
+        const prevNode = currentContour.nodes[currentContour.nodes.length - 1];
+        const dx = penPos.x - prevNode.x;
+        const dy = penPos.y - prevNode.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 0) {
+          const angle = Math.atan2(dy, dx);
+          const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+          penPos = {
+            x: Number((prevNode.x + dist * Math.cos(snapped)).toFixed(2)),
+            y: Number((prevNode.y + dist * Math.sin(snapped)).toFixed(2)),
+          };
+        }
+      } else if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
         const snapRes = snapSinglePoint(
           pos,
           contours,
@@ -541,65 +568,77 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         setActiveSnapGuides(snapRes.activeGuides);
       }
 
-      if (!activePenContour) {
+      if (!currentContour || currentContour.nodes.length === 0) {
         const firstNode: BezierNode = {
           id: generateId(),
           x: penPos.x,
           y: penPos.y,
-          type: penMode === 'corner' ? 'corner' : 'smooth',
+          type: 'corner',
         };
         const newContour: PathContour = {
           id: generateId(),
           closed: false,
           nodes: [firstNode],
         };
+        activePenContourRef.current = newContour;
         setActivePenContour(newContour);
         setSelectedContourId(newContour.id);
         setSelectedNodeId(firstNode.id);
-        if (penMode === 'bezier') {
-          setSelectedHandleType('handleOut');
-        } else {
-          setSelectedHandleType(null);
-        }
-      } else {
-        const firstNode = activePenContour.nodes[0];
-        const distToStart = Math.hypot(penPos.x - firstNode.x, penPos.y - firstNode.y);
-        const closeThreshold = 18 / zoom;
+        setSelectedHandleType(null);
 
-        if (activePenContour.nodes.length >= 2 && distToStart <= closeThreshold) {
-          const closedContour: PathContour = {
-            ...activePenContour,
-            closed: true,
-          };
-          onCommitHistory?.();
-          onChangeContours([...contours, closedContour]);
-          setActivePenContour(null);
-          setSelectedContourId(closedContour.id);
-          setSelectedContourIds([closedContour.id]);
-          setSelectedNodeId(null);
-          setSelectedHandleType(null);
-          showCanvasToast('ペンパスを閉じました');
-          return;
-        }
-
-        const nextNode: BezierNode = {
-          id: generateId(),
-          x: penPos.x,
-          y: penPos.y,
-          type: penMode === 'corner' ? 'corner' : 'smooth',
+        penDragHandleSessionRef.current = {
+          startPos: penPos,
+          nodeId: firstNode.id,
+          isDraggingHandle: false,
         };
-        const updated = {
-          ...activePenContour,
-          nodes: [...activePenContour.nodes, nextNode],
-        };
-        setActivePenContour(updated);
-        setSelectedNodeId(nextNode.id);
-        if (penMode === 'bezier') {
-          setSelectedHandleType('handleOut');
-        } else {
-          setSelectedHandleType(null);
-        }
+        setPenMousePos(penPos);
+        return;
       }
+
+      const firstNode = currentContour.nodes[0];
+      const distToStart = Math.hypot(penPos.x - firstNode.x, penPos.y - firstNode.y);
+      const closeThreshold = 18 / zoom;
+
+      if (currentContour.nodes.length >= 2 && distToStart <= closeThreshold) {
+        const closedContour: PathContour = {
+          ...currentContour,
+          closed: true,
+        };
+        onCommitHistory?.();
+        onChangeContours([...contours, closedContour]);
+        activePenContourRef.current = null;
+        setActivePenContour(null);
+        setSelectedContourId(closedContour.id);
+        setSelectedContourIds([closedContour.id]);
+        setSelectedNodeId(null);
+        setSelectedHandleType(null);
+        penDragHandleSessionRef.current = null;
+        setPenMousePos(null);
+        showCanvasToast('ペンパスを閉じました', `${closedContour.nodes.length} 頂点`);
+        return;
+      }
+
+      const nextNode: BezierNode = {
+        id: generateId(),
+        x: penPos.x,
+        y: penPos.y,
+        type: 'corner',
+      };
+      const updatedContour = {
+        ...currentContour,
+        nodes: [...currentContour.nodes, nextNode],
+      };
+      activePenContourRef.current = updatedContour;
+      setActivePenContour(updatedContour);
+      setSelectedNodeId(nextNode.id);
+      setSelectedHandleType(null);
+
+      penDragHandleSessionRef.current = {
+        startPos: penPos,
+        nodeId: nextNode.id,
+        isDraggingHandle: false,
+      };
+      setPenMousePos(penPos);
       return;
     }
 
@@ -896,10 +935,71 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Pen tool rubber-band
-    if (toolMode === 'pen' && activePenContour) {
-      setPenMousePos(pos);
-      return;
+    // Pen tool handle drag & rubber-band
+    if (toolMode === 'pen') {
+      const currentContour = activePenContourRef.current;
+      const session = penDragHandleSessionRef.current;
+
+      if (session && currentContour) {
+        let dx = pos.x - session.startPos.x;
+        let dy = pos.y - session.startPos.y;
+        const dist = Math.hypot(dx, dy);
+
+        // 3px drag threshold in screen pixels (3 / zoom)
+        const threshold = 3 / zoom;
+        if (dist >= threshold) {
+          session.isDraggingHandle = true;
+
+          // Shift key: 45° angle snapping for handle pull
+          if (e.shiftKey) {
+            const angle = Math.atan2(dy, dx);
+            const snappedAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+            dx = dist * Math.cos(snappedAngle);
+            dy = dist * Math.sin(snappedAngle);
+          }
+
+          // Drag direction defines handleOut
+          const handleOut: Point = {
+            x: Number((session.startPos.x + dx).toFixed(2)),
+            y: Number((session.startPos.y + dy).toFixed(2)),
+          };
+
+          // Opposite direction defines handleIn (unless Alt key is pressed)
+          const isAlt = e.altKey;
+          const handleIn: Point | null = isAlt
+            ? null
+            : {
+                x: Number((session.startPos.x - dx).toFixed(2)),
+                y: Number((session.startPos.y - dy).toFixed(2)),
+              };
+
+          const updatedNodes = currentContour.nodes.map((node) => {
+            if (node.id !== session.nodeId) return node;
+            return {
+              ...node,
+              type: isAlt ? ('corner' as const) : ('smooth' as const),
+              handleOut,
+              handleIn: isAlt ? (node.handleIn ?? null) : handleIn,
+            };
+          });
+
+          const updatedContour = {
+            ...currentContour,
+            nodes: updatedNodes,
+          };
+          activePenContourRef.current = updatedContour;
+          setActivePenContour(updatedContour);
+          setSelectedHandleType('handleOut');
+        }
+
+        setPenMousePos(pos);
+        return;
+      }
+
+      if (currentContour) {
+        setPenMousePos(pos);
+        return;
+      }
     }
 
     // Node / Select drag
@@ -1033,6 +1133,45 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleGuidelinePointerUp();
     nodeDragSessionRef.current = null;
 
+    // Finish Pen Tool Drag/Click determination
+    if (toolMode === 'pen' && penDragHandleSessionRef.current) {
+      const session = penDragHandleSessionRef.current;
+      const currentContour = activePenContourRef.current;
+      if (currentContour) {
+        if (!session.isDraggingHandle) {
+          // Single click (< 3px movement): Sharp corner vertex with no handles (linear segment)
+          const updatedNodes = currentContour.nodes.map((node) => {
+            if (node.id !== session.nodeId) return node;
+            return {
+              ...node,
+              type: 'corner' as const,
+              handleIn: undefined,
+              handleOut: undefined,
+            };
+          });
+          const updatedContour = { ...currentContour, nodes: updatedNodes };
+          activePenContourRef.current = updatedContour;
+          setActivePenContour(updatedContour);
+        } else {
+          // Dragged (>= 3px): Smooth cubic curve with symmetric handles (or corner if Alt pressed)
+          const isAlt = e.altKey;
+          const updatedNodes = currentContour.nodes.map((node) => {
+            if (node.id !== session.nodeId) return node;
+            return {
+              ...node,
+              type: isAlt ? ('corner' as const) : ('smooth' as const),
+            };
+          });
+          const updatedContour = { ...currentContour, nodes: updatedNodes };
+          activePenContourRef.current = updatedContour;
+          setActivePenContour(updatedContour);
+        }
+      }
+      penDragHandleSessionRef.current = null;
+    } else {
+      penDragHandleSessionRef.current = null;
+    }
+
     // Finish Ruler
     if (toolMode === 'ruler') {
       handleRulerPointerUp(e);
@@ -1083,6 +1222,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleShapePointerUp,
     handleBrushPointerUp,
     handleNodeDragEnd,
+    setActivePenContour,
   ]);
 
   return {

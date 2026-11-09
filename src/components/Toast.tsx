@@ -19,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
   const isLight = isLightTheme(theme);
 
   return (
-    <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-50 flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none pb-[max(env(safe-area-inset-bottom),0px)]">
+    <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none pb-[max(env(safe-area-inset-bottom),0px)]">
       {toasts.map((toast) => {
         const isSuccess = toast.type === 'success' || !toast.type;
         const isError = toast.type === 'error';

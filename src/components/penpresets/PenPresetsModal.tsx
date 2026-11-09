@@ -258,7 +258,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-2 sm:p-4">
       <div
         className={`flex flex-col min-h-0 bg-white dark:bg-[#18231c] text-stone-900 dark:text-stone-100 border border-stone-300 dark:border-stone-800 overflow-hidden ${
           isFullscreen ? 'w-full h-full' : 'w-full max-w-5xl h-[92vh] max-h-[900px]'

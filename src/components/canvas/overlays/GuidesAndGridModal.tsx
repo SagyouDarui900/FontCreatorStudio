@@ -67,7 +67,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/60 animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/60 animate-fadeIn">
       <div className="fixed inset-0" onClick={onClose} />
       <div
         className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 pb-28 sm:pb-5 border-t sm:border shadow-2xl max-h-[85vh] overflow-y-auto ${

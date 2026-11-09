@@ -204,10 +204,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-[60] transition-all ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div

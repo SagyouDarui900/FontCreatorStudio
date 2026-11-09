@@ -153,7 +153,7 @@ function AppMain({
       opacity: 0.18,
       fontSize: 1000,
     }));
-    showToast('手書きフォント推奨プリセット（毛筆38px・高感度筆圧・十文字字面枠・手振れ補正）を適用しました', 'success');
+    showToast('手書きプリセットを適用しました', 'success');
   }, [setToolMode, setBrushStyle, setBrushWidth, setPressureSensitivity, setPressureCurve, setSmoothingIntensity, setAutoSmoothBrush, setSmoothStrength, setSmoothPreserveCorners, setAutoUnionBrush, showToast]);
 
   // Trace Guidelines Settings

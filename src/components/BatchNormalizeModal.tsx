@@ -6,7 +6,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
 import {
   AlignHorizontal,
@@ -39,6 +39,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   onShowToast,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   const [scope, setScope] = useState<TargetScope>('all');
   const [sizePreset, setSizePreset] = useState<SizePreset>('standard');
@@ -227,7 +228,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     }));
 
     if (onShowToast) {
-      onShowToast(`${count} 文字の字面枠・余白・線の太さ・ベジェ曲線を一括正規化＆最適化しました！`, 'success');
+      onShowToast(`${count}文字のサイズと輪郭を最適化しました`, 'success');
     }
     onClose();
   };
@@ -239,52 +240,42 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-[60] transition-opacity duration-150 ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col transition-colors duration-150 overflow-hidden ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-3xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-3xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? `w-screen h-screen rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
+            : `w-full max-w-3xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3 sm:p-4 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-3 sm:p-4 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <div
-              className={`p-1.5 rounded-lg shrink-0 ${
-                isLight ? 'bg-amber-100 text-amber-900' : 'bg-emerald-950 text-emerald-300'
-              }`}
+              className={`p-1.5 rounded-lg shrink-0 ${themeClasses.accentBadge}`}
             >
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
               <h2
-                className={`text-xs sm:text-sm font-bold tracking-wide flex items-center gap-2 ${
-                  isLight ? 'text-emerald-950' : 'text-emerald-200'
-                }`}
+                className={`text-xs sm:text-sm font-bold tracking-wide flex items-center gap-2 ${themeClasses.textPrimary}`}
               >
                 <span className="truncate">フォントサイズ・品質一括調整</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
                     全画面
                   </span>
                 )}
               </h2>
-              <p className={`text-[10px] truncate ${isLight ? 'text-stone-500' : 'text-emerald-400/80'}`}>
-                文字の大きさ、送り幅、余白バランス、ベジェ点数の軽量化を一括自動調整
+              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
+                文字サイズ・余白・頂点数の一括自動調整
               </p>
             </div>
           </div>
@@ -292,14 +283,10 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors duration-150 ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.accentBadge
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -317,9 +304,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors ${
-                isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
-              }`}
+              className={`p-1.5 rounded-lg border transition-colors duration-150 ${themeClasses.border} ${themeClasses.textMuted} hover:opacity-80`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -372,28 +357,18 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`p-3 sm:p-4 border-t flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-3 sm:p-4 border-t flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2">
             <button
               onClick={onClose}
-              className={`px-3 py-1.5 rounded-lg border text-xs ${
-                isLight
-                  ? 'bg-stone-50 border-stone-300 text-stone-700 hover:bg-stone-100'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
-              }`}
+              className={`px-3 py-1.5 rounded-lg border text-xs transition-colors duration-150 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`}
             >
               キャンセル
             </button>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-colors hidden sm:flex ${
-                isLight
-                  ? 'border-stone-300 text-stone-600 hover:bg-stone-100'
-                  : 'border-[#25362b] text-stone-300 hover:bg-[#202f26]'
-              }`}
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-colors duration-150 hidden sm:flex ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`}
               title={isFullscreen ? '通常表示に戻す (F / Esc)' : '全画面表示モード (F)'}
             >
               {isFullscreen ? (
@@ -412,11 +387,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
           <button
             onClick={handleApplyBatch}
-            className={`px-4 sm:px-5 py-2 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-all min-w-0 ${
-              isLight
-                ? 'bg-emerald-800 hover:bg-emerald-700 text-white'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold'
-            }`}
+            className={`px-4 sm:px-5 py-2 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-colors duration-150 min-w-0 ${themeClasses.accentBtn}`}
           >
             <Sparkles className="w-4 h-4 fill-current shrink-0" />
             <span className="truncate">対象 {targetGlyphs.length} 文字に一括適用</span>

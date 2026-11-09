@@ -48,7 +48,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 animate-in fade-in duration-150">
       <div
         className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col border overflow-hidden ${
           isLight

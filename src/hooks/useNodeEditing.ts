@@ -51,6 +51,8 @@ export interface UseNodeEditingReturn {
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   selectedContourId: string | null;
   setSelectedContourId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedNodeIds: string[];
+  setSelectedNodeIds: React.Dispatch<React.SetStateAction<string[]>>;
   selectedNodeId: string | null;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedHandleType: 'node' | 'handleIn' | 'handleOut' | null;
@@ -87,7 +89,7 @@ export interface UseNodeEditingReturn {
   handleInsertNodeOnContour: (e: React.PointerEvent, contour: PathContour) => boolean;
   handleNodeDragMove: (e: React.PointerEvent, pos: Point) => boolean;
   handleNodeDragEnd: () => boolean;
-  handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
   handleAddNodeToSelected: () => void;
   handleDeleteSelectedNode: () => void;
   handleNudgeSelectedNode: (dx: number, dy: number) => boolean;
@@ -121,7 +123,16 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       return next ? [next] : [];
     });
   }, []);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const selectedNodeId = selectedNodeIds.length > 0 ? selectedNodeIds[selectedNodeIds.length - 1] : null;
+  const setSelectedNodeId = useCallback((idOrUpdater: React.SetStateAction<string | null>) => {
+    setSelectedNodeIds((prev) => {
+      const current = prev.length > 0 ? prev[prev.length - 1] : null;
+      const next = typeof idOrUpdater === 'function' ? (idOrUpdater as (prev: string | null) => string | null)(current) : idOrUpdater;
+      return next ? [next] : [];
+    });
+  }, []);
   const [selectedHandleType, setSelectedHandleType] = useState<'node' | 'handleIn' | 'handleOut' | null>(null);
 
   // Mobile / Tablet Touch Precision Magnifier Loupe state
@@ -148,13 +159,13 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const customEvent = e as CustomEvent<{ ids?: string[] }>;
       if (customEvent.detail && Array.isArray(customEvent.detail.ids) && customEvent.detail.ids.length > 0) {
         setSelectedContourIds(customEvent.detail.ids);
-        setSelectedNodeId(null);
+        setSelectedNodeIds([]);
         setSelectedHandleType(null);
       }
     };
     const handleDeselectAll = () => {
       setSelectedContourIds([]);
-      setSelectedNodeId(null);
+      setSelectedNodeIds([]);
       setSelectedHandleType(null);
     };
     window.addEventListener('font_editor_select_contours', handleExternalSelect);
@@ -169,7 +180,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   useEffect(() => {
     if (toolMode !== 'select' && toolMode !== 'node') {
       setSelectedContourIds([]);
-      setSelectedNodeId(null);
+      setSelectedNodeIds([]);
       setSelectedHandleType(null);
     }
   }, [toolMode]);
@@ -200,7 +211,27 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
       setSelectedContourId(contour.id);
       setSelectedContourIds([contour.id]);
-      setSelectedNodeId(node.id);
+
+      let nextSelectedIds: string[];
+      if (handleType === 'node') {
+        if (e.shiftKey) {
+          if (selectedNodeIds.includes(node.id)) {
+            nextSelectedIds = selectedNodeIds.filter((id) => id !== node.id);
+          } else {
+            nextSelectedIds = [...selectedNodeIds, node.id];
+          }
+        } else {
+          if (selectedNodeIds.includes(node.id)) {
+            nextSelectedIds = selectedNodeIds;
+          } else {
+            nextSelectedIds = [node.id];
+          }
+        }
+      } else {
+        nextSelectedIds = [node.id];
+      }
+
+      setSelectedNodeIds(nextSelectedIds);
       setSelectedHandleType(handleType);
       nodeDragSessionRef.current = {
         contourId: contour.id,
@@ -211,7 +242,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         initialContour: { ...contour },
       };
     },
-    [screenToCanvas, setSelectedContourId]
+    [screenToCanvas, selectedNodeIds, setSelectedContourId]
   );
 
   // Check if clicking existing handle or node on main canvas pointer down
@@ -230,7 +261,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           if (node.handleOut && Math.hypot(node.handleOut.x - pos.x, node.handleOut.y - pos.y) <= handleHitDist) {
             setSelectedContourId(contour.id);
             setSelectedContourIds([contour.id]);
-            setSelectedNodeId(node.id);
+            setSelectedNodeIds([node.id]);
             setSelectedHandleType('handleOut');
             nodeDragSessionRef.current = {
               contourId: contour.id,
@@ -247,7 +278,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           if (node.handleIn && Math.hypot(node.handleIn.x - pos.x, node.handleIn.y - pos.y) <= handleHitDist) {
             setSelectedContourId(contour.id);
             setSelectedContourIds([contour.id]);
-            setSelectedNodeId(node.id);
+            setSelectedNodeIds([node.id]);
             setSelectedHandleType('handleIn');
             nodeDragSessionRef.current = {
               contourId: contour.id,
@@ -264,7 +295,22 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           if (Math.hypot(node.x - pos.x, node.y - pos.y) <= nodeHitDist) {
             setSelectedContourId(contour.id);
             setSelectedContourIds([contour.id]);
-            setSelectedNodeId(node.id);
+
+            let nextSelectedIds: string[];
+            if (e.shiftKey) {
+              if (selectedNodeIds.includes(node.id)) {
+                nextSelectedIds = selectedNodeIds.filter((id) => id !== node.id);
+              } else {
+                nextSelectedIds = [...selectedNodeIds, node.id];
+              }
+            } else {
+              if (selectedNodeIds.includes(node.id)) {
+                nextSelectedIds = selectedNodeIds;
+              } else {
+                nextSelectedIds = [node.id];
+              }
+            }
+            setSelectedNodeIds(nextSelectedIds);
             setSelectedHandleType('node');
             nodeDragSessionRef.current = {
               contourId: contour.id,
@@ -289,12 +335,12 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       if (!e.shiftKey) {
         setSelectedContourIds([]);
         setSelectedContourId(null);
+        setSelectedNodeIds([]);
       }
-      setSelectedNodeId(null);
       setSelectedHandleType(null);
       return false;
     },
-    [toolMode, zoom, contours, setSelectedContourId]
+    [toolMode, zoom, contours, selectedNodeIds, setSelectedContourId]
   );
 
   // Insert node on contour at point (node tool click on stroke)
@@ -351,6 +397,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const activeContourId = nodeDragSessionRef.current?.contourId || selectedContourId!;
       const activeNodeId = nodeDragSessionRef.current?.nodeId || selectedNodeId!;
       const activeHandleType = nodeDragSessionRef.current?.handleType || selectedHandleType!;
+      const multiNodeIds = selectedNodeIds.length > 0 && selectedNodeIds.includes(activeNodeId)
+        ? selectedNodeIds
+        : [activeNodeId];
 
       let snapPos = pos;
 
@@ -365,14 +414,18 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
       if (activeHandleType === 'node' && !e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
         const otherContours = contours.filter((c) => c.id !== activeContourId);
-        const snapThreshold = Math.min(6, Math.max(2, Math.round(5 / zoom)));
+        const activeContour = contours.find((c) => c.id === activeContourId);
+        const currentContourNodes = activeContour ? activeContour.nodes : undefined;
+        const snapThreshold = 8; // Requirement 4: 8px threshold
         const snapResult = snapSinglePoint(
           pos,
           otherContours,
           snapMetrics,
           customGuidelines,
           snapThreshold,
-          gridSettings
+          gridSettings,
+          currentContourNodes,
+          activeNodeId
         );
         snapPos = snapResult.point;
         if (setActiveSnapGuides) {
@@ -383,25 +436,41 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
 
       const currentContours: PathContour[] = (contoursRef.current as PathContour[]) || contours;
+
+      // Find the primary node to compute delta
+      let primaryNode: BezierNode | undefined;
+      for (const c of currentContours) {
+        const found = c.nodes.find((n) => n.id === activeNodeId);
+        if (found) {
+          primaryNode = found;
+          break;
+        }
+      }
+      const dx = primaryNode ? snapPos.x - primaryNode.x : 0;
+      const dy = primaryNode ? snapPos.y - primaryNode.y : 0;
+
       const updatedContours = currentContours.map((contour: PathContour) => {
-        if (contour.id !== activeContourId) return contour;
+        if (activeHandleType !== 'node' && contour.id !== activeContourId) return contour;
+        const hasMatchingNodes = contour.nodes.some((n) => multiNodeIds.includes(n.id));
+        if (activeHandleType === 'node' && !hasMatchingNodes) return contour;
 
         return {
           ...contour,
           nodes: contour.nodes.map((node: BezierNode) => {
-            if (node.id !== activeNodeId) return node;
-
             if (activeHandleType === 'node') {
-              const dx = snapPos.x - node.x;
-              const dy = snapPos.y - node.y;
+              if (!multiNodeIds.includes(node.id)) return node;
               return {
                 ...node,
-                x: snapPos.x,
-                y: snapPos.y,
-                handleIn: node.handleIn ? { x: node.handleIn.x + dx, y: node.handleIn.y + dy } : null,
-                handleOut: node.handleOut ? { x: node.handleOut.x + dx, y: node.handleOut.y + dy } : null,
+                x: Math.round((node.x + dx) * 10) / 10,
+                y: Math.round((node.y + dy) * 10) / 10,
+                handleIn: node.handleIn
+                  ? { x: Math.round((node.handleIn.x + dx) * 10) / 10, y: Math.round((node.handleIn.y + dy) * 10) / 10 }
+                  : null,
+                handleOut: node.handleOut
+                  ? { x: Math.round((node.handleOut.x + dx) * 10) / 10, y: Math.round((node.handleOut.y + dy) * 10) / 10 }
+                  : null,
               };
-            } else if (activeHandleType === 'handleOut') {
+            } else if (node.id === activeNodeId && activeHandleType === 'handleOut') {
               if (e.altKey) {
                 return {
                   ...node,
@@ -410,16 +479,16 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 };
               }
               if (node.type === 'smooth' || node.type === 'symmetric') {
-                const dx = pos.x - node.x;
-                const dy = pos.y - node.y;
-                const lenOut = Math.hypot(dx, dy);
+                const hdx = pos.x - node.x;
+                const hdy = pos.y - node.y;
+                const lenOut = Math.hypot(hdx, hdy);
                 let handleIn = node.handleIn;
                 if (lenOut > 0.01 && handleIn) {
                   const lenIn =
                     node.type === 'symmetric'
                       ? lenOut
                       : Math.hypot(handleIn.x - node.x, handleIn.y - node.y);
-                  const angle = Math.atan2(dy, dx);
+                  const angle = Math.atan2(hdy, hdx);
                   handleIn = {
                     x: Math.round(node.x - Math.cos(angle) * lenIn),
                     y: Math.round(node.y - Math.sin(angle) * lenIn),
@@ -435,7 +504,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 ...node,
                 handleOut: { x: pos.x, y: pos.y },
               };
-            } else if (activeHandleType === 'handleIn') {
+            } else if (node.id === activeNodeId && activeHandleType === 'handleIn') {
               if (e.altKey) {
                 return {
                   ...node,
@@ -444,16 +513,16 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 };
               }
               if (node.type === 'smooth' || node.type === 'symmetric') {
-                const dx = pos.x - node.x;
-                const dy = pos.y - node.y;
-                const lenIn = Math.hypot(dx, dy);
+                const hdx = pos.x - node.x;
+                const hdy = pos.y - node.y;
+                const lenIn = Math.hypot(hdx, hdy);
                 let handleOut = node.handleOut;
                 if (lenIn > 0.01 && handleOut) {
                   const lenOut =
                     node.type === 'symmetric'
-                      ? lenIn
+                      ? lenOut
                       : Math.hypot(handleOut.x - node.x, handleOut.y - node.y);
-                  const angle = Math.atan2(dy, dx);
+                  const angle = Math.atan2(hdy, hdx);
                   handleOut = {
                     x: Math.round(node.x - Math.cos(angle) * lenOut),
                     y: Math.round(node.y - Math.sin(angle) * lenOut),
@@ -491,6 +560,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       toolMode,
       selectedContourId,
       selectedNodeId,
+      selectedNodeIds,
       selectedHandleType,
       gridSettings,
       contours,
@@ -526,23 +596,85 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     return false;
   }, [toolMode, selectedHandleType, onChangeContours, onCommitHistory]);
 
-  // Toggle smooth / corner / symmetric node type
+  // Toggle smooth / corner node type (supports 'C' key toggle on selection or direct click)
   const handleToggleNodeType = useCallback(
-    (contourId: string, nodeId: string) => {
-      const target = contours.find((c) => c.id === contourId);
-      if (!target) return;
-      const newNodes = target.nodes.map((n) => {
-        if (n.id === nodeId) {
-          return toggleNodeType(n);
+    (contourId?: string, nodeId?: string) => {
+      const targetIds = nodeId
+        ? [nodeId]
+        : selectedNodeIds.length > 0
+        ? selectedNodeIds
+        : selectedNodeId
+        ? [selectedNodeId]
+        : [];
+      if (targetIds.length === 0) return;
+
+      // Determine whether primary targeted node is corner or smooth
+      let primaryIsCorner = true;
+      for (const c of contours) {
+        const found = c.nodes.find((n) => targetIds.includes(n.id));
+        if (found) {
+          primaryIsCorner = found.type !== 'smooth';
+          break;
         }
-        return n;
+      }
+
+      let count = 0;
+      const updated = contours.map((c) => {
+        const hasAny = c.nodes.some((n) => targetIds.includes(n.id));
+        if (!hasAny) return c;
+
+        return {
+          ...c,
+          nodes: c.nodes.map((node, idx) => {
+            if (!targetIds.includes(node.id)) return node;
+            count++;
+
+            if (primaryIsCorner) {
+              // Convert to smooth
+              let handleIn = node.handleIn;
+              let handleOut = node.handleOut;
+              if (!handleIn && !handleOut) {
+                const prev = c.nodes[(idx - 1 + c.nodes.length) % c.nodes.length];
+                const next = c.nodes[(idx + 1) % c.nodes.length];
+                if (prev && next) {
+                  const angle = Math.atan2(next.y - prev.y, next.x - prev.x);
+                  const len = Math.min(45, Math.hypot(next.x - prev.x, next.y - prev.y) * 0.25);
+                  handleOut = {
+                    x: Math.round(node.x + Math.cos(angle) * len),
+                    y: Math.round(node.y + Math.sin(angle) * len),
+                  };
+                  handleIn = {
+                    x: Math.round(node.x - Math.cos(angle) * len),
+                    y: Math.round(node.y - Math.sin(angle) * len),
+                  };
+                }
+              }
+              return {
+                ...node,
+                type: 'smooth' as const,
+                handleIn,
+                handleOut,
+              };
+            } else {
+              // Convert to corner
+              return {
+                ...node,
+                type: 'corner' as const,
+              };
+            }
+          }),
+        };
       });
-      const updated = { ...target, nodes: newNodes };
-      onChangeContours(contours.map((c) => (c.id === contourId ? updated : c)));
+
+      onChangeContours(updated);
       onCommitHistory?.();
-      showCanvasToast('ノード種別を切り替えました');
+      if (primaryIsCorner) {
+        showCanvasToast('頂点をスムーズに変換', `${count} 個の頂点`);
+      } else {
+        showCanvasToast('頂点をコーナーに変換', `${count} 個の頂点`);
+      }
     },
-    [contours, onChangeContours, onCommitHistory, showCanvasToast]
+    [contours, selectedNodeIds, selectedNodeId, onChangeContours, onCommitHistory, showCanvasToast]
   );
 
   // Add node next to selected node in contour
@@ -567,7 +699,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     newNodes.splice(idx + 1, 0, newNode);
     const updated = { ...target, nodes: newNodes };
     onChangeContours(contours.map((c) => (c.id === selectedContourId ? updated : c)));
-    setSelectedNodeId(newNode.id);
+    setSelectedNodeIds([newNode.id]);
     onCommitHistory?.();
   }, [selectedContourId, selectedNodeId, contours, onChangeContours, onCommitHistory]);
 
@@ -576,56 +708,110 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     onDeleteSelectedContourRef.current = onDeleteSelectedContour;
   }, [onDeleteSelectedContour]);
 
-  // Delete selected node (or whole contour if <= 2 nodes remain)
+  // Delete selected nodes (supports multi-selection)
   const handleDeleteSelectedNode = useCallback(() => {
-    if (!selectedContourId || !selectedNodeId) return;
-    const target = contours.find((c) => c.id === selectedContourId);
-    if (!target) return;
-    if (target.nodes.length <= 2) {
-      onDeleteSelectedContourRef.current?.();
+    const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
+    if (targetIds.length === 0) return;
+
+    let anyContourCollapsed = false;
+    const updated = contours
+      .map((c) => {
+        const remaining = c.nodes.filter((n) => !targetIds.includes(n.id));
+        if (remaining.length <= 2) {
+          anyContourCollapsed = true;
+          return null;
+        }
+        return { ...c, nodes: remaining };
+      })
+      .filter((c): c is PathContour => c !== null);
+
+    if (anyContourCollapsed && updated.length < contours.length) {
+      onChangeContours(updated);
+      setSelectedNodeIds([]);
+      onCommitHistory?.();
+      showCanvasToast('パスを削除しました');
       return;
     }
-    const newNodes = target.nodes.filter((n) => n.id !== selectedNodeId);
-    const updated = { ...target, nodes: newNodes };
-    onChangeContours(contours.map((c) => (c.id === selectedContourId ? updated : c)));
-    setSelectedNodeId(null);
-    onCommitHistory?.();
-  }, [selectedContourId, selectedNodeId, contours, onChangeContours, onCommitHistory]);
 
-  // Keyboard arrow nudge for single selected node
+    onChangeContours(updated);
+    setSelectedNodeIds([]);
+    onCommitHistory?.();
+    showCanvasToast('選択した頂点を削除しました', `${targetIds.length} 個`);
+  }, [selectedNodeIds, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
+
+  // Keyboard arrow nudge for selected nodes and handles
   const handleNudgeSelectedNode = useCallback(
     (dx: number, dy: number): boolean => {
-      if (selectedContourIds.length === 1 && selectedNodeId) {
-        const targetId = selectedContourIds[0];
-        const updated = contours.map((c) => {
-          if (c.id !== targetId) return c;
-          return {
-            ...c,
-            nodes: c.nodes.map((n) => {
-              if (n.id !== selectedNodeId) return n;
+      const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
+      if (targetIds.length === 0 && !selectedHandleType) return false;
+
+      let changed = false;
+      const updated = contours.map((c) => {
+        const hasSelected = c.nodes.some((n) => targetIds.includes(n.id));
+        if (!hasSelected) return c;
+
+        return {
+          ...c,
+          nodes: c.nodes.map((n) => {
+            if (!targetIds.includes(n.id)) return n;
+            changed = true;
+
+            // Handle-specific nudge
+            if (selectedHandleType === 'handleIn' && n.handleIn) {
               return {
                 ...n,
-                x: Math.round(n.x + dx),
-                y: Math.round(n.y + dy),
-                handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + dx), y: Math.round(n.handleIn.y + dy) } : null,
-                handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + dx), y: Math.round(n.handleOut.y + dy) } : null,
+                handleIn: {
+                  x: Math.round((n.handleIn.x + dx) * 10) / 10,
+                  y: Math.round((n.handleIn.y + dy) * 10) / 10,
+                },
               };
-            }),
-          };
-        });
+            }
+            if (selectedHandleType === 'handleOut' && n.handleOut) {
+              return {
+                ...n,
+                handleOut: {
+                  x: Math.round((n.handleOut.x + dx) * 10) / 10,
+                  y: Math.round((n.handleOut.y + dy) * 10) / 10,
+                },
+              };
+            }
+
+            // Vertex + attached handles nudge
+            return {
+              ...n,
+              x: Math.round((n.x + dx) * 10) / 10,
+              y: Math.round((n.y + dy) * 10) / 10,
+              handleIn: n.handleIn
+                ? {
+                    x: Math.round((n.handleIn.x + dx) * 10) / 10,
+                    y: Math.round((n.handleIn.y + dy) * 10) / 10,
+                  }
+                : undefined,
+              handleOut: n.handleOut
+                ? {
+                    x: Math.round((n.handleOut.x + dx) * 10) / 10,
+                    y: Math.round((n.handleOut.y + dy) * 10) / 10,
+                  }
+                : undefined,
+            };
+          }),
+        };
+      });
+
+      if (changed) {
         onChangeContours(updated);
         onCommitHistory?.();
         return true;
       }
       return false;
     },
-    [selectedContourIds, selectedNodeId, contours, onChangeContours, onCommitHistory]
+    [selectedNodeIds, selectedNodeId, selectedHandleType, contours, onChangeContours, onCommitHistory]
   );
 
   // Clear all node & contour selection
   const clearNodeSelection = useCallback(() => {
     setSelectedContourIds([]);
-    setSelectedNodeId(null);
+    setSelectedNodeIds([]);
     setSelectedHandleType(null);
   }, []);
 
@@ -634,6 +820,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     setSelectedContourIds,
     selectedContourId,
     setSelectedContourId,
+    selectedNodeIds,
+    setSelectedNodeIds,
     selectedNodeId,
     setSelectedNodeId,
     selectedHandleType,

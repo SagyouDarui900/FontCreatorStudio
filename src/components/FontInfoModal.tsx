@@ -15,7 +15,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { FontMetadata, FontProject, GlyphData } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { exportProjectJsonFile } from '../utils/storageManager';
 import { BundledFontsModal } from './BundledFontsModal';
 import { LicensePresetSection, LICENSE_PRESETS } from './fontinfo/LicensePresetSection';
@@ -64,6 +64,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   const [isBundledFontsModalOpen, setIsBundledFontsModalOpen] = useState(false);
   const [scaleGlyphsOnResize, setScaleGlyphsOnResize] = useState<boolean>(true);
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Keyboard shortcut listener: Escape and F
   React.useEffect(() => {
@@ -218,28 +219,24 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col transition-colors duration-150 overflow-hidden ${
           isFullscreen
             ? isLight
               ? 'w-screen h-screen rounded-none border-none shadow-none bg-[#f7faf8] text-stone-800'
               : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-xl xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[90vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-xl xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[90vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            : `w-full max-w-xl xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[90vh] ${themeClasses.modalBg}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3.5 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <Settings className={`w-4 h-4 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
@@ -250,7 +247,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             >
               <span className="truncate">フォント情報・ライセンス</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
                   全画面
                 </span>
               )}
@@ -297,21 +294,19 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b text-xs font-semibold overflow-x-auto scrollbar-none shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${
-            isLight ? 'bg-stone-50/80 border-[#d8e6df]' : 'bg-[#111913] border-[#25362b]'
-          }`}
+          className={`flex border-b text-xs font-semibold overflow-x-auto scrollbar-none shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${themeClasses.cardBg}`}
         >
           <button
             type="button"
             onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'info'
                 ? isLight
                   ? 'bg-white text-emerald-950 shadow-xs font-bold ring-1 ring-emerald-600/30'
-                  : 'bg-[#1d2a21] text-emerald-300 font-bold ring-1 ring-emerald-500/40'
+                  : 'bg-emerald-900/60 text-emerald-200 font-bold ring-1 ring-emerald-500/40'
                 : isLight
                 ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-[#16211a]'
+                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
             }`}
           >
             <Settings className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -321,14 +316,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('license')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'license'
                 ? isLight
                   ? 'bg-white text-amber-950 shadow-xs font-bold ring-1 ring-amber-500/30'
-                  : 'bg-[#1d2a21] text-amber-300 font-bold ring-1 ring-amber-500/40'
+                  : 'bg-amber-950/60 text-amber-200 font-bold ring-1 ring-amber-500/40'
                 : isLight
                 ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-[#16211a]'
+                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
             }`}
           >
             <Scale className="w-3.5 h-3.5 shrink-0 text-amber-500" />
@@ -338,14 +333,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('opentype')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'opentype'
                 ? isLight
                   ? 'bg-white text-indigo-950 shadow-xs font-bold ring-1 ring-indigo-500/30'
-                  : 'bg-[#1d2a21] text-indigo-300 font-bold ring-1 ring-indigo-500/40'
+                  : 'bg-indigo-950/60 text-indigo-200 font-bold ring-1 ring-indigo-500/40'
                 : isLight
                 ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-[#16211a]'
+                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
             }`}
           >
             <Layers className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
@@ -355,14 +350,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('guide')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'guide'
                 ? isLight
                   ? 'bg-white text-emerald-950 shadow-xs font-bold ring-1 ring-emerald-600/30'
-                  : 'bg-[#1d2a21] text-emerald-300 font-bold ring-1 ring-emerald-500/40'
+                  : 'bg-emerald-900/60 text-emerald-200 font-bold ring-1 ring-emerald-500/40'
                 : isLight
                 ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : 'text-stone-400 hover:text-stone-200 hover:bg-[#16211a]'
+                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-500" />

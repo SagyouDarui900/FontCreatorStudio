@@ -1,13 +1,11 @@
 import React from 'react';
 import {
-  Spline,
-  Square,
   Sliders,
 } from 'lucide-react';
 
 interface PenSubToolbarProps {
-  penMode: 'bezier' | 'corner';
-  setPenMode: (mode: 'bezier' | 'corner') => void;
+  penMode?: 'bezier' | 'corner';
+  setPenMode?: (mode: 'bezier' | 'corner') => void;
   penStrokeWidth: number;
   handleSetPenStrokeWidth: (w: number) => void;
   penCapStyle: 'round' | 'butt' | 'square';
@@ -16,8 +14,6 @@ interface PenSubToolbarProps {
 }
 
 export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
-  penMode,
-  setPenMode,
   penStrokeWidth,
   handleSetPenStrokeWidth,
   penCapStyle,
@@ -26,36 +22,6 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
 }) => {
   return (
     <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
-      {/* Curve / Corner Toggle */}
-      <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-200 dark:border-stone-700">
-        <button
-          type="button"
-          onClick={() => setPenMode('bezier')}
-          className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
-            penMode === 'bezier'
-              ? 'bg-emerald-700 text-white'
-              : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
-          }`}
-          title="ベジェ曲線モード (滑らかな曲線を描画)"
-        >
-          <Spline className="w-3 h-3" />
-          <span className="hidden xs:inline">曲線</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setPenMode('corner')}
-          className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
-            penMode === 'corner'
-              ? 'bg-emerald-700 text-white'
-              : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
-          }`}
-          title="折れ線モード (直線的な角を描画)"
-        >
-          <Square className="w-3 h-3" />
-          <span className="hidden xs:inline">折線</span>
-        </button>
-      </div>
-
       {/* Pen Stroke Width Controls */}
       <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg bg-stone-100/90 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700">
         <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap hidden sm:inline">

@@ -51,9 +51,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
         </button>
 
         {showIOSGuide && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
             <div
-              className={`w-full max-w-sm rounded-xl p-5 shadow-2xl border ${
+              className={`w-full max-w-sm rounded-2xl p-5 shadow-2xl border ${
                 isLight
                   ? 'bg-white text-stone-900 border-stone-200'
                   : 'bg-slate-900 text-slate-100 border-slate-800'

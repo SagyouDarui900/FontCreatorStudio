@@ -223,10 +223,10 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-all ${
+      className={`fixed inset-0 z-[60] transition-all ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150'
+          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 animate-in fade-in duration-150'
       }`}
     >
       <div
