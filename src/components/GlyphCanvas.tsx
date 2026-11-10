@@ -360,6 +360,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedContourIds,
     selectedContourId,
     setSelectedContourId,
+    selectedNodeIds,
+    setSelectedNodeIds,
     selectedNodeId,
     setSelectedNodeId,
     selectedHandleType,
@@ -885,37 +887,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   const handleNudgeSelection = useCallback(
     (dx: number, dy: number) => {
-      if (selectedNodeId) {
-        const updated = contours.map((c) => {
-          const hasNode = c.nodes.some((n) => n.id === selectedNodeId);
-          if (!hasNode) return c;
-          return {
-            ...c,
-            nodes: c.nodes.map((n) => {
-              if (n.id !== selectedNodeId) return n;
-              return {
-                ...n,
-                x: Math.round((n.x + dx) * 10) / 10,
-                y: Math.round((n.y + dy) * 10) / 10,
-                handleIn: n.handleIn
-                  ? {
-                      x: Math.round((n.handleIn.x + dx) * 10) / 10,
-                      y: Math.round((n.handleIn.y + dy) * 10) / 10,
-                    }
-                  : undefined,
-                handleOut: n.handleOut
-                  ? {
-                      x: Math.round((n.handleOut.x + dx) * 10) / 10,
-                      y: Math.round((n.handleOut.y + dy) * 10) / 10,
-                    }
-                  : undefined,
-              };
-            }),
-          };
-        });
-        onChangeContours(updated);
-        onCommitHistory?.();
-      } else if (selectedContourIds.length > 0) {
+      const handled = handleNudgeSelectedNode(dx, dy);
+      if (!handled && selectedContourIds.length > 0) {
         const updated = contours.map((c) => {
           if (!selectedContourIds.includes(c.id)) return c;
           return {
@@ -943,7 +916,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         onCommitHistory?.();
       }
     },
-    [contours, selectedNodeId, selectedContourIds, onChangeContours, onCommitHistory]
+    [handleNudgeSelectedNode, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
 
   // Canvas keyboard shortcuts & spacebar pan navigation
@@ -953,6 +926,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     activePenContour,
     selectedContourIds,
     selectedNodeId,
+    selectedNodeIds,
     selectedContourId,
     rulerMeasurement,
     gridSettings,
@@ -966,6 +940,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleFinishPenContour,
     handleDeleteSelectedNode,
     handleDeleteSelected,
+    handleToggleNodeType,
     handleSmoothStrokeSelected,
     handleDrawRulerAsStroke,
     onSelectPrevGlyph,
@@ -1038,6 +1013,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         handleSetPenStrokeWidth={handleSetPenStrokeWidth}
         penCapStyle={penCapStyle}
         handleSetPenCapStyle={handleSetPenCapStyle}
+        activePenContour={activePenContour}
+        handleFinishPenContour={handleFinishPenContour}
+        handleUndoPenNode={handleUndoPenNode}
+        handleResetPenContour={handleResetPenContour}
         eraserMode={eraserMode}
         setEraserMode={setEraserMode}
         eraserSize={eraserSize}
@@ -1278,6 +1257,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           setSelectedContourIds={setSelectedContourIds}
           selectedContourId={selectedContourId}
           selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
           setSelectedNodeId={setSelectedNodeId}
           selectedHandleType={selectedHandleType}
           setSelectedHandleType={setSelectedHandleType}

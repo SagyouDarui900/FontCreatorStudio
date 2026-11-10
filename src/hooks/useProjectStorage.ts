@@ -15,49 +15,16 @@ interface UseProjectStorageOptions {
 }
 
 export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
-  const isDefaultProjectRef = useRef(false);
-  const corruptedStorageDetectedRef = useRef(false);
+  const isHydratedRef = useRef(false);
+  const [isStorageLoading, setIsStorageLoading] = useState(true);
 
-  // Main Project State with LocalStorage hydration and input validation
-  const [project, setProject] = useState<FontProject>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const validated = validateStoredFontProject(parsed);
-        if (validated) {
-          return validated;
-        } else {
-          corruptedStorageDetectedRef.current = true;
-          console.warn('LocalStorage data failed integrity validation; falling back to default project.');
-        }
-      }
-    } catch (e) {
-      corruptedStorageDetectedRef.current = true;
-      console.warn('Failed to load project from localStorage:', e);
-    }
-    isDefaultProjectRef.current = true;
-    return createDefaultProject();
-  });
-
+  // Initialize with a clean default project while IndexedDB is read
+  const [project, setProject] = useState<FontProject>(() => createDefaultProject());
   const projectRef = useRef<FontProject>(project);
-  const initialUpdatedAtRef = useRef<number>(project.updatedAt || 0);
-  const hasUserEditedSinceMountRef = useRef(false);
 
   useEffect(() => {
     projectRef.current = project;
-    if ((project.updatedAt || 0) !== initialUpdatedAtRef.current) {
-      hasUserEditedSinceMountRef.current = true;
-    }
   }, [project]);
-
-  // Show warning if corrupted localStorage was detected and sanitized
-  useEffect(() => {
-    if (corruptedStorageDetectedRef.current) {
-      onShowToast('保存データが破損していたため、安全な初期プロジェクトを読み込みました', 'warning');
-      corruptedStorageDetectedRef.current = false;
-    }
-  }, [onShowToast]);
 
   // Quota warning throttle ref & timers
   const lastQuotaWarningRef = useRef<number>(0);
@@ -66,6 +33,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   const pendingIndexedDbProjectRef = useRef<FontProject | null>(null);
 
   const saveProjectToIndexedDbWhenIdle = useCallback(async (nextProject: FontProject) => {
+    if (!isHydratedRef.current) return;
     pendingIndexedDbProjectRef.current = nextProject;
     if (indexedDbSaveInFlightRef.current) return;
 
@@ -84,56 +52,90 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     }
   }, []);
 
-  // Check IndexedDB for a newer auto-saved version on initial mount
+  // Priority 1: Hydrate from IndexedDB (Source of Truth) as top priority on initial mount
   useEffect(() => {
-    loadProjectFromIndexedDB()
-      .then((dbData) => {
-        // If user already edited while IndexedDB was loading, ABORT restore to avoid overwriting edits
-        if (hasUserEditedSinceMountRef.current) {
-          return;
-        }
+    let isCancelled = false;
 
+    async function hydrateInitialStorage() {
+      try {
+        // 1. Try reading from IndexedDB
+        const dbData = await loadProjectFromIndexedDB();
         if (dbData && dbData.project) {
-          const validated = validateStoredFontProject(dbData.project);
-          if (!validated) {
-            console.warn('IndexedDB auto-save data failed integrity validation; recovery skipped.');
+          const validatedDb = validateStoredFontProject(dbData.project);
+          if (validatedDb && !isCancelled) {
+            projectRef.current = validatedDb;
+            setProject(validatedDb);
+            isHydratedRef.current = true;
+            setIsStorageLoading(false);
+            onShowToast('IndexedDBから最新のプロジェクトを読み込みました', 'success');
             return;
           }
-
-          const localUpdatedAt = projectRef.current?.updatedAt || 0;
-          const dbUpdatedAt = dbData.updatedAt || validated.updatedAt || 0;
-
-          // If current project is an unedited default fallback, restore IndexedDB unconditionally!
-          // Otherwise, only restore if IndexedDB data is strictly newer than current local project.
-          const shouldRestore =
-            isDefaultProjectRef.current || dbUpdatedAt > localUpdatedAt + 1000;
-
-          if (shouldRestore) {
-            // Check once more that no user edit occurred in between
-            if (hasUserEditedSinceMountRef.current) return;
-            isDefaultProjectRef.current = false;
-            setProject(validated);
-            onShowToast('IndexedDBから最新の自動保存プロジェクトを復元しました', 'success');
-          }
         }
-      })
-      .catch((err) => {
-        console.warn('IndexedDB initial recovery check failed:', err);
-      });
+
+        // 2. Fallback to LocalStorage if IndexedDB has no existing project
+        try {
+          const savedLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (savedLocal) {
+            const parsed = JSON.parse(savedLocal);
+            const validatedLocal = validateStoredFontProject(parsed);
+            if (validatedLocal && !isCancelled) {
+              projectRef.current = validatedLocal;
+              setProject(validatedLocal);
+              isHydratedRef.current = true;
+              setIsStorageLoading(false);
+              // Migrate LocalStorage project to IndexedDB for safety
+              void saveProjectToIndexedDB(validatedLocal);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('LocalStorage data failed integrity validation:', e);
+        }
+
+        // 3. Fallback to fresh default project if nothing was in storage
+        if (!isCancelled) {
+          const defaultProject = createDefaultProject();
+          projectRef.current = defaultProject;
+          setProject(defaultProject);
+          isHydratedRef.current = true;
+          setIsStorageLoading(false);
+        }
+      } catch (err) {
+        console.warn('Failed to load project from storage:', err);
+        if (!isCancelled) {
+          isHydratedRef.current = true;
+          setIsStorageLoading(false);
+        }
+      }
+    }
+
+    void hydrateInitialStorage();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [onShowToast]);
 
-  // LocalStorage is the synchronous recovery copy; IndexedDB is written in the background.
+  // Auto-save effect: ONLY runs after hydration is complete to prevent overwriting IndexedDB with stale/default data
   useEffect(() => {
+    if (!isHydratedRef.current) {
+      return;
+    }
+
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
     autoSaveTimerRef.current = setTimeout(() => {
-      // 1. Write to LocalStorage
+      if (!isHydratedRef.current) return;
+
+      // 1. Write to IndexedDB (Primary Source of Truth, no 5MB quota constraint)
+      void saveProjectToIndexedDbWhenIdle(projectRef.current);
+
+      // 2. Best-effort mirror to LocalStorage (may fail gracefully on quota exceeded)
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
         setLastAutoSaveTimestamp(Date.now());
       } catch (e: any) {
-        console.warn('Auto-save to localStorage failed:', e);
         const isQuota =
           e?.name === 'QuotaExceededError' ||
           e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
@@ -142,13 +144,11 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
         if (isQuota && Date.now() - lastQuotaWarningRef.current > 120000) {
           lastQuotaWarningRef.current = Date.now();
           onShowToast(
-            'LocalStorage容量上限に達しました。IndexedDBへのバックグラウンド保存を試行しています。',
-            'warning'
+            'プロジェクトが大容量のためLocalStorage上限を超過しました。IndexedDBに完全保存されています。',
+            'info'
           );
         }
       }
-
-      void saveProjectToIndexedDbWhenIdle(projectRef.current);
     }, 2000);
 
     return () => {
@@ -158,9 +158,10 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     };
   }, [project.updatedAt, onShowToast, saveProjectToIndexedDbWhenIdle]);
 
-  // Persist the synchronous recovery copy before leaving
+  // Persist the recovery copy before leaving (guarded against saving pre-hydration)
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (!isHydratedRef.current) return;
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
         setLastAutoSaveTimestamp(Date.now());
@@ -171,6 +172,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
+        if (!isHydratedRef.current) return;
         try {
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
           setLastAutoSaveTimestamp(Date.now());
@@ -194,5 +196,6 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     setProject,
     projectRef,
     saveProjectToIndexedDbWhenIdle,
+    isStorageLoading,
   };
 }

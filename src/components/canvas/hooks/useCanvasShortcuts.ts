@@ -50,7 +50,6 @@ export function useCanvasShortcuts({
   onChangeGridSettings,
   resetView,
   handleZoomStep,
-  onToggleZenMode,
   handleResetTracePosition,
   handleResetPenContour,
   handleUndoPenNode,
@@ -120,7 +119,7 @@ export function useCanvasShortcuts({
 
       // Illustrator-style Arrow Key Nudging for selected nodes and contours
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        if (selectedNodeId || selectedContourIds.length > 0) {
+        if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0) || selectedContourIds.length > 0) {
           e.preventDefault();
           const step = e.shiftKey ? 10 : (e.altKey ? 0.1 : 1);
           let dx = 0;
@@ -183,18 +182,6 @@ export function useCanvasShortcuts({
       if ((e.key === '-' || e.key === '_') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleZoomStep(1 / 1.25);
-        return;
-      }
-      if (
-        ((e.key === 'f' || e.key === 'F') || (e.key === 'z' || e.key === 'Z')) &&
-        !e.ctrlKey &&
-        !e.metaKey &&
-        !e.altKey
-      ) {
-        if (onToggleZenMode) {
-          e.preventDefault();
-          onToggleZenMode();
-        }
         return;
       }
 
@@ -267,9 +254,14 @@ export function useCanvasShortcuts({
           );
           return next;
         });
-      } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey && activePenContour) {
-        e.preventDefault();
-        handleFinishPenContour(true);
+      } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (activePenContour) {
+          e.preventDefault();
+          handleFinishPenContour(true);
+        } else if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0)) {
+          e.preventDefault();
+          handleToggleNodeType?.();
+        }
       } else if (e.shiftKey && e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         handleSmoothStrokeSelected();
@@ -314,19 +306,20 @@ export function useCanvasShortcuts({
     activePenContour,
     selectedContourIds,
     selectedNodeId,
+    selectedNodeIds,
     selectedContourId,
     rulerMeasurement,
     gridSettings,
     onChangeGridSettings,
     resetView,
     handleZoomStep,
-    onToggleZenMode,
     handleResetTracePosition,
     handleResetPenContour,
     handleUndoPenNode,
     handleFinishPenContour,
     handleDeleteSelectedNode,
     handleDeleteSelected,
+    handleToggleNodeType,
     handleSmoothStrokeSelected,
     handleDrawRulerAsStroke,
     onSelectPrevGlyph,

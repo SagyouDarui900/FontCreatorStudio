@@ -678,9 +678,22 @@ function AppContent() {
   const { theme, changeTheme, isLight, themeClasses } = useTheme();
 
   // Project Storage Manager
-  const { project, setProject, projectRef, saveProjectToIndexedDbWhenIdle } = useProjectStorage({
+  const { project, setProject, projectRef, saveProjectToIndexedDbWhenIdle, isStorageLoading } = useProjectStorage({
     onShowToast: showToast,
   });
+
+  if (isStorageLoading) {
+    return (
+      <div className={`w-screen h-screen flex flex-col items-center justify-center ${themeClasses.canvasOuterBg}`}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
+            プロジェクトを読み込み中...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ProjectProvider

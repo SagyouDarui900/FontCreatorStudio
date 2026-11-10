@@ -520,7 +520,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 if (lenIn > 0.01 && handleOut) {
                   const lenOut =
                     node.type === 'symmetric'
-                      ? lenOut
+                      ? lenIn
                       : Math.hypot(handleOut.x - node.x, handleOut.y - node.y);
                   const angle = Math.atan2(hdy, hdx);
                   handleOut = {

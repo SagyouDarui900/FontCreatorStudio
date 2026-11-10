@@ -64,6 +64,10 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   handleSetPenStrokeWidth,
   penCapStyle,
   handleSetPenCapStyle,
+  activePenContour,
+  handleFinishPenContour,
+  handleUndoPenNode,
+  handleResetPenContour,
   eraserMode,
   setEraserMode,
   eraserSize,
@@ -295,6 +299,10 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 penCapStyle={penCapStyle}
                 handleSetPenCapStyle={handleSetPenCapStyle}
                 onOpenPenPresetsModal={onOpenPenPresetsModal}
+                activePenContour={activePenContour}
+                handleFinishPenContour={handleFinishPenContour}
+                handleUndoPenNode={handleUndoPenNode}
+                handleResetPenContour={handleResetPenContour}
               />
             )}
 

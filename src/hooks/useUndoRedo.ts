@@ -108,8 +108,8 @@ interface UseUndoRedoOptions {
   currentGlyphRef: React.MutableRefObject<GlyphData>;
   selectedUnicode: number;
   selectedChar: string;
-  setSelectedUnicode: (unicode: number) => void;
-  setSelectedChar: (char: string) => void;
+  setSelectedUnicode?: (unicode: number) => void;
+  setSelectedChar?: (char: string) => void;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
 }
 
@@ -118,55 +118,73 @@ export function useUndoRedo({
   currentGlyphRef,
   selectedUnicode,
   selectedChar,
-  setSelectedUnicode,
-  setSelectedChar,
   setProject,
 }: UseUndoRedoOptions) {
-  const [undoStack, setUndoStack] = useState<GlyphData[]>([]);
-  const [redoStack, setRedoStack] = useState<GlyphData[]>([]);
+  // Store undo & redo histories isolated per glyph Unicode to prevent cross-glyph warping and contamination
+  const [undoStacks, setUndoStacks] = useState<Record<number, GlyphData[]>>({});
+  const [redoStacks, setRedoStacks] = useState<Record<number, GlyphData[]>>({});
 
-  const commitHistory = useCallback(() => {
-    const unicode = selectedUnicode;
+  const currentUndoStack = undoStacks[selectedUnicode] || [];
+  const currentRedoStack = redoStacks[selectedUnicode] || [];
+
+  const commitHistory = useCallback((targetUnicode?: number) => {
+    const unicode = targetUnicode ?? selectedUnicode;
     const existingGlyph = projectRef.current.glyphs[unicode] || {
       unicode,
-      char: selectedChar,
-      advanceWidth: projectRef.current.metadata.unitsPerEm || 1000,
+      char: unicode === selectedUnicode ? selectedChar : String.fromCodePoint(unicode),
+      advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
       lsb: 50,
       contours: [],
     };
-    setUndoStack((prev) => {
-      if (prev.length > 0) {
-        const last = prev[prev.length - 1];
+
+    setUndoStacks((prev) => {
+      const stack = prev[unicode] || [];
+      if (stack.length > 0) {
+        const last = stack[stack.length - 1];
         if (areGlyphsEqual(last, existingGlyph)) {
           return prev;
         }
       }
-      return [...prev.slice(-49), cloneGlyph(existingGlyph)];
+      return {
+        ...prev,
+        [unicode]: [...stack.slice(-49), cloneGlyph(existingGlyph)],
+      };
     });
-    setRedoStack([]);
+
+    setRedoStacks((prev) => {
+      if (!prev[unicode] || prev[unicode].length === 0) return prev;
+      const copy = { ...prev };
+      delete copy[unicode];
+      return copy;
+    });
   }, [selectedUnicode, selectedChar, projectRef]);
 
   const handleUndo = useCallback(() => {
-    setUndoStack((prevUndo) => {
-      if (prevUndo.length === 0) {
-        return prevUndo;
+    const unicode = selectedUnicode;
+    setUndoStacks((prevUndoMap) => {
+      const stack = prevUndoMap[unicode] || [];
+      if (stack.length === 0) {
+        return prevUndoMap;
       }
-      const previous = prevUndo[prevUndo.length - 1];
-      const nextUndo = prevUndo.slice(0, prevUndo.length - 1);
+      const previous = stack[stack.length - 1];
+      const nextStack = stack.slice(0, stack.length - 1);
 
+      // Record current state of this glyph into its own redo stack
       const currentSnapshot = currentGlyphRef.current;
-      setRedoStack((prevRedo) => [...prevRedo.slice(-49), cloneGlyph(currentSnapshot)]);
+      setRedoStacks((prevRedoMap) => {
+        const redoList = prevRedoMap[unicode] || [];
+        return {
+          ...prevRedoMap,
+          [unicode]: [...redoList.slice(-49), cloneGlyph(currentSnapshot)],
+        };
+      });
 
-      if (previous.unicode !== selectedUnicode) {
-        setSelectedUnicode(previous.unicode);
-        setSelectedChar(previous.char || String.fromCodePoint(previous.unicode));
-      }
-
+      // Restore strictly within the current glyph (no cross-character warping!)
       setProject((prevProj) => ({
         ...prevProj,
         glyphs: {
           ...prevProj.glyphs,
-          [previous.unicode]: {
+          [unicode]: {
             ...previous,
             modified: true,
           },
@@ -174,31 +192,39 @@ export function useUndoRedo({
         updatedAt: Date.now(),
       }));
 
-      return nextUndo;
+      return {
+        ...prevUndoMap,
+        [unicode]: nextStack,
+      };
     });
-  }, [selectedUnicode, currentGlyphRef, setSelectedUnicode, setSelectedChar, setProject]);
+  }, [selectedUnicode, currentGlyphRef, setProject]);
 
   const handleRedo = useCallback(() => {
-    setRedoStack((prevRedo) => {
-      if (prevRedo.length === 0) {
-        return prevRedo;
+    const unicode = selectedUnicode;
+    setRedoStacks((prevRedoMap) => {
+      const stack = prevRedoMap[unicode] || [];
+      if (stack.length === 0) {
+        return prevRedoMap;
       }
-      const next = prevRedo[prevRedo.length - 1];
-      const nextRedo = prevRedo.slice(0, prevRedo.length - 1);
+      const next = stack[stack.length - 1];
+      const nextStack = stack.slice(0, stack.length - 1);
 
+      // Record current state of this glyph into its own undo stack
       const currentSnapshot = currentGlyphRef.current;
-      setUndoStack((prevUndo) => [...prevUndo.slice(-49), cloneGlyph(currentSnapshot)]);
+      setUndoStacks((prevUndoMap) => {
+        const undoList = prevUndoMap[unicode] || [];
+        return {
+          ...prevUndoMap,
+          [unicode]: [...undoList.slice(-49), cloneGlyph(currentSnapshot)],
+        };
+      });
 
-      if (next.unicode !== selectedUnicode) {
-        setSelectedUnicode(next.unicode);
-        setSelectedChar(next.char || String.fromCodePoint(next.unicode));
-      }
-
+      // Redo strictly within the current glyph
       setProject((prevProj) => ({
         ...prevProj,
         glyphs: {
           ...prevProj.glyphs,
-          [next.unicode]: {
+          [unicode]: {
             ...next,
             modified: true,
           },
@@ -206,24 +232,52 @@ export function useUndoRedo({
         updatedAt: Date.now(),
       }));
 
-      return nextRedo;
+      return {
+        ...prevRedoMap,
+        [unicode]: nextStack,
+      };
     });
-  }, [selectedUnicode, currentGlyphRef, setSelectedUnicode, setSelectedChar, setProject]);
+  }, [selectedUnicode, currentGlyphRef, setProject]);
 
-  const pushSnapshot = useCallback((glyph: GlyphData) => {
-    setUndoStack((prev) => [...prev.slice(-49), cloneGlyph(glyph)]);
-    setRedoStack([]);
-  }, []);
+  const pushSnapshot = useCallback((glyph: GlyphData, targetUnicode?: number) => {
+    const unicode = targetUnicode ?? glyph.unicode ?? selectedUnicode;
+    setUndoStacks((prev) => {
+      const stack = prev[unicode] || [];
+      return {
+        ...prev,
+        [unicode]: [...stack.slice(-49), cloneGlyph(glyph)],
+      };
+    });
+    setRedoStacks((prev) => {
+      if (!prev[unicode] || prev[unicode].length === 0) return prev;
+      const copy = { ...prev };
+      delete copy[unicode];
+      return copy;
+    });
+  }, [selectedUnicode]);
+
+  const setUndoStack = useCallback((action: React.SetStateAction<GlyphData[]>) => {
+    setUndoStacks((prev) => {
+      const currentStack = prev[selectedUnicode] || [];
+      const nextStack = typeof action === 'function' ? action(currentStack) : action;
+      return {
+        ...prev,
+        [selectedUnicode]: nextStack,
+      };
+    });
+  }, [selectedUnicode]);
 
   return {
-    undoStack,
-    redoStack,
+    undoStack: currentUndoStack,
+    redoStack: currentRedoStack,
+    undoStacks,
+    redoStacks,
     setUndoStack,
     pushSnapshot,
     commitHistory,
     handleUndo,
     handleRedo,
-    canUndo: undoStack.length > 0,
-    canRedo: redoStack.length > 0,
+    canUndo: currentUndoStack.length > 0,
+    canRedo: currentRedoStack.length > 0,
   };
 }

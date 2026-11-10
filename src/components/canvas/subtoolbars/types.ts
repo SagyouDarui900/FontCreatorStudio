@@ -56,6 +56,10 @@ export interface CanvasSubToolbarProps {
   handleSetPenStrokeWidth: (w: number) => void;
   penCapStyle: 'round' | 'butt' | 'square';
   handleSetPenCapStyle: (cap: 'round' | 'butt' | 'square') => void;
+  activePenContour?: PathContour | null;
+  handleFinishPenContour?: (closed: boolean) => void;
+  handleUndoPenNode?: () => void;
+  handleResetPenContour?: () => void;
   eraserMode: 'stroke' | 'cut' | 'all' | 'node';
   setEraserMode: (mode: 'stroke' | 'cut' | 'all' | 'node') => void;
   eraserSize: number;

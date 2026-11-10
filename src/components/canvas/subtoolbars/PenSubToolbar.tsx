@@ -1,7 +1,10 @@
-import React from 'react';
 import {
   Sliders,
+  CornerDownLeft,
+  RotateCcw,
+  X,
 } from 'lucide-react';
+import { PathContour } from '../../../types';
 
 interface PenSubToolbarProps {
   penMode?: 'bezier' | 'corner';
@@ -11,6 +14,10 @@ interface PenSubToolbarProps {
   penCapStyle: 'round' | 'butt' | 'square';
   handleSetPenCapStyle: (cap: 'round' | 'butt' | 'square') => void;
   onOpenPenPresetsModal?: () => void;
+  activePenContour?: PathContour | null;
+  handleFinishPenContour?: (closed: boolean) => void;
+  handleUndoPenNode?: () => void;
+  handleResetPenContour?: () => void;
 }
 
 export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
@@ -19,9 +26,57 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
   penCapStyle,
   handleSetPenCapStyle,
   onOpenPenPresetsModal,
+  activePenContour,
+  handleFinishPenContour,
+  handleUndoPenNode,
+  handleResetPenContour,
 }) => {
+  const hasActiveNodes = Boolean(activePenContour && activePenContour.nodes.length > 0);
+
   return (
-    <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
+    <div className="flex items-center gap-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
+      {/* In-Progress Pen Action Controls (Compact Inline Toolbar) */}
+      {hasActiveNodes && (
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30">
+          <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300 px-1 py-0.5 rounded bg-emerald-500/20 whitespace-nowrap">
+            {activePenContour!.nodes.length}点
+          </span>
+
+          {/* ↵ 確定 */}
+          <button
+            type="button"
+            onClick={() => handleFinishPenContour?.(false)}
+            disabled={activePenContour!.nodes.length < 2}
+            className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+            title="現在の開いたパスのまま確定 (Enter)"
+          >
+            <CornerDownLeft className="w-3.5 h-3.5" />
+            <span>確定</span>
+          </button>
+
+          {/* ⌫ 1点戻す */}
+          <button
+            type="button"
+            onClick={handleUndoPenNode}
+            className="px-2 py-0.5 text-xs font-medium rounded bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 transition-colors cursor-pointer flex items-center gap-1"
+            title="直前の1点を削除 (Backspace / Delete)"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>1点戻す</span>
+          </button>
+
+          {/* ✕ 破棄 */}
+          <button
+            type="button"
+            onClick={handleResetPenContour}
+            className="px-2 py-0.5 text-xs font-medium rounded hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer flex items-center gap-0.5"
+            title="現在描いているパスを破棄 (Escape)"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>破棄</span>
+          </button>
+        </div>
+      )}
       {/* Pen Stroke Width Controls */}
       <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg bg-stone-100/90 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700">
         <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap hidden sm:inline">

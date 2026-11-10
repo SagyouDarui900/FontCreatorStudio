@@ -14,7 +14,6 @@ import {
 import { ThemeMode } from '../../../utils/theme';
 import { TraceAdjustFloatingHud } from './TraceAdjustFloatingHud';
 import { GuideAssistOverlay } from './GuideAssistOverlay';
-import { ActivePenDrawingHud } from './ActivePenDrawingHud';
 import { CanvasTouchLoupe } from './CanvasTouchLoupe';
 import { CanvasToastNotification } from './CanvasToastNotification';
 import { CanvasStatusBar } from './CanvasStatusBar';
@@ -340,27 +339,6 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
           showCanvasToast={showCanvasToast}
         />
       )}
-
-      {/* Active Pen Tool Drawing In-Progress Draggable Floating HUD Bar */}
-      <ActivePenDrawingHud
-        activePenContour={activePenContour}
-        penHudPos={penHudPos}
-        isLight={isLight}
-        handlePenHudPointerDown={handlePenHudPointerDown}
-        handlePenHudPointerMove={handlePenHudPointerMove}
-        handlePenHudPointerUp={handlePenHudPointerUp}
-        handleUndoPenNode={handleUndoPenNode}
-        handleFinishPenContour={handleFinishPenContour}
-        penStrokeWidth={penStrokeWidth}
-        penCapStyle={penCapStyle}
-        showPenStrokeMenu={showPenStrokeMenu}
-        setShowPenStrokeMenu={setShowPenStrokeMenu}
-        handleSetPenStrokeWidth={handleSetPenStrokeWidth}
-        handleSetPenCapStyle={handleSetPenCapStyle}
-        handleResetPenContour={handleResetPenContour}
-        setPenHudPos={setPenHudPos}
-        showSubToolbar={showSubToolbar}
-      />
 
       {/* Mobile & Tablet Precision Touch Loupe */}
       <CanvasTouchLoupe

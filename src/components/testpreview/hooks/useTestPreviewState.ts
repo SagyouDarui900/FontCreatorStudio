@@ -131,6 +131,7 @@ const [testText, setTestText] = useState<string>(
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialPosX: number; initialPosY: number } | null>(null);
   const activeBlobUrlRef = useRef<string | null>(null);
+  const activeFontFaceRef = useRef<FontFace | null>(null);
   const fontVersionRef = useRef<number>(0);
   const compileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -234,13 +235,49 @@ const [testText, setTestText] = useState<string>(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isFullscreen, layoutMode, onClose]);
 
+  const cleanupActivePreviewFont = useCallback(() => {
+    if (compileTimerRef.current) {
+      clearTimeout(compileTimerRef.current);
+      compileTimerRef.current = null;
+    }
+    if (activeBlobUrlRef.current) {
+      try {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+      } catch {}
+      activeBlobUrlRef.current = null;
+    }
+    if (activeFontFaceRef.current && typeof document !== 'undefined' && document.fonts) {
+      try {
+        document.fonts.delete(activeFontFaceRef.current);
+      } catch {}
+      activeFontFaceRef.current = null;
+    }
+    if (typeof document !== 'undefined') {
+      const styleTag = document.getElementById('dynamic-preview-font-face');
+      if (styleTag) {
+        styleTag.remove();
+      }
+    }
+  }, []);
+
+  // Cleanup font resources when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      cleanupActivePreviewFont();
+    }
+  }, [isOpen, cleanupActivePreviewFont]);
+
+  // Cleanup font resources on unmount
+  useEffect(() => {
+    return () => {
+      cleanupActivePreviewFont();
+    };
+  }, [cleanupActivePreviewFont]);
+
   // Compile font dynamically and create @font-face style rule with FontFace API
   useEffect(() => {
     if (!isOpen) {
-      if (compileTimerRef.current) {
-        clearTimeout(compileTimerRef.current);
-        compileTimerRef.current = null;
-      }
+      cleanupActivePreviewFont();
       return;
     }
 
@@ -268,23 +305,34 @@ const [testText, setTestText] = useState<string>(
                 URL.revokeObjectURL(blobUrl);
                 return;
               }
+              // Delete old FontFace from document.fonts before adding the new face
+              if (activeFontFaceRef.current && typeof document !== 'undefined' && document.fonts) {
+                try {
+                  document.fonts.delete(activeFontFaceRef.current);
+                } catch {}
+              }
               document.fonts.add(loadedFace);
+              activeFontFaceRef.current = loadedFace;
               setFontFamilyName(newFontName);
+
+              // Revoke previous blob URL
               if (activeBlobUrlRef.current && activeBlobUrlRef.current !== blobUrl) {
                 URL.revokeObjectURL(activeBlobUrlRef.current);
               }
               activeBlobUrlRef.current = blobUrl;
             })
             .catch(() => {
+              URL.revokeObjectURL(blobUrl);
               if (compileVersion === fontVersionRef.current) {
-                URL.revokeObjectURL(blobUrl);
                 setErrorMsg('プレビュー用フォントの読み込みに失敗しました。');
-              } else {
-                URL.revokeObjectURL(blobUrl);
               }
             });
         } else {
           setFontFamilyName(newFontName);
+          if (activeBlobUrlRef.current && activeBlobUrlRef.current !== blobUrl) {
+            URL.revokeObjectURL(activeBlobUrlRef.current);
+          }
+          activeBlobUrlRef.current = blobUrl;
         }
 
         const styleId = 'dynamic-preview-font-face';
@@ -315,7 +363,7 @@ const [testText, setTestText] = useState<string>(
         compileTimerRef.current = null;
       }
     };
-  }, [isOpen, project.updatedAt, autoBalanceMargins, fontScaleMultiplier]);
+  }, [isOpen, project.updatedAt, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
 
   // Handle batch centering all glyphs in project
   const handleBatchCenterAll = () => {

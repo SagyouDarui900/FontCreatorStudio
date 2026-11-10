@@ -14,7 +14,7 @@ interface UseGlyphActionsOptions {
   setSelectedChar: (char: string) => void;
   currentGlyph: GlyphData;
   currentGlyphRef: React.MutableRefObject<GlyphData>;
-  commitHistory: () => void;
+  commitHistory: (targetUnicode?: number) => void;
   setUndoStack: React.Dispatch<React.SetStateAction<GlyphData[]>>;
   setToolMode: (mode: ToolMode) => void;
   onShowToast: (message: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
@@ -125,11 +125,7 @@ export function useGlyphActions({
       const targetGlyph = project.glyphs[unicode];
       if (!targetGlyph) return;
 
-      if (unicode === selectedUnicode) {
-        commitHistory();
-      } else {
-        setUndoStack((prev) => [...prev.slice(-30), JSON.parse(JSON.stringify(targetGlyph))]);
-      }
+      commitHistory(unicode);
 
       setProject((prev) => {
         const copy = { ...prev.glyphs };
