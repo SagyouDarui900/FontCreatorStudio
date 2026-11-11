@@ -307,15 +307,14 @@ function AppMain({
   const handleOpenKerningModal = useCallback(() => setIsKerningModalOpen(true), [setIsKerningModalOpen]);
   const handleOpenWeightInterpModal = useCallback(() => setIsWeightInterpModalOpen(true), [setIsWeightInterpModalOpen]);
   const handleOpenGlyphCompareModal = useCallback(() => setIsGlyphCompareModalOpen(true), [setIsGlyphCompareModalOpen]);
-  const handleOpenRadicalStudio = useCallback(() => setIsRadicalStudioOpen(true), [setIsRadicalStudioOpen]);
+  const handleOpenRadicalStudio = useCallback(() => setShowRadicals(true), [setShowRadicals]);
   const handleOpenPixelStudio = useCallback(() => setIsPixelStudioOpen(true), [setIsPixelStudioOpen]);
   const handleOpenStorageManagerModal = useCallback(() => setIsStorageManagerOpen(true), [setIsStorageManagerOpen]);
   const handleOpenShortcutsModal = useCallback(() => setIsShortcutsModalOpen(true), [setIsShortcutsModalOpen]);
   const handleOpenExportModal = useCallback(() => setIsExportModalOpen(true), [setIsExportModalOpen]);
   const handleOpenRadicalStudioFromDrawer = useCallback(() => {
-    setShowRadicals(false);
-    setIsRadicalStudioOpen(true);
-  }, [setShowRadicals, setIsRadicalStudioOpen]);
+    setShowRadicals(true);
+  }, [setShowRadicals]);
 
   // Apply SVG vector contours to current glyph
   const handleApplySvgContours = useCallback(

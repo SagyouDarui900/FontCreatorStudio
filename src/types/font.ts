@@ -40,7 +40,17 @@ export interface KanjiRadical {
   contours: PathContour[];
 }
 
-export type RadicalPlacement = 'auto' | 'original' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi' | 'center_small';
+export type RadicalPlacement =
+  | 'auto'
+  | 'original'
+  | 'hen'
+  | 'tsukuri'
+  | 'kanmuri'
+  | 'ashi'
+  | 'tare'
+  | 'nyo'
+  | 'kamae'
+  | 'center_small';
 
 export type PartCategory =
   | 'all'

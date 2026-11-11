@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Type, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { X, Type, ShieldCheck, Sparkles } from 'lucide-react';
 import { BundledFontsModal } from './BundledFontsModal';
 import { KANJI_RADICALS } from '../data/kanjiRadicals';
+import { KANGXI_214_RADICALS } from '../data/kangxi214Radicals';
 import { PathContour, CustomPart, RadicalPlacement } from '../types';
 import { generateId, transformContoursForPlacement } from '../utils/path';
 import {
@@ -198,12 +199,10 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
   // Trigger extraction when options change in extract tab
   useEffect(() => {
-    if (activeTab === 'extract') {
+    if (isOpen && activeTab === 'extract') {
       performExtraction(extractChar, extractRegion);
     }
-  }, [activeTab, extractChar, extractFontFamily, extractWeight, extractRegion, extractSmoothing, performExtraction]);
-
-  if (!isOpen) return null;
+  }, [isOpen, activeTab, extractChar, extractFontFamily, extractWeight, extractRegion, extractSmoothing, performExtraction]);
 
   // Insert helper with placement
   const handleInsertWithPlacement = (
@@ -358,22 +357,24 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     return matchCategory && matchSearch;
   });
 
-  // Filter Kangxi catalog
-  const filteredKangxi = KANGXI_RADICALS_CATALOG.filter((item) => {
-    const matchStroke = kangxiStrokeFilter === 'all' || item.strokes === kangxiStrokeFilter;
-    const matchSearch =
-      !kangxiSearch.trim() ||
-      item.char.includes(kangxiSearch.trim()) ||
-      item.name.includes(kangxiSearch.trim()) ||
-      item.reading.toLowerCase().includes(kangxiSearch.toLowerCase()) ||
-      (item.exampleChars && item.exampleChars.includes(kangxiSearch.trim()));
-    return matchStroke && matchSearch;
-  });
+  // Smart constituent radical recommendations based on currently selected character
+  const suggestedRadicals = useMemo(() => {
+    if (!selectedChar) return [];
+    const char = selectedChar.trim();
+    return KANGXI_214_RADICALS.filter((item) => {
+      if (item.char === char) return true;
+      if (item.altChars && item.altChars.includes(char)) return true;
+      if (item.kanjiList && item.kanjiList.includes(char)) return true;
+      return false;
+    }).slice(0, 6);
+  }, [selectedChar]);
 
   // Filter modified glyphs for synthesis
   const availableGlyphs = (Object.values(allGlyphs) as any[]).filter(
     (g) => g && g.contours && g.contours.length > 0
   );
+
+  if (!isOpen) return null;
 
   return (
     <>
@@ -418,6 +419,64 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         {statusNotice && (
           <div className="bg-emerald-800 text-white text-[11px] font-bold py-1.5 px-3 text-center border-b border-emerald-700 animate-in fade-in">
             {statusNotice}
+          </div>
+        )}
+
+        {/* Smart Suggestion Bar: Automatic constituent radicals for selected character */}
+        {suggestedRadicals.length > 0 && (
+          <div
+            className={`px-3 py-1.5 border-b flex items-center justify-between text-xs shrink-0 ${
+              isLight
+                ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                : 'bg-[#142319] border-[#223d2b] text-emerald-200'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 font-bold text-[11px] shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>「{selectedChar}」の推奨部首:</span>
+            </div>
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pl-2">
+              {suggestedRadicals.map((rad) => {
+                const targetChar = rad.altChars?.[0] || rad.char;
+                return (
+                  <button
+                    key={rad.number}
+                    type="button"
+                    onClick={() => {
+                      const matched = KANJI_RADICALS.find(
+                        (r) => r.char === targetChar || r.char === rad.char
+                      );
+                      if (matched && matched.contours.length > 0) {
+                        handleInsertWithPlacement(matched.contours, rad.name, rad.category);
+                      } else {
+                        getOrExtractRadicalContours(
+                          targetChar,
+                          'full',
+                          selectedFontStyle.fontFamily,
+                          selectedFontStyle.fontWeight
+                        ).then((contours) => {
+                          if (contours && contours.length > 0) {
+                            handleInsertWithPlacement(contours, rad.name, rad.category);
+                          }
+                        });
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10.5px] font-bold border transition-colors flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isLight
+                        ? 'bg-white border-emerald-300 text-emerald-900 hover:bg-emerald-100 shadow-xs'
+                        : 'bg-[#1a2d21] border-[#2f4d39] text-emerald-100 hover:bg-[#253f2e] shadow-xs'
+                    }`}
+                    title={`「${rad.char}」(${rad.name}) を挿入`}
+                  >
+                    <span className="text-xs font-bold">{rad.displayChar || rad.char}</span>
+                    {rad.altChars?.[0] && (
+                      <span className="text-[9px] text-stone-500 font-normal">({rad.altChars[0]})</span>
+                    )}
+                    <span className="text-[9px] truncate max-w-[55px]">{rad.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -550,7 +609,6 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             setKangxiSearch={setKangxiSearch}
             kangxiStrokeFilter={kangxiStrokeFilter}
             setKangxiStrokeFilter={setKangxiStrokeFilter}
-            filteredKangxi={filteredKangxi}
             selectedFontStyle={selectedFontStyle}
             extractingKangxiNum={extractingKangxiNum}
             setExtractingKangxiNum={setExtractingKangxiNum}
@@ -584,7 +642,6 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         {activeTab === 'custom' && (
           <CustomPartsTab
             isLight={isLight}
-            onOpenRadicalStudio={onOpenRadicalStudio}
             showSaveInput={showSaveInput}
             setShowSaveInput={setShowSaveInput}
             createOnlyFrame={createOnlyFrame}

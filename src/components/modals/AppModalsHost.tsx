@@ -28,9 +28,6 @@ const WeightInterpolationModal = lazy(() =>
 const GlyphCompareModal = lazy(() =>
   import('../GlyphCompareModal').then((module) => ({ default: module.GlyphCompareModal }))
 );
-const RadicalStudioModal = lazy(() =>
-  import('../RadicalStudioModal').then((module) => ({ default: module.RadicalStudioModal }))
-);
 const PixelFontStudioModal = lazy(() =>
   import('../pixelfont').then((module) => ({ default: module.PixelFontStudioModal }))
 );
@@ -374,21 +371,6 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           activeUnicode={selectedUnicode}
           overlaySettings={overlaySettings}
           onChangeOverlaySettings={setOverlaySettings}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Radical Studio Modal */}
-      {activeModal === 'radicalStudio' && (
-        <RadicalStudioModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          selectedChar={selectedChar}
-          selectedUnicode={selectedUnicode}
-          onInsertToCurrentGlyph={onInsertRadical}
-          onBatchInsertToGlyphs={onBatchInsertRadical}
           theme={theme}
           onShowToast={showToast}
         />

@@ -541,6 +541,9 @@ export function useRadicalOperations({
       tsukuri: '旁 (右46%)',
       kanmuri: '冠 (上36%)',
       ashi: '脚 (下36%)',
+      tare: '垂 (左上)',
+      nyo: '繞 (左下)',
+      kamae: '構 (外枠)',
       center_small: '中央縮小 (60%)',
     };
     notify(`「${activePart.name}」を【${placementNames[placement] || placement}】として「${targetChar || selectedChar}」に挿入しました`, 'success');

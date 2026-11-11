@@ -1082,7 +1082,7 @@ export const KANGXI_214_RADICALS: KangxiRadicalFullEntry[] = [
     number: 87,
     char: '爪',
     displayChar: '爫',
-    altChars: ['爫', '爫'],
+    altChars: ['爫'],
     name: 'つめ・つめかんむり・そうにょう (爪部)',
     reading: 'ソウ',
     strokes: 4,

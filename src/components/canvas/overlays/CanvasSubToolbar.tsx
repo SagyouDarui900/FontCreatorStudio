@@ -379,6 +379,8 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
               smoothPreserveCorners={smoothPreserveCorners}
               handleAlignSelected={handleAlignSelected}
               handleDistributeSelected={handleDistributeSelected}
+              contours={contours}
+              activeChar={activeChar}
             />
           </div>
 

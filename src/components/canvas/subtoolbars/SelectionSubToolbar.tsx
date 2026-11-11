@@ -18,9 +18,12 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
+  Star,
 } from 'lucide-react';
-import { ToolMode } from '../../../types';
+import { ToolMode, PathContour, CustomPart } from '../../../types';
 import { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
+import { generateId } from '../../../utils/path';
+import { loadCustomParts, saveCustomParts } from '../../../utils/customPartsStorage';
 
 interface SelectionSubToolbarProps {
   toolMode: ToolMode;
@@ -49,6 +52,8 @@ interface SelectionSubToolbarProps {
   smoothPreserveCorners: boolean;
   handleAlignSelected?: (direction: AlignDirection) => void;
   handleDistributeSelected?: (direction: DistributeDirection) => void;
+  contours?: PathContour[];
+  activeChar?: string;
 }
 
 export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
@@ -78,10 +83,48 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
   smoothPreserveCorners,
   handleAlignSelected,
   handleDistributeSelected,
+  contours,
+  activeChar,
 }) => {
   if (!((toolMode === 'select' || toolMode === 'node') && selectedContourIds.length > 0)) {
     return null;
   }
+
+  const handleRegisterAsCustomPart = async () => {
+    if (!contours || selectedContourIds.length === 0) return;
+    const selectedContours = contours.filter((c) => selectedContourIds.includes(c.id));
+    if (selectedContours.length === 0) return;
+
+    const cloned: PathContour[] = selectedContours.map((c) => ({
+      ...c,
+      id: generateId(),
+      nodes: c.nodes.map((n) => ({
+        ...n,
+        id: generateId(),
+        handleIn: n.handleIn ? { ...n.handleIn } : null,
+        handleOut: n.handleOut ? { ...n.handleOut } : null,
+      })),
+    }));
+
+    try {
+      const existingParts = await loadCustomParts();
+      const partName = activeChar ? `「${activeChar}」のパーツ` : `自作パーツ_${existingParts.length + 1}`;
+      const newPart: CustomPart = {
+        id: generateId(),
+        name: partName,
+        contours: cloned,
+        createdAt: Date.now(),
+      };
+
+      const updated = [newPart, ...existingParts];
+      await saveCustomParts(updated);
+      window.dispatchEvent(new CustomEvent('font_custom_parts_updated'));
+      showCanvasToast(`「${partName}」を部首パーツに登録しました`, '右側の「部首」ドロワー＞「マイパーツ」からいつでも再利用・合成できます');
+    } catch (e) {
+      console.error('Failed to register custom part:', e);
+      showCanvasToast('パーツの登録に失敗しました');
+    }
+  };
 
   return (
     <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#18231c] border border-stone-200 dark:border-stone-700">
@@ -107,6 +150,19 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
         <X className="w-2.5 h-2.5" />
         <span>解除(Esc)</span>
       </button>
+
+      {/* 1-Click Register to Custom Parts */}
+      {contours && contours.length > 0 && (
+        <button
+          type="button"
+          onClick={handleRegisterAsCustomPart}
+          className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1 cursor-pointer shadow-xs"
+          title="選択した輪郭を「マイ部首パーツ」として1クリック登録（他の文字で再利用可能）"
+        >
+          <Star className="w-2.5 h-2.5 fill-stone-950 text-stone-950" />
+          <span>部首パーツに登録</span>
+        </button>
+      )}
 
       {selectedContourIds.length >= 1 && (
         <button

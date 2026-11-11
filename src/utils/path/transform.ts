@@ -604,10 +604,10 @@ export function transformContoursForPlacement(
       targetH = 660;
       break;
     case 'tsukuri':
-      // Right side: width ~440, height ~660, X ~480
-      targetX = 480;
+      // Right side: width ~490, height ~660, X ~450 (55% proportion)
+      targetX = 450;
       targetY = 160;
-      targetW = 440;
+      targetW = 490;
       targetH = 660;
       break;
     case 'kanmuri':

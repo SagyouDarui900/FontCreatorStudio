@@ -259,9 +259,9 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     <Shapes className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">部首・パーツ</div>
+                    <div className="text-xs font-bold truncate">部首・パーツパレット</div>
                     <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
-                      漢字の偏や旁の作成・再利用
+                      214部首・偏旁冠脚の合成
                     </div>
                   </div>
                 </button>

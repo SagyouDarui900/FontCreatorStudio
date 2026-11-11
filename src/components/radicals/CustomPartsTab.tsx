@@ -1,11 +1,10 @@
 import React from 'react';
-import { Shapes, Plus, BookmarkPlus, Trash2 } from 'lucide-react';
+import { BookmarkPlus, Plus, Trash2, Sparkles, Layers } from 'lucide-react';
 import { CustomPart, PathContour } from '../../types';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 
 interface CustomPartsTabProps {
   isLight: boolean;
-  onOpenRadicalStudio?: () => void;
   showSaveInput: boolean;
   setShowSaveInput: (s: boolean) => void;
   createOnlyFrame: boolean;
@@ -24,7 +23,6 @@ interface CustomPartsTabProps {
 
 export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
   isLight,
-  onOpenRadicalStudio,
   showSaveInput,
   setShowSaveInput,
   createOnlyFrame,
@@ -42,25 +40,45 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 p-3 space-y-2.5">
-      {/* Direct link to dedicated Radical Parts Studio */}
-      {onOpenRadicalStudio && (
-        <button
-          type="button"
-          onClick={onOpenRadicalStudio}
-          className={`w-full py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm transition-all cursor-pointer ${
-            isLight
-              ? 'bg-amber-400 border-amber-500 text-emerald-950 hover:bg-amber-300'
-              : 'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500'
-          }`}
-        >
-          <Shapes className="w-4 h-4" />
-          <span>部首・パーツ工房を開く</span>
-        </button>
-      )}
+      {/* Informational Guidance Banner */}
+      <div
+        className={`p-2.5 rounded-lg border text-[11px] leading-relaxed ${
+          isLight
+            ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+            : 'bg-[#142319] border-[#223d2b] text-emerald-200'
+        }`}
+      >
+        <div className="font-bold flex items-center gap-1.5 mb-1">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+          <span>メインキャンバス連動型マイパーツ</span>
+        </div>
+        <p className="text-[10px] text-stone-600 dark:text-stone-300">
+          キャンバスで輪郭を選択し、上部ツールバーの<strong>「★ 部首パーツに登録」</strong>を押すと、1クリックで即時保存されます。
+        </p>
+      </div>
 
-      {/* Custom Part / Name Frame Creation Actions */}
+      {/* Manual Save & Name Frame Creation Actions */}
       {!showSaveInput ? (
         <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setCreateOnlyFrame(false);
+              setShowSaveInput(true);
+            }}
+            disabled={!currentContours || currentContours.length === 0}
+            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-all font-bold text-xs cursor-pointer ${
+              !currentContours || currentContours.length === 0
+                ? 'opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700'
+                : isLight
+                ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900 shadow-xs'
+                : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600 shadow-xs'
+            }`}
+          >
+            <BookmarkPlus className="w-3.5 h-3.5" />
+            <span>現在の文字全体を保存</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -69,28 +87,12 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
             }}
             className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-all font-bold text-xs cursor-pointer ${
               isLight
-                ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900 shadow-xs'
-                : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600 shadow-xs'
+                ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 shadow-xs'
+                : 'bg-[#1a261f] border-[#25362b] text-emerald-200 hover:bg-[#223127] shadow-xs'
             }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>名前枠を作成</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setCreateOnlyFrame(false);
-              setShowSaveInput(true);
-            }}
-            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-all font-bold text-xs cursor-pointer ${
-              isLight
-                ? 'bg-white border-emerald-700 text-emerald-950 hover:bg-emerald-50 shadow-xs'
-                : 'bg-[#1a261f] border-emerald-500 text-emerald-200 hover:bg-[#223127] shadow-xs'
-            }`}
-          >
-            <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600" />
-            <span>現在の文字を保存</span>
+            <Plus className="w-3.5 h-3.5 text-emerald-600" />
+            <span>空の名前枠を作成</span>
           </button>
         </div>
       ) : (
@@ -153,10 +155,10 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
       {/* Saved Parts Grid / Name Frame Cards */}
       {customParts.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-stone-500 space-y-2">
-          <BookmarkPlus className="w-8 h-8 opacity-40 text-emerald-600" />
-          <p className="text-xs">パーツ枠がありません。</p>
-          <p className="text-[10px]">
-            「名前枠を作成」を押して、好きな名前のパーツ枠を作成・管理できます。
+          <BookmarkPlus className="w-10 h-10 opacity-30 text-emerald-600" />
+          <p className="text-xs font-bold text-stone-700 dark:text-stone-300">マイパーツはまだありません</p>
+          <p className="text-[10px] leading-relaxed max-w-xs text-stone-500">
+            キャンバス上で偏や旁のパスを選択し、上部ツールバーの「★ 部首パーツに登録」をクリックすると、ここに1クリックで保存されます。
           </p>
         </div>
       ) : (
@@ -171,7 +173,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                   if (hasContours) {
                     handleInsertWithPlacement(part.contours, part.name);
                   } else {
-                    showNotice(`「${part.name}」には輪郭が未登録です。「工房」で作成するか「現在の文字を割当」を押してください`);
+                    showNotice(`「${part.name}」には輪郭が未登録です。「現在の文字を割当」を押してください`);
                   }
                 }}
                 className={`relative flex flex-col justify-between p-2.5 rounded-lg border group transition-all cursor-pointer ${
@@ -186,9 +188,10 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     setCustomParts((prev) => prev.filter((p) => p.id !== part.id));
+                    showNotice(`「${part.name}」をマイパーツから削除しました`);
                   }}
                   className="absolute top-1.5 right-1.5 p-1 rounded hover:bg-red-100 dark:hover:bg-red-950/50 text-stone-400 hover:text-red-600 transition-colors z-10 cursor-pointer"
-                  title="パーツ枠を削除"
+                  title="パーツを削除"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -196,15 +199,18 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                 {hasContours ? (
                   /* Vector Contour Preview */
                   <div className="flex flex-col items-center">
-                    <div className="w-14 h-14 flex items-center justify-center p-1">
+                    <div className="w-16 h-16 flex items-center justify-center p-1 bg-stone-50 dark:bg-[#121c15] rounded border border-stone-100 dark:border-stone-800/60">
                       <GlyphPreviewSvg
                         contours={part.contours}
                         fill={isLight ? '#1f2937' : '#ecfdf5'}
                         className="w-full h-full"
                       />
                     </div>
-                    <span className="text-[11px] font-bold mt-1 text-center truncate w-full">
+                    <span className="text-[11px] font-bold mt-1.5 text-center truncate w-full">
                       {part.name}
+                    </span>
+                    <span className="text-[9px] text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
+                      クリックで挿入
                     </span>
                   </div>
                 ) : (
@@ -233,16 +239,9 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                           現在の文字を割当
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onOpenRadicalStudio) onOpenRadicalStudio();
-                          }}
-                          className="w-full text-[10px] font-bold py-1 px-1.5 rounded bg-stone-100 dark:bg-[#25362b] text-stone-700 dark:text-emerald-200 hover:bg-emerald-700 hover:text-white transition-colors text-center cursor-pointer"
-                        >
-                          工房で作成
-                        </button>
+                        <span className="text-[9px] text-stone-400 block text-center w-full">
+                          未割当
+                        </span>
                       )}
                     </div>
                   </div>
