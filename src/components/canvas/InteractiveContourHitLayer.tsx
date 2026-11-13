@@ -20,6 +20,7 @@ export interface InteractiveContourHitLayerProps {
   showCanvasToast: (msg: string, sub?: string) => void;
   handleTransformPointerDown: (e: React.PointerEvent, action: 'move', contourIds: string[]) => void;
   onSetToolMode?: (mode: ToolMode) => void;
+  isGlyphLocked?: boolean;
 }
 
 export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProps> = React.memo(({
@@ -40,6 +41,7 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
   showCanvasToast,
   handleTransformPointerDown,
   onSetToolMode,
+  isGlyphLocked = false,
 }) => {
   return (
     <>
@@ -59,6 +61,12 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
             onPointerDown={(e) => {
               if (toolMode === 'node') {
                 e.stopPropagation();
+                if (isGlyphLocked) {
+                  setSelectedContourId(contour.id);
+                  setSelectedContourIds([contour.id]);
+                  showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+                  return;
+                }
                 const clickPos = screenToCanvas(e.clientX, e.clientY);
                 const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
                 if (insertResult) {
@@ -107,7 +115,9 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                       : [contour.id];
                   setSelectedContourIds(nextIds);
                   setSelectedContourId(contour.id);
-                  handleTransformPointerDown(e, 'move', nextIds);
+                  if (!isGlyphLocked) {
+                    handleTransformPointerDown(e, 'move', nextIds);
+                  }
                 }
                 setSelectedNodeId(null);
                 setSelectedHandleType(null);

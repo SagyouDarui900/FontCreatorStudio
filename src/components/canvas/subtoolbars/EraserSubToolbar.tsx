@@ -17,9 +17,9 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
   handleClearAll,
 }) => {
   return (
-    <div className="flex items-center space-x-2 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700">
+    <div className="flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
       {/* Eraser Mode Buttons */}
-      <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded-lg border border-stone-300/80 dark:border-stone-700">
+      <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded border border-stone-300/80 dark:border-stone-700">
         <button
           type="button"
           onClick={() => setEraserMode('stroke')}
@@ -70,7 +70,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
         >
           -
         </button>
-        <span className="font-mono font-bold text-xs px-1 text-rose-700 dark:text-rose-300 w-10 text-center shrink-0">
+        <span className="font-mono tabular-nums font-bold text-xs px-1 text-rose-700 dark:text-rose-300 w-10 text-center shrink-0">
           {eraserSize}px
         </span>
         <button
@@ -94,7 +94,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
             onClick={() => {
               setEraserSize(s);
             }}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono transition-colors cursor-pointer ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono tabular-nums transition-colors cursor-pointer ${
               eraserSize === s
                 ? 'bg-rose-600 text-white'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-rose-100 dark:hover:bg-rose-950'
@@ -109,7 +109,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
       <button
         type="button"
         onClick={handleClearAll}
-        className="px-2.5 py-1 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white transition-colors flex items-center space-x-1 ml-1 cursor-pointer"
+        className="px-2 py-0.5 rounded text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white transition-colors flex items-center space-x-1 ml-1 cursor-pointer"
         title="この文字のすべての輪郭を一括消去 (Ctrl+Zで取り消し可能)"
       >
         <Trash2 className="w-3.5 h-3.5" />

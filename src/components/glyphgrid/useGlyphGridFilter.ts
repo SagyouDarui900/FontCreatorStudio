@@ -51,7 +51,7 @@ export function useGlyphGridFilter({
         }
       }
     } catch (_) {}
-    return 330;
+    return 264;
   });
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(true);
@@ -286,8 +286,9 @@ export function useGlyphGridFilter({
       ],
     },
     {
-      groupName: 'JIS水準漢字',
+      groupName: '常用・JIS水準漢字',
       items: [
+        { id: 'jouyou', name: '常用漢字', count: '2,136字' },
         { id: 'jis_1', name: 'JIS第1水準漢字', count: '2,965字' },
         { id: 'jis_2', name: 'JIS第2水準漢字', count: '3,390字' },
         { id: 'jis_3', name: 'JIS第3水準漢字', count: '1,259字' },
@@ -322,6 +323,7 @@ export function useGlyphGridFilter({
     if (found.id === 'grade4') return '小学4年漢字 (202字)';
     if (found.id === 'grade5') return '小学5年漢字 (193字)';
     if (found.id === 'grade6') return '小学6年漢字 (191字)';
+    if (found.id === 'jouyou') return '常用漢字 (2,136字)';
     if (found.id === 'jis_1') return 'JIS第1水準 (2,965字)';
     if (found.id === 'jis_2') return 'JIS第2水準 (3,390字)';
     if (found.id === 'jis_3') return 'JIS第3水準 (1,259字)';
@@ -343,6 +345,7 @@ export function useGlyphGridFilter({
     { id: 'grade4', label: '小4' },
     { id: 'grade5', label: '小5' },
     { id: 'grade6', label: '小6' },
+    { id: 'jouyou', label: '常用' },
     { id: 'jis_1', label: 'JIS第1' },
     { id: 'jis_2', label: 'JIS第2' },
     { id: 'jis_3', label: 'JIS第3' },

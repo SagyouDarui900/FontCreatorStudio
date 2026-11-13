@@ -43,6 +43,7 @@ export interface UseNodeEditingOptions {
   showCanvasToast: (message: string, subText?: string) => void;
   onDeleteSelectedContour?: () => void;
   setActiveSnapGuides?: React.Dispatch<React.SetStateAction<SnapGuideLine[]>>;
+  isGlyphLocked?: boolean;
 }
 
 export interface UseNodeEditingReturn {
@@ -111,6 +112,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     showCanvasToast,
     onDeleteSelectedContour,
     setActiveSnapGuides,
+    isGlyphLocked = false,
   } = options;
 
   // Selection & Node Editing State
@@ -232,6 +234,12 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
 
       setSelectedNodeIds(nextSelectedIds);
+      if (isGlyphLocked) {
+        setSelectedHandleType(null);
+        nodeDragSessionRef.current = null;
+        showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+        return;
+      }
       setSelectedHandleType(handleType);
       nodeDragSessionRef.current = {
         contourId: contour.id,
@@ -242,7 +250,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         initialContour: { ...contour },
       };
     },
-    [screenToCanvas, selectedNodeIds, setSelectedContourId]
+    [screenToCanvas, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
   );
 
   // Check if clicking existing handle or node on main canvas pointer down
@@ -262,15 +270,21 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
             setSelectedContourId(contour.id);
             setSelectedContourIds([contour.id]);
             setSelectedNodeIds([node.id]);
-            setSelectedHandleType('handleOut');
-            nodeDragSessionRef.current = {
-              contourId: contour.id,
-              nodeId: node.id,
-              handleType: 'handleOut',
-              startPos: pos,
-              initialNode: { ...node },
-              initialContour: { ...contour },
-            };
+            if (isGlyphLocked) {
+              setSelectedHandleType(null);
+              nodeDragSessionRef.current = null;
+              showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            } else {
+              setSelectedHandleType('handleOut');
+              nodeDragSessionRef.current = {
+                contourId: contour.id,
+                nodeId: node.id,
+                handleType: 'handleOut',
+                startPos: pos,
+                initialNode: { ...node },
+                initialContour: { ...contour },
+              };
+            }
             foundNode = true;
             break;
           }
@@ -279,15 +293,21 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
             setSelectedContourId(contour.id);
             setSelectedContourIds([contour.id]);
             setSelectedNodeIds([node.id]);
-            setSelectedHandleType('handleIn');
-            nodeDragSessionRef.current = {
-              contourId: contour.id,
-              nodeId: node.id,
-              handleType: 'handleIn',
-              startPos: pos,
-              initialNode: { ...node },
-              initialContour: { ...contour },
-            };
+            if (isGlyphLocked) {
+              setSelectedHandleType(null);
+              nodeDragSessionRef.current = null;
+              showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            } else {
+              setSelectedHandleType('handleIn');
+              nodeDragSessionRef.current = {
+                contourId: contour.id,
+                nodeId: node.id,
+                handleType: 'handleIn',
+                startPos: pos,
+                initialNode: { ...node },
+                initialContour: { ...contour },
+              };
+            }
             foundNode = true;
             break;
           }
@@ -311,15 +331,21 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               }
             }
             setSelectedNodeIds(nextSelectedIds);
-            setSelectedHandleType('node');
-            nodeDragSessionRef.current = {
-              contourId: contour.id,
-              nodeId: node.id,
-              handleType: 'node',
-              startPos: pos,
-              initialNode: { ...node },
-              initialContour: { ...contour },
-            };
+            if (isGlyphLocked) {
+              setSelectedHandleType(null);
+              nodeDragSessionRef.current = null;
+              showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            } else {
+              setSelectedHandleType('node');
+              nodeDragSessionRef.current = {
+                contourId: contour.id,
+                nodeId: node.id,
+                handleType: 'node',
+                startPos: pos,
+                initialNode: { ...node },
+                initialContour: { ...contour },
+              };
+            }
             foundNode = true;
             break;
           }
@@ -340,7 +366,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       setSelectedHandleType(null);
       return false;
     },
-    [toolMode, zoom, contours, selectedNodeIds, setSelectedContourId]
+    [toolMode, zoom, contours, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
   );
 
   // Insert node on contour at point (node tool click on stroke)
@@ -348,6 +374,10 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     (e: React.PointerEvent, contour: PathContour): boolean => {
       if (toolMode !== 'node') return false;
       e.stopPropagation();
+      if (isGlyphLocked) {
+        showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+        return false;
+      }
       const clickPos = screenToCanvas(e.clientX, e.clientY);
       const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
       if (insertResult) {
@@ -381,12 +411,13 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       setSelectedContourIds([contour.id]);
       return false;
     },
-    [toolMode, screenToCanvas, zoom, contours, onChangeContours, setSelectedContourId, onCommitHistory, showCanvasToast]
+    [toolMode, isGlyphLocked, screenToCanvas, zoom, contours, onChangeContours, setSelectedContourId, onCommitHistory, showCanvasToast]
   );
 
   // Synchronous ref-accelerated 0ms latency node and handle dragging
   const handleNodeDragMove = useCallback(
     (e: React.PointerEvent, pos: Point): boolean => {
+      if (isGlyphLocked) return false;
       const isDraggingNode = Boolean(
         nodeDragSessionRef.current ||
         ((toolMode === 'select' || toolMode === 'node') && selectedContourId && selectedNodeId && selectedHandleType)
@@ -557,6 +588,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       return true;
     },
     [
+      isGlyphLocked,
       toolMode,
       selectedContourId,
       selectedNodeId,
@@ -599,13 +631,20 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   // Toggle smooth / corner node type (supports 'C' key toggle on selection or direct click)
   const handleToggleNodeType = useCallback(
     (contourId?: string, nodeId?: string) => {
-      const targetIds = nodeId
-        ? [nodeId]
-        : selectedNodeIds.length > 0
-        ? selectedNodeIds
-        : selectedNodeId
-        ? [selectedNodeId]
-        : [];
+      if (isGlyphLocked) {
+        showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+        return;
+      }
+      const targetIds =
+        nodeId && selectedNodeIds.length > 1 && selectedNodeIds.includes(nodeId)
+          ? selectedNodeIds
+          : nodeId
+          ? [nodeId]
+          : selectedNodeIds.length > 0
+          ? selectedNodeIds
+          : selectedNodeId
+          ? [selectedNodeId]
+          : [];
       if (targetIds.length === 0) return;
 
       // Determine whether primary targeted node is corner or smooth
@@ -674,11 +713,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         showCanvasToast('頂点をコーナーに変換', `${count} 個の頂点`);
       }
     },
-    [contours, selectedNodeIds, selectedNodeId, onChangeContours, onCommitHistory, showCanvasToast]
+    [isGlyphLocked, contours, selectedNodeIds, selectedNodeId, onChangeContours, onCommitHistory, showCanvasToast]
   );
 
   // Add node next to selected node in contour
   const handleAddNodeToSelected = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (!selectedContourId) return;
     const target = contours.find((c) => c.id === selectedContourId);
     if (!target || target.nodes.length < 2) return;
@@ -701,7 +744,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     onChangeContours(contours.map((c) => (c.id === selectedContourId ? updated : c)));
     setSelectedNodeIds([newNode.id]);
     onCommitHistory?.();
-  }, [selectedContourId, selectedNodeId, contours, onChangeContours, onCommitHistory]);
+  }, [isGlyphLocked, selectedContourId, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
 
   const onDeleteSelectedContourRef = useRef(onDeleteSelectedContour);
   useEffect(() => {
@@ -710,6 +753,10 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
   // Delete selected nodes (supports multi-selection)
   const handleDeleteSelectedNode = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
     if (targetIds.length === 0) return;
 
@@ -737,11 +784,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     setSelectedNodeIds([]);
     onCommitHistory?.();
     showCanvasToast('選択した頂点を削除しました', `${targetIds.length} 個`);
-  }, [selectedNodeIds, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
+  }, [isGlyphLocked, selectedNodeIds, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
 
   // Keyboard arrow nudge for selected nodes and handles
   const handleNudgeSelectedNode = useCallback(
     (dx: number, dy: number): boolean => {
+      if (isGlyphLocked) {
+        showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+        return false;
+      }
       const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
       if (targetIds.length === 0 && !selectedHandleType) return false;
 
@@ -805,7 +856,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
       return false;
     },
-    [selectedNodeIds, selectedNodeId, selectedHandleType, contours, onChangeContours, onCommitHistory]
+    [isGlyphLocked, selectedNodeIds, selectedNodeId, selectedHandleType, contours, onChangeContours, onCommitHistory, showCanvasToast]
   );
 
   // Clear all node & contour selection

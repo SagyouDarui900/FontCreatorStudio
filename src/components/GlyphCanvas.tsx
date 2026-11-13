@@ -13,7 +13,11 @@ import {
   Point,
   BrushStyle,
   SnapGuideLine,
+  CustomPart,
 } from '../types';
+import { generateId } from '../utils/path';
+import { convertContourToQuadratic, convertContourToCubic } from '../utils/bezierConversion';
+import { loadCustomParts, saveCustomParts } from '../utils/customPartsStorage';
 import {
   isLightTheme,
   getThemeClasses,
@@ -22,7 +26,9 @@ import { useBrushDrawing } from '../hooks/useBrushDrawing';
 import { useNodeEditing } from '../hooks/useNodeEditing';
 import { CanvasSubToolbar } from './canvas/overlays/CanvasSubToolbar';
 import { CanvasFloatingOverlays } from './canvas/overlays/CanvasFloatingOverlays';
+import { CanvasStatusBar } from './canvas/overlays/CanvasStatusBar';
 import { CanvasSvgStage } from './canvas/CanvasSvgStage';
+import { CanvasContextMenu } from './canvas/CanvasContextMenu';
 import {
   useCanvasShortcuts,
   useContourTransforms,
@@ -83,6 +89,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   theme,
   onSelectPrevGlyph,
   onSelectNextGlyph,
+  onSelectPrevUncompletedGlyph,
+  onSelectNextUncompletedGlyph,
+  isGlyphLocked = false,
   onCopyFromChar,
   onGenerateDakutenTarget,
   onToggleGridDrawer,
@@ -155,9 +164,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSmoothStrength,
     smoothPreserveCorners,
     setSmoothPreserveCorners,
-    isBottomBarCollapsed,
-    setIsBottomBarCollapsed,
-    toggleBottomBarCollapse,
     palmRejectionMode,
     setPalmRejectionMode,
     handleSetPalmRejectionMode,
@@ -394,32 +400,25 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     showCanvasToast,
     onDeleteSelectedContour: () => handleDeleteSelectedRef.current(),
     setActiveSnapGuides,
+    isGlyphLocked,
   });
 
   // ---------------- PEN TOOL HOOK ----------------
   const {
     penStrokeWidth,
-    setPenStrokeWidth,
     handleSetPenStrokeWidth,
     penCapStyle,
-    setPenCapStyle,
     handleSetPenCapStyle,
-    showPenStrokeMenu,
-    setShowPenStrokeMenu,
     activePenContour,
     setActivePenContour,
     penMousePos,
     setPenMousePos,
-    penHudPos,
-    setPenHudPos,
     handleUndoPenNode,
     handleResetPenContour,
     handleFinishPenContour,
-    handlePenHudPointerDown,
-    handlePenHudPointerMove,
-    handlePenHudPointerUp,
     penSvgPath,
   } = usePenTool({
+    toolMode,
     contours,
     autoResolveBrushOverlap,
     containerRef,
@@ -430,6 +429,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedContourIds,
     setSelectedNodeId,
     setSelectedHandleType,
+    isGlyphLocked,
   });
 
   // ---------------- CANVAS ERASER HOOK ----------------
@@ -514,6 +514,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     customGuidelines,
     zoom,
     setActiveSnapGuides,
+    isGlyphLocked,
+    showCanvasToast,
   });
 
   const {
@@ -541,6 +543,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedHandleType,
     setTouchLoupeState,
     setEraserMode,
+    isGlyphLocked,
   });
   const handleClearAll = handleClearAllContours;
 
@@ -592,12 +595,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   useEffect(() => {
     contoursRef.current = contours;
     const validContourIds = new Set(contours.map((c) => c.id));
+    const validNodeIds = new Set(contours.flatMap((c) => c.nodes.map((n) => n.id)));
     setSelectedContourIds((prev) => prev.filter((id) => validContourIds.has(id)));
     setSelectedContourId((prev) => (prev && validContourIds.has(prev) ? prev : null));
-    setSelectedNodeId((prev) => {
-      if (!prev) return null;
-      return contours.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
-    });
+    setSelectedNodeIds((prev) => prev.filter((id) => validNodeIds.has(id)));
+    setSelectedNodeId((prev) => (prev && validNodeIds.has(prev) ? prev : null));
 
     if (!contours || contours.length === 0) {
       if (activeBrushPathRef.current) {
@@ -608,10 +610,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       brushStrokePointsRef.current = [];
       setSelectedContourIds([]);
       setSelectedContourId(null);
+      setSelectedNodeIds([]);
       setSelectedNodeId(null);
       setSelectedHandleType(null);
     }
-  }, [contours, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, activeBrushPathRef, activeBrushSvgDRef, brushStrokePointsRef]);
+  }, [contours, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setSelectedNodeIds, activeBrushPathRef, activeBrushSvgDRef, brushStrokePointsRef]);
 
 
 
@@ -690,6 +693,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedContourId,
     selectedNodeId,
     setSelectedNodeId,
+    selectedNodeIds,
+    setSelectedNodeIds,
     selectedHandleType,
     setSelectedHandleType,
     marqueeSelection,
@@ -759,6 +764,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     onUndo,
     onRedo,
     showCanvasToast,
+    isGlyphLocked,
   });
 
   const handlePointerCancel = handlePointerUp;
@@ -777,7 +783,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     gridSettingsShowRulers: gridSettings?.showRulers,
     setShowMobilePartSheet,
     setMarqueeSelection,
-    handleResetPenContour,
     resetShapeCreation,
     resetEraserVisuals,
     setRulerMeasurement,
@@ -881,12 +886,17 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     activeEraserPathRef,
     activeEraserSvgDRef,
     brushStrokePointsRef,
+    isGlyphLocked,
   });
 
   handleDeleteSelectedRef.current = handleDeleteSelected;
 
   const handleNudgeSelection = useCallback(
     (dx: number, dy: number) => {
+      if (isGlyphLocked) {
+        showCanvasToast('この文字は編集ロックされています', '解除してから移動してください');
+        return;
+      }
       const handled = handleNudgeSelectedNode(dx, dy);
       if (!handled && selectedContourIds.length > 0) {
         const updated = contours.map((c) => {
@@ -916,7 +926,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         onCommitHistory?.();
       }
     },
-    [handleNudgeSelectedNode, contours, selectedContourIds, onChangeContours, onCommitHistory]
+    [isGlyphLocked, showCanvasToast, handleNudgeSelectedNode, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
 
   // Canvas keyboard shortcuts & spacebar pan navigation
@@ -954,6 +964,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setIsSpacePressed,
     showCanvasToast,
     onNudgeSelection: handleNudgeSelection,
+    isGlyphLocked,
   });
 
   useEffect(() => {
@@ -963,6 +974,86 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       handleType: selectedHandleType,
     });
   }, [selectedContourIds, selectedNodeId, selectedHandleType, onSelectionChange]);
+
+  // Canvas right-click context menu state
+  const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number } | null>(null);
+
+  const handleConvertToQuadraticSelected = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('この文字は編集ロックされています', '解除してから変換してください');
+      return;
+    }
+    if (selectedContourIds.length === 0) return;
+    onCommitHistory?.();
+    const updated = contours.map((c) => {
+      if (selectedContourIds.includes(c.id)) {
+        return convertContourToQuadratic(c, 1.0);
+      }
+      return c;
+    });
+    onChangeContours(updated);
+    showCanvasToast('2次ベジェ化 (TTEdit互換) 完了', '選択輪郭をTrueType規格の2次ベジェ曲線に変換しました');
+  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
+
+  const handleConvertToCubicSelected = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('この文字は編集ロックされています', '解除してから変換してください');
+      return;
+    }
+    if (selectedContourIds.length === 0) return;
+    onCommitHistory?.();
+    const updated = contours.map((c) => {
+      if (selectedContourIds.includes(c.id)) {
+        return convertContourToCubic(c, 1.5);
+      }
+      return c;
+    });
+    onChangeContours(updated);
+    showCanvasToast('3次ベジェ化 (OTEdit互換) 完了', '選択輪郭をOpenType規格の3次ベジェ曲線に統合しました');
+  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
+
+  const handleRegisterSelectedAsCustomPart = useCallback(async () => {
+    const selected = contours.filter((c) => selectedContourIds.includes(c.id));
+    if (selected.length === 0) return;
+    const partName = `${activeChar || '字形'}パーツ`;
+    const newPart: CustomPart = {
+      id: generateId(),
+      name: partName,
+      category: 'other',
+      description: `文字「${activeChar || ''}」から保存されたパーツ`,
+      contours: selected.map((c) => ({
+        ...c,
+        id: generateId(),
+        nodes: c.nodes.map((n) => ({
+          ...n,
+          id: generateId(),
+          handleIn: n.handleIn ? { ...n.handleIn } : null,
+          handleOut: n.handleOut ? { ...n.handleOut } : null,
+        })),
+      })),
+      createdAt: Date.now(),
+    };
+    try {
+      const existing = await loadCustomParts();
+      await saveCustomParts([newPart, ...(existing || [])]);
+      window.dispatchEvent(new CustomEvent('font_custom_parts_updated'));
+      showCanvasToast('マイ部首パーツに登録しました', `「${partName}」を部首パレットに追加しました`);
+    } catch {
+      showCanvasToast('登録に失敗しました', 'ストレージエラー');
+    }
+  }, [contours, selectedContourIds, activeChar, showCanvasToast]);
+
+  const handleSelectAllNodes = useCallback(() => {
+    if (contours.length === 0) return;
+    const allNodeIds: string[] = [];
+    contours.forEach((c) => {
+      c.nodes.forEach((n) => allNodeIds.push(n.id));
+    });
+    setSelectedContourIds(contours.map((c) => c.id));
+    setSelectedNodeIds(allNodeIds);
+    onSetToolMode?.('node');
+    showCanvasToast('ノード全選択', `${allNodeIds.length}個のノードを選択しました`);
+  }, [contours, setSelectedContourIds, setSelectedNodeIds, onSetToolMode, showCanvasToast]);
 
   return (
     <div className={`w-full h-full flex flex-col min-h-0 relative overflow-hidden select-none ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>
@@ -1037,8 +1128,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         setSelectedContourIds={setSelectedContourIds}
         setSelectedContourId={setSelectedContourId}
         selectedNodeId={selectedNodeId}
+        selectedNodeIds={selectedNodeIds}
         setSelectedNodeId={setSelectedNodeId}
         setSelectedHandleType={setSelectedHandleType}
+        isGlyphLocked={isGlyphLocked}
         handleRotateSelected={handleRotateSelected}
         handleFlipHSelected={handleFlipHSelected}
         handleFlipVSelected={handleFlipVSelected}
@@ -1087,6 +1180,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
             e.preventDefault();
           }
         }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setContextMenuState({ x: e.clientX, y: e.clientY });
+        }}
       >
         {/* Floating Overlays & Mobile Sheets */}
         <CanvasFloatingOverlays
@@ -1103,46 +1200,22 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           isLight={isLight}
           theme={theme}
           upm={upm}
-          activeChar={activeChar}
           traceSettings={traceSettings}
           onChangeTraceSettings={onChangeTraceSettings}
           handleResetTracePosition={handleResetTracePosition}
           handleResetTraceAll={handleResetTraceAll}
           onSetToolMode={onSetToolMode}
           showCanvasToast={showCanvasToast}
-          showGuideAssist={showGuideAssist}
-          handleToggleGuideAssist={handleToggleGuideAssist}
-          activePenContour={activePenContour}
-          penHudPos={penHudPos}
-          showSubToolbar={showSubToolbar}
-          handlePenHudPointerDown={handlePenHudPointerDown}
-          handlePenHudPointerMove={handlePenHudPointerMove}
-          handlePenHudPointerUp={handlePenHudPointerUp}
-          handleUndoPenNode={handleUndoPenNode}
-          handleFinishPenContour={handleFinishPenContour}
-          penStrokeWidth={penStrokeWidth}
-          penCapStyle={penCapStyle}
-          showPenStrokeMenu={showPenStrokeMenu}
-          setShowPenStrokeMenu={setShowPenStrokeMenu}
-          handleSetPenStrokeWidth={handleSetPenStrokeWidth}
-          handleSetPenCapStyle={handleSetPenCapStyle}
-          handleResetPenContour={handleResetPenContour}
-          setPenHudPos={setPenHudPos}
           touchLoupeState={touchLoupeState}
           contours={contours}
           isOutlineMode={isOutlineMode}
           canvasToast={canvasToast}
-          isBottomBarCollapsed={isBottomBarCollapsed}
-          toggleBottomBarCollapse={toggleBottomBarCollapse}
-          hoverCanvasPos={hoverCanvasPos}
-          rulerMeasurement={rulerMeasurement}
-          setRulerMeasurement={setRulerMeasurement}
-          handleDrawRulerAsStroke={handleDrawRulerAsStroke}
-          handleConvertRulerToGuideline={handleConvertRulerToGuideline}
           selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
           selectedContourId={selectedContourId}
           handleDeleteSelectedNode={handleDeleteSelectedNode}
           handleToggleNodeType={handleToggleNodeType}
+          isGlyphLocked={isGlyphLocked}
           resetView={resetView}
           handleZoomStep={handleZoomStep}
           zoom={zoom}
@@ -1150,13 +1223,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           gridSettings={gridSettings}
           palmRejectionMode={palmRejectionMode}
           handleSetPalmRejectionMode={handleSetPalmRejectionMode}
-          isStylusActive={isStylusActive}
-          liveStylusPressure={liveStylusPressure}
           pressureSensitivity={pressureSensitivity}
           onChangePressureSensitivity={onChangePressureSensitivity}
-          showQuickGridSlider={showQuickGridSlider}
-          setShowQuickGridSlider={setShowQuickGridSlider}
-          quickGridSliderRef={quickGridSliderRef}
           handleClearAllContours={handleClearAllContours}
           setOutlineOnly={setOutlineOnly}
           onOpenGlyphCompareModal={onOpenGlyphCompareModal}
@@ -1290,8 +1358,90 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           penMousePos={penMousePos}
           brushWidth={brushWidth}
           activeSnapGuides={activeSnapGuides}
+          isGlyphLocked={isGlyphLocked}
+        />
+
+        {/* Canvas Right-Click Context Menu */}
+        <CanvasContextMenu
+          isOpen={contextMenuState !== null}
+          x={contextMenuState?.x ?? 0}
+          y={contextMenuState?.y ?? 0}
+          onClose={() => setContextMenuState(null)}
+          theme={theme}
+          hasSelection={selectedContourIds.length > 0}
+          selectedContourCount={selectedContourIds.length}
+          isGlyphLocked={isGlyphLocked}
+          onFlipH={handleFlipHSelected}
+          onFlipV={handleFlipVSelected}
+          onRotate={() => handleRotateSelected(90)}
+          onDuplicate={handleDuplicateSelected}
+          onDelete={handleDeleteSelected}
+          onReverseWinding={handleReverseWindingSelected}
+          onConvertToQuadratic={handleConvertToQuadraticSelected}
+          onConvertToCubic={handleConvertToCubicSelected}
+          onRegisterRadical={handleRegisterSelectedAsCustomPart}
+          onSelectPrevGlyph={onSelectPrevGlyph}
+          onSelectNextGlyph={onSelectNextGlyph}
+          onSelectAllNodes={handleSelectAllNodes}
         />
       </div>
+
+      {/* External Docked CAD Status Bar (never overlaps SVG stage) */}
+      <CanvasStatusBar
+        isLight={isLight}
+        toolMode={toolMode}
+        onSetToolMode={onSetToolMode}
+        isSpacePressed={isSpacePressed}
+        hoverCanvasPos={hoverCanvasPos}
+        activeChar={activeChar}
+        selectedUnicode={selectedUnicode}
+        onSelectPrevGlyph={onSelectPrevGlyph}
+        onSelectNextGlyph={onSelectNextGlyph}
+        onSelectPrevUncompletedGlyph={onSelectPrevUncompletedGlyph}
+        onSelectNextUncompletedGlyph={onSelectNextUncompletedGlyph}
+        isGlyphLocked={isGlyphLocked}
+        rulerMeasurement={rulerMeasurement}
+        setRulerMeasurement={setRulerMeasurement}
+        handleDrawRulerAsStroke={handleDrawRulerAsStroke}
+        handleConvertRulerToGuideline={handleConvertRulerToGuideline}
+        selectedNodeId={selectedNodeId}
+        selectedNodeIds={selectedNodeIds}
+        selectedContourId={selectedContourId}
+        handleDeleteSelectedNode={handleDeleteSelectedNode}
+        handleToggleNodeType={handleToggleNodeType}
+        setIsMobileAuxMenuOpen={setIsMobileAuxMenuOpen}
+        resetView={resetView}
+        handleZoomStep={handleZoomStep}
+        zoom={zoom}
+        onChangeGridSettings={onChangeGridSettings as any}
+        gridSettings={gridSettings}
+        showCanvasToast={showCanvasToast}
+        palmRejectionMode={palmRejectionMode}
+        handleSetPalmRejectionMode={handleSetPalmRejectionMode}
+        isStylusActive={isStylusActive}
+        liveStylusPressure={liveStylusPressure}
+        pressureSensitivity={pressureSensitivity}
+        onChangePressureSensitivity={onChangePressureSensitivity}
+        showQuickGridSlider={showQuickGridSlider}
+        setShowQuickGridSlider={setShowQuickGridSlider}
+        quickGridSliderRef={quickGridSliderRef}
+        traceSettings={traceSettings}
+        onChangeTraceSettings={onChangeTraceSettings}
+        handleResetTracePosition={handleResetTracePosition}
+        contours={contours}
+        isOutlineMode={isOutlineMode}
+        setOutlineOnly={setOutlineOnly}
+        onOpenGlyphCompareModal={onOpenGlyphCompareModal}
+        overlaySettings={overlaySettings}
+        onToggleZenMode={onToggleZenMode}
+        isZenMode={isZenMode}
+        showGuideAssist={showGuideAssist}
+        handleToggleGuideAssist={handleToggleGuideAssist}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+      />
     </div>
   );
 },
@@ -1320,5 +1470,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.outlineOnly !== next.outlineOnly) return false;
   if (prev.activePenPreset !== next.activePenPreset) return false;
   if (prev.pressureCurve !== next.pressureCurve) return false;
+  if (prev.isGlyphLocked !== next.isGlyphLocked) return false;
   return true;
 });

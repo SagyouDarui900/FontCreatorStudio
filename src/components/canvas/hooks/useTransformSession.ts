@@ -41,6 +41,8 @@ export interface UseTransformSessionOptions {
   customGuidelines: CustomGuideline[];
   zoom: number;
   setActiveSnapGuides: React.Dispatch<React.SetStateAction<SnapGuideLine[]>>;
+  isGlyphLocked?: boolean;
+  showCanvasToast?: (title: string, desc?: string) => void;
 }
 
 export function useTransformSession({
@@ -54,6 +56,8 @@ export function useTransformSession({
   customGuidelines,
   zoom,
   setActiveSnapGuides,
+  isGlyphLocked = false,
+  showCanvasToast,
 }: UseTransformSessionOptions) {
   const [transformSession, setTransformSession] = useState<TransformSessionData | null>(null);
   const [rotateDisplayAngle, setRotateDisplayAngle] = useState<number | null>(null);
@@ -75,6 +79,10 @@ export function useTransformSession({
       overrideTargetIds?: string[]
     ) => {
       e.stopPropagation();
+      if (isGlyphLocked) {
+        showCanvasToast?.('この文字は編集ロックされています', '解除してから変形してください');
+        return;
+      }
       const targetIds = overrideTargetIds || selectedContourIds;
       if (targetIds.length === 0) return;
       const targetContours = contours.filter((c) => targetIds.includes(c.id));
@@ -91,7 +99,7 @@ export function useTransformSession({
         allInitialNodes,
       });
     },
-    [selectedContourIds, contours, screenToCanvas]
+    [isGlyphLocked, showCanvasToast, selectedContourIds, contours, screenToCanvas]
   );
 
   const handleTransformPointerMove = useCallback(

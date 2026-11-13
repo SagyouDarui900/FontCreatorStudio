@@ -9,6 +9,7 @@ export interface RadicalsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onInsertRadical: (contours: PathContour[]) => void;
+  onBatchInsertRadical?: (contours: PathContour[], targetChars: string[]) => void;
   currentContours: PathContour[];
   selectedChar: string;
   allGlyphs: Record<number, GlyphData>;

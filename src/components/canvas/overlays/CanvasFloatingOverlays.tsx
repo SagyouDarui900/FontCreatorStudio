@@ -9,14 +9,11 @@ import {
   GlyphOverlaySettings,
   BrushStyle,
   PathContour,
-  RulerMeasurement,
 } from '../../../types';
 import { ThemeMode } from '../../../utils/theme';
 import { TraceAdjustFloatingHud } from './TraceAdjustFloatingHud';
-import { GuideAssistOverlay } from './GuideAssistOverlay';
 import { CanvasTouchLoupe } from './CanvasTouchLoupe';
 import { CanvasToastNotification } from './CanvasToastNotification';
-import { CanvasStatusBar } from './CanvasStatusBar';
 import { MobileAuxMenuDrawer } from './MobileAuxMenuDrawer';
 import { MobileSelectionActionBar } from './MobileSelectionActionBar';
 import { MobilePartTransformSheet } from './MobilePartTransformSheet';
@@ -35,46 +32,22 @@ export interface CanvasFloatingOverlaysProps {
   isLight: boolean;
   theme: ThemeMode;
   upm: number;
-  activeChar?: string;
   traceSettings?: TraceSettings;
   onChangeTraceSettings?: React.Dispatch<React.SetStateAction<TraceSettings>>;
   handleResetTracePosition: () => void;
   handleResetTraceAll: () => void;
   onSetToolMode?: (mode: ToolMode) => void;
   showCanvasToast: (msg: string, sub?: string) => void;
-  showGuideAssist: boolean;
-  handleToggleGuideAssist: (open?: boolean) => void;
-  activePenContour: PathContour | null;
-  penHudPos: Point | null;
-  handlePenHudPointerDown: (e: React.PointerEvent) => void;
-  handlePenHudPointerMove: (e: React.PointerEvent) => void;
-  handlePenHudPointerUp: (e: React.PointerEvent) => void;
-  handleUndoPenNode: () => void;
-  handleFinishPenContour: (closed: boolean) => void;
-  penStrokeWidth: number;
-  penCapStyle: 'round' | 'butt' | 'square';
-  showPenStrokeMenu: boolean;
-  setShowPenStrokeMenu: React.Dispatch<React.SetStateAction<boolean>>;
-  handleSetPenStrokeWidth: (w: number) => void;
-  handleSetPenCapStyle: (cap: 'round' | 'butt' | 'square') => void;
-  handleResetPenContour: () => void;
-  setPenHudPos: (pos: Point | null) => void;
   touchLoupeState: { visible: boolean; screenX: number; screenY: number; canvasPos: Point | null };
   contours: PathContour[];
   isOutlineMode: boolean;
   canvasToast: { message: string; subText?: string; id: number } | null;
-  isBottomBarCollapsed: boolean;
-  toggleBottomBarCollapse: () => void;
-  hoverCanvasPos: Point | null;
-  showSubToolbar?: boolean;
-  rulerMeasurement?: RulerMeasurement | null;
-  setRulerMeasurement?: (val: RulerMeasurement | null) => void;
-  handleDrawRulerAsStroke?: () => void;
-  handleConvertRulerToGuideline?: () => void;
   selectedNodeId?: string | null;
+  selectedNodeIds?: string[];
   selectedContourId?: string | null;
   handleDeleteSelectedNode?: () => void;
-  handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
+  isGlyphLocked?: boolean;
   isMobileAuxMenuOpen: boolean;
   setIsMobileAuxMenuOpen: (val: boolean) => void;
   resetView: (target?: '100%' | 'fit' | 'width') => void;
@@ -84,13 +57,8 @@ export interface CanvasFloatingOverlaysProps {
   gridSettings: GridSettings;
   palmRejectionMode: 'auto' | 'strict_pen_only' | 'off';
   handleSetPalmRejectionMode: (mode: 'auto' | 'strict_pen_only' | 'off') => void;
-  isStylusActive: boolean;
-  liveStylusPressure: number | null;
   pressureSensitivity: 'high' | 'normal' | 'low' | 'off';
   onChangePressureSensitivity?: (val: 'high' | 'normal' | 'low' | 'off') => void;
-  showQuickGridSlider: boolean;
-  setShowQuickGridSlider: (val: boolean | ((prev: boolean) => boolean)) => void;
-  quickGridSliderRef: React.RefObject<HTMLDivElement | null>;
   handleClearAllContours: () => void;
   setOutlineOnly: (val: boolean) => void;
   onOpenGlyphCompareModal?: () => void;
@@ -146,46 +114,22 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   isLight,
   theme,
   upm,
-  activeChar,
   traceSettings,
   onChangeTraceSettings,
   handleResetTracePosition,
   handleResetTraceAll,
   onSetToolMode,
   showCanvasToast,
-  showGuideAssist,
-  handleToggleGuideAssist,
-  activePenContour,
-  penHudPos,
-  handlePenHudPointerDown,
-  handlePenHudPointerMove,
-  handlePenHudPointerUp,
-  handleUndoPenNode,
-  handleFinishPenContour,
-  penStrokeWidth,
-  penCapStyle,
-  showPenStrokeMenu,
-  setShowPenStrokeMenu,
-  handleSetPenStrokeWidth,
-  handleSetPenCapStyle,
-  handleResetPenContour,
-  setPenHudPos,
   touchLoupeState,
   contours,
   isOutlineMode,
   canvasToast,
-  isBottomBarCollapsed,
-  toggleBottomBarCollapse,
-  hoverCanvasPos,
-  showSubToolbar = true,
-  rulerMeasurement,
-  setRulerMeasurement,
-  handleDrawRulerAsStroke,
-  handleConvertRulerToGuideline,
   selectedNodeId,
+  selectedNodeIds,
   selectedContourId,
   handleDeleteSelectedNode,
   handleToggleNodeType,
+  isGlyphLocked = false,
   isMobileAuxMenuOpen,
   setIsMobileAuxMenuOpen,
   resetView,
@@ -195,13 +139,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   gridSettings,
   palmRejectionMode,
   handleSetPalmRejectionMode,
-  isStylusActive,
-  liveStylusPressure,
   pressureSensitivity,
   onChangePressureSensitivity,
-  showQuickGridSlider,
-  setShowQuickGridSlider,
-  quickGridSliderRef,
   handleClearAllContours,
   setOutlineOnly,
   onOpenGlyphCompareModal,
@@ -260,12 +199,12 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
     <>
       {/* Mobile Focus Mode Top Exit Bar */}
       {isMobileFocusMode && (
-        <div className="sm:hidden absolute top-2 right-2 z-30 flex items-center space-x-1 bg-stone-900/90 px-2 py-1 rounded-full border border-white/20 shadow-lg text-white">
+        <div className="sm:hidden absolute top-2 right-2 z-30 flex items-center space-x-1 bg-stone-900/90 px-1.5 py-1 rounded-md border border-white/20 shadow-lg text-white">
           {onUndo && (
             <button
               onClick={onUndo}
               disabled={!canUndo}
-              className="p-1 rounded-full hover:bg-white/20 disabled:opacity-30"
+              className="p-1 rounded hover:bg-white/20 disabled:opacity-30"
               title="1つ戻す"
             >
               <Undo className="w-3.5 h-3.5" />
@@ -275,7 +214,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
             <button
               onClick={onRedo}
               disabled={!canRedo}
-              className="p-1 rounded-full hover:bg-white/20 disabled:opacity-30"
+              className="p-1 rounded hover:bg-white/20 disabled:opacity-30"
               title="やり直す"
             >
               <Redo className="w-3.5 h-3.5" />
@@ -284,7 +223,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
           <div className="w-[1px] h-3 bg-white/30 mx-0.5" />
           <button
             onClick={() => setIsMobileFocusMode(false)}
-            className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold text-white "
+            className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold text-white"
           >
             <Minimize className="w-3.5 h-3.5" />
             <span>完了</span>
@@ -295,7 +234,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
       {/* Hand Tool Active Floating HUD Indicator */}
       {(toolMode === 'hand' || isSpacePressed) && (
         <div
-          className={`absolute top-11 left-2 sm:top-2.5 sm:left-2.5 z-30 px-2 py-0.5 rounded-md border flex items-center gap-1.5 text-[10.5px] font-semibold transition-all duration-150 pointer-events-none select-none max-w-fit ${
+          className={`absolute top-2 left-2 z-30 px-2 py-0.5 rounded-md border flex items-center gap-1.5 text-[10.5px] font-semibold transition-all duration-150 pointer-events-none select-none max-w-fit ${
             isLight
               ? 'bg-white/95 border-emerald-300 text-emerald-900 shadow-sm'
               : 'bg-[#121c15]/95 border-emerald-700/60 text-emerald-200 shadow-sm'
@@ -325,21 +264,6 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         />
       )}
 
-      {/* Typography Guide Assist Card */}
-      {showGuideAssist && traceSettings && (
-        <GuideAssistOverlay
-          showGuideAssist={showGuideAssist}
-          handleToggleGuideAssist={handleToggleGuideAssist}
-          isLight={isLight}
-          activeChar={activeChar || ''}
-          traceSettings={traceSettings}
-          handleResetTracePosition={handleResetTracePosition}
-          onSetToolMode={onSetToolMode}
-          onChangeTraceSettings={onChangeTraceSettings}
-          showCanvasToast={showCanvasToast}
-        />
-      )}
-
       {/* Mobile & Tablet Precision Touch Loupe */}
       <CanvasTouchLoupe
         touchLoupeState={touchLoupeState}
@@ -352,51 +276,6 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
       <CanvasToastNotification
         canvasToast={canvasToast}
         isLight={isLight}
-      />
-
-      {/* Status Bar */}
-      <CanvasStatusBar
-        isBottomBarCollapsed={isBottomBarCollapsed}
-        toggleBottomBarCollapse={toggleBottomBarCollapse}
-        isLight={isLight}
-        toolMode={toolMode}
-        isSpacePressed={isSpacePressed}
-        hoverCanvasPos={hoverCanvasPos}
-        rulerMeasurement={rulerMeasurement}
-        setRulerMeasurement={setRulerMeasurement}
-        handleDrawRulerAsStroke={handleDrawRulerAsStroke}
-        handleConvertRulerToGuideline={handleConvertRulerToGuideline}
-        selectedNodeId={selectedNodeId}
-        selectedContourId={selectedContourId}
-        handleDeleteSelectedNode={handleDeleteSelectedNode}
-        handleToggleNodeType={handleToggleNodeType}
-        setIsMobileAuxMenuOpen={setIsMobileAuxMenuOpen}
-        resetView={resetView}
-        handleZoomStep={handleZoomStep}
-        zoom={zoom}
-        onChangeGridSettings={onChangeGridSettings as any}
-        gridSettings={gridSettings}
-        showCanvasToast={showCanvasToast}
-        palmRejectionMode={palmRejectionMode}
-        handleSetPalmRejectionMode={handleSetPalmRejectionMode}
-        isStylusActive={isStylusActive}
-        liveStylusPressure={liveStylusPressure}
-        pressureSensitivity={pressureSensitivity}
-        onChangePressureSensitivity={onChangePressureSensitivity}
-        showQuickGridSlider={showQuickGridSlider}
-        setShowQuickGridSlider={setShowQuickGridSlider}
-        quickGridSliderRef={quickGridSliderRef}
-        traceSettings={effectiveTraceSettings}
-        onChangeTraceSettings={onChangeTraceSettings as any}
-        handleResetTracePosition={handleResetTracePosition}
-        handleClearAllContours={handleClearAllContours}
-        contours={contours}
-        isOutlineMode={isOutlineMode}
-        setOutlineOnly={setOutlineOnly}
-        onOpenGlyphCompareModal={onOpenGlyphCompareModal}
-        overlaySettings={overlaySettings}
-        onToggleZenMode={onToggleZenMode}
-        isZenMode={isZenMode}
       />
 
       {/* Mobile Canvas Bottom Sheet Drawer */}
@@ -419,9 +298,11 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleSetPalmRejectionMode={handleSetPalmRejectionMode}
         toolMode={toolMode}
         selectedNodeId={selectedNodeId || null}
+        selectedNodeIds={selectedNodeIds}
         selectedContourId={selectedContourId || null}
         handleToggleNodeType={handleToggleNodeType}
         handleDeleteSelectedNode={handleDeleteSelectedNode || (() => {})}
+        isGlyphLocked={isGlyphLocked}
         traceSettings={effectiveTraceSettings}
         onChangeTraceSettings={onChangeTraceSettings}
         handleResetTracePosition={handleResetTracePosition}

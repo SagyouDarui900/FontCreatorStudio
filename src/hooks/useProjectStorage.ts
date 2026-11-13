@@ -67,7 +67,6 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
             setProject(validatedDb);
             isHydratedRef.current = true;
             setIsStorageLoading(false);
-            onShowToast('IndexedDBから最新のプロジェクトを読み込みました', 'success');
             return;
           }
         }

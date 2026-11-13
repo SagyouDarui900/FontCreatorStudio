@@ -18,6 +18,7 @@ interface CustomPartsTabProps {
   handleCreateNameFrame: (name?: string) => void;
   handleSaveContoursAsPart: (contours: PathContour[], defaultName: string) => void;
   handleInsertWithPlacement: (contours: PathContour[], name?: string) => void;
+  onBatchInsertCustomPart?: (part: CustomPart) => void;
   showNotice: (msg: string) => void;
 }
 
@@ -36,6 +37,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
   handleCreateNameFrame,
   handleSaveContoursAsPart,
   handleInsertWithPlacement,
+  onBatchInsertCustomPart,
   showNotice,
 }) => {
   return (
@@ -182,6 +184,26 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                     : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'
                 }`}
               >
+                {/* Batch Insert Button */}
+                {hasContours && onBatchInsertCustomPart && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onBatchInsertCustomPart(part);
+                    }}
+                    className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold border transition-colors z-10 flex items-center gap-0.5 cursor-pointer ${
+                      isLight
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white'
+                        : 'bg-[#132219] border-emerald-700 text-emerald-300 hover:bg-emerald-600 hover:text-white'
+                    }`}
+                    title={`「${part.name}」を複数漢字へ一括流し込み`}
+                  >
+                    <Layers className="w-2.5 h-2.5" />
+                    <span>一括</span>
+                  </button>
+                )}
+
                 {/* Delete Button */}
                 <button
                   type="button"

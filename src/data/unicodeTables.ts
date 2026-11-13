@@ -3,6 +3,7 @@ import { JIS_LEVEL_1_KANJI } from './jisLevel1';
 import { JIS_LEVEL_2_KANJI } from './jisLevel2';
 import { JIS_LEVEL_3_KANJI } from './jisLevel3';
 import { JIS_LEVEL_4_KANJI } from './jisLevel4';
+import { JOUYOU_KANJI_2136 } from './jisKanjiSets';
 
 // 小学校各学年の配当漢字 (計1026字)
 export const ELEMENTARY_GRADE_KANJI = {
@@ -325,7 +326,13 @@ export const UNICODE_CATEGORIES: CharCategory[] = [
     nameEn: 'Grade 6 Kanji',
     chars: ELEMENTARY_GRADE_KANJI.grade6,
   },
-  // JIS水準別漢字 (第1水準 全2,965字 / 第2水準 全3,390字 / 第3水準 全1,259字 / 第4水準 全2,436字)
+  // 常用漢字・JIS水準別漢字 (常用漢字 全2,136字 / 第1水準 全2,965字 / 第2水準 全3,390字 / 第3水準 全1,259字 / 第4水準 全2,436字)
+  {
+    id: 'jouyou',
+    name: '常用漢字 (2,136字)',
+    nameEn: 'Joyo Kanji (2,136 chars)',
+    chars: JOUYOU_KANJI_2136,
+  },
   {
     id: 'jis_1',
     name: 'JIS第1水準 (2,965字 全字)',

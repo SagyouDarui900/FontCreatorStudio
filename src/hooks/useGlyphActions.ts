@@ -41,6 +41,10 @@ export function useGlyphActions({
   // Simplify current glyph contours
   const handleSimplifyCurrentGlyph = useCallback(
     (level: 'mild' | 'normal' | 'strong' = 'normal') => {
+      if (currentGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
       const contours = currentGlyph.contours || [];
       if (contours.length === 0) {
         onShowToast('単純化する輪郭がありません', 'warning');
@@ -69,6 +73,10 @@ export function useGlyphActions({
   // Auto-Spacing
   const handleAutoSpaceCurrentGlyph = useCallback(
     (preset: AutoSpacingPreset = 'smart') => {
+      if (currentGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
       const contours = currentGlyph.contours || [];
       if (contours.length === 0) {
         onShowToast('字形が作図されていません', 'warning');
@@ -124,6 +132,10 @@ export function useGlyphActions({
     (unicode: number) => {
       const targetGlyph = project.glyphs[unicode];
       if (!targetGlyph) return;
+      if (targetGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
 
       commitHistory(unicode);
 
@@ -161,6 +173,10 @@ export function useGlyphActions({
   // Paste Glyph contours
   const handlePasteGlyph = useCallback(
     (unicode: number) => {
+      if (project.glyphs[unicode]?.locked) {
+        onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
+        return;
+      }
       if (!clipboardContours || clipboardContours.length === 0) {
         onShowToast('クリップボードに字形がありません', 'warning');
         return;
@@ -190,7 +206,7 @@ export function useGlyphActions({
       const targetChar = String.fromCodePoint(unicode);
       onShowToast(`「${targetChar}」に字形を貼り付けました`, 'success');
     },
-    [clipboardContours, commitHistory, setProject, onShowToast]
+    [project.glyphs, clipboardContours, commitHistory, setProject, onShowToast]
   );
 
   // Duplicate Normal Kana to Small Kana automatically
@@ -204,6 +220,10 @@ export function useGlyphActions({
       if (!pair) return;
 
       const targetUnicode = pair.smallUnicode;
+      if (project.glyphs[targetUnicode]?.locked) {
+        onShowToast(`小文字「${pair.smallChar}」は編集ロックされています`, 'warning');
+        return;
+      }
       const smallContours = createSmallKanaContours(sourceGlyph.contours);
 
       commitHistory();
@@ -242,6 +262,10 @@ export function useGlyphActions({
     (targetChar: string, isHandakuten?: boolean) => {
       const targetUnicode = targetChar.codePointAt(0);
       if (!targetUnicode) return;
+      if (project.glyphs[targetUnicode]?.locked) {
+        onShowToast(`生成先「${targetChar}」は編集ロックされています`, 'warning');
+        return;
+      }
 
       const baseContours = currentGlyph.contours || [];
       const cloned = cloneContours(baseContours);
@@ -284,12 +308,16 @@ export function useGlyphActions({
         'success'
       );
     },
-    [currentGlyph, commitHistory, setProject, selectedChar, setSelectedUnicode, setSelectedChar, onShowToast]
+    [project.glyphs, currentGlyph, commitHistory, setProject, selectedChar, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
   // Copy strokes from another char
   const handleCopyFromChar = useCallback(
     (sourceChar: string) => {
+      if (currentGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
       const sourceUnicode = sourceChar.codePointAt(0);
       if (!sourceUnicode) return;
       const sourceGlyph = project.glyphs[sourceUnicode];
@@ -302,12 +330,16 @@ export function useGlyphActions({
       handleUpdateContours(cloned);
       onShowToast(`「${sourceChar}」から字形を読み込みました`, 'success');
     },
-    [project.glyphs, commitHistory, handleUpdateContours, onShowToast]
+    [currentGlyph.locked, project.glyphs, commitHistory, handleUpdateContours, onShowToast]
   );
 
   // Insert Radical Contours
   const handleInsertRadical = useCallback(
     (radicalContours: PathContour[]) => {
+      if (currentGlyphRef.current?.locked || currentGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
       if (!radicalContours || radicalContours.length === 0) {
         onShowToast('挿入する輪郭データがありません', 'warning');
         return;
@@ -334,18 +366,27 @@ export function useGlyphActions({
       }, 60);
       onShowToast(`部首パーツ (${uniqueRadicals.length}パス) を挿入しました（選択ツールで移動・変形可能）`, 'success');
     },
-    [commitHistory, currentGlyphRef, handleUpdateContours, setToolMode, onShowToast]
+    [currentGlyph.locked, commitHistory, currentGlyphRef, handleUpdateContours, setToolMode, onShowToast]
   );
 
   // Batch Insert Radical Contours to multiple kanji glyphs
   const handleBatchInsertRadical = useCallback(
     (radicalContours: PathContour[], targetChars: string[]) => {
+      const unlockedChars = targetChars.filter((char) => {
+        const unicode = char.codePointAt(0) || 0;
+        return unicode > 0 && !project.glyphs?.[unicode]?.locked;
+      });
+      const skippedCount = targetChars.length - unlockedChars.length;
+      if (unlockedChars.length === 0) {
+        onShowToast('選択された対象文字はすべて編集ロックされています', 'warning');
+        return;
+      }
       commitHistory();
       setProject((prev) => {
         const updatedGlyphs = { ...(prev.glyphs || {}) };
-        targetChars.forEach((char) => {
+        unlockedChars.forEach((char) => {
           const unicode = char.codePointAt(0) || 0;
-          if (!unicode) return;
+          if (!unicode || updatedGlyphs[unicode]?.locked) return;
           const existingGlyph = updatedGlyphs[unicode] || {
             unicode,
             char,
@@ -375,9 +416,16 @@ export function useGlyphActions({
         });
         return { ...prev, glyphs: updatedGlyphs, updatedAt: Date.now() };
       });
-      onShowToast(`${targetChars.length}文字の字形に部首パーツを一括挿入しました`, 'success');
+      if (skippedCount > 0) {
+        onShowToast(
+          `${unlockedChars.length}文字に部首パーツを一括挿入しました（ロック中の${skippedCount}文字をスキップ）`,
+          'info'
+        );
+      } else {
+        onShowToast(`${unlockedChars.length}文字の字形に部首パーツを一括挿入しました`, 'success');
+      }
     },
-    [commitHistory, setProject, onShowToast]
+    [project.glyphs, commitHistory, setProject, onShowToast]
   );
 
   return {

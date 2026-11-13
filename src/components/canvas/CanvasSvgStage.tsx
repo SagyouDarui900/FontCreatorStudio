@@ -130,6 +130,7 @@ export interface CanvasSvgStageProps {
   penMousePos: Point | null;
   brushWidth: number;
   activeSnapGuides: SnapGuideLine[];
+  isGlyphLocked?: boolean;
 }
 
 export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
@@ -221,6 +222,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   penMousePos,
   brushWidth,
   activeSnapGuides,
+  isGlyphLocked = false,
 }) => {
   // Memoized SVG Paths using WeakMap cache
   const mainSvgPath = useMemo(() => {
@@ -435,6 +437,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           showCanvasToast={showCanvasToast}
           handleTransformPointerDown={handleTransformPointerDown}
           onSetToolMode={onSetToolMode}
+          isGlyphLocked={isGlyphLocked}
         />
 
         {/* Marquee Selection Box */}
@@ -510,6 +513,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           setSelectedContourIds={(ids) => setSelectedContourIds(ids)}
           setSelectedNodeId={setSelectedNodeId}
           setSelectedHandleType={setSelectedHandleType}
+          isGlyphLocked={isGlyphLocked}
         />
 
         {/* Bezier Nodes & Control Handles */}
@@ -530,6 +534,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           eraserSize={eraserSize}
           startNodeOrHandleDrag={startNodeOrHandleDrag}
           handleToggleNodeType={handleToggleNodeType}
+          isGlyphLocked={isGlyphLocked}
         />
 
         {/* Active Pen Contour Path & Rubber-band */}

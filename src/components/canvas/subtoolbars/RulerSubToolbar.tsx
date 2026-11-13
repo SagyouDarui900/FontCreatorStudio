@@ -24,19 +24,19 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
   handleClearAllGuidelines,
 }) => {
   return (
-    <div className="flex items-center space-x-2 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 flex-wrap gap-y-1">
+    <div className="flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0 whitespace-nowrap">
       <div className="flex items-center space-x-1.5 text-xs">
-        <div className="flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 font-medium text-[11px]">
+        <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 font-medium text-[11px]">
           <Ruler className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-          <span>定規・寸法計測</span>
+          <span>定規</span>
         </div>
 
         {rulerMeasurement && !rulerMeasurement.active ? (
           <div className="flex items-center space-x-1.5">
-            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/60 text-sky-900 dark:text-sky-100 border border-sky-300 dark:border-sky-700">
+            <span className="font-mono tabular-nums font-bold text-xs px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/60 text-sky-900 dark:text-sky-100 border border-sky-300 dark:border-sky-700">
               {Math.round(Math.hypot(rulerMeasurement.end.x - rulerMeasurement.start.x, rulerMeasurement.end.y - rulerMeasurement.start.y))}px
             </span>
-            <span className="font-mono text-[10px] text-stone-500 dark:text-stone-400 hidden sm:inline">
+            <span className="font-mono tabular-nums text-[10px] text-stone-500 dark:text-stone-400 hidden sm:inline">
               ({Math.round(((Math.atan2(-(rulerMeasurement.end.y - rulerMeasurement.start.y), rulerMeasurement.end.x - rulerMeasurement.start.x) * 180 / Math.PI) % 360 + 360) % 360)}°)
             </span>
 

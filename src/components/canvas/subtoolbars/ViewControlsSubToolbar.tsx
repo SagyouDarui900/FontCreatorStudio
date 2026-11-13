@@ -5,9 +5,7 @@ import {
   Eye,
   EyeOff,
   Square,
-  CircleDot,
 } from 'lucide-react';
-import { GridSettings } from '../../../types';
 import { DAKUTEN_MAPPINGS } from '../../../utils/dakutenHelper';
 
 interface ViewControlsSubToolbarProps {
@@ -21,8 +19,6 @@ interface ViewControlsSubToolbarProps {
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
   isOutlineMode: boolean;
   setOutlineOnly: React.Dispatch<React.SetStateAction<boolean>>;
-  gridSettings: GridSettings;
-  onChangeGridSettings?: React.Dispatch<React.SetStateAction<GridSettings>>;
   isLight: boolean;
 }
 
@@ -37,8 +33,6 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
   setShowNodes,
   isOutlineMode,
   setOutlineOnly,
-  gridSettings,
-  onChangeGridSettings,
   isLight,
 }) => {
   const dInfo = DAKUTEN_MAPPINGS[activeChar];
@@ -49,16 +43,16 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         <button
           type="button"
           onClick={onSelectPrevGlyph}
-          className="p-1.5 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
-          title="前の文字 (Shift+Enter)"
+          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
+          title="前の文字 ([ または Alt+←)"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
         </button>
       )}
 
-      <div className="flex items-center px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300/80 dark:border-emerald-700 font-bold text-xs">
-        <span className="text-emerald-950 dark:text-emerald-200 font-sans mr-1.5 text-sm">{activeChar}</span>
-        <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400">
+      <div className="flex items-center px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300/80 dark:border-emerald-700 font-bold text-xs">
+        <span className="text-emerald-950 dark:text-emerald-200 font-sans mr-1 text-xs">{activeChar}</span>
+        <span className="text-[10px] font-mono tabular-nums text-emerald-700 dark:text-emerald-400">
           U+{selectedUnicode?.toString(16).toUpperCase().padStart(4, '0')}
         </span>
       </div>
@@ -67,10 +61,10 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         <button
           type="button"
           onClick={onSelectNextGlyph}
-          className="p-1.5 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
-          title="次の文字 (Enter)"
+          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
+          title="次の文字 (] または Alt+→)"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       )}
 
@@ -116,7 +110,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
             setShowNodes(next);
             showCanvasToast(next ? '頂点・ハンドルを表示しました' : '頂点・ハンドルを非表示にしました');
           }}
-          className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
             showNodes
               ? isLight
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
@@ -143,7 +137,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
                 : '塗りつぶし表示モードに戻しました'
             );
           }}
-          className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
             isOutlineMode
               ? isLight
                 ? 'bg-sky-50 border-sky-400 text-sky-800'
@@ -165,38 +159,6 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
             {isOutlineMode ? '輪郭モード' : '塗り表示'}
           </span>
         </button>
-
-        {/* Pointer / Crosshair Reticle Toggle */}
-        {onChangeGridSettings && (
-          <button
-            type="button"
-            onClick={() => {
-              const next = !gridSettings.showCursorCrosshair;
-              onChangeGridSettings((prev) => ({
-                ...prev,
-                showCursorCrosshair: next,
-                highContrastCursor: next,
-              }));
-              showCanvasToast(
-                next ? '照準ポインター十字線: 表示 (ON)' : '照準ポインター十字線: 非表示 (OFF)',
-                next ? '高精度十字線ガイドを作図位置に表示' : '軽量標準ポインターのみ表示'
-              );
-            }}
-            className={`p-1.5 sm:px-2 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
-              gridSettings.showCursorCrosshair
-                ? isLight
-                  ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold'
-                  : 'bg-emerald-950 border-emerald-600 text-emerald-200 font-bold'
-                : 'border-stone-200 dark:border-stone-700 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 bg-stone-100 dark:bg-stone-800'
-            }`}
-            title={`照準ポインター十字線: ${gridSettings.showCursorCrosshair ? '表示中 (クリックで非表示)' : '非表示 (クリックで表示)'} [Hキー]`}
-          >
-            <CircleDot className={`w-3.5 h-3.5 ${gridSettings.showCursorCrosshair ? 'text-amber-600 dark:text-emerald-400' : 'text-stone-400'}`} />
-            <span className="text-[11px] font-bold">
-              {gridSettings.showCursorCrosshair ? '照準ON' : '照準OFF'}
-            </span>
-          </button>
-        )}
       </div>
     </>
   );

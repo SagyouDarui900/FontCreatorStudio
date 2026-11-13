@@ -21,6 +21,8 @@ interface PenSubToolbarProps {
 }
 
 export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
+  penMode = 'bezier',
+  setPenMode,
   penStrokeWidth,
   handleSetPenStrokeWidth,
   penCapStyle,
@@ -35,23 +37,65 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
 
   return (
     <div className="flex items-center gap-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
+      {/* Pen Mode Selector: Bezier Curve vs Straight Corner */}
+      {setPenMode && (
+        <div className="flex items-center bg-stone-100 dark:bg-stone-800 p-0.5 rounded border border-stone-200 dark:border-stone-700 text-[10px] shrink-0">
+          <button
+            type="button"
+            onClick={() => setPenMode('bezier')}
+            className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              penMode === 'bezier'
+                ? 'bg-emerald-600 text-white'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
+            }`}
+            title="クリックで角、ドラッグで滑らかなベジェ曲線ハンドルを作成"
+          >
+            曲線(ベジェ)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPenMode('corner')}
+            className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              penMode === 'corner'
+                ? 'bg-emerald-600 text-white'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
+            }`}
+            title="常に直線・角頂点として配置（多角形・ゴシック骨格向け）"
+          >
+            直線(角)
+          </button>
+        </div>
+      )}
+
       {/* In-Progress Pen Action Controls (Compact Inline Toolbar) */}
       {hasActiveNodes && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30">
-          <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300 px-1 py-0.5 rounded bg-emerald-500/20 whitespace-nowrap">
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30">
+          <span className="text-[10px] font-mono tabular-nums font-bold text-emerald-700 dark:text-emerald-300 px-1 py-0.5 rounded bg-emerald-500/20 whitespace-nowrap">
             {activePenContour!.nodes.length}点
           </span>
 
-          {/* ↵ 確定 */}
+          {/* ↵ 閉じて塗り確定 (if >= 3 points) */}
+          {activePenContour!.nodes.length >= 3 && (
+            <button
+              type="button"
+              onClick={() => handleFinishPenContour?.(true)}
+              className="px-2 py-0.5 text-xs font-bold rounded bg-emerald-700 hover:bg-emerald-600 text-white transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+              title="始点につないで閉じた塗り輪郭（フォント用アウトライン）として確定"
+            >
+              <CornerDownLeft className="w-3.5 h-3.5" />
+              <span>閉じて確定</span>
+            </button>
+          )}
+
+          {/* ↵ 開いた線として確定 */}
           <button
             type="button"
             onClick={() => handleFinishPenContour?.(false)}
             disabled={activePenContour!.nodes.length < 2}
-            className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-            title="現在の開いたパスのまま確定 (Enter)"
+            className="px-2 py-0.5 text-xs font-semibold rounded bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+            title={`現在の開いたパスを太さ ${penStrokeWidth}px の線として確定`}
           >
-            <CornerDownLeft className="w-3.5 h-3.5" />
-            <span>確定</span>
+            <span>線で確定({penStrokeWidth}px)</span>
           </button>
 
           {/* ⌫ 1点戻す */}
@@ -78,9 +122,9 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
         </div>
       )}
       {/* Pen Stroke Width Controls */}
-      <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded-lg bg-stone-100/90 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700">
-        <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap hidden sm:inline">
-          太さ:
+      <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-100/90 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700">
+        <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap hidden sm:inline" title="開いた線（オープンパス）を確定した際のアウトライン展開太さ">
+          線幅:
         </span>
 
         {/* Stepper Down */}
@@ -105,7 +149,7 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
               const val = parseInt(e.target.value, 10);
               if (!isNaN(val)) handleSetPenStrokeWidth(val);
             }}
-            className="w-10 h-5 text-center text-xs font-mono font-bold bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-900 dark:text-stone-100 focus:outline-emerald-500"
+            className="w-10 h-5 text-center text-xs font-mono tabular-nums font-bold bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-900 dark:text-stone-100 focus:outline-emerald-500"
           />
           <span className="text-[9px] text-stone-400 font-mono ml-0.5">px</span>
         </div>
@@ -128,7 +172,7 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
             const w = parseInt(e.target.value, 10);
             if (!isNaN(w)) handleSetPenStrokeWidth(w);
           }}
-          className="text-[10px] font-mono font-bold px-1 py-0.5 bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 cursor-pointer outline-none ml-0.5"
+          className="text-[10px] font-mono tabular-nums font-bold px-1 py-0.5 bg-white dark:bg-stone-700 rounded border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-200 cursor-pointer outline-none ml-0.5"
           title="太さプリセット選択"
         >
           <option value="" disabled hidden>プリセット</option>
@@ -157,7 +201,7 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
         <button
           type="button"
           onClick={onOpenPenPresetsModal}
-          className="p-1.5 rounded-lg text-xs font-bold flex items-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 border border-stone-300 dark:border-stone-700 transition-colors cursor-pointer"
+          className="p-1 rounded text-xs font-bold flex items-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 border border-stone-300 dark:border-stone-700 transition-colors cursor-pointer"
           title="ペン作成・ブラシカスタマイズスタジオを開く"
         >
           <Sliders className="w-3.5 h-3.5" />

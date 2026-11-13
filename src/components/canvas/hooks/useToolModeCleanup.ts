@@ -15,7 +15,6 @@ export interface UseToolModeCleanupOptions {
   gridSettingsShowRulers?: boolean;
   setShowMobilePartSheet: (open: boolean) => void;
   setMarqueeSelection: (val: { start: Point; current: Point } | null) => void;
-  handleResetPenContour: () => void;
   resetShapeCreation: () => void;
   resetEraserVisuals: () => void;
   setRulerMeasurement: (val: any) => void;
@@ -53,7 +52,6 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     gridSettingsShowRulers,
     setShowMobilePartSheet,
     setMarqueeSelection,
-    handleResetPenContour,
     resetShapeCreation,
     resetEraserVisuals,
     setRulerMeasurement,
@@ -93,9 +91,6 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       setShowMobilePartSheet(false);
       setMarqueeSelection(null);
     }
-    if (toolMode !== 'pen') {
-      handleResetPenContour();
-    }
     if (!isShapeToolMode(toolMode)) {
       resetShapeCreation();
     }
@@ -115,7 +110,6 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
   }, [
     toolMode,
     gridSettingsShowRulers,
-    handleResetPenContour,
     resetShapeCreation,
     resetEraserVisuals,
     finalizeBrushDrawing,

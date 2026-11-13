@@ -24,6 +24,7 @@ export interface UseCanvasContourActionsOptions {
   setSelectedHandleType: (handle: any) => void;
   setTouchLoupeState: (state: any) => void;
   setEraserMode: (mode: any) => void;
+  isGlyphLocked?: boolean;
 }
 
 export function useCanvasContourActions(options: UseCanvasContourActionsOptions) {
@@ -49,10 +50,15 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     setSelectedHandleType,
     setTouchLoupeState,
     setEraserMode,
+    isGlyphLocked = false,
   } = options;
 
   // Draw straight stroke directly from ruler measurement line
   const handleDrawRulerAsStroke = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (!rulerMeasurement) return;
     const { start, end } = rulerMeasurement;
     const dist = Math.hypot(end.x - start.x, end.y - start.y);
@@ -72,6 +78,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     setRulerMeasurement(null);
     showCanvasToast('定規のラインから直線ストロークを作成しました', `長さ: ${Math.round(dist)}px / 太さ: ${brushWidth}px`);
   }, [
+    isGlyphLocked,
     rulerMeasurement,
     brushWidth,
     contours,
@@ -84,6 +91,10 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
 
   // Clear / Reset all contours of current character
   const handleClearAllContours = useCallback(() => {
+    if (isGlyphLocked) {
+      showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     resetBrushDrawing();
     resetEraserVisuals();
     setActivePenContour(null);
@@ -108,6 +119,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     onChangeContours([]);
     showCanvasToast('文字の全パーツ（輪郭）を消去しました', 'Ctrl+Z で取り消し可能');
   }, [
+    isGlyphLocked,
     contours,
     contoursRef,
     onChangeContours,

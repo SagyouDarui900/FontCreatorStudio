@@ -24,6 +24,7 @@ export interface BezierNodeControlsLayerProps {
     handleType: 'node' | 'handleIn' | 'handleOut'
   ) => void;
   handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  isGlyphLocked?: boolean;
 }
 
 export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = React.memo(
@@ -44,6 +45,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     isLight,
     startNodeOrHandleDrag,
     handleToggleNodeType,
+    isGlyphLocked = false,
   }) => {
     if (!showNodes && !(toolMode === 'eraser' && eraserMode === 'node')) {
       return null;
@@ -244,7 +246,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
                               cy={node.handleIn.y}
                               r={12 / zoom}
                               fill="transparent"
-                              className={isHandleInteractive ? 'cursor-move' : 'pointer-events-none'}
+                              className={isHandleInteractive ? (isGlyphLocked ? 'cursor-default' : 'cursor-move') : 'pointer-events-none'}
                               pointerEvents={isHandleInteractive ? 'all' : 'none'}
                               onPointerDown={(e) => {
                                 if (!isHandleInteractive) return;
@@ -281,7 +283,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
                               cy={node.handleOut.y}
                               r={12 / zoom}
                               fill="transparent"
-                              className={isHandleInteractive ? 'cursor-move' : 'pointer-events-none'}
+                              className={isHandleInteractive ? (isGlyphLocked ? 'cursor-default' : 'cursor-move') : 'pointer-events-none'}
                               pointerEvents={isHandleInteractive ? 'all' : 'none'}
                               onPointerDown={(e) => {
                                 if (!isHandleInteractive) return;

@@ -38,6 +38,9 @@ export interface GlyphCanvasProps {
   activeChar: string;
   onSelectPrevGlyph?: () => void;
   onSelectNextGlyph?: () => void;
+  onSelectPrevUncompletedGlyph?: () => void;
+  onSelectNextUncompletedGlyph?: () => void;
+  isGlyphLocked?: boolean;
   onCommitHistory?: () => void;
   theme: ThemeMode;
   onCopyFromChar?: (char: string) => void;

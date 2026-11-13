@@ -57,6 +57,8 @@ export interface UseCanvasPointerDispatcherOptions {
   setSelectedContourId: (id: string | null) => void;
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
+  selectedNodeIds?: string[];
+  setSelectedNodeIds?: (ids: string[]) => void;
   selectedHandleType: 'handleIn' | 'handleOut' | 'node' | null;
   setSelectedHandleType: (type: 'handleIn' | 'handleOut' | 'node' | null) => void;
   marqueeSelection: { start: Point; current: Point } | null;
@@ -142,6 +144,7 @@ export interface UseCanvasPointerDispatcherOptions {
   onUndo?: () => void;
   onRedo?: () => void;
   showCanvasToast: (msg: string, desc?: string) => void;
+  isGlyphLocked?: boolean;
 }
 
 export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptions) {
@@ -171,6 +174,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setSelectedContourId,
     selectedNodeId,
     setSelectedNodeId,
+    selectedNodeIds,
+    setSelectedNodeIds,
     setSelectedHandleType,
     marqueeSelection,
     setMarqueeSelection,
@@ -232,6 +237,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     onUndo,
     onRedo,
     showCanvasToast,
+    isGlyphLocked = false,
   } = opts;
 
   // Active pointer isolation to prevent concurrent pointer collisions
@@ -524,6 +530,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
+    // Guard drawing tools when glyph is locked
+    if (isGlyphLocked && (toolMode === 'pen' || toolMode === 'brush' || toolMode === 'eraser' || isShapeTool)) {
+      showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
+
     // Set active drawing pointer for single-pointer tools
     activeDrawingPointerIdRef.current = e.pointerId;
 
@@ -600,9 +612,43 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       const closeThreshold = 18 / zoom;
 
       if (currentContour.nodes.length >= 2 && distToStart <= closeThreshold) {
+        const nodes = [...currentContour.nodes];
+        const startNode = nodes[0];
+        const lastIdx = nodes.length - 1;
+        const lastNode = nodes[lastIdx];
+
+        let updatedStartNode = { ...startNode };
+        // Smooth handle continuity: If start node has handleOut and is smooth, derive its closing handleIn
+        if (startNode.handleOut && !startNode.handleIn && (startNode.type === 'smooth' || startNode.type === 'symmetric')) {
+          const hdx = startNode.handleOut.x - startNode.x;
+          const hdy = startNode.handleOut.y - startNode.y;
+          updatedStartNode = {
+            ...startNode,
+            handleIn: {
+              x: Number((startNode.x - hdx).toFixed(2)),
+              y: Number((startNode.y - hdy).toFixed(2)),
+            },
+          };
+        }
+        nodes[0] = updatedStartNode;
+
+        // Also mirror closing outgoing handle on lastNode when it was pulled smooth
+        if (lastIdx > 0 && lastNode.handleIn && !lastNode.handleOut && (lastNode.type === 'smooth' || lastNode.type === 'symmetric')) {
+          const ldx = lastNode.x - lastNode.handleIn.x;
+          const ldy = lastNode.y - lastNode.handleIn.y;
+          nodes[lastIdx] = {
+            ...lastNode,
+            handleOut: {
+              x: Number((lastNode.x + ldx).toFixed(2)),
+              y: Number((lastNode.y + ldy).toFixed(2)),
+            },
+          };
+        }
+
         const closedContour: PathContour = {
           ...currentContour,
           closed: true,
+          nodes,
         };
         onCommitHistory?.();
         onChangeContours([...contours, closedContour]);
@@ -614,7 +660,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         setSelectedHandleType(null);
         penDragHandleSessionRef.current = null;
         setPenMousePos(null);
-        showCanvasToast('ペンパスを閉じました', `${closedContour.nodes.length} 頂点`);
+        showCanvasToast('ペンパスを閉じました（塗り輪郭）', `${closedContour.nodes.length} 頂点`);
         return;
       }
 
@@ -723,6 +769,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleEraserPointerDown,
     handleBrushPointerDown,
     handleNodePointerDownOnCanvas,
+    isGlyphLocked,
+    isDrawingTool,
   ]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -941,6 +989,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       const session = penDragHandleSessionRef.current;
 
       if (session && currentContour) {
+        if (penMode === 'corner') {
+          setPenMousePos(pos);
+          return;
+        }
         let dx = pos.x - session.startPos.x;
         let dy = pos.y - session.startPos.y;
         const dist = Math.hypot(dx, dy);
@@ -1041,6 +1093,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     eraserReticleRef,
     drawingReticleRef,
     generalCrosshairRef,
+    penMode,
+    zoom,
+    setActivePenContour,
+    setSelectedHandleType,
   ]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -1133,20 +1189,91 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleGuidelinePointerUp();
     nodeDragSessionRef.current = null;
 
+    // Resolve Marquee Selection on release
+    if (marqueeSelection) {
+      const minX = Math.min(marqueeSelection.start.x, marqueeSelection.current.x);
+      const maxX = Math.max(marqueeSelection.start.x, marqueeSelection.current.x);
+      const minY = Math.min(marqueeSelection.start.y, marqueeSelection.current.y);
+      const maxY = Math.max(marqueeSelection.start.y, marqueeSelection.current.y);
+      const boxW = maxX - minX;
+      const boxH = maxY - minY;
+
+      if (boxW > 4 || boxH > 4) {
+        if (toolMode === 'node') {
+          const capturedNodeIds: string[] = [];
+          const capturedContourIds: string[] = [];
+          for (const contour of contours) {
+            let hasNode = false;
+            for (const node of contour.nodes) {
+              if (node.x >= minX && node.x <= maxX && node.y >= minY && node.y <= maxY) {
+                capturedNodeIds.push(node.id);
+                hasNode = true;
+              }
+            }
+            if (hasNode) {
+              capturedContourIds.push(contour.id);
+            }
+          }
+
+          if (capturedNodeIds.length > 0) {
+            const nextNodeIds = e.shiftKey
+              ? Array.from(new Set([...(selectedNodeIds || []), ...capturedNodeIds]))
+              : capturedNodeIds;
+            const nextContourIds = e.shiftKey
+              ? Array.from(new Set([...selectedContourIds, ...capturedContourIds]))
+              : capturedContourIds;
+
+            setSelectedNodeIds?.(nextNodeIds);
+            setSelectedContourIds(nextContourIds);
+            if (nextContourIds.length > 0) {
+              setSelectedContourId(nextContourIds[0]);
+            }
+            showCanvasToast(`${capturedNodeIds.length} 個の頂点を囲み選択しました`);
+          }
+        } else if (toolMode === 'select') {
+          const capturedContourIds: string[] = [];
+          for (const contour of contours) {
+            if (contour.nodes.length === 0) continue;
+            let cMinX = Infinity, cMaxX = -Infinity, cMinY = Infinity, cMaxY = -Infinity;
+            for (const node of contour.nodes) {
+              if (node.x < cMinX) cMinX = node.x;
+              if (node.x > cMaxX) cMaxX = node.x;
+              if (node.y < cMinY) cMinY = node.y;
+              if (node.y > cMaxY) cMaxY = node.y;
+            }
+            const intersects = !(cMaxX < minX || cMinX > maxX || cMaxY < minY || cMinY > maxY);
+            if (intersects) {
+              capturedContourIds.push(contour.id);
+            }
+          }
+
+          if (capturedContourIds.length > 0) {
+            const nextContourIds = e.shiftKey
+              ? Array.from(new Set([...selectedContourIds, ...capturedContourIds]))
+              : capturedContourIds;
+            setSelectedContourIds(nextContourIds);
+            setSelectedContourId(nextContourIds[0]);
+            showCanvasToast(`${capturedContourIds.length} 個の輪郭を囲み選択しました`);
+          }
+        }
+      }
+      setMarqueeSelection(null);
+    }
+
     // Finish Pen Tool Drag/Click determination
     if (toolMode === 'pen' && penDragHandleSessionRef.current) {
       const session = penDragHandleSessionRef.current;
       const currentContour = activePenContourRef.current;
       if (currentContour) {
-        if (!session.isDraggingHandle) {
-          // Single click (< 3px movement): Sharp corner vertex with no handles (linear segment)
+        if (penMode === 'corner' || !session.isDraggingHandle) {
+          // Corner mode or single click (< 3px movement): Sharp corner vertex with no handles (linear segment)
           const updatedNodes = currentContour.nodes.map((node) => {
             if (node.id !== session.nodeId) return node;
             return {
               ...node,
               type: 'corner' as const,
-              handleIn: undefined,
-              handleOut: undefined,
+              handleIn: null,
+              handleOut: null,
             };
           });
           const updatedContour = { ...currentContour, nodes: updatedNodes };
@@ -1223,6 +1350,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleBrushPointerUp,
     handleNodeDragEnd,
     setActivePenContour,
+    penMode,
   ]);
 
   return {

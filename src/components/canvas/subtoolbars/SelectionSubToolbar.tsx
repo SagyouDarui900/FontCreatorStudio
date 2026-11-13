@@ -127,8 +127,8 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
   };
 
   return (
-    <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#18231c] border border-stone-200 dark:border-stone-700">
-      <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 pr-0.5">
+    <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-stone-100 dark:bg-[#18231c] border border-stone-200 dark:border-stone-700 shrink-0">
+      <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 pr-0.5 tabular-nums">
         選択中{selectedContourIds.length > 1 ? ` (${selectedContourIds.length}個)` : ''}:
       </span>
       <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700 flex items-center gap-0.5">

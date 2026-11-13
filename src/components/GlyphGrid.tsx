@@ -157,7 +157,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       {effectiveIsOverlay && (
         <div
           onClick={onClose}
-          className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30 pointer-events-auto"
+          className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30 pointer-events-auto"
         />
       )}
 
@@ -169,7 +169,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         }}
         className={`${
           effectiveIsOverlay
-            ? 'fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
+            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-72 md:w-[300px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
             : 'relative z-10 shadow-none shrink-0 outline-none'
         } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
@@ -182,24 +182,24 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             className={`absolute top-0 -right-2 w-4 h-full cursor-col-resize z-30 flex items-center justify-center group select-none transition-colors ${
               isResizing ? 'bg-emerald-500/15' : 'hover:bg-emerald-500/10'
             }`}
-            title={`左右にドラッグしてサイドバー幅を調整 (${sidebarWidth}px) / ダブルクリックで初期値(330px)にリセット`}
+            title={`左右にドラッグしてサイドバー幅を調整 (${sidebarWidth}px) / ダブルクリックで初期値(264px)にリセット`}
             onDoubleClick={() => {
-              setSidebarWidth(330);
+              setSidebarWidth(264);
               try {
-                localStorage.setItem('fontforge_sidebar_width', '330');
+                localStorage.setItem('fontforge_sidebar_width', '264');
               } catch (error) {
                 console.warn('Failed to persist sidebar width:', error);
               }
             }}
           >
             <div
-              className={`w-1 h-14 rounded-full transition-all flex items-center justify-center ${
+              className={`w-1 h-14 rounded transition-all flex items-center justify-center ${
                 isResizing
                   ? 'bg-emerald-500 scale-110'
                   : 'bg-stone-300 dark:bg-stone-600 group-hover:bg-emerald-500 group-hover:scale-105'
               }`}
             >
-              <div className="w-0.5 h-6 rounded-full bg-white/50 dark:bg-black/40" />
+              <div className="w-0.5 h-6 rounded bg-white/50 dark:bg-black/40" />
             </div>
           </div>
         )}
@@ -292,11 +292,11 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               <span className={`font-bold text-sm ${themeClasses.accentText}`}>
                 {currentSelectedGlyph.char || String.fromCodePoint(currentSelectedGlyph.unicode)}
               </span>
-              <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+              <span className={`text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
                 U+{currentSelectedGlyph.unicode.toString(16).toUpperCase().padStart(4, '0')}
               </span>
               {currentSelectedHasContours && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${themeClasses.accentBadge}`}>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold tabular-nums ${themeClasses.accentBadge}`}>
                   {currentSelectedGlyph.contours.length}画
                 </span>
               )}
@@ -344,12 +344,12 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             className={`p-2 border-t flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom),10px)] ${themeClasses.toolbarBg} ${themeClasses.border}`}
           >
             <div className="flex items-center justify-between text-[11px] px-0.5">
-              <span className={`font-medium ${themeClasses.textMuted}`}>
+              <span className={`font-medium tabular-nums ${themeClasses.textMuted}`}>
                 全<strong className={`font-bold ${themeClasses.textPrimary}`}>{charList.length.toLocaleString()}字</strong>中{' '}
-                <span className="font-mono">{Math.min(charList.length, (validPage - 1) * pageSize + 1)}〜{Math.min(charList.length, validPage * pageSize)}字</span>
+                <span className="font-mono tabular-nums">{Math.min(charList.length, (validPage - 1) * pageSize + 1)}〜{Math.min(charList.length, validPage * pageSize)}字</span>
               </span>
               <span
-                className={`font-mono text-[11px] font-bold px-1.5 py-0.2 rounded border ${themeClasses.accentBadge}`}
+                className={`font-mono tabular-nums text-[11px] font-bold px-1.5 py-0.2 rounded border ${themeClasses.accentBadge}`}
               >
                 {validPage} / {totalPages} ページ
               </span>

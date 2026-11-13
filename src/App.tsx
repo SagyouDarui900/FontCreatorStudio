@@ -30,7 +30,7 @@ import { useTheme } from './hooks/useTheme';
 import { useProjectStorage } from './hooks/useProjectStorage';
 import { useAppLayout } from './hooks/useAppLayout';
 import { useAppShortcuts } from './hooks/useAppShortcuts';
-import { AppBottomBar, AppMobileNav } from './components/navigation';
+import { AppMobileNav } from './components/navigation';
 import { KANA_PAIRS } from './data/unicodeTables';
 import { X } from 'lucide-react';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
@@ -319,6 +319,10 @@ function AppMain({
   // Apply SVG vector contours to current glyph
   const handleApplySvgContours = useCallback(
     (svgContours: PathContour[], append: boolean = false) => {
+      if (isGlyphLocked) {
+        showToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
       if (svgContours.length === 0) return;
       commitHistory();
       if (append) {
@@ -330,7 +334,7 @@ function AppMain({
         showToast(`SVGベクトル輪郭 (${svgContours.length}パス) に置換しました`, 'success');
       }
     },
-    [currentGlyph, commitHistory, handleUpdateContours, showToast]
+    [isGlyphLocked, currentGlyph, commitHistory, handleUpdateContours, showToast]
   );
 
   // Global Keyboard Shortcuts
@@ -430,6 +434,7 @@ function AppMain({
             handleInsertRadical(contours);
             if (viewportWidth < 1024) handleCloseRadicalsDrawer();
           }}
+          onBatchInsertRadical={handleBatchInsertRadical}
           currentContours={currentGlyph.contours || []}
           selectedChar={selectedChar}
           allGlyphs={project.glyphs || {}}
@@ -501,6 +506,9 @@ function AppMain({
               project={project}
               onSelectPrevGlyph={handleSelectPrevGlyph}
               onSelectNextGlyph={handleSelectNextGlyph}
+              onSelectPrevUncompletedGlyph={handleSelectPrevUncompletedGlyph}
+              onSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
+              isGlyphLocked={isGlyphLocked}
               onCommitHistory={commitHistory}
               onCopyFromChar={(char) => handleCopyGlyph(char.charCodeAt(0))}
               onGenerateDakutenTarget={handleGenerateDakutenTarget}
@@ -530,8 +538,8 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-80 max-w-[85vw]'
-                : 'w-72 border-l flex flex-col shrink-0 min-h-0'
+                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw]'
+                : 'w-64 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
             {isMetricsOverlay && (
@@ -570,6 +578,7 @@ function AppMain({
               selectedContourIds={canvasSelection.contourIds}
               selectedNodeId={canvasSelection.nodeId}
               selectedHandleType={canvasSelection.handleType}
+              isGlyphLocked={isGlyphLocked}
             />
           </div>
         )}
@@ -577,27 +586,11 @@ function AppMain({
         {/* BackDrop for Right Drawer when in overlay mode */}
         {showMetricsDrawer && isMetricsOverlay && (
           <div
-            className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30"
+            className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30"
             onClick={handleCloseMetricsDrawer}
           />
         )}
       </div>
-
-      {/* Desktop/Tablet Bottom Floating Navigation Toolbar & Quick Navigation Bar */}
-      <AppBottomBar
-        selectedChar={selectedChar}
-        selectedUnicode={selectedUnicode}
-        handleSelectPrevGlyph={handleSelectPrevGlyph}
-        handleSelectNextGlyph={handleSelectNextGlyph}
-        handleSelectPrevUncompletedGlyph={handleSelectPrevUncompletedGlyph}
-        handleSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
-        contourCount={currentGlyph.contours?.length || 0}
-        handleUndo={handleUndo}
-        handleRedo={handleRedo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        themeClasses={themeClasses}
-      />
 
       {/* Accessible Mobile Bottom Navigation Bar (UI-10) */}
       <AppMobileNav

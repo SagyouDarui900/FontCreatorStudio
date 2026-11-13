@@ -31,7 +31,7 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`p-1.5 sm:p-2 h-8 rounded-lg sm:rounded-xl transition-all flex items-center space-x-1 border cursor-pointer ${
+        className={`px-1.5 h-7 rounded-md transition-all flex items-center space-x-1 border cursor-pointer ${
           isLight
             ? 'bg-stone-100/80 hover:bg-stone-200/80 text-stone-700 border-stone-200/90'
             : 'bg-[#18241d] hover:bg-[#203027] text-emerald-300 border-[#25362b]'
@@ -55,7 +55,7 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
           <div
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className={`fixed right-2 sm:right-16 top-[48px] sm:top-[52px] w-[calc(100vw-16px)] sm:w-80 max-w-sm rounded-2xl border shadow-2xl z-50 p-3 text-left ${cardBgClass}`}
+            className={`fixed right-2 sm:right-14 top-[42px] sm:top-[44px] w-[calc(100vw-16px)] sm:w-80 max-w-sm rounded-xl border shadow-2xl z-50 p-3 text-left ${cardBgClass}`}
           >
             <div className="px-1 py-1 border-b border-stone-200/80 dark:border-stone-800/80 flex items-center justify-between mb-2">
               <div className="flex items-center space-x-1.5">

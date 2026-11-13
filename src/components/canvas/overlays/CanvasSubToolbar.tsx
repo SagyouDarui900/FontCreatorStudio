@@ -7,8 +7,6 @@ import {
   Lock,
   Unlock,
   ChevronUp,
-  Trash2,
-  CircleDot,
   X,
 } from 'lucide-react';
 import {
@@ -40,8 +38,6 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   setShowNodes,
   isOutlineMode,
   setOutlineOnly,
-  gridSettings,
-  onChangeGridSettings,
   toolMode,
   setShowMobileBrushSheet,
   brushStyle,
@@ -87,6 +83,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   setSelectedContourIds,
   setSelectedContourId,
   selectedNodeId,
+  selectedNodeIds = [],
   setSelectedNodeId,
   setSelectedHandleType,
   handleRotateSelected,
@@ -226,166 +223,183 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
     <>
       {!isMobileFocusMode && showSubToolbar ? (
         <div
-          ref={subToolbarRef}
-          onWheel={(e) => {
-            if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
-              if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-                const delta = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-                e.currentTarget.scrollLeft += delta;
-                checkSubToolbarScroll();
-              }
-            }
-          }}
-          className={`h-11 border-b flex items-center justify-between px-2.5 sm:px-3 shrink-0 z-20 select-none overflow-x-auto touch-scroll-x custom-scrollbar gap-2 relative transition-colors ${themeClasses.subtoolbarBg}`}
+          className={`h-9 border-b flex items-center gap-1 px-1.5 sm:px-2 shrink-0 z-20 select-none transition-colors ${themeClasses.subtoolbarBg}`}
         >
-          {/* Sticky Left Scroll Jump Button */}
+          {/* Fixed Left Scroll Jump Button (outside scroll container) */}
           {subToolbarCanScrollLeft && (
             <button
               type="button"
               onClick={handleSubToolbarScrollLeft}
-              className="sticky left-0 z-30 shrink-0 flex items-center justify-center w-6 h-8 -my-1 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 shadow-md border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
+              className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
               title="ツールバーを左へスクロール"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {/* Left: Quick Character Switcher & Context Tool Settings */}
-          <div className="flex items-center space-x-1.5 shrink-0">
-            <ViewControlsSubToolbar
-              onSelectPrevGlyph={onSelectPrevGlyph}
-              onSelectNextGlyph={onSelectNextGlyph}
-              activeChar={activeChar}
-              selectedUnicode={selectedUnicode}
-              onGenerateDakutenTarget={onGenerateDakutenTarget}
-              showCanvasToast={showCanvasToast}
-              showNodes={showNodes}
-              setShowNodes={setShowNodes}
-              isOutlineMode={isOutlineMode}
-              setOutlineOnly={setOutlineOnly}
-              gridSettings={gridSettings}
-              onChangeGridSettings={onChangeGridSettings}
-              isLight={isLight}
-            />
+          {/* Scrollable Center Track */}
+          <div
+            ref={subToolbarRef}
+            onWheel={(e) => {
+              if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
+                if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
+                  const delta = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+                  e.currentTarget.scrollLeft += delta;
+                  checkSubToolbarScroll();
+                }
+              }
+            }}
+            className="flex-1 min-w-0 flex items-center justify-between gap-2 overflow-x-auto touch-scroll-x no-scrollbar"
+          >
+            {/* Left: Quick Character Switcher & Context Tool Settings */}
+            <div className="flex items-center space-x-1.5 shrink-0">
+              <ViewControlsSubToolbar
+                onSelectPrevGlyph={onSelectPrevGlyph}
+                onSelectNextGlyph={onSelectNextGlyph}
+                activeChar={activeChar}
+                selectedUnicode={selectedUnicode}
+                onGenerateDakutenTarget={onGenerateDakutenTarget}
+                showCanvasToast={showCanvasToast}
+                showNodes={showNodes}
+                setShowNodes={setShowNodes}
+                isOutlineMode={isOutlineMode}
+                setOutlineOnly={setOutlineOnly}
+                isLight={isLight}
+              />
 
-            {/* Brush Tool Options */}
-            {toolMode === 'brush' && (
-              <BrushSubToolbar
-                brushStyle={brushStyle}
-                onChangeBrushStyle={onChangeBrushStyle}
-                brushWidth={brushWidth}
-                onChangeBrushWidth={onChangeBrushWidth}
-                onOpenPenPresetsModal={onOpenPenPresetsModal}
-                pressureSensitivity={pressureSensitivity}
-                onChangePressureSensitivity={onChangePressureSensitivity}
-                setShowMobileBrushSheet={setShowMobileBrushSheet}
-                brushStraightMode={brushStraightMode}
-                setBrushStraightMode={setBrushStraightMode}
-                autoSmoothBrush={autoSmoothBrush}
-                setAutoSmoothBrush={setAutoSmoothBrush}
-                smoothStrength={smoothStrength}
-                setSmoothStrength={setSmoothStrength}
-                handleStraightenWobblySelected={handleStraightenWobblySelected}
+              {/* Brush Tool Options */}
+              {toolMode === 'brush' && (
+                <BrushSubToolbar
+                  brushStyle={brushStyle}
+                  onChangeBrushStyle={onChangeBrushStyle}
+                  brushWidth={brushWidth}
+                  onChangeBrushWidth={onChangeBrushWidth}
+                  onOpenPenPresetsModal={onOpenPenPresetsModal}
+                  pressureSensitivity={pressureSensitivity}
+                  onChangePressureSensitivity={onChangePressureSensitivity}
+                  setShowMobileBrushSheet={setShowMobileBrushSheet}
+                  brushStraightMode={brushStraightMode}
+                  setBrushStraightMode={setBrushStraightMode}
+                  autoSmoothBrush={autoSmoothBrush}
+                  setAutoSmoothBrush={setAutoSmoothBrush}
+                  smoothStrength={smoothStrength}
+                  setSmoothStrength={setSmoothStrength}
+                  handleStraightenWobblySelected={handleStraightenWobblySelected}
+                  showCanvasToast={showCanvasToast}
+                  isLight={isLight}
+                />
+              )}
+
+              {/* Pen Tool options */}
+              {toolMode === 'pen' && (
+                <PenSubToolbar
+                  penMode={penMode}
+                  setPenMode={setPenMode}
+                  penStrokeWidth={penStrokeWidth}
+                  handleSetPenStrokeWidth={handleSetPenStrokeWidth}
+                  penCapStyle={penCapStyle}
+                  handleSetPenCapStyle={handleSetPenCapStyle}
+                  onOpenPenPresetsModal={onOpenPenPresetsModal}
+                  activePenContour={activePenContour}
+                  handleFinishPenContour={handleFinishPenContour}
+                  handleUndoPenNode={handleUndoPenNode}
+                  handleResetPenContour={handleResetPenContour}
+                />
+              )}
+
+              {/* Eraser Tool Options */}
+              {toolMode === 'eraser' && (
+                <EraserSubToolbar
+                  eraserMode={eraserMode}
+                  setEraserMode={setEraserMode}
+                  eraserSize={eraserSize}
+                  setEraserSize={setEraserSize}
+                  handleClearAll={handleClearAll}
+                />
+              )}
+
+              {/* Ruler / Dimension Measurement Options */}
+              {toolMode === 'ruler' && (
+                <RulerSubToolbar
+                  rulerMeasurement={rulerMeasurement}
+                  handleDrawRulerAsStroke={handleDrawRulerAsStroke}
+                  handleConvertRulerToGuideline={handleConvertRulerToGuideline}
+                  setRulerMeasurement={setRulerMeasurement}
+                  customGuidelines={customGuidelines}
+                  isGuideEraserActive={isGuideEraserActive}
+                  setIsGuideEraserActive={setIsGuideEraserActive}
+                  handleClearAllGuidelines={handleClearAllGuidelines}
+                />
+              )}
+
+              {/* Node Tool & Shape Tool Options */}
+              <NodeAndShapeSubToolbar
+                toolMode={toolMode}
+                nodeStyle={nodeStyle}
+                setNodeStyle={setNodeStyle}
+                selectedNodeId={selectedNodeId}
+                selectedNodeIds={selectedNodeIds}
+                selectedContourId={selectedContourIds[0] || null}
+                handleToggleNodeType={handleToggleNodeType}
+                handleDeleteSelectedNode={handleDeleteSelectedNode}
+                isShapeTool={isShapeTool}
+                isShiftLockRatio={isShiftLockRatio}
+                setIsShiftLockRatio={setIsShiftLockRatio}
+                isAltFromCenter={isAltFromCenter}
+                setIsAltFromCenter={setIsAltFromCenter}
                 showCanvasToast={showCanvasToast}
                 isLight={isLight}
               />
-            )}
+            </div>
 
-            {/* Pen Tool options */}
-            {toolMode === 'pen' && (
-              <PenSubToolbar
+            {/* Center: Selected Part Actions / Quick Transform Strip */}
+            <div className="flex items-center space-x-1 shrink-0">
+              <SelectionSubToolbar
+                toolMode={toolMode}
+                selectedContourIds={selectedContourIds}
+                setSelectedContourIds={setSelectedContourIds}
+                setSelectedContourId={setSelectedContourId}
+                setSelectedNodeId={setSelectedNodeId}
+                setSelectedHandleType={setSelectedHandleType}
+                showCanvasToast={showCanvasToast}
+                handleMergeSelectedContours={handleMergeSelectedContours}
+                handleSubtractSelectedContours={handleSubtractSelectedContours}
+                handleIntersectSelectedContours={handleIntersectSelectedContours}
+                handleSmoothStrokeSelected={handleSmoothStrokeSelected}
+                handleConvertToCornersSelected={handleConvertToCornersSelected}
+                handleConvertToSmoothSelected={handleConvertToSmoothSelected}
+                handleExpandStrokeSelected={handleExpandStrokeSelected}
+                handleReverseWindingSelected={handleReverseWindingSelected}
+                handleFlipHSelected={handleFlipHSelected}
+                handleFlipVSelected={handleFlipVSelected}
+                handleRotateSelected={handleRotateSelected}
+                handleSlantSelected={handleSlantSelected}
+                handleDuplicateSelected={handleDuplicateSelected}
+                handleDeleteSelected={handleDeleteSelected}
                 penStrokeWidth={penStrokeWidth}
-                handleSetPenStrokeWidth={handleSetPenStrokeWidth}
-                penCapStyle={penCapStyle}
-                handleSetPenCapStyle={handleSetPenCapStyle}
-                onOpenPenPresetsModal={onOpenPenPresetsModal}
-                activePenContour={activePenContour}
-                handleFinishPenContour={handleFinishPenContour}
-                handleUndoPenNode={handleUndoPenNode}
-                handleResetPenContour={handleResetPenContour}
+                smoothStrength={smoothStrength}
+                smoothPreserveCorners={smoothPreserveCorners}
+                handleAlignSelected={handleAlignSelected}
+                handleDistributeSelected={handleDistributeSelected}
+                contours={contours}
+                activeChar={activeChar}
               />
-            )}
-
-            {/* Eraser Tool Options */}
-            {toolMode === 'eraser' && (
-              <EraserSubToolbar
-                eraserMode={eraserMode}
-                setEraserMode={setEraserMode}
-                eraserSize={eraserSize}
-                setEraserSize={setEraserSize}
-                handleClearAll={handleClearAll}
-              />
-            )}
-
-            {/* Ruler / Dimension Measurement Options */}
-            {toolMode === 'ruler' && (
-              <RulerSubToolbar
-                rulerMeasurement={rulerMeasurement}
-                handleDrawRulerAsStroke={handleDrawRulerAsStroke}
-                handleConvertRulerToGuideline={handleConvertRulerToGuideline}
-                setRulerMeasurement={setRulerMeasurement}
-                customGuidelines={customGuidelines}
-                isGuideEraserActive={isGuideEraserActive}
-                setIsGuideEraserActive={setIsGuideEraserActive}
-                handleClearAllGuidelines={handleClearAllGuidelines}
-              />
-            )}
-
-            {/* Node Tool & Shape Tool Options */}
-            <NodeAndShapeSubToolbar
-              toolMode={toolMode}
-              nodeStyle={nodeStyle}
-              setNodeStyle={setNodeStyle}
-              selectedNodeId={selectedNodeId}
-              selectedContourId={selectedContourIds[0] || null}
-              handleToggleNodeType={handleToggleNodeType}
-              handleDeleteSelectedNode={handleDeleteSelectedNode}
-              isShapeTool={isShapeTool}
-              isShiftLockRatio={isShiftLockRatio}
-              setIsShiftLockRatio={setIsShiftLockRatio}
-              isAltFromCenter={isAltFromCenter}
-              setIsAltFromCenter={setIsAltFromCenter}
-              showCanvasToast={showCanvasToast}
-              isLight={isLight}
-            />
+            </div>
           </div>
 
-          {/* Center: Selected Part Actions / Quick Transform Strip */}
+          {/* Pinned Right Controls (outside scroll container) */}
           <div className="flex items-center space-x-1 shrink-0">
-            <SelectionSubToolbar
-              toolMode={toolMode}
-              selectedContourIds={selectedContourIds}
-              setSelectedContourIds={setSelectedContourIds}
-              setSelectedContourId={setSelectedContourId}
-              setSelectedNodeId={setSelectedNodeId}
-              setSelectedHandleType={setSelectedHandleType}
-              showCanvasToast={showCanvasToast}
-              handleMergeSelectedContours={handleMergeSelectedContours}
-              handleSubtractSelectedContours={handleSubtractSelectedContours}
-              handleIntersectSelectedContours={handleIntersectSelectedContours}
-              handleSmoothStrokeSelected={handleSmoothStrokeSelected}
-              handleConvertToCornersSelected={handleConvertToCornersSelected}
-              handleConvertToSmoothSelected={handleConvertToSmoothSelected}
-              handleExpandStrokeSelected={handleExpandStrokeSelected}
-              handleReverseWindingSelected={handleReverseWindingSelected}
-              handleFlipHSelected={handleFlipHSelected}
-              handleFlipVSelected={handleFlipVSelected}
-              handleRotateSelected={handleRotateSelected}
-              handleSlantSelected={handleSlantSelected}
-              handleDuplicateSelected={handleDuplicateSelected}
-              handleDeleteSelected={handleDeleteSelected}
-              penStrokeWidth={penStrokeWidth}
-              smoothStrength={smoothStrength}
-              smoothPreserveCorners={smoothPreserveCorners}
-              handleAlignSelected={handleAlignSelected}
-              handleDistributeSelected={handleDistributeSelected}
-              contours={contours}
-              activeChar={activeChar}
-            />
-          </div>
+            {subToolbarCanScrollRight && (
+              <button
+                type="button"
+                onClick={handleSubToolbarScrollRight}
+                className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
+                title="ツールバーを右へスクロール"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
 
-          {/* Right: Actions & Custom Guidelines */}
-          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Custom Guidelines Lock & Clear */}
             {customGuidelines.length > 0 && (
               <div className="hidden sm:flex items-center space-x-1 pl-1 border-l border-stone-200 dark:border-stone-700">
@@ -398,7 +412,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                       nextLocked ? 'ガイド線をロックしました' : 'ガイド線のロックを解除しました (移動可能)'
                     );
                   }}
-                  className={`p-1.5 rounded border transition-colors flex items-center space-x-1 text-xs font-bold cursor-pointer ${
+                  className={`px-1.5 py-1 rounded border transition-colors flex items-center space-x-1 text-xs font-bold cursor-pointer ${
                     lockGuidelines
                       ? isLight
                         ? 'bg-stone-100 border-stone-300 text-stone-600'
@@ -420,7 +434,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                     setCustomGuidelines([]);
                     showCanvasToast('カスタムガイド線を消去しました');
                   }}
-                  className="p-1.5 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
                   title="カスタムガイド線を全消去"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -428,110 +442,59 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
               </div>
             )}
 
-            {/* Clear All button if has contours */}
-            {contours.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="p-1.5 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                title="全パスを消去"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-
             {/* Collapse Subtoolbar button */}
             <button
               type="button"
               onClick={handleToggleSubToolbar}
-              className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-[#202e24] text-stone-400 hover:text-stone-700 dark:hover:text-emerald-300 transition-colors ml-0.5 cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center rounded hover:bg-stone-200 dark:hover:bg-[#202e24] text-stone-400 hover:text-stone-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
               title="サブツールバーを折りたたむ (作図キャンバスを広く使う)"
             >
               <ChevronUp className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          {/* Sticky Right Scroll Jump Button */}
-          {subToolbarCanScrollRight && (
-            <button
-              type="button"
-              onClick={handleSubToolbarScrollRight}
-              className="sticky right-0 z-30 shrink-0 flex items-center justify-center w-6 h-8 -my-1 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 shadow-md border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
-              title="ツールバーを右へスクロール"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       ) : (
-        /* Collapsed Floating Minimal Trigger */
+        /* Collapsed Docked Minimal Strip (Non-overlapping) */
         !isMobileFocusMode && (
           <div
-            className="absolute top-2 left-2 z-20 pointer-events-auto flex items-center space-x-1 bg-white/95 dark:bg-[#121c15]/95 px-2 py-1 rounded-full border border-stone-200/80 dark:border-emerald-800/60 text-xs select-none shadow-sm"
-            onPointerDown={(e) => e.stopPropagation()}
+            className={`h-7 border-b flex items-center justify-between px-2 shrink-0 z-20 select-none text-xs transition-colors ${themeClasses.subtoolbarBg}`}
           >
-            {onSelectPrevGlyph && (
-              <button
-                type="button"
-                onClick={onSelectPrevGlyph}
-                className="p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                title="前の文字"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <span className="font-bold text-emerald-900 dark:text-emerald-200 px-1 font-sans">{activeChar}</span>
-            {onSelectNextGlyph && (
-              <button
-                type="button"
-                onClick={onSelectNextGlyph}
-                className="p-0.5 rounded-full hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                title="次の文字"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <div className="w-[1px] h-3 bg-stone-300 dark:bg-emerald-800 mx-0.5" />
+            <div className="flex items-center space-x-1">
+              {onSelectPrevGlyph && (
+                <button
+                  type="button"
+                  onClick={onSelectPrevGlyph}
+                  className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
+                  title="前の文字 ([ または Alt+←)"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <span className="font-bold text-emerald-900 dark:text-emerald-200 px-1 font-sans">{activeChar}</span>
+              <span className="text-[10px] font-mono tabular-nums text-emerald-700/80 dark:text-emerald-400/80 hidden xs:inline">
+                U+{selectedUnicode?.toString(16).toUpperCase().padStart(4, '0')}
+              </span>
+              {onSelectNextGlyph && (
+                <button
+                  type="button"
+                  onClick={onSelectNextGlyph}
+                  className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
+                  title="次の文字 (] または Alt+→)"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleToggleSubToolbar}
-              className="flex items-center space-x-1 px-1.5 py-0.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-950 text-[10.5px] font-bold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
+              className="flex items-center space-x-1 px-2 py-0.5 rounded hover:bg-emerald-100 dark:hover:bg-emerald-950 text-[10.5px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60 transition-colors cursor-pointer"
               title="サブツールバーを展開"
             >
               <Sliders className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden xs:inline">詳細バー</span>
+              <span>ツール詳細</span>
               <ChevronDown className="w-3 h-3" />
             </button>
-            {onChangeGridSettings && (
-              <>
-                <div className="w-[1px] h-3 bg-stone-300 dark:bg-emerald-800 mx-0.5" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !gridSettings.showCursorCrosshair;
-                    onChangeGridSettings((prev) => ({
-                      ...prev,
-                      showCursorCrosshair: next,
-                      highContrastCursor: next,
-                    }));
-                    showCanvasToast(
-                      next ? '照準ポインター・十字線: ON' : '照準ポインター・十字線: OFF',
-                      next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
-                    );
-                  }}
-                  className={`p-1 rounded-full transition-colors cursor-pointer ${
-                    gridSettings.showCursorCrosshair
-                      ? isLight
-                        ? 'bg-amber-100 text-amber-900 font-bold'
-                        : 'bg-emerald-800 text-amber-300 font-bold'
-                      : 'text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
-                  }`}
-                  title={`照準ポインター切替 [Hキー]: ${gridSettings.showCursorCrosshair ? 'ON' : 'OFF'}`}
-                >
-                  <CircleDot className="w-3 h-3" />
-                </button>
-              </>
-            )}
           </div>
         )
       )}

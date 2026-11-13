@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, Layers } from 'lucide-react';
 import { KANJI_RADICALS } from '../../data/kanjiRadicals';
 import { FontStyleOption } from '../../utils/radicalExtractor';
 
@@ -13,6 +13,7 @@ interface PresetRadicalsTabProps {
   selectedFontStyle: FontStyleOption;
   onInsertPresetRadical: (radical: (typeof KANJI_RADICALS)[0]) => void;
   onImportAllPresetRadicals: () => void;
+  onBatchInsertPresetRadical?: (radical: (typeof KANJI_RADICALS)[0]) => void;
 }
 
 export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
@@ -25,6 +26,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
   selectedFontStyle,
   onInsertPresetRadical,
   onImportAllPresetRadicals,
+  onBatchInsertPresetRadical,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -81,38 +83,57 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 pb-28 sm:pb-8 grid grid-cols-3 gap-2 content-start">
         {filteredRadicals.map((radical) => {
           return (
-            <button
-              key={radical.id}
-              type="button"
-              onClick={() => onInsertPresetRadical(radical)}
-              className={`flex flex-col items-center justify-between p-2 rounded-lg border group transition-all cursor-pointer ${
-                isLight
-                  ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-emerald-50 shadow-xs'
-                  : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'
-              }`}
-              title={`${radical.name} (${radical.char}) をキャンバスに挿入`}
-            >
-              <div className="w-14 h-14 flex items-center justify-center p-0.5">
+            <div key={radical.id} className="relative group">
+              <button
+                type="button"
+                onClick={() => onInsertPresetRadical(radical)}
+                className={`w-full flex flex-col items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${
+                  isLight
+                    ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-emerald-50 shadow-xs'
+                    : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'
+                }`}
+                title={`${radical.name} (${radical.char}) をキャンバスに挿入`}
+              >
+                <div className="w-14 h-14 flex items-center justify-center p-0.5">
+                  <span
+                    style={{
+                      fontFamily: selectedFontStyle.fontFamily,
+                      fontWeight: selectedFontStyle.fontWeight,
+                    }}
+                    className={`text-2xl transition-transform group-hover:scale-110 ${
+                      isLight ? 'text-stone-800 group-hover:text-emerald-900' : 'text-emerald-100 group-hover:text-white'
+                    }`}
+                  >
+                    {radical.char || radical.name}
+                  </span>
+                </div>
                 <span
-                  style={{
-                    fontFamily: selectedFontStyle.fontFamily,
-                    fontWeight: selectedFontStyle.fontWeight,
-                  }}
-                  className={`text-2xl transition-transform group-hover:scale-110 ${
-                    isLight ? 'text-stone-800 group-hover:text-emerald-900' : 'text-emerald-100 group-hover:text-white'
+                  className={`text-[10px] font-bold mt-1 truncate w-full text-center ${
+                    isLight ? 'text-stone-800 group-hover:text-emerald-950' : 'text-emerald-200 group-hover:text-white'
                   }`}
                 >
-                  {radical.char || radical.name}
+                  {radical.name}
                 </span>
-              </div>
-              <span
-                className={`text-[10px] font-bold mt-1 truncate w-full text-center ${
-                  isLight ? 'text-stone-800 group-hover:text-emerald-950' : 'text-emerald-200 group-hover:text-white'
-                }`}
-              >
-                {radical.name}
-              </span>
-            </button>
+              </button>
+              {onBatchInsertPresetRadical && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBatchInsertPresetRadical(radical);
+                  }}
+                  className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold border opacity-85 group-hover:opacity-100 transition-all flex items-center gap-0.5 cursor-pointer ${
+                    isLight
+                      ? 'bg-emerald-50/95 border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white'
+                      : 'bg-[#132219]/95 border-emerald-700 text-emerald-300 hover:bg-emerald-600 hover:text-white'
+                  }`}
+                  title={`「${radical.name}」を複数漢字へ一括流し込み`}
+                >
+                  <Layers className="w-2.5 h-2.5" />
+                  <span>一括</span>
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
@@ -121,7 +142,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
       <div className={`p-2 border-t shrink-0 flex items-center justify-between text-xs ${isLight ? 'bg-white' : 'bg-[#18231c]'}`}>
         <div className="flex flex-col">
           <span className="text-[10.5px] font-semibold text-stone-700 dark:text-stone-300">
-            ベクター即時編集パーツ: {filteredRadicals.length} / 138 件
+            ベクター即時編集パーツ: {filteredRadicals.length} / {KANJI_RADICALS.length} 件
           </span>
           <span className="text-[9.5px] text-stone-500 dark:text-stone-400">
             全214部首は「康熙214」タブから参照・自動抽出可能

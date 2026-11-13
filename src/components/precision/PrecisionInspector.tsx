@@ -22,6 +22,7 @@ import {
   Split,
   Box,
   Hash,
+  Lock,
 } from 'lucide-react';
 import { PathContour, BezierNode, ThemeClasses } from '../../types';
 import { getContoursBoundingBox, getContourBoundingBox } from '../../utils/path';
@@ -46,6 +47,7 @@ export interface PrecisionInspectorProps {
   showToast?: (title: string, desc?: string) => void;
   isLight: boolean;
   themeClasses: ThemeClasses;
+  isGlyphLocked?: boolean;
 }
 
 export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
@@ -60,6 +62,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
   showToast,
   isLight,
   themeClasses,
+  isGlyphLocked = false,
 }) => {
   const [keepAspect, setKeepAspect] = useState<boolean>(true);
   const [offsetStrokeWidth, setOffsetStrokeWidth] = useState<number>(40);
@@ -90,6 +93,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Update a single node property
   const handleUpdateNodeProp = (key: 'x' | 'y' | 'type', value: any) => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (!activeParentContour || !activeNode) return;
     const updated = contours.map((c) => {
       if (c.id !== activeParentContour.id) return c;
@@ -117,6 +124,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Align actions
   const handleAlign = (direction: AlignDirection) => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (selectedContourIds.length === 0) {
       showToast?.('整列するパスを選択してください');
       return;
@@ -132,6 +143,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Distribute actions
   const handleDistribute = (direction: DistributeDirection) => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (selectedContourIds.length < 3) {
       showToast?.('等間隔分布には3つ以上のパスが必要です');
       return;
@@ -144,6 +159,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Exact Dimension Update (W / H)
   const handleSetExactDimension = (targetW: number, targetH: number) => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (selectedContours.length !== 1) return;
     const targetContour = selectedContours[0];
     const scaled = setContourExactDimensions(targetContour, targetW, targetH, keepAspect);
@@ -155,6 +174,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Path Offset / Stroke-to-outline expansion
   const handleExpandOffset = () => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (selectedContourIds.length === 0) {
       showToast?.('展開するパスを選択してください');
       return;
@@ -170,6 +193,10 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
   // Snap selected node coordinates to integer / whole number
   const handleRoundNodeCoords = () => {
+    if (isGlyphLocked) {
+      showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+      return;
+    }
     if (!activeParentContour || !activeNode) return;
     const updated = contours.map((c) => {
       if (c.id !== activeParentContour.id) return c;
@@ -193,10 +220,16 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-xs select-none">
+    <div className="space-y-3 text-xs select-none">
+      {isGlyphLocked && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[11px] font-semibold">
+          <Lock className="w-3.5 h-3.5 shrink-0" />
+          <span>編集ロック中（読み取り専用）</span>
+        </div>
+      )}
       {/* 1. NODE INSPECTOR SECTION */}
       {activeNode && (
-        <div className={`p-3 rounded-lg border ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <Move className="w-3.5 h-3.5" />
@@ -275,7 +308,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       )}
 
       {/* 2. ALIGNMENT & DISTRIBUTION SECTION */}
-      <div className={`p-3 rounded-lg border ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
             <AlignCenter className="w-3.5 h-3.5 text-emerald-500" />
@@ -379,7 +412,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
 
       {/* 3. DIMENSIONS & NUMERIC RESIZE (When contour is selected) */}
       {selBBox && (
-        <div className={`p-3 rounded-lg border ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
               <Hash className="w-3.5 h-3.5 text-indigo-500" />
@@ -432,7 +465,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       )}
 
       {/* 4. PATH OFFSET / STROKE EXPANSION */}
-      <div className={`p-3 rounded-lg border ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
             <Sliders className="w-3.5 h-3.5 text-amber-500" />

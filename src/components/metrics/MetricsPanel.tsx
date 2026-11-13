@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Sliders, X, Layers } from 'lucide-react';
+import { Sliders, X, Layers, Lock } from 'lucide-react';
 import { PathContour, ThemeClasses } from '../../types';
 import { PrecisionInspector } from '../precision/PrecisionInspector';
 import {
@@ -55,6 +55,7 @@ export interface MetricsPanelProps {
   selectedContourIds?: string[];
   selectedNodeId?: string | null;
   selectedHandleType?: 'node' | 'handleIn' | 'handleOut' | null;
+  isGlyphLocked?: boolean;
 }
 
 export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
@@ -82,6 +83,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   selectedContourIds = [],
   selectedNodeId = null,
   selectedHandleType = null,
+  isGlyphLocked = false,
 }) => {
   const upm = unitsPerEm || 1000;
   const [activeTab, setActiveTab] = useState<'metrics' | 'precision'>('metrics');
@@ -132,8 +134,17 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     return contours.reduce((acc, c) => acc + (c.nodes ? c.nodes.length : 0), 0);
   }, [contours]);
 
+  const guardLocked = () => {
+    if (isGlyphLocked) {
+      onShowToast?.('この文字は編集ロックされています', 'warning');
+      return true;
+    }
+    return false;
+  };
+
   // Handle Simplify execution
   const handleExecuteSimplify = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) {
       onShowToast?.('単純化する輪郭がありません', 'warning');
       return;
@@ -164,6 +175,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   // Handle Auto-Spacing execution
   const handleExecuteAutoSpacing = (preset: AutoSpacingPreset = spacingPreset) => {
+    if (guardLocked()) return;
     if (contours.length === 0) {
       onShowToast?.('字形が作図されていません', 'warning');
       return;
@@ -200,6 +212,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   // Horizontal Centering within current Advance Width
   const handleCenterWithinAdvance = () => {
+    if (guardLocked()) return;
     if (contours.length === 0 || bbox.width <= 0) {
       onShowToast?.('センタリングする輪郭がありません', 'warning');
       return;
@@ -218,12 +231,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   // Step adjustments for Advance & LSB
   const handleStepAdvance = (delta: number) => {
+    if (guardLocked()) return;
     const nextVal = Math.max(100, Math.round((advanceWidth || upm) + delta));
     onChangeAdvanceWidth(nextVal);
     onCommitHistory();
   };
 
   const handleStepLsb = (delta: number) => {
+    if (guardLocked()) return;
     const nextVal = Math.round((lsb ?? 50) + delta);
     onChangeLsb(nextVal);
     onCommitHistory();
@@ -231,12 +246,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   // Preset Advance width setters
   const handleSetAdvancePreset = (preset: number) => {
+    if (guardLocked()) return;
     onChangeAdvanceWidth(preset);
     onCommitHistory();
     onShowToast?.(`送り幅を ${preset}px に設定しました`, 'info');
   };
 
   const handleSetLsbPreset = (preset: number) => {
+    if (guardLocked()) return;
     onChangeLsb(preset);
     onCommitHistory();
     onShowToast?.(`左余白(LSB)を ${preset}px に設定しました`, 'info');
@@ -244,36 +261,42 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   // Transformation actions
   const handleFlipH = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(flipContoursHorizontal(contours));
   };
 
   const handleFlipV = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(flipContoursVertical(contours));
   };
 
   const handleSlant = (degrees: number) => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(slantContours(contours, degrees));
   };
 
   const handleScale = (factor: number) => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(scaleContours(contours, factor, factor));
   };
 
   const handleAspectScale = (scaleX: number, scaleY: number) => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(scaleContours(contours, scaleX, scaleY));
   };
 
   const handleSmoothAndFix = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     const cleaned = smoothAndFixTransformedContours(contours);
@@ -282,12 +305,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   };
 
   const handleCenter = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(centerContoursInBox(contours, upm, Math.round(upm * 0.8)));
   };
 
   const handleFitToEmBox = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     const isKana = /[ぁ-んァ-ヶー]/.test(selectedChar);
@@ -298,6 +323,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   };
 
   const handleExecuteClear = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours([]);
@@ -305,6 +331,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   };
 
   const handleOutlineStrokePaths = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     const transformed = contours.map((c) => (c.closed ? c : outlineOpenContour(c, strokeOutlineWidth)));
@@ -312,6 +339,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   };
 
   const handleConvertToSmallKana = () => {
+    if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
     onChangeContours(createSmallKanaContours(contours));
@@ -332,18 +360,18 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
       <div
         className={`${
           effectiveIsOverlay
-            ? 'fixed inset-y-0 right-0 z-50 w-full sm:w-96 max-w-full shadow-2xl animate-in slide-in-from-right duration-200'
-            : 'relative z-10 w-72 lg:w-80 shadow-none shrink-0'
+            ? 'fixed inset-y-0 right-0 z-50 w-full sm:w-80 max-w-full shadow-2xl animate-in slide-in-from-right duration-200'
+            : 'relative z-10 w-64 lg:w-72 shadow-none shrink-0'
         } border-l flex flex-col h-full overflow-hidden select-none transition-colors ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
         {/* Sticky Mobile/Desktop Header */}
         <div
-          className={`flex items-center justify-between p-3 border-b shrink-0 z-10 ${themeClasses.headerBg} ${themeClasses.border}`}
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 8px, 12px)' }}
+          className={`flex items-center justify-between p-2.5 border-b shrink-0 z-10 ${themeClasses.headerBg} ${themeClasses.border}`}
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 6px, 10px)' }}
         >
           <div className="flex items-center space-x-2 min-w-0">
-            <div className={`p-1.5 rounded-lg shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
-              <Sliders className="w-4 h-4 shrink-0" />
+            <div className={`p-1.5 rounded-md shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
+              <Sliders className="w-3.5 h-3.5 shrink-0" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
@@ -355,11 +383,11 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             </div>
           </div>
 
-          <div className="flex items-center space-x-1.5 shrink-0">
+          <div className="flex items-center space-x-1 shrink-0">
             {activeTab === 'metrics' && (
               <button
                 onClick={handleToggleAll}
-                className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
                 title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
               >
                 {isAllExpanded ? '全閉' : '全開'}
@@ -369,7 +397,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             {onClose && (
               <button
                 onClick={onClose}
-                className={`min-h-[32px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`h-7 px-2 rounded transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
                 title="パネルを閉じる (作図エリアへ戻る)"
               >
                 <X className="w-3.5 h-3.5 shrink-0" />
@@ -380,11 +408,11 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         </div>
 
         {/* Panel Tabs: Metrics vs Precision Design */}
-        <div className={`flex border-b px-2 py-1.5 gap-1 shrink-0 ${themeClasses.border} ${themeClasses.cardBg}`}>
+        <div className={`flex border-b px-2 py-1 gap-1 shrink-0 ${themeClasses.border} ${themeClasses.cardBg}`}>
           <button
             type="button"
             onClick={() => setActiveTab('metrics')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'metrics'
                 ? `${themeClasses.activeTool} shadow-sm`
                 : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
@@ -396,7 +424,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           <button
             type="button"
             onClick={() => setActiveTab('precision')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'precision'
                 ? `${themeClasses.activeTool} shadow-sm`
                 : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
@@ -405,7 +433,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             <Layers className="w-3.5 h-3.5" />
             <span>精密整列・数値</span>
             {selectedContourIds && selectedContourIds.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-emerald-500 text-white">
+              <span className="ml-0.5 px-1 py-0.2 text-[10px] font-mono tabular-nums font-bold rounded bg-emerald-500 text-white">
                 {selectedContourIds.length}
               </span>
             )}
@@ -414,7 +442,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
         {activeTab === 'precision' ? (
           <div
-            className="flex-1 overflow-y-auto overscroll-contain p-3"
+            className="flex-1 overflow-y-auto overscroll-contain p-2.5"
             style={{
               paddingBottom: effectiveIsOverlay
                 ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
@@ -433,18 +461,25 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
               showToast={(title, desc) => onShowToast?.(desc ? `${title}: ${desc}` : title, 'info')}
               isLight={isLight}
               themeClasses={themeClasses}
+              isGlyphLocked={isGlyphLocked}
             />
           </div>
         ) : (
           /* Scrollable Panel Content */
           <div
-            className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-3"
+            className="flex-1 overflow-y-auto overscroll-contain p-2.5 space-y-2.5"
             style={{
               paddingBottom: effectiveIsOverlay
                 ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
               : 'max(env(safe-area-inset-bottom, 0px) + 20px, 24px)',
           }}
         >
+          {isGlyphLocked && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[11px] font-semibold">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
+              <span>編集ロック中（移動・変形は無効）</span>
+            </div>
+          )}
           {/* 1. Fast Glyph Navigation & Active Character Card */}
           <NavigationSection
             selectedChar={selectedChar}
@@ -471,8 +506,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             onToggle={() => toggleSection('metrics')}
             isLight={isLight}
             themeClasses={themeClasses}
-            onChangeAdvanceWidth={onChangeAdvanceWidth}
-            onChangeLsb={onChangeLsb}
+            onChangeAdvanceWidth={(v) => {
+              if (guardLocked()) return;
+              onChangeAdvanceWidth(v);
+            }}
+            onChangeLsb={(v) => {
+              if (guardLocked()) return;
+              onChangeLsb(v);
+            }}
             onCommitHistory={onCommitHistory}
             onStepAdvance={handleStepAdvance}
             onStepLsb={handleStepLsb}

@@ -14,9 +14,11 @@ import {
   Wand2,
   ArrowLeftRight,
   ShieldCheck,
+  Award,
 } from 'lucide-react';
 import { GridDensity } from './types';
 import { ThemeClasses, getThemeClasses } from '../../utils/theme';
+import { useModalContext } from '../../contexts/ModalContext';
 
 export interface GlyphGridToolbarProps {
   themeClasses?: ThemeClasses;
@@ -98,12 +100,13 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
   onOpenQualityModal,
 }) => {
   const themeClasses = propThemeClasses ?? getThemeClasses(isLight ? 'light' : 'dark');
+  const { openModal } = useModalContext();
 
   return (
     <>
       {/* Header with Title, Count, Density Toggles and Close */}
       <div
-        className={`p-2.5 sm:p-3 border-b flex flex-col space-y-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+        className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         {/* Row 1: Title, Count, Density control, and Collapse button */}
         <div className="flex items-center justify-between gap-1.5">
@@ -114,11 +117,11 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               文字一覧
             </span>
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 border ${themeClasses.accentBadge}`}
+              className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 border tabular-nums ${themeClasses.accentBadge}`}
             >
               {charListLength.toLocaleString()}字
               {totalPages > 1 && (
-                <span className="opacity-75 font-normal ml-1">
+                <span className="opacity-75 font-normal ml-1 tabular-nums">
                   ({validPage}/{totalPages}頁)
                 </span>
               )}
@@ -127,7 +130,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
           {/* Density switch and close button */}
           <div className="flex items-center space-x-1 shrink-0">
-            {/* Width Presets (狭: 250px, 標: 330px, 広: 440px) */}
+            {/* Width Presets (狭: 230px, 標: 264px, 広: 380px) */}
             {!effectiveIsOverlay && (
               <div
                 className={`hidden sm:flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
@@ -135,16 +138,16 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               >
                 <button
                   onClick={() => {
-                    setSidebarWidth(250);
+                    setSidebarWidth(230);
                     try {
-                      localStorage.setItem('fontforge_sidebar_width', '250');
+                      localStorage.setItem('fontforge_sidebar_width', '230');
                     } catch (error) {
                       console.warn('Failed to persist sidebar width:', error);
                     }
                   }}
-                  title="幅: 狭め (250px) - キャンバス重視"
+                  title="幅: 狭め (230px) - キャンバス重視"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth <= 270
+                    sidebarWidth <= 245
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
                   }`}
@@ -153,16 +156,16 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                 </button>
                 <button
                   onClick={() => {
-                    setSidebarWidth(330);
+                    setSidebarWidth(264);
                     try {
-                      localStorage.setItem('fontforge_sidebar_width', '330');
+                      localStorage.setItem('fontforge_sidebar_width', '264');
                     } catch (error) {
                       console.warn('Failed to persist sidebar width:', error);
                     }
                   }}
-                  title="幅: 標準 (330px)"
+                  title="幅: 標準 (264px)"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth > 270 && sidebarWidth < 390
+                    sidebarWidth > 245 && sidebarWidth < 321
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
                   }`}
@@ -171,16 +174,16 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                 </button>
                 <button
                   onClick={() => {
-                    setSidebarWidth(440);
+                    setSidebarWidth(380);
                     try {
-                      localStorage.setItem('fontforge_sidebar_width', '440');
+                      localStorage.setItem('fontforge_sidebar_width', '380');
                     } catch (error) {
                       console.warn('Failed to persist sidebar width:', error);
                     }
                   }}
-                  title="幅: 広め (440px) - 一覧性重視"
+                  title="幅: 広め (380px) - 一覧性重視"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth >= 390
+                    sidebarWidth >= 321
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
                   }`}
@@ -283,7 +286,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold border ${themeClasses.accentBadge}`}
+                      className={`text-[10px] px-1.5 py-0.2 rounded font-bold border ${themeClasses.accentBadge}`}
                     >
                       分類選択
                     </span>
@@ -297,7 +300,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
                 {isCategoryDropdownOpen && (
                   <div
-                    className={`absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-xl shadow-2xl border p-1.5 animate-in fade-in zoom-in-95 duration-150 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                    className={`absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-md shadow-2xl border p-1.5 animate-in fade-in zoom-in-95 duration-150 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   >
                     {categoryGroups.map((group) => (
                       <div key={group.groupName} className="mb-2 last:mb-0">
@@ -319,7 +322,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                                   setCurrentPage(1);
                                   setIsCategoryDropdownOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${
+                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors text-left ${
                                   isSelected
                                     ? `${themeClasses.activeTool} font-bold`
                                     : `hover:${themeClasses.activeToolHover} ${themeClasses.textPrimary}`
@@ -334,7 +337,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                                   <span className="truncate">{item.name}</span>
                                 </div>
                                 <span
-                                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono shrink-0 ml-1.5 border ${
+                                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono tabular-nums shrink-0 ml-1.5 border ${
                                     isSelected
                                       ? 'bg-black/20 text-current'
                                       : `${themeClasses.toolbarBg} ${themeClasses.border} ${themeClasses.textMuted}`
@@ -354,7 +357,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
               {/* Quick 1-Tap Category Tabs */}
               <div
-                className={`p-1 rounded-xl flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x min-w-0 select-none whitespace-nowrap border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+                className={`p-1 rounded-md flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x min-w-0 select-none whitespace-nowrap border ${themeClasses.toolbarBg} ${themeClasses.border}`}
               >
                 {quickCategoryTabs.map((pill) => (
                   <button
@@ -366,7 +369,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                       setCurrentPage(1);
                       setIsCategoryDropdownOpen(false);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap tabular-nums ${
                       activeCategoryId === pill.id
                         ? `${themeClasses.activeTool} shadow-xs border`
                         : `${themeClasses.textMuted} hover:${themeClasses.textPrimary} hover:${themeClasses.activeToolHover} active:scale-95`
@@ -455,7 +458,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
       {/* Category Progress & Status Filter Bar */}
       <div
-        className={`px-3 py-2 border-b flex flex-col gap-1.5 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`px-2.5 py-1.5 border-b flex flex-col gap-1.5 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         {/* Progress header */}
         <div className="flex items-center justify-between text-[11px]">
@@ -463,12 +466,21 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             <span className={themeClasses.textPrimary}>
               {activeCategoryName}:
             </span>
-            <span className={`font-mono font-bold shrink-0 ${themeClasses.accentText}`}>
+            <span className={`font-mono font-bold tabular-nums shrink-0 ${themeClasses.accentText}`}>
               {categoryStats.completed} / {categoryStats.total} 字
             </span>
           </span>
           <div className="flex items-center gap-1 shrink-0">
-            <span className={`font-mono font-bold text-[10px] px-1.5 py-0.5 rounded border ${themeClasses.accentBadge}`}>
+            <button
+              type="button"
+              onClick={() => openModal('jisProgress')}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 cursor-pointer mr-0.5 ${themeClasses.cardBg} ${themeClasses.border} hover:${themeClasses.activeToolHover}`}
+              title="常用漢字・JIS第1・第2水準の進捗ダッシュボードを開く"
+            >
+              <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">JIS進捗</span>
+            </button>
+            <span className={`font-mono font-bold tabular-nums text-[10px] px-1.5 py-0.5 rounded border ${themeClasses.accentBadge}`}>
               {categoryStats.percent}%
             </span>
             <button
@@ -485,23 +497,23 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
         {isFilterExpanded && (
           <>
             {/* Progress track */}
-            <div className={`w-full h-1.5 rounded-full overflow-hidden border ${themeClasses.toolbarBg} ${themeClasses.border}`}>
+            <div className={`w-full h-1.5 rounded-xs overflow-hidden border ${themeClasses.toolbarBg} ${themeClasses.border}`}>
               <div
-                className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                className="h-full bg-emerald-600 rounded-xs transition-all duration-300"
                 style={{ width: `${categoryStats.percent}%` }}
               />
             </div>
 
             {/* Status Filter Segmented Control */}
             <div
-              className={`grid grid-cols-3 gap-1 p-1 rounded-xl text-xs font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+              className={`grid grid-cols-3 gap-1 p-1 rounded-md text-xs font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
             >
               <button
                 onClick={() => {
                   setStatusFilter('all');
                   setCurrentPage(1);
                 }}
-                className={`py-1.5 px-1 rounded-lg text-center truncate whitespace-nowrap transition-all ${
+                className={`py-1 px-1 rounded text-center truncate whitespace-nowrap tabular-nums transition-all ${
                   statusFilter === 'all'
                     ? `${themeClasses.activeTool} shadow-xs border`
                     : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
@@ -515,7 +527,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                   setStatusFilter('completed');
                   setCurrentPage(1);
                 }}
-                className={`py-1.5 px-1 rounded-lg text-center flex items-center justify-center gap-1 truncate whitespace-nowrap transition-all ${
+                className={`py-1 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-all ${
                   statusFilter === 'completed'
                     ? `${themeClasses.activeTool} shadow-xs border`
                     : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
@@ -530,7 +542,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                   setStatusFilter('pending');
                   setCurrentPage(1);
                 }}
-                className={`py-1.5 px-1 rounded-lg text-center flex items-center justify-center gap-1 truncate whitespace-nowrap transition-all ${
+                className={`py-1 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-all ${
                   statusFilter === 'pending'
                     ? `${themeClasses.activeTool} shadow-xs border`
                     : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`

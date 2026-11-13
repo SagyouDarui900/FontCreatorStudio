@@ -35,6 +35,7 @@ export interface UseCanvasShortcutsProps {
   setIsSpacePressed: (pressed: boolean) => void;
   showCanvasToast: (msg: string, sub?: string) => void;
   onNudgeSelection?: (dx: number, dy: number) => void;
+  isGlyphLocked?: boolean;
 }
 
 export function useCanvasShortcuts({
@@ -70,6 +71,7 @@ export function useCanvasShortcuts({
   setIsSpacePressed,
   showCanvasToast,
   onNudgeSelection,
+  isGlyphLocked = false,
 }: UseCanvasShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,6 +123,10 @@ export function useCanvasShortcuts({
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0) || selectedContourIds.length > 0) {
           e.preventDefault();
+          if (isGlyphLocked) {
+            showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            return;
+          }
           const step = e.shiftKey ? 10 : (e.altKey ? 0.1 : 1);
           let dx = 0;
           let dy = 0;
@@ -205,10 +211,13 @@ export function useCanvasShortcuts({
         if (toolMode === 'ruler' && rulerMeasurement) {
           e.preventDefault();
           setRulerMeasurement(null);
+        } else if (isGlyphLocked) {
+          e.preventDefault();
+          showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
         } else if (activePenContour) {
           e.preventDefault();
           handleUndoPenNode();
-        } else if (selectedNodeId && (selectedContourId || selectedContourIds.length === 1)) {
+        } else if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0)) {
           e.preventDefault();
           handleDeleteSelectedNode();
         } else if (selectedContourIds.length > 0) {
@@ -229,11 +238,11 @@ export function useCanvasShortcuts({
             next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
           );
         }
-      } else if (e.key === '[' || e.key === ']') {
+      } else if (e.shiftKey && (e.key === '{' || e.key === '}')) {
         if (toolMode === 'eraser') {
           e.preventDefault();
           setEraserSize((prev) => {
-            const delta = e.key === ']' ? (prev >= 60 ? 10 : 4) : (prev > 60 ? -10 : -4);
+            const delta = e.key === '}' ? (prev >= 60 ? 10 : 4) : (prev > 60 ? -10 : -4);
             const next = Math.max(8, Math.min(160, prev + delta));
             return next;
           });
@@ -257,21 +266,41 @@ export function useCanvasShortcuts({
       } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (activePenContour) {
           e.preventDefault();
+          if (isGlyphLocked) {
+            showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            return;
+          }
           handleFinishPenContour(true);
         } else if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0)) {
           e.preventDefault();
+          if (isGlyphLocked) {
+            showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            return;
+          }
           handleToggleNodeType?.();
         }
       } else if (e.shiftKey && e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
+        if (isGlyphLocked) {
+          showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+          return;
+        }
         handleSmoothStrokeSelected();
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (toolMode === 'ruler' && rulerMeasurement) {
+          if (isGlyphLocked) {
+            showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            return;
+          }
           handleDrawRulerAsStroke();
           return;
         }
         if (activePenContour) {
+          if (isGlyphLocked) {
+            showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+            return;
+          }
           handleFinishPenContour(false);
         } else if (e.shiftKey) {
           onSelectPrevGlyph?.();
@@ -333,5 +362,6 @@ export function useCanvasShortcuts({
     setIsSpacePressed,
     showCanvasToast,
     onNudgeSelection,
+    isGlyphLocked,
   ]);
 }

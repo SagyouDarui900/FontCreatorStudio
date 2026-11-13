@@ -7,6 +7,7 @@ import {
   Layers,
   Trash2,
   X,
+  Lock,
 } from 'lucide-react';
 
 export interface SelContoursBBox {
@@ -48,6 +49,7 @@ export interface TransformBoundingBoxLayerProps {
   setSelectedContourIds: (ids: string[]) => void;
   setSelectedNodeId: (id: string | null) => void;
   setSelectedHandleType: (type: 'node' | 'handleIn' | 'handleOut' | null) => void;
+  isGlyphLocked?: boolean;
 }
 
 export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps> = React.memo(({
@@ -68,6 +70,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
   setSelectedContourIds,
   setSelectedNodeId,
   setSelectedHandleType,
+  isGlyphLocked = false,
 }) => {
   if (toolMode !== 'select' || selectedContourIds.length === 0 || !selContoursBBox) {
     return null;
@@ -109,9 +112,12 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
         stroke={selectionColor}
         strokeWidth={1 / zoom}
         strokeDasharray="4 2"
-        className="cursor-move"
-        pointerEvents="stroke"
-        onPointerDown={(e) => handleTransformPointerDown(e, 'move')}
+        className={isGlyphLocked ? 'cursor-default' : 'cursor-move'}
+        pointerEvents={isGlyphLocked ? 'none' : 'stroke'}
+        onPointerDown={(e) => {
+          if (isGlyphLocked) return;
+          handleTransformPointerDown(e, 'move');
+        }}
       />
 
       {/* Floating Selection Quick Actions Toolbar */}
@@ -124,71 +130,80 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       >
         <div
           style={{ transform: `scale(${Math.max(0.6, Math.min(1.0, 1 / zoom))})`, transformOrigin: 'top center' }}
-          className="flex items-center justify-center space-x-1 px-2.5 py-1 bg-stone-900/95 dark:bg-[#101b13]/95 text-white rounded-full shadow-lg border border-emerald-500/40 text-xs font-sans pointer-events-auto"
+          className="flex items-center justify-center space-x-1 px-2 py-1 bg-stone-900/95 dark:bg-[#101b13]/95 text-white rounded-md shadow-lg border border-emerald-500/40 text-xs font-sans pointer-events-auto"
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRotateSelected(45);
-            }}
-            className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
-            title="45°回転 (Rotate 45°)"
-          >
-            <RotateCw className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleFlipHSelected();
-            }}
-            className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
-            title="左右反転 (Flip Horizontal)"
-          >
-            <FlipHorizontal className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleFlipVSelected();
-            }}
-            className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
-            title="上下反転 (Flip Vertical)"
-          >
-            <FlipVertical className="w-3.5 h-3.5" />
-          </button>
-          <div className="w-px h-3.5 bg-emerald-500/30 my-auto" />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDuplicateSelected();
-            }}
-            className="p-1.5 rounded-full hover:bg-emerald-800/80 text-emerald-300 transition-colors"
-            title="複製 (Duplicate)"
-          >
-            <Copy className="w-3.5 h-3.5" />
-          </button>
-          {selectedContourIds.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMergeSelectedContours();
-              }}
-              className="p-1.5 rounded-full hover:bg-emerald-600/90 text-white transition-colors"
-              title="選択パーツを結合・融解 (Union)"
-            >
-              <Layers className="w-3.5 h-3.5 text-white" />
-            </button>
+          {isGlyphLocked ? (
+            <span className="flex items-center gap-1 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300 whitespace-nowrap">
+              <Lock className="w-3 h-3" />
+              ロック中（編集不可）
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRotateSelected(45);
+                }}
+                className="p-1.5 rounded hover:bg-emerald-800/80 text-emerald-300 transition-colors cursor-pointer"
+                title="45°回転 (Rotate 45°)"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFlipHSelected();
+                }}
+                className="p-1.5 rounded hover:bg-emerald-800/80 text-emerald-300 transition-colors cursor-pointer"
+                title="左右反転 (Flip Horizontal)"
+              >
+                <FlipHorizontal className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFlipVSelected();
+                }}
+                className="p-1.5 rounded hover:bg-emerald-800/80 text-emerald-300 transition-colors cursor-pointer"
+                title="上下反転 (Flip Vertical)"
+              >
+                <FlipVertical className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-px h-3.5 bg-emerald-500/30 my-auto" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDuplicateSelected();
+                }}
+                className="p-1.5 rounded hover:bg-emerald-800/80 text-emerald-300 transition-colors cursor-pointer"
+                title="複製 (Duplicate)"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              {selectedContourIds.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMergeSelectedContours();
+                  }}
+                  className="p-1.5 rounded hover:bg-emerald-600/90 text-white transition-colors cursor-pointer"
+                  title="選択パーツを結合・融解 (Union)"
+                >
+                  <Layers className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteSelected();
+                }}
+                className="p-1.5 rounded hover:bg-rose-800/90 text-rose-300 transition-colors ml-0.5 cursor-pointer"
+                title="削除 (Delete)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteSelected();
-            }}
-            className="p-1.5 rounded-full hover:bg-rose-800/90 text-rose-300 transition-colors ml-0.5"
-            title="削除 (Delete)"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
           <div className="w-px h-3.5 bg-emerald-500/30 my-auto" />
           <button
             onClick={(e) => {
@@ -197,7 +212,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
               setSelectedNodeId(null);
               setSelectedHandleType(null);
             }}
-            className="p-1.5 rounded-full hover:bg-stone-700/90 text-stone-300 hover:text-white transition-colors"
+            className="p-1.5 rounded hover:bg-stone-700/90 text-stone-300 hover:text-white transition-colors cursor-pointer"
             title="選択解除 (Deselect / Esc)"
           >
             <X className="w-3.5 h-3.5" />
@@ -207,57 +222,62 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
 
       {/* Center Anchor Crosshair */}
       <g
-        className="cursor-move group"
-        onPointerDown={(e) => handleTransformPointerDown(e, 'move')}
+        className={isGlyphLocked ? 'cursor-default' : 'cursor-move group'}
+        onPointerDown={(e) => {
+          if (isGlyphLocked) return;
+          handleTransformPointerDown(e, 'move');
+        }}
       >
         <circle cx={cx} cy={cy} r={4 / zoom} fill={selectionColor} stroke="#ffffff" strokeWidth={1 / zoom} />
         <line x1={cx - 5 / zoom} y1={cy} x2={cx + 5 / zoom} y2={cy} stroke={selectionColor} strokeWidth={1 / zoom} />
         <line x1={cx} y1={cy - 5 / zoom} x2={cx} y2={cy + 5 / zoom} stroke={selectionColor} strokeWidth={1 / zoom} />
       </g>
 
-      {/* Rotation Connector Stem Line */}
-      <line
-        x1={cx}
-        y1={by}
-        x2={cx}
-        y2={by - rotStemDist}
-        stroke={selectionColor}
-        strokeWidth={1.5 / zoom}
-        strokeDasharray="3 2"
-        pointerEvents="none"
-      />
+      {!isGlyphLocked && (
+        <>
+          {/* Rotation Connector Stem Line */}
+          <line
+            x1={cx}
+            y1={by}
+            x2={cx}
+            y2={by - rotStemDist}
+            stroke={selectionColor}
+            strokeWidth={1.5 / zoom}
+            strokeDasharray="3 2"
+            pointerEvents="none"
+          />
 
-      {/* Rotation Grip Handle (Top-Center) */}
-      <g
-        className="cursor-grab active:cursor-grabbing"
-        onPointerDown={(e) => handleTransformPointerDown(e, 'rotate')}
-      >
-        {/* Larger invisible hit area for touch/mouse */}
-        <circle
-          cx={cx}
-          cy={by - rotStemDist}
-          r={14 / zoom}
-          fill="transparent"
-        />
-        <circle
-          cx={cx}
-          cy={by - rotStemDist}
-          r={7 / zoom}
-          fill={selectionColor}
-          stroke="#ffffff"
-          strokeWidth={1.8 / zoom}
-        />
-        {/* Inner rotation ring indicator */}
-        <circle
-          cx={cx}
-          cy={by - rotStemDist}
-          r={3.5 / zoom}
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth={1.2 / zoom}
-          strokeDasharray="4 2"
-        />
-      </g>
+          {/* Rotation Grip Handle (Top-Center) */}
+          <g
+            className="cursor-grab active:cursor-grabbing"
+            onPointerDown={(e) => handleTransformPointerDown(e, 'rotate')}
+          >
+            {/* Larger invisible hit area for touch/mouse */}
+            <circle
+              cx={cx}
+              cy={by - rotStemDist}
+              r={14 / zoom}
+              fill="transparent"
+            />
+            <circle
+              cx={cx}
+              cy={by - rotStemDist}
+              r={7 / zoom}
+              fill={selectionColor}
+              stroke="#ffffff"
+              strokeWidth={1.8 / zoom}
+            />
+            {/* Inner rotation ring indicator */}
+            <circle
+              cx={cx}
+              cy={by - rotStemDist}
+              r={3.5 / zoom}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={1.2 / zoom}
+              strokeDasharray="4 2"
+            />
+          </g>
 
       {/* 8 Resize Handles (Corner & Edge) */}
       {/* NW (Top-Left) */}
@@ -379,6 +399,8 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
           rx={1.5 / zoom}
         />
       </g>
+        </>
+      )}
 
       {/* HUD Dimension Tooltip (Width x Height, Rotation Angle, Shift hint) */}
       <g transform={`translate(${bx}, ${by + bh + 12 / zoom})`} className="pointer-events-none">

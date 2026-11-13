@@ -67,6 +67,12 @@ const OpenTypeFeaturesModal = lazy(() =>
 const GridFittingModal = lazy(() =>
   import('../GridFittingModal').then((module) => ({ default: module.GridFittingModal }))
 );
+const JisProgressDashboardModal = lazy(() =>
+  import('../progress/JisProgressDashboardModal').then((module) => ({ default: module.JisProgressDashboardModal }))
+);
+const IvsVariantManagerModal = lazy(() =>
+  import('../ivs/IvsVariantManagerModal').then((module) => ({ default: module.IvsVariantManagerModal }))
+);
 
 export interface AppModalsHostProps {
   project: FontProject;
@@ -514,6 +520,32 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           onShowToast={showToast}
           onOpenOpenTypeModal={() => openModal('openTypeFeatures')}
           onOpenTestPreview={() => openModal('test')}
+        />
+      )}
+
+      {/* JIS Progress Dashboard Modal */}
+      {activeModal === 'jisProgress' && (
+        <JisProgressDashboardModal
+          isOpen
+          onClose={closeModal}
+          project={project}
+          theme={theme}
+          onSelectGlyph={(u) => onSelectGlyph(u)}
+          onShowToast={showToast}
+        />
+      )}
+
+      {/* IVS Variant Manager Modal */}
+      {activeModal === 'ivsManager' && (
+        <IvsVariantManagerModal
+          isOpen
+          onClose={closeModal}
+          selectedUnicode={selectedUnicode}
+          selectedChar={selectedChar}
+          glyphs={project.glyphs || {}}
+          onSelectGlyph={(u) => onSelectGlyph(u)}
+          onShowToast={showToast}
+          theme={theme}
         />
       )}
     </Suspense>

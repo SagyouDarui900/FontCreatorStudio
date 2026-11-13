@@ -61,6 +61,7 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['Space', '+', '左ドラッグ'], description: 'キャンバスのパン移動（手のひらツール相当）', category: 'mouse' },
  { keys: ['パスをダブルクリック'], description: '当該輪郭の全ノード選択およびノード編集モードへの切り替え', category: 'mouse', badge: 'ノード編集' },
  { keys: ['Shift', '+', '左クリック (選択時)'], description: '複数輪郭パーツの追加選択・除外（複数選択トグル）', category: 'mouse' },
+ { keys: ['右クリック (キャンバス)'], description: '反転・回転・2次/3次ベジェ変換・部首登録・文字送りメニューを表示', category: 'mouse', badge: 'コンテキスト' },
  { keys: ['Shift', '+', '左ドラッグ (筆描画時)'], description: '直前位置から水平・垂直・45度方向への直線描画', category: 'mouse' },
 
  // ツール切替
@@ -81,10 +82,8 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['Ctrl / ⌘', '+', 'D'], description: '選択した輪郭パスをその場で複製', category: 'drawing' },
  { keys: ['↑', '↓', '←', '→'], description: '選択したノードや輪郭を矢印キーで移動（Shiftで10px、Altで0.1px単位）', category: 'drawing' },
  { keys: ['C'], description: '選択中ノードのスムーズ（曲線）／コーナー（角）属性の切り替え', category: 'drawing', badge: 'ノード属性' },
- { keys: ['['], description: 'ブラシ / 消しゴムの太さを縮小 (-2px)', category: 'drawing' },
- { keys: [']'], description: 'ブラシ / 消しゴムの太さを拡大 (+2px)', category: 'drawing' },
- { keys: ['Shift', '+', '['], description: 'ブラシサイズを縮小 (-10px)', category: 'drawing' },
- { keys: ['Shift', '+', ']'], description: 'ブラシサイズを拡大 (+10px)', category: 'drawing' },
+ { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小 (-4px)', category: 'drawing' },
+ { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大 (+4px)', category: 'drawing' },
  { keys: ['Shift', '+', 'ドラッグ'], description: '水平・垂直・45度の直線ストロークを描画', category: 'drawing', badge: '直線' },
  { keys: ['Enter'], description: 'ペンツールでのパス作成を開いた線のまま確定（始点クリックで自動閉合）', category: 'drawing' },
  { keys: ['Backspace', '/', 'Delete'], description: 'ペン作図中は直前の1点を削除。通常時は選択要素を削除', category: 'drawing' },
@@ -127,8 +126,8 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['P'], description: '【ヒートマップ診断】アンカー密集度ドットの表示 / 非表示切替', category: 'drawing' },
 
  // 文字送り・ナビゲーション
- { keys: ['Alt', '+', '→', '/', 'PageDown'], description: '次の文字へ進む（五十音順・漢字順）', category: 'nav', badge: '連続作字' },
- { keys: ['Alt', '+', '←', '/', 'PageUp'], description: '前の文字へ戻る', category: 'nav' },
+ { keys: [']', 'または', 'Alt', '+', '→'], description: '次の文字へ進む（五十音順・漢字順）', category: 'nav', badge: '連続作字' },
+ { keys: ['[', 'または', 'Alt', '+', '←'], description: '前の文字へ戻る', category: 'nav', badge: '連続作字' },
  { keys: ['Alt', '+', 'N'], description: '次の「未作成の文字」へスキップ', category: 'nav', badge: '効率化' },
  { keys: ['Alt', '+', 'P'], description: '前の「未作成の文字」へスキップ', category: 'nav' },
 

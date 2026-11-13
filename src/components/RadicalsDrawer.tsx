@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Type, ShieldCheck, Sparkles } from 'lucide-react';
+import { X, Type, ShieldCheck, Sparkles, Layers } from 'lucide-react';
 import { BundledFontsModal } from './BundledFontsModal';
+import { BatchRadicalModal } from './radicalStudio/BatchRadicalModal';
 import { KANJI_RADICALS } from '../data/kanjiRadicals';
-import { KANGXI_214_RADICALS } from '../data/kangxi214Radicals';
+import { KANGXI_214_RADICALS, KangxiRadicalFullEntry } from '../data/kangxi214Radicals';
 import { PathContour, CustomPart, RadicalPlacement } from '../types';
 import { generateId, transformContoursForPlacement } from '../utils/path';
 import {
@@ -33,6 +34,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   isOpen,
   onClose,
   onInsertRadical,
+  onBatchInsertRadical,
   currentContours,
   selectedChar,
   allGlyphs,
@@ -43,6 +45,11 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   const [placement, setPlacement] = useState<RadicalPlacement>('auto');
   const [selectedFontStyle, setSelectedFontStyle] = useState<FontStyleOption>(RADICAL_FONT_OPTIONS[0]);
   const [presetSearch, setPresetSearch] = useState<string>('');
+  const [batchModalTarget, setBatchModalTarget] = useState<{
+    radicalName: string;
+    sourceContours: PathContour[];
+    defaultKanjiList?: string[];
+  } | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [shapeCategoryFilter, setShapeCategoryFilter] = useState<string>('all');
   const [extractingKangxiNum, setExtractingKangxiNum] = useState<number | null>(null);
@@ -249,6 +256,85 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     handleInsertWithPlacement(radical.contours, radical.name, radical.category);
   };
 
+  const handleOpenBatchModalForPreset = useCallback(
+    async (radical: (typeof KANJI_RADICALS)[0]) => {
+      let contours = radical.contours;
+      try {
+        const extracted = await getOrExtractRadicalContours(
+          radical.char || radical.name,
+          'full',
+          selectedFontStyle.fontFamily,
+          selectedFontStyle.fontWeight
+        );
+        if (extracted && extracted.length > 0) {
+          contours = extracted;
+        }
+      } catch {
+        // fallback to preset contours
+      }
+      const kangxiMatch = KANGXI_214_RADICALS.find(
+        (k) => k.char === radical.char || k.altChars?.includes(radical.char)
+      );
+      const kanjiList = kangxiMatch?.kanjiList || [];
+      setBatchModalTarget({
+        radicalName: radical.name,
+        sourceContours: contours,
+        defaultKanjiList: kanjiList,
+      });
+    },
+    [selectedFontStyle]
+  );
+
+  const handleOpenBatchModalForKangxi = useCallback(
+    async (item: KangxiRadicalFullEntry) => {
+      const charToUse = item.altChars?.[0] || item.char;
+      const matchedPreset = KANJI_RADICALS.find(
+        (r) => r.char === charToUse || r.char === item.char || r.name.startsWith(item.name)
+      );
+      let contours = matchedPreset?.contours || [];
+      if (contours.length === 0) {
+        try {
+          setExtractingKangxiNum(item.number);
+          const extracted = await getOrExtractRadicalContours(
+            charToUse,
+            'full',
+            selectedFontStyle.fontFamily,
+            selectedFontStyle.fontWeight
+          );
+          if (extracted && extracted.length > 0) {
+            contours = extracted;
+          }
+        } catch {
+          // ignore
+        } finally {
+          setExtractingKangxiNum(null);
+        }
+      }
+      if (!contours || contours.length === 0) {
+        showNotice(`「${item.char}」の輪郭を取得できませんでした`);
+        return;
+      }
+      setBatchModalTarget({
+        radicalName: item.name,
+        sourceContours: contours,
+        defaultKanjiList: item.kanjiList || [],
+      });
+    },
+    [selectedFontStyle]
+  );
+
+  const handleOpenBatchModalForCustomPart = useCallback((part: CustomPart) => {
+    if (!part.contours || part.contours.length === 0) {
+      showNotice(`「${part.name}」には輪郭が未登録です`);
+      return;
+    }
+    setBatchModalTarget({
+      radicalName: part.name,
+      sourceContours: part.contours,
+      defaultKanjiList: [],
+    });
+  }, []);
+
   // Save contours as custom part
   const handleSaveContoursAsPart = (contoursToSave: PathContour[], defaultName: string) => {
     const name = newPartName.trim() || defaultName;
@@ -381,15 +467,15 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       {/* Mobile Click-Outside Dismiss */}
       <div
         onClick={onClose}
-        className="fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-transparent sm:hidden z-30"
+        className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/10 dark:bg-black/25 lg:hidden z-30"
       />
 
       <div
-        className={`fixed top-[calc(2.75rem+env(safe-area-inset-top,0px))] sm:top-[calc(3rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 w-full sm:w-[430px] sm:max-w-md border-l shadow-2xl z-40 flex flex-col select-none transition-colors animate-in slide-in-from-right duration-200 ${themeClasses.sidebarBg}`}
+        className={`fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 w-full sm:w-[320px] sm:max-w-xs border-l shadow-2xl z-40 flex flex-col select-none transition-colors animate-in slide-in-from-right duration-200 ${themeClasses.sidebarBg}`}
       >
         {/* Header */}
         <div
-          className={`p-3 border-b flex items-center justify-between shrink-0 ${
+          className={`p-2.5 border-b flex items-center justify-between shrink-0 ${
             isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
           }`}
         >
@@ -404,15 +490,33 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              isLight ? 'text-stone-500 hover:bg-stone-100' : 'text-stone-400 hover:bg-[#202d24]'
-            }`}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                const firstRad = KANJI_RADICALS.find((r) => r.id === 'rad_kihen') || KANJI_RADICALS[0];
+                handleOpenBatchModalForPreset(firstRad);
+              }}
+              className={`px-2 py-1 rounded-lg text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                isLight
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
+                  : 'bg-[#1c2920] border-emerald-700 text-emerald-200 hover:bg-[#25392b]'
+              }`}
+              title="部首パーツを指定した複数の漢字へ一括自動配置・合成します"
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>一括流し込み</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                isLight ? 'text-stone-500 hover:bg-stone-100' : 'text-stone-400 hover:bg-[#202d24]'
+              }`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Status Toast */}
@@ -575,6 +679,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             selectedFontStyle={selectedFontStyle}
             onInsertPresetRadical={handleInsertPresetRadical}
             onImportAllPresetRadicals={handleImportAllPresetRadicals}
+            onBatchInsertPresetRadical={handleOpenBatchModalForPreset}
           />
         )}
 
@@ -613,6 +718,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             extractingKangxiNum={extractingKangxiNum}
             setExtractingKangxiNum={setExtractingKangxiNum}
             onInsertWithPlacement={handleInsertWithPlacement}
+            onBatchInsertKangxi={handleOpenBatchModalForKangxi}
             setExtractChar={setExtractChar}
             setActiveTab={setActiveTab}
             showNotice={showNotice}
@@ -655,6 +761,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             handleCreateNameFrame={handleCreateNameFrame}
             handleSaveContoursAsPart={handleSaveContoursAsPart}
             handleInsertWithPlacement={handleInsertWithPlacement}
+            onBatchInsertCustomPart={handleOpenBatchModalForCustomPart}
             showNotice={showNotice}
           />
         )}
@@ -665,6 +772,22 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         onClose={() => setIsLicenseModalOpen(false)}
         theme={theme}
       />
+
+      {batchModalTarget && (
+        <BatchRadicalModal
+          isOpen={true}
+          onClose={() => setBatchModalTarget(null)}
+          radicalName={batchModalTarget.radicalName}
+          sourceContours={batchModalTarget.sourceContours}
+          defaultKanjiList={batchModalTarget.defaultKanjiList}
+          allGlyphs={allGlyphs}
+          onBatchInsert={(contours, chars) => {
+            onBatchInsertRadical?.(contours, chars);
+            showNotice(`${chars.length}文字へ部首パーツを一括流し込みしました`);
+          }}
+          theme={theme}
+        />
+      )}
     </>
   );
 };

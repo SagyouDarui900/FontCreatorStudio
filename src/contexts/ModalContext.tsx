@@ -20,7 +20,9 @@ export type ModalId =
   | 'gridFitting'
   | 'pixelStudio'
   | 'mojikumi'
-  | 'penPresets';
+  | 'penPresets'
+  | 'jisProgress'
+  | 'ivsManager';
 
 export interface ModalContextType {
   // Active modal ID state & direct controllers

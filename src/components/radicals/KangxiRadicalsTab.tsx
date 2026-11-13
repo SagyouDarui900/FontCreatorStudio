@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, Layers } from 'lucide-react';
 import { KANJI_RADICALS } from '../../data/kanjiRadicals';
 import { KANGXI_214_RADICALS, KangxiRadicalFullEntry } from '../../data/kangxi214Radicals';
 import {
@@ -18,6 +18,7 @@ interface KangxiRadicalsTabProps {
   extractingKangxiNum: number | null;
   setExtractingKangxiNum: (n: number | null) => void;
   onInsertWithPlacement: (contours: PathContour[], name?: string, category?: string) => void;
+  onBatchInsertKangxi?: (item: KangxiRadicalFullEntry) => void;
   setExtractChar: (c: string) => void;
   setActiveTab: (t: 'extract') => void;
   showNotice: (msg: string) => void;
@@ -53,6 +54,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
   extractingKangxiNum,
   setExtractingKangxiNum,
   onInsertWithPlacement,
+  onBatchInsertKangxi,
   setExtractChar,
   setActiveTab,
   showNotice,
@@ -250,7 +252,27 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                   {/* Top info badge */}
                   <div className="w-full flex items-center justify-between text-[8px] text-stone-400 font-mono leading-none mb-1">
                     <span>#{item.number}</span>
-                    <span>{item.strokes}画</span>
+                    <div className="flex items-center gap-1">
+                      <span>{item.strokes}画</span>
+                      {onBatchInsertKangxi && (
+                        <button
+                          type="button"
+                          disabled={isExtracting}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onBatchInsertKangxi(item);
+                          }}
+                          className={`px-1 py-0.2 rounded text-[8px] font-sans font-bold border transition-colors cursor-pointer ${
+                            isLight
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white'
+                              : 'bg-emerald-950/80 border-emerald-700 text-emerald-300 hover:bg-emerald-600 hover:text-white'
+                          }`}
+                          title={`「${item.name}」を複数漢字へ一括流し込み`}
+                        >
+                          <Layers className="w-2.5 h-2.5 inline" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Character Clickable Area for direct 1-click insertion */}

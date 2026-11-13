@@ -21,8 +21,12 @@ import {
   BookOpen,
   Palette,
   FilePlus,
+  Award,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { ThemeMode, getThemePreset } from '../../utils/theme';
+import { useModalContext } from '../../contexts/ModalContext';
 
 interface ToolsMenuDropdownProps {
   isOpen: boolean;
@@ -56,6 +60,8 @@ interface ToolsMenuDropdownProps {
   onOpenShortcutsModal?: () => void;
   onOpenThemeMenu: () => void;
   onStartNewProject: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
@@ -90,16 +96,20 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
   onOpenShortcutsModal,
   onOpenThemeMenu,
   onStartNewProject,
+  isFullscreen = false,
+  onToggleFullscreen,
 }) => {
+  const { openModal } = useModalContext();
+
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`px-2 sm:px-2.5 py-1 sm:py-1.5 h-8 rounded-lg sm:rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border active:scale-95 shrink-0 cursor-pointer ${
+        className={`px-2 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-all border active:scale-95 shrink-0 cursor-pointer ${
           isOpen
             ? isLight
-              ? 'bg-emerald-100 text-emerald-950 border-emerald-300 ring-2 ring-emerald-500/20'
-              : 'bg-emerald-950 text-emerald-200 border-emerald-700/60 ring-2 ring-emerald-400/20'
+              ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+              : 'bg-emerald-950 text-emerald-200 border-emerald-700/60'
             : isLight
             ? 'bg-white hover:bg-emerald-50/70 text-stone-700 hover:text-emerald-900 border-stone-200 hover:border-emerald-300'
             : 'bg-[#151f19] hover:bg-[#1d2b22] text-emerald-200 border-[#25362b] hover:border-emerald-700/60'
@@ -125,11 +135,13 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
             onClick={onClose}
           />
           <div
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             style={{
-              maxHeight: 'calc(100vh - 56px)',
+              maxHeight: 'calc(100vh - 50px)',
               paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 24px)',
             }}
-            className={`fixed right-1 sm:right-4 top-[48px] sm:top-[54px] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-2xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 animate-in fade-in duration-150 ${
+            className={`fixed right-1 sm:right-3 top-[42px] sm:top-[44px] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 animate-in fade-in duration-150 ${
               isLight
                 ? 'bg-white border-stone-200 text-stone-800 shadow-xl'
                 : 'bg-[#151f19] border-[#25362b] text-emerald-100 shadow-xl'
@@ -567,6 +579,52 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     </div>
                   </button>
                 )}
+
+                {/* JIS Progress Dashboard */}
+                <button
+                  onClick={() => {
+                    openModal('jisProgress');
+                    onClose();
+                  }}
+                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
+                    isLight
+                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
+                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold truncate">JIS規格進捗</div>
+                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      常用・JIS第1・第2水準の達成率メーター
+                    </div>
+                  </div>
+                </button>
+
+                {/* IVS Variant Manager */}
+                <button
+                  onClick={() => {
+                    openModal('ivsManager');
+                    onClose();
+                  }}
+                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
+                    isLight
+                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
+                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold truncate">IVS 異体字管理</div>
+                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      辻・葛・辺などの異体字セレクタ
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -695,6 +753,28 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     </div>
                   </div>
                 </button>
+                {onToggleFullscreen && (
+                  <button
+                    onClick={() => {
+                      onToggleFullscreen();
+                      onClose();
+                    }}
+                    className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 col-span-2 cursor-pointer ${
+                      isLight
+                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
+                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
+                    }`}
+                  >
+                    {isFullscreen ? (
+                      <Minimize className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    ) : (
+                      <Maximize className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    )}
+                    <span className="text-xs font-medium truncate">
+                      {isFullscreen ? '全画面モードを解除 (Esc)' : '全画面モードで集中制作'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 

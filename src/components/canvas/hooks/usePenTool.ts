@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { PathContour, Point, BezierNode } from '../../../types';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { PathContour, Point, BezierNode, ToolMode } from '../../../types';
 import { contoursToSvgPath, unionContours, hasContourIntersections, expandStrokeContours } from '../../../utils/path';
 
 interface UsePenToolOptions {
+  toolMode?: ToolMode;
   contours: PathContour[];
   autoResolveBrushOverlap: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -13,9 +14,11 @@ interface UsePenToolOptions {
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedHandleType: React.Dispatch<React.SetStateAction<'handleIn' | 'handleOut' | 'node' | null>>;
+  isGlyphLocked?: boolean;
 }
 
 export function usePenTool({
+  toolMode,
   contours,
   autoResolveBrushOverlap,
   containerRef,
@@ -26,6 +29,7 @@ export function usePenTool({
   setSelectedContourIds,
   setSelectedNodeId,
   setSelectedHandleType,
+  isGlyphLocked = false,
 }: UsePenToolOptions) {
   const [penStrokeWidth, setPenStrokeWidth] = useState<number>(() => {
     try {
@@ -93,6 +97,7 @@ export function usePenTool({
     if (activePenContour) {
       const count = activePenContour.nodes.length;
       setActivePenContour(null);
+      setPenMousePos(null);
       setSelectedNodeId(null);
       setSelectedHandleType(null);
       showCanvasToast('作図中のパスをリセット・破棄しました', `${count} 点を消去`);
@@ -103,6 +108,14 @@ export function usePenTool({
   const handleFinishPenContour = useCallback(
     (closed: boolean = false, customStrokeWidth?: number) => {
       if (!activePenContour || activePenContour.nodes.length === 0) return;
+      if (isGlyphLocked) {
+        setActivePenContour(null);
+        setPenMousePos(null);
+        setSelectedNodeId(null);
+        setSelectedHandleType(null);
+        showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
+        return;
+      }
       if (activePenContour.nodes.length === 1) {
         showCanvasToast('パスには2点以上の頂点が必要です', '作図を継続またはEscでキャンセル');
         return;
@@ -135,6 +148,7 @@ export function usePenTool({
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
+            setPenMousePos(null);
             setSelectedNodeId(null);
             onCommitHistory?.();
             showCanvasToast(
@@ -161,6 +175,7 @@ export function usePenTool({
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
+            setPenMousePos(null);
             setSelectedNodeId(null);
             onCommitHistory?.();
             showCanvasToast(
@@ -180,6 +195,7 @@ export function usePenTool({
       setSelectedContourId(null);
       setSelectedContourIds([]);
       setActivePenContour(null);
+      setPenMousePos(null);
       setSelectedNodeId(null);
       onCommitHistory?.();
       showCanvasToast(
@@ -188,6 +204,7 @@ export function usePenTool({
       );
     },
     [
+      isGlyphLocked,
       activePenContour,
       autoResolveBrushOverlap,
       contours,
@@ -198,9 +215,28 @@ export function usePenTool({
       setSelectedContourId,
       setSelectedContourIds,
       setSelectedNodeId,
+      setSelectedHandleType,
       showCanvasToast,
     ]
   );
+
+  // Auto-commit or safely finalize in-progress pen contour when switching tools
+  const prevToolModeRef = useRef<ToolMode | undefined>(toolMode);
+  useEffect(() => {
+    if (prevToolModeRef.current === 'pen' && toolMode && toolMode !== 'pen') {
+      if (activePenContour) {
+        if (!isGlyphLocked && activePenContour.nodes.length >= 2) {
+          handleFinishPenContour(activePenContour.closed || false);
+        } else {
+          setActivePenContour(null);
+          setSelectedNodeId(null);
+          setSelectedHandleType(null);
+        }
+        setPenMousePos(null);
+      }
+    }
+    prevToolModeRef.current = toolMode;
+  }, [toolMode, isGlyphLocked, activePenContour, handleFinishPenContour, setSelectedHandleType, setSelectedNodeId]);
 
   const handlePenHudPointerDown = useCallback(
     (e: React.PointerEvent) => {

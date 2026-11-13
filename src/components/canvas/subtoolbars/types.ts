@@ -80,8 +80,10 @@ export interface CanvasSubToolbarProps {
   setSelectedContourIds: (ids: string[]) => void;
   setSelectedContourId: (id: string | null) => void;
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   setSelectedNodeId: (id: string | null) => void;
   setSelectedHandleType: (t: 'node' | 'handleIn' | 'handleOut' | null) => void;
+  isGlyphLocked?: boolean;
   handleRotateSelected: (deg: number) => void;
   handleFlipHSelected: () => void;
   handleFlipVSelected: () => void;
@@ -97,7 +99,7 @@ export interface CanvasSubToolbarProps {
   handleReverseWindingSelected: () => void;
   handleConvertToSmoothSelected: () => void;
   handleConvertToCornersSelected: () => void;
-  handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
   handleDeleteSelectedNode: () => void;
   handleClearAllGuidelines: () => void;
   isGuideEraserActive: boolean;

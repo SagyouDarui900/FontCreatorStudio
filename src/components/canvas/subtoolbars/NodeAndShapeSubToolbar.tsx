@@ -7,8 +7,9 @@ interface NodeAndShapeSubToolbarProps {
   nodeStyle: 'full' | 'clean' | 'selected_only';
   setNodeStyle: (s: 'full' | 'clean' | 'selected_only') => void;
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   selectedContourId: string | null;
-  handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
   handleDeleteSelectedNode: () => void;
   isShapeTool: boolean;
   isShiftLockRatio: boolean;
@@ -24,6 +25,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
   nodeStyle,
   setNodeStyle,
   selectedNodeId,
+  selectedNodeIds = [],
   selectedContourId,
   handleToggleNodeType,
   handleDeleteSelectedNode,
@@ -35,6 +37,8 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
   showCanvasToast,
   isLight,
 }) => {
+  const selectedNodeCount =
+    selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0;
   return (
     <>
       {/* Node Tool options */}
@@ -79,29 +83,36 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
             </button>
           </div>
 
-          {selectedNodeId && selectedContourId && (
+          {selectedNodeCount > 0 && (
             <>
               <button
                 type="button"
-                onClick={() => handleToggleNodeType(selectedContourId, selectedNodeId)}
-                className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
+                onClick={() =>
+                  selectedNodeCount > 1
+                    ? handleToggleNodeType(undefined, undefined)
+                    : handleToggleNodeType(selectedContourId ?? undefined, selectedNodeId ?? undefined)
+                }
+                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                   isLight
                     ? 'bg-sky-100 text-sky-900 hover:bg-sky-200 border border-sky-300'
                     : 'bg-sky-950 text-sky-200 hover:bg-sky-900 border border-sky-700'
                 }`}
-                title="角ノードと曲線ノードを切り替え (ノードをダブルクリックでも可能)"
+                title="角ノードと曲線ノードを切り替え (Cキー / ノードダブルクリック)"
               >
                 <Activity className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                 <span>角 ⇄ 曲線</span>
+                {selectedNodeCount > 1 && (
+                  <span className="font-mono tabular-nums text-[10px] opacity-80">({selectedNodeCount}点)</span>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => handleDeleteSelectedNode()}
-                className="px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 cursor-pointer"
+                className="px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 cursor-pointer"
                 title="選択したノードを削除 (Deleteキー)"
               >
                 <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                <span>削除</span>
+                <span>削除{selectedNodeCount > 1 ? `(${selectedNodeCount})` : ''}</span>
               </button>
             </>
           )}
@@ -117,7 +128,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               setIsShiftLockRatio((prev) => !prev);
               showCanvasToast(!isShiftLockRatio ? '正方形・正円比率に固定しました' : '自由比率に切り替えました');
             }}
-            className={`px-2 py-1 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
               isShiftLockRatio
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'
@@ -134,7 +145,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               setIsAltFromCenter((prev) => !prev);
               showCanvasToast(!isAltFromCenter ? '中心基準作図をONにしました' : '中心基準作図をOFFにしました');
             }}
-            className={`hidden sm:flex px-2 py-1 rounded text-xs font-bold border transition-colors items-center space-x-1 cursor-pointer ${
+            className={`hidden sm:flex px-2 py-0.5 rounded text-xs font-bold border transition-colors items-center space-x-1 cursor-pointer ${
               isAltFromCenter
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'

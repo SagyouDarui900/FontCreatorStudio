@@ -59,11 +59,11 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
       >
         <Paintbrush className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
         <span>{PEN_PRESETS.find((p) => p.id === brushStyle)?.name || 'ペン'}</span>
-        <span className="font-mono text-[10px]">({brushWidth}px)</span>
+        <span className="font-mono tabular-nums text-[10px]">({brushWidth}px)</span>
       </button>
 
       {/* Desktop Rich Brush Studio Controls */}
-      <div className="hidden sm:flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 overflow-x-auto no-scrollbar">
+      <div className="hidden sm:flex items-center space-x-1.5 ml-1 pl-1.5 border-l border-stone-200 dark:border-stone-700 shrink-0">
         {/* All Pens Dropdown */}
         {onChangeBrushStyle && (
           <select
@@ -76,7 +76,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
                 onChangeBrushWidth(preset.defaultWidth);
               }
             }}
-            className={`text-xs font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
+            className={`text-xs font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer outline-none ${
               isLight
                 ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
                 : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
@@ -96,7 +96,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
           <button
             type="button"
             onClick={onOpenPenPresetsModal}
-            className="px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center space-x-1.5 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 active:scale-95 cursor-pointer"
+            className="px-2 py-0.5 rounded text-xs font-bold border transition-all flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 active:scale-95 cursor-pointer"
             title="ペン作成・ブラシカスタマイズスタジオを開く"
           >
             <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -106,20 +106,20 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
 
         {/* Width Stepper */}
         {onChangeBrushWidth && (
-          <div className="flex items-center gap-0.5 bg-stone-100 dark:bg-[#18231c] px-1.5 py-0.5 rounded-lg border border-stone-200 dark:border-stone-700 text-xs">
+          <div className="flex items-center gap-0.5 bg-stone-100 dark:bg-[#18231c] px-1 py-0.5 rounded border border-stone-200 dark:border-stone-700 text-xs">
             <button
               type="button"
               onClick={() => onChangeBrushWidth(Math.max(4, brushWidth - 4))}
-              className="px-1 py-0.5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300 cursor-pointer"
+              className="w-5 h-5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300 cursor-pointer flex items-center justify-center"
               title="線を細く"
             >
               -
             </button>
-            <span className="font-mono font-bold px-1 min-w-[32px] text-center">{brushWidth}px</span>
+            <span className="font-mono tabular-nums font-bold px-1 min-w-[32px] text-center">{brushWidth}px</span>
             <button
               type="button"
               onClick={() => onChangeBrushWidth(Math.min(150, brushWidth + 4))}
-              className="px-1 py-0.5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300 cursor-pointer"
+              className="w-5 h-5 font-bold hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-600 dark:text-stone-300 cursor-pointer flex items-center justify-center"
               title="線を太く"
             >
               +
@@ -139,7 +139,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
                   onChangePressureSensitivity('off');
                 }
               }}
-              className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
                 pressureSensitivity !== 'off'
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
@@ -157,7 +157,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
                 onChange={(e) =>
                   onChangePressureSensitivity(e.target.value as 'high' | 'normal' | 'low' | 'off')
                 }
-                className={`text-[11px] font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer outline-none ${
                   isLight
                     ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
                     : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
@@ -180,7 +180,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
             setBrushStraightMode(next);
             showCanvasToast(next ? '直線モードをONにしました (定規のようにまっすぐ描画)' : 'フリーハンド描画に戻しました');
           }}
-          className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
+          className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
             brushStraightMode
               ? 'bg-emerald-600 text-white border-emerald-600'
               : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
@@ -200,7 +200,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
               setAutoSmoothBrush(next);
               showCanvasToast(next ? '手ブレ補正・自動平滑化をONにしました' : '自動平滑化をOFFにしました');
             }}
-            className={`px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
               autoSmoothBrush
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
@@ -220,7 +220,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
                 setSmoothStrength(val);
                 showCanvasToast(`手ブレ補正レベル: ${val === 'strong' ? '強 (なめらか)' : val === 'standard' ? '標準' : '弱 (そのまま)'}`);
               }}
-              className={`text-[11px] font-bold px-1.5 py-1 rounded border transition-colors cursor-pointer outline-none ${
+              className={`text-[11px] font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer outline-none ${
                 isLight
                   ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
                   : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
@@ -238,7 +238,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
         <button
           type="button"
           onClick={handleStraightenWobblySelected}
-          className="px-2 py-1 rounded-lg text-xs font-bold border transition-colors flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 border-stone-300 dark:border-stone-700 active:scale-95 cursor-pointer"
+          className="px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 border-stone-300 dark:border-stone-700 active:scale-95 cursor-pointer"
           title="描いた線のうねり・ガタガタ歪みを自動でまっすぐ直線化補正します"
         >
           <Compass className="w-3 h-3" />

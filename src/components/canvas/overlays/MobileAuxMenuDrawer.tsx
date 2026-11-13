@@ -40,9 +40,11 @@ export interface MobileAuxMenuDrawerProps {
   handleSetPalmRejectionMode: (mode: 'auto' | 'strict_pen_only' | 'off') => void;
   toolMode: ToolMode;
   selectedNodeId: string | null;
+  selectedNodeIds?: string[];
   selectedContourId: string | null;
-  handleToggleNodeType: (contourId: string, nodeId: string) => void;
+  handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
   handleDeleteSelectedNode: () => void;
+  isGlyphLocked?: boolean;
   traceSettings: TraceSettings;
   onChangeTraceSettings?: React.Dispatch<React.SetStateAction<TraceSettings>>;
   handleResetTracePosition: () => void;
@@ -72,9 +74,11 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     handleSetPalmRejectionMode,
     toolMode,
     selectedNodeId,
+    selectedNodeIds,
     selectedContourId,
     handleToggleNodeType,
     handleDeleteSelectedNode,
+    isGlyphLocked = false,
     traceSettings,
     onChangeTraceSettings,
     handleResetTracePosition,
@@ -86,6 +90,8 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     if (!isOpen) return null;
 
     const themeClasses = getThemeClasses(theme || (isLight ? 'light' : 'dark'));
+    const selectedNodeCount =
+      selectedNodeIds && selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0;
 
     return (
       <div
@@ -94,11 +100,11 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-2xl shadow-2xl border-t p-4 pb-8 space-y-4 animate-in slide-in-from-bottom duration-250 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-xl shadow-2xl border-t p-4 pb-8 space-y-4 animate-in slide-in-from-bottom duration-250 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
         >
           {/* Drawer Handle & Header */}
           <div className="flex flex-col items-center pb-2.5 border-b border-stone-200 dark:border-[#25382c]">
-            <div className="w-10 h-1 bg-stone-300 dark:bg-stone-600 rounded-full mb-2" />
+            <div className="w-10 h-1 bg-stone-300 dark:bg-stone-600 rounded mb-2" />
             <div className="w-full flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -106,7 +112,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 transition-colors"
+                className="p-1.5 rounded-md hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 transition-colors"
                 aria-label="閉じる"
               >
                 <X className="w-4 h-4" />
@@ -118,7 +124,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-stone-600 dark:text-emerald-400">
               <span>表示・ズーム倍率</span>
-              <span className="font-mono text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+              <span className="font-mono tabular-nums text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
                 {Math.round(zoom * 100)}%
               </span>
             </div>
@@ -432,20 +438,31 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
             <div className="text-xs font-bold text-stone-600 dark:text-emerald-400">編集・管理アクション</div>
             <div className="grid grid-cols-2 gap-2">
               {/* Node Edit buttons if in node tool */}
-              {toolMode === 'node' && selectedNodeId && selectedContourId && (
+              {toolMode === 'node' && selectedNodeCount > 0 && (
                 <>
                   <button
-                    onClick={() => handleToggleNodeType(selectedContourId, selectedNodeId)}
-                    className="p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300 dark:border-sky-700"
+                    disabled={isGlyphLocked}
+                    onClick={() =>
+                      handleToggleNodeType(
+                        selectedNodeCount > 1 ? undefined : selectedContourId || undefined,
+                        selectedNodeCount > 1 ? undefined : selectedNodeId || undefined
+                      )
+                    }
+                    className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300 dark:border-sky-700 ${
+                      isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                    }`}
                   >
-                    <span>角 ⇄ スムーズ曲線</span>
+                    <span>{selectedNodeCount > 1 ? `角⇄曲線 (${selectedNodeCount}点)` : '角 ⇄ スムーズ曲線'}</span>
                   </button>
                   <button
+                    disabled={isGlyphLocked}
                     onClick={handleDeleteSelectedNode}
-                    className="p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                    className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-700 ${
+                      isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                    }`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>選択ノード削除</span>
+                    <span>{selectedNodeCount > 1 ? `選択削除 (${selectedNodeCount}点)` : '選択ノード削除'}</span>
                   </button>
                 </>
               )}
@@ -503,8 +520,11 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
               {/* Clear Contours */}
               {contours.length > 0 && (
                 <button
+                  disabled={isGlyphLocked}
                   onClick={handleClearAllContours}
-                  className="p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800"
+                  className={`p-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800 ${
+                    isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                  }`}
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
                   <span>全パス消去 (Ctrl+Z可)</span>
