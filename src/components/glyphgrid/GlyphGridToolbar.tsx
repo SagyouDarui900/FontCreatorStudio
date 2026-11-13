@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Search,
   Plus,
@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronLeft,
+  ChevronRight,
   X,
   Layers,
   Check,
@@ -101,12 +102,107 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 }) => {
   const themeClasses = propThemeClasses ?? getThemeClasses(isLight ? 'light' : 'dark');
   const { openModal } = useModalContext();
+  const quickTabsRef = useRef<HTMLDivElement>(null);
+  const suppressTabClickRef = useRef<boolean>(false);
+  const [tabsCanScrollLeft, setTabsCanScrollLeft] = useState(false);
+  const [tabsCanScrollRight, setTabsCanScrollRight] = useState(false);
+
+  const checkQuickTabsScroll = useCallback(() => {
+    const el = quickTabsRef.current;
+    if (!el) return;
+    setTabsCanScrollLeft(el.scrollLeft > 4);
+    setTabsCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = quickTabsRef.current;
+    if (!el || !isSearchHeaderExpanded) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (!e.ctrlKey && !e.metaKey) {
+        const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        if (delta !== 0) {
+          e.preventDefault();
+          const multiplier = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 200 : 1;
+          el.scrollLeft += delta * multiplier;
+          checkQuickTabsScroll();
+        }
+      }
+    };
+
+    let isDragging = false;
+    let hasDragged = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      isDragging = true;
+      hasDragged = false;
+      suppressTabClickRef.current = false;
+      startX = e.pageX;
+      startScrollLeft = el.scrollLeft;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const dx = e.pageX - startX;
+      if (!hasDragged && Math.abs(dx) >= 5) {
+        hasDragged = true;
+        suppressTabClickRef.current = true;
+        el.style.cursor = 'grabbing';
+      }
+      if (hasDragged) {
+        e.preventDefault();
+        el.scrollLeft = startScrollLeft - dx;
+        checkQuickTabsScroll();
+      }
+    };
+
+    const onMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+        el.style.cursor = '';
+        if (hasDragged) {
+          setTimeout(() => {
+            suppressTabClickRef.current = false;
+          }, 0);
+        }
+      }
+    };
+
+    const onScroll = () => checkQuickTabsScroll();
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    el.addEventListener('scroll', onScroll, { passive: true });
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => checkQuickTabsScroll());
+      ro.observe(el);
+    }
+
+    checkQuickTabsScroll();
+
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('scroll', onScroll);
+      if (ro) ro.disconnect();
+    };
+  }, [isSearchHeaderExpanded, sidebarWidth, quickCategoryTabs.length, checkQuickTabsScroll]);
 
   return (
     <>
       {/* Header with Title, Count, Density Toggles and Close */}
       <div
-        className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+        className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         {/* Row 1: Title, Count, Density control, and Collapse button */}
         <div className="flex items-center justify-between gap-1.5">
@@ -268,7 +364,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
         {isSearchHeaderExpanded ? (
           <>
             {/* Row 2: Custom Category Popover & Category Tabs */}
-            <div className="space-y-1.5 relative">
+            <div className="space-y-1.5 relative min-w-0">
               <div className="relative" ref={categoryDropdownRef}>
                 <button
                   type="button"
@@ -357,27 +453,57 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
               {/* Quick 1-Tap Category Tabs */}
               <div
-                className={`p-1 rounded-md flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x min-w-0 select-none whitespace-nowrap border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+                className={`p-1 rounded-md flex items-center gap-1 min-w-0 border ${themeClasses.toolbarBg} ${themeClasses.border}`}
               >
-                {quickCategoryTabs.map((pill) => (
+                {tabsCanScrollLeft && (
                   <button
-                    key={pill.id}
                     type="button"
                     onClick={() => {
-                      setActiveCategoryId(pill.id);
-                      setSearchQuery('');
-                      setCurrentPage(1);
-                      setIsCategoryDropdownOpen(false);
+                      quickTabsRef.current?.scrollBy({ left: -140, behavior: 'smooth' });
                     }}
-                    className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap tabular-nums ${
-                      activeCategoryId === pill.id
-                        ? `${themeClasses.activeTool} shadow-xs border`
-                        : `${themeClasses.textMuted} hover:${themeClasses.textPrimary} hover:${themeClasses.activeToolHover} active:scale-95`
-                    }`}
+                    className={`shrink-0 w-5 h-6 rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                    title="左へスクロール"
                   >
-                    {pill.label}
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
-                ))}
+                )}
+                <div
+                  ref={quickTabsRef}
+                  className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto touch-scroll-x custom-scrollbar pb-0.5 select-none whitespace-nowrap"
+                >
+                  {quickCategoryTabs.map((pill) => (
+                    <button
+                      key={pill.id}
+                      type="button"
+                      onClick={() => {
+                        if (suppressTabClickRef.current) return;
+                        setActiveCategoryId(pill.id);
+                        setSearchQuery('');
+                        setCurrentPage(1);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap tabular-nums ${
+                        activeCategoryId === pill.id
+                          ? `${themeClasses.activeTool} shadow-xs border`
+                          : `${themeClasses.textMuted} hover:${themeClasses.textPrimary} hover:${themeClasses.activeToolHover} active:scale-95`
+                      }`}
+                    >
+                      {pill.label}
+                    </button>
+                  ))}
+                </div>
+                {tabsCanScrollRight && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      quickTabsRef.current?.scrollBy({ left: 140, behavior: 'smooth' });
+                    }}
+                    className={`shrink-0 w-5 h-6 rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                    title="右へスクロール"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 

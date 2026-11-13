@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   FlipHorizontal,
   FlipVertical,
@@ -88,19 +88,42 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  const [pos, setPos] = useState<{ left: number; top: number }>({ left: x, top: y });
 
-  // Viewport clamping
-  const menuWidth = 224;
-  const menuHeight = 380;
-  const adjustedX = Math.min(x, window.innerWidth - menuWidth - 16);
-  const adjustedY = Math.min(y, window.innerHeight - menuHeight - 16);
+  useLayoutEffect(() => {
+    if (!isOpen || !menuRef.current) return;
+    const el = menuRef.current;
+    const width = el.offsetWidth || 224;
+    const height = el.offsetHeight || 380;
+    const pad = 8;
+    const maxLeft = Math.max(pad, window.innerWidth - width - pad);
+    const maxTop = Math.max(pad, window.innerHeight - height - pad);
+
+    let nextLeft = x;
+    if (nextLeft + width > window.innerWidth - pad) {
+      nextLeft = Math.max(pad, x - width);
+    }
+    nextLeft = Math.max(pad, Math.min(nextLeft, maxLeft));
+
+    let nextTop = y;
+    if (nextTop + height > window.innerHeight - pad) {
+      if (y - height >= pad) {
+        nextTop = y - height;
+      } else {
+        nextTop = maxTop;
+      }
+    }
+    nextTop = Math.max(pad, Math.min(nextTop, maxTop));
+    setPos({ left: nextLeft, top: nextTop });
+  }, [isOpen, x, y, hasSelection, selectedContourCount]);
+
+  if (!isOpen) return null;
 
   return (
     <div
       ref={menuRef}
-      style={{ left: Math.max(8, adjustedX), top: Math.max(8, adjustedY) }}
-      className={`fixed z-50 w-56 rounded-xl border shadow-2xl p-1.5 flex flex-col gap-0.5 text-xs animate-in fade-in duration-150 backdrop-blur-md select-none ${
+      style={{ left: pos.left, top: pos.top }}
+      className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs animate-in fade-in duration-150 backdrop-blur-md select-none ${
         isLight
           ? 'bg-white/95 border-stone-200 text-stone-800 shadow-stone-400/30'
           : 'bg-[#151f19]/95 border-emerald-900/60 text-emerald-100 shadow-black/60'

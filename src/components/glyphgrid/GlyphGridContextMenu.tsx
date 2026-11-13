@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2 } from 'lucide-react';
 import { FontProject } from '../../types';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
@@ -34,17 +34,44 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
   onGenerateDakutenTarget,
   onDuplicateAsSmallKana,
 }) => {
+  const [pos, setPos] = useState<{ left: number; top: number }>(() => ({
+    left: contextMenu ? contextMenu.x : 8,
+    top: contextMenu ? contextMenu.y : 8,
+  }));
+
+  useLayoutEffect(() => {
+    if (!contextMenu || !contextMenuRef.current) return;
+    const el = contextMenuRef.current;
+    const width = el.offsetWidth || 208;
+    const height = el.offsetHeight || 260;
+    const pad = 8;
+    const maxLeft = Math.max(pad, window.innerWidth - width - pad);
+    const maxTop = Math.max(pad, window.innerHeight - height - pad);
+
+    const nextLeft = Math.min(Math.max(pad, contextMenu.x), maxLeft);
+    let nextTop = contextMenu.y;
+    if (nextTop + height > window.innerHeight - pad) {
+      if (contextMenu.anchorTop !== undefined && contextMenu.anchorTop - height >= pad) {
+        nextTop = contextMenu.anchorTop - height;
+      } else {
+        nextTop = maxTop;
+      }
+    }
+    nextTop = Math.max(pad, Math.min(nextTop, maxTop));
+    setPos({ left: nextLeft, top: nextTop });
+  }, [contextMenu, hasClipboard, contextMenuRef]);
+
   if (!contextMenu) return null;
 
-  const { item, x, y } = contextMenu;
+  const { item } = contextMenu;
   const glyph = project.glyphs[item.code];
   const hasContours = Boolean(glyph?.contours?.length);
 
   return (
     <div
       ref={contextMenuRef}
-      style={{ top: y, left: x }}
-      className={`fixed z-[60] w-52 p-1.5 rounded-lg border shadow-xl animate-in fade-in zoom-in-95 duration-100 ${
+      style={{ top: pos.top, left: pos.left }}
+      className={`fixed z-[60] w-52 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto p-1.5 rounded-md border shadow-xl animate-in fade-in zoom-in-95 duration-100 ${
         isLight
           ? 'bg-white border-[#c8ded3] text-stone-800'
           : 'bg-[#16211a] border-[#2e4235] text-emerald-100'

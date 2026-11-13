@@ -68,11 +68,11 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
           <div
             className={`p-2.5 rounded-lg border space-y-2 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
           >
-            <div className="flex items-center justify-between">
-              <label className={`text-xs font-bold whitespace-nowrap ${themeClasses.textPrimary}`}>
-                送り幅 (Advance Width)
+            <div className="flex flex-wrap items-center justify-between gap-1 min-w-0">
+              <label className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
+                送り幅 (Advance)
               </label>
-              <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap ${themeClasses.textMuted}`}>
+              <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0 ${themeClasses.textMuted}`}>
                 標準: {upm} (全角)
               </span>
             </div>
@@ -156,11 +156,11 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
           <div
             className={`p-2.5 rounded-lg border space-y-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
           >
-            <div className="flex items-center justify-between">
-              <label className={`text-xs font-bold whitespace-nowrap ${themeClasses.textPrimary}`}>
-                左余白 (Left Sidebearing / LSB)
+            <div className="flex flex-wrap items-center justify-between gap-1 min-w-0">
+              <label className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
+                左余白 (LSB)
               </label>
-              <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap ${themeClasses.textMuted}`}>
+              <span className={`text-[10px] font-mono tabular-nums whitespace-nowrap shrink-0 ${themeClasses.textMuted}`}>
                 標準: 50px
               </span>
             </div>
@@ -254,7 +254,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className={isLight ? 'text-stone-700' : 'text-emerald-300'}>余白バランス</span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    className={`text-[10px] px-2 py-0.5 rounded font-bold tabular-nums ${
                       isBalanced
                         ? isLight
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'

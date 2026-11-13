@@ -348,64 +348,52 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   if (!isOpen) return null;
 
   return (
-    <>
-      {/* Mobile/Overlay Click-Outside Dismiss (Transparent, non-darkening) */}
-      {effectiveIsOverlay && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 bg-transparent sm:hidden z-40 pointer-events-auto"
-        />
-      )}
-
+    <div
+      className={`relative z-10 w-full min-w-0 flex flex-col h-full overflow-hidden select-none transition-colors ${
+        effectiveIsOverlay ? 'animate-in slide-in-from-right duration-200' : ''
+      } ${themeClasses.sidebarBg}`}
+    >
+      {/* Panel Header */}
       <div
-        className={`${
-          effectiveIsOverlay
-            ? 'fixed inset-y-0 right-0 z-50 w-full sm:w-80 max-w-full shadow-2xl animate-in slide-in-from-right duration-200'
-            : 'relative z-10 w-64 lg:w-72 shadow-none shrink-0'
-        } border-l flex flex-col h-full overflow-hidden select-none transition-colors ${themeClasses.sidebarBg} ${themeClasses.border}`}
+        className={`flex items-center justify-between gap-1.5 px-2.5 py-2 border-b shrink-0 z-10 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
-        {/* Sticky Mobile/Desktop Header */}
-        <div
-          className={`flex items-center justify-between p-2.5 border-b shrink-0 z-10 ${themeClasses.headerBg} ${themeClasses.border}`}
-          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 6px, 10px)' }}
-        >
-          <div className="flex items-center space-x-2 min-w-0">
-            <div className={`p-1.5 rounded-md shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
-              <Sliders className="w-3.5 h-3.5 shrink-0" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
-                メトリクス・文字ツール
-              </span>
-              <span className={`text-[10px] ${themeClasses.textMuted} truncate`}>
-                送り幅・余白・変形・単純化
-              </span>
-            </div>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className={`p-1 rounded-md shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
+            <Sliders className="w-3.5 h-3.5 shrink-0" />
           </div>
-
-          <div className="flex items-center space-x-1 shrink-0">
-            {activeTab === 'metrics' && (
-              <button
-                onClick={handleToggleAll}
-                className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
-                title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
-              >
-                {isAllExpanded ? '全閉' : '全開'}
-              </button>
-            )}
-
-            {onClose && (
-              <button
-                onClick={onClose}
-                className={`h-7 px-2 rounded transition-all flex items-center gap-1 text-xs font-bold active:scale-95 cursor-pointer border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
-                title="パネルを閉じる (作図エリアへ戻る)"
-              >
-                <X className="w-3.5 h-3.5 shrink-0" />
-                <span>閉じる</span>
-              </button>
-            )}
+          <div className="flex flex-col min-w-0">
+            <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
+              メトリクス・文字ツール
+            </span>
+            <span className={`text-[10px] ${themeClasses.textMuted} truncate`}>
+              送り幅・余白・変形・単純化
+            </span>
           </div>
         </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {activeTab === 'metrics' && (
+            <button
+              onClick={handleToggleAll}
+              className={`px-1.5 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
+            >
+              {isAllExpanded ? '全閉' : '全開'}
+            </button>
+          )}
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className={`h-6 px-1.5 rounded transition-all flex items-center gap-0.5 text-[11px] font-bold active:scale-95 cursor-pointer border whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              title="パネルを閉じる (作図エリアへ戻る)"
+            >
+              <X className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden xs:inline">閉じる</span>
+            </button>
+          )}
+        </div>
+      </div>
 
         {/* Panel Tabs: Metrics vs Precision Design */}
         <div className={`flex border-b px-2 py-1 gap-1 shrink-0 ${themeClasses.border} ${themeClasses.cardBg}`}>
@@ -442,11 +430,11 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
         {activeTab === 'precision' ? (
           <div
-            className="flex-1 overflow-y-auto overscroll-contain p-2.5"
+            className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2"
             style={{
               paddingBottom: effectiveIsOverlay
-                ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
-                : 'max(env(safe-area-inset-bottom, 0px) + 20px, 24px)',
+                ? 'max(env(safe-area-inset-bottom, 0px) + 24px, 24px)'
+                : 'max(env(safe-area-inset-bottom, 0px) + 16px, 20px)',
             }}
           >
             <PrecisionInspector
@@ -467,13 +455,13 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         ) : (
           /* Scrollable Panel Content */
           <div
-            className="flex-1 overflow-y-auto overscroll-contain p-2.5 space-y-2.5"
+            className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2 space-y-2"
             style={{
               paddingBottom: effectiveIsOverlay
-                ? 'max(env(safe-area-inset-bottom, 0px) + 80px, 90px)'
-              : 'max(env(safe-area-inset-bottom, 0px) + 20px, 24px)',
-          }}
-        >
+                ? 'max(env(safe-area-inset-bottom, 0px) + 24px, 24px)'
+                : 'max(env(safe-area-inset-bottom, 0px) + 16px, 20px)',
+            }}
+          >
           {isGlyphLocked && (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300 text-[11px] font-semibold">
               <Lock className="w-3.5 h-3.5 shrink-0" />
@@ -576,8 +564,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         </div>
       )}
     </div>
-  </>
-);
+  );
 });
 
 MetricsPanel.displayName = 'MetricsPanel';

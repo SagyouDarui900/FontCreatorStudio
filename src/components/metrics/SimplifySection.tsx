@@ -36,7 +36,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
           <span>輪郭の単純化 (Simplify)</span>
         </span>
         <div className="flex items-center space-x-1.5">
-          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
+          <span className={`text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${themeClasses.accentBadge}`}>
             {totalNodes} 頂点
           </span>
           <div className="p-0.5 text-stone-400">
@@ -52,42 +52,42 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
           </p>
 
           {/* Strength Selector */}
-          <div className="grid grid-cols-3 gap-1.5 text-xs">
+          <div className="grid grid-cols-3 gap-1 text-[11px]">
             <button
               type="button"
               onClick={() => setSimplifyLevel('mild')}
-              className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
                 simplifyLevel === 'mild'
                   ? `${themeClasses.activeTool} border`
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
               }`}
               title="形状保持 100%: 直線上の不要ノードと重複ノードのみ除去"
             >
-              軽め (Mild)
+              軽め
             </button>
             <button
               type="button"
               onClick={() => setSimplifyLevel('normal')}
-              className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
                 simplifyLevel === 'normal'
                   ? `${themeClasses.activeTool} border`
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
               }`}
               title="推奨: 形状保持 99.8%、手描き線の微細ブレを整流してスリム化"
             >
-              標準 (Normal)
+              標準
             </button>
             <button
               type="button"
               onClick={() => setSimplifyLevel('strong')}
-              className={`min-h-[38px] py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
                 simplifyLevel === 'strong'
                   ? `${themeClasses.activeTool} border`
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
               }`}
               title="強力: 大幅な頂点削減。データ容量を最優先で削減"
             >
-              強め (Strong)
+              強め
             </button>
           </div>
 

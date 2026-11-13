@@ -105,8 +105,9 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       e.preventDefault();
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setContextMenu({
-        x: Math.min(window.innerWidth - 220, Math.max(10, rect.left)),
-        y: Math.min(window.innerHeight - 240, Math.max(10, rect.bottom + 4)),
+        x: Math.max(8, rect.left),
+        y: rect.bottom + 4,
+        anchorTop: rect.top - 4,
         item,
       });
     },

@@ -248,24 +248,24 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-2">
-            <div>
+            <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">X 座標</label>
               <input
                 type="number"
                 value={Math.round(activeNode.x)}
                 onChange={(e) => handleUpdateNodeProp('x', e.target.value)}
-                className={`w-full px-2 py-1 border rounded font-mono text-xs ${
+                className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">Y 座標</label>
               <input
                 type="number"
                 value={Math.round(activeNode.y)}
                 onChange={(e) => handleUpdateNodeProp('y', e.target.value)}
-                className={`w-full px-2 py-1 border rounded font-mono text-xs ${
+                className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
               />
@@ -430,7 +430,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-2">
-            <div>
+            <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">幅 (W)</label>
               <input
                 type="number"
@@ -440,12 +440,12 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                   const h = keepAspect && selBBox.width > 0 ? (val / selBBox.width) * selBBox.height : selBBox.height;
                   handleSetExactDimension(val, Math.round(h));
                 }}
-                className={`w-full px-2 py-1 border rounded font-mono text-xs ${
+                className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">高さ (H)</label>
               <input
                 type="number"
@@ -455,7 +455,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                   const w = keepAspect && selBBox.height > 0 ? (val / selBBox.height) * selBBox.width : selBBox.width;
                   handleSetExactDimension(Math.round(w), val);
                 }}
-                className={`w-full px-2 py-1 border rounded font-mono text-xs ${
+                className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
               />

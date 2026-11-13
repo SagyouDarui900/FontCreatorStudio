@@ -32,7 +32,6 @@ import { useAppLayout } from './hooks/useAppLayout';
 import { useAppShortcuts } from './hooks/useAppShortcuts';
 import { AppMobileNav } from './components/navigation';
 import { KANA_PAIRS } from './data/unicodeTables';
-import { X } from 'lucide-react';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
 import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
@@ -538,21 +537,10 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw]'
+                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw] border-l flex flex-col min-h-0'
                 : 'w-64 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
-            {isMetricsOverlay && (
-              <div className={`p-2 border-b flex justify-between items-center ${themeClasses.border}`}>
-                <span className="font-semibold text-xs text-stone-700 dark:text-stone-300">メトリクス・文字ガイド</span>
-                <button
-                  onClick={handleCloseMetricsDrawer}
-                  className="p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
             <MetricsPanel
               advanceWidth={currentGlyph.advanceWidth || 1000}
               lsb={currentGlyph.lsb ?? 50}

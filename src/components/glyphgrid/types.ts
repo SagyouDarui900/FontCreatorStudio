@@ -12,6 +12,7 @@ export interface ContextMenuItem {
 export interface ContextMenuState {
   x: number;
   y: number;
+  anchorTop?: number;
   item: ContextMenuItem;
 }
 
