@@ -1,8 +1,12 @@
 import { useEffect } from 'react';
 import { Point, ToolMode, TraceSettings } from '../../../types';
+import { computeWheelZoomTransform } from './viewportMath';
 
 export interface UseCanvasNativeGesturesProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
+  canvasGroupRef: React.RefObject<SVGGElement | null>;
+  getContainerRectFast: () => { left: number; top: number; width: number; height: number } | null;
+  upm: number;
   isAnyModalOpenRef: React.RefObject<boolean>;
   toolModeRef: React.RefObject<ToolMode>;
   brushWidthRef: React.RefObject<number>;
@@ -12,25 +16,26 @@ export interface UseCanvasNativeGesturesProps {
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
   setZoom: React.Dispatch<React.SetStateAction<number>>;
   setPan: React.Dispatch<React.SetStateAction<Point>>;
-  zoomRef: React.RefObject<number>;
-  panRef: React.RefObject<Point>;
-  zoom: number;
-  pan: Point;
+  zoomRef: React.MutableRefObject<number>;
+  panRef: React.MutableRefObject<Point>;
   clampPan: (p: Point, z: number) => Point;
   showCanvasToast: (msg: string, sub?: string) => void;
   setTouchLoupeState: React.Dispatch<React.SetStateAction<{ visible: boolean; screenX: number; screenY: number; canvasPos: Point | null }>>;
-  isErasingRef: React.RefObject<boolean>;
+  isErasingRef: React.MutableRefObject<boolean>;
   resetEraserVisuals: () => void;
-  touchPointersRef: React.RefObject<Map<number, Point>>;
-  pointerTypesRef: React.RefObject<Map<number, string>>;
-  isTwoFingerGestureRef: React.RefObject<boolean>;
-  twoFingerCooldownUntilRef: React.RefObject<number>;
-  isPenDrawingRef: React.RefObject<boolean>;
-  lastPenActiveTimeRef: React.RefObject<number>;
+  touchPointersRef: React.MutableRefObject<Map<number, Point>>;
+  pointerTypesRef: React.MutableRefObject<Map<number, string>>;
+  isTwoFingerGestureRef: React.MutableRefObject<boolean>;
+  twoFingerCooldownUntilRef: React.MutableRefObject<number>;
+  isPenDrawingRef: React.MutableRefObject<boolean>;
+  lastPenActiveTimeRef: React.MutableRefObject<number>;
 }
 
 export function useCanvasNativeGestures({
   containerRef,
+  canvasGroupRef,
+  getContainerRectFast,
+  upm,
   isAnyModalOpenRef,
   toolModeRef,
   brushWidthRef,
@@ -42,8 +47,6 @@ export function useCanvasNativeGestures({
   setPan,
   zoomRef,
   panRef,
-  zoom,
-  pan,
   clampPan,
   showCanvasToast,
   setTouchLoupeState,
@@ -59,6 +62,56 @@ export function useCanvasNativeGestures({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    let wheelRafId: number | null = null;
+    let wheelCommitTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const setSvgGesturing = (active: boolean) => {
+      const svgEl = canvasGroupRef.current?.ownerSVGElement;
+      if (!svgEl) return;
+      if (active) {
+        if (svgEl.getAttribute('data-gesturing') !== 'true') {
+          svgEl.setAttribute('data-gesturing', 'true');
+        }
+      } else {
+        svgEl.removeAttribute('data-gesturing');
+      }
+    };
+
+    const applyDirectViewportTransform = () => {
+      const g = canvasGroupRef.current;
+      if (!g) {
+        setZoom(zoomRef.current);
+        setPan(panRef.current);
+        return;
+      }
+      setSvgGesturing(true);
+      g.setAttribute('transform', `translate(${panRef.current.x}, ${panRef.current.y}) scale(${zoomRef.current})`);
+    };
+
+    const commitWheelViewport = () => {
+      wheelCommitTimer = null;
+      if (wheelRafId !== null) {
+        cancelAnimationFrame(wheelRafId);
+        wheelRafId = null;
+      }
+      setSvgGesturing(false);
+      setZoom(zoomRef.current);
+      setPan(panRef.current);
+    };
+
+    const scheduleWheelTransform = () => {
+      if (wheelRafId === null) {
+        wheelRafId = requestAnimationFrame(() => {
+          wheelRafId = null;
+          applyDirectViewportTransform();
+        });
+      }
+      if (wheelCommitTimer !== null) {
+        clearTimeout(wheelCommitTimer);
+      }
+      wheelCommitTimer = setTimeout(commitWheelViewport, 100);
+    };
 
     const preventAll = (e: Event) => {
       if (e.cancelable) {
@@ -86,8 +139,8 @@ export function useCanvasNativeGestures({
       }
 
       if (isAnyModalOpenRef.current) return;
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getContainerRectFast();
+      if (!rect) return;
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
@@ -132,47 +185,49 @@ export function useCanvasNativeGestures({
         return;
       }
 
-      // 3. Ctrl / Cmd + Wheel: Smooth Zoom centered at mouse pointer (10% to 3200%)
+      // 3. Ctrl / Cmd + Wheel (including Trackpad two-finger pinch): Smooth GPU-batched Zoom
       if (e.ctrlKey || e.metaKey) {
-        const zoomFactor = Math.pow(1.12, -deltaY / 100);
-        setZoom((prevZoom) => {
-          const nextZoom = Math.max(0.1, Math.min(32.0, prevZoom * zoomFactor));
-          const scale = nextZoom / prevZoom;
-
-          setPan((prevPan) => {
-            const newPan = {
-              x: mouseX - (mouseX - prevPan.x) * scale,
-              y: mouseY - (mouseY - prevPan.y) * scale,
-            };
-            return clampPan(newPan, nextZoom);
-          });
-
-          return nextZoom;
+        const result = computeWheelZoomTransform({
+          currentZoom: zoomRef.current,
+          currentPan: panRef.current,
+          deltaY,
+          mouseX,
+          mouseY,
+          upm,
+          viewportWidth: rect.width,
+          viewportHeight: rect.height,
         });
+        zoomRef.current = result.zoom;
+        panRef.current = result.pan;
+        scheduleWheelTransform();
         return;
       }
 
       // 4. Shift + Wheel: Horizontal Scroll (Pan X)
       if (e.shiftKey) {
         const scrollAmount = Math.abs(deltaY) > Math.abs(deltaX) ? deltaY : deltaX;
-        setPan((prevPan) => {
-          const newPan = {
-            x: prevPan.x - scrollAmount,
-            y: prevPan.y,
-          };
-          return clampPan(newPan, zoomRef.current);
-        });
+        const nextPan = clampPan(
+          {
+            x: panRef.current.x - scrollAmount,
+            y: panRef.current.y,
+          },
+          zoomRef.current
+        );
+        panRef.current = nextPan;
+        scheduleWheelTransform();
         return;
       }
 
       // 5. Default Wheel (No modifier): Vertical Scroll (Pan Y) + Horizontal Scroll (deltaX)
-      setPan((prevPan) => {
-        const newPan = {
-          x: prevPan.x - deltaX,
-          y: prevPan.y - deltaY,
-        };
-        return clampPan(newPan, zoomRef.current);
-      });
+      const nextPan = clampPan(
+        {
+          x: panRef.current.x - deltaX,
+          y: panRef.current.y - deltaY,
+        },
+        zoomRef.current
+      );
+      panRef.current = nextPan;
+      scheduleWheelTransform();
     };
 
     el.addEventListener('gesturestart', preventAll, { passive: false });
@@ -194,14 +249,9 @@ export function useCanvasNativeGestures({
         if (touchPointersRef.current.size === 0) {
           if (isTwoFingerGestureRef.current) {
             twoFingerCooldownUntilRef.current = Date.now() + 150;
-            if (
-              Math.abs(zoomRef.current - zoom) > 0.001 ||
-              Math.abs(panRef.current.x - pan.x) > 0.5 ||
-              Math.abs(panRef.current.y - pan.y) > 0.5
-            ) {
-              setZoom(zoomRef.current);
-              setPan(panRef.current);
-            }
+            setSvgGesturing(false);
+            setZoom(zoomRef.current);
+            setPan(panRef.current);
           }
           isTwoFingerGestureRef.current = false;
         }
@@ -215,6 +265,9 @@ export function useCanvasNativeGestures({
     window.addEventListener('pointercancel', handleWindowPointerUpOrCancel);
 
     return () => {
+      if (wheelRafId !== null) cancelAnimationFrame(wheelRafId);
+      if (wheelCommitTimer !== null) clearTimeout(wheelCommitTimer);
+      setSvgGesturing(false);
       el.removeEventListener('gesturestart', preventAll);
       el.removeEventListener('gesturechange', preventAll);
       el.removeEventListener('gestureend', preventAll);
@@ -227,9 +280,10 @@ export function useCanvasNativeGestures({
   }, [
     clampPan,
     showCanvasToast,
-    zoom,
-    pan,
     containerRef,
+    canvasGroupRef,
+    getContainerRectFast,
+    upm,
     isAnyModalOpenRef,
     toolModeRef,
     brushWidthRef,

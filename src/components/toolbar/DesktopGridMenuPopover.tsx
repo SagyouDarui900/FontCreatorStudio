@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Grid, X } from 'lucide-react';
 import { GridSettings } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -14,6 +14,7 @@ export interface DesktopGridMenuPopoverProps {
   setGridSettings: React.Dispatch<React.SetStateAction<GridSettings>>;
   themeClasses: ThemeClasses;
   isLight: boolean;
+  popoverRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = React.memo(({
@@ -26,11 +27,30 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
   setGridSettings,
   themeClasses,
   isLight,
+  popoverRef,
 }) => {
+  const [draftGridSize, setDraftGridSize] = useState<string>(String(gridSettings.gridSize || 50));
+
+  useEffect(() => {
+    setDraftGridSize(String(gridSettings.gridSize || 50));
+  }, [gridSettings.gridSize]);
+
   if (!isOpen) return null;
+
+  const commitDraftGridSize = () => {
+    const parsed = parseInt(draftGridSize, 10);
+    if (isNaN(parsed)) {
+      setDraftGridSize(String(gridSettings.gridSize || 50));
+      return;
+    }
+    const clamped = Math.max(5, Math.min(250, parsed));
+    setDraftGridSize(String(clamped));
+    setGridSettings((prev) => ({ ...prev, gridSize: clamped }));
+  };
 
   return (
     <div
+      ref={popoverRef}
       style={{
         top: `${anchorTop}px`,
         ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
@@ -39,9 +59,9 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
       }}
       className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
-      } sm:w-72 z-50 p-3 pb-6 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-72 z-50 p-3 pb-6 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
     >
-      <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-stone-200 dark:border-[#223025]">
+      <div className={`flex items-center justify-between pb-2 mb-2.5 border-b ${themeClasses.border}`}>
         <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700 dark:text-emerald-400">
           <Grid className="w-3.5 h-3.5" />
           <span>方眼グリッド設定</span>
@@ -109,14 +129,23 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                 type="number"
                 min="5"
                 max="250"
-                value={gridSettings.gridSize || 50}
+                value={draftGridSize}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val)) {
+                  const next = e.target.value;
+                  setDraftGridSize(next);
+                  const val = parseInt(next, 10);
+                  if (!isNaN(val) && val >= 5 && val <= 250) {
                     setGridSettings((prev) => ({
                       ...prev,
-                      gridSize: Math.max(5, Math.min(250, val)),
+                      gridSize: val,
                     }));
+                  }
+                }}
+                onBlur={commitDraftGridSize}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitDraftGridSize();
+                    e.currentTarget.blur();
                   }
                 }}
                 className="w-8 text-center font-mono font-bold text-emerald-700 dark:text-emerald-300 text-xs bg-transparent focus:outline-hidden"
@@ -308,7 +337,12 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
       <div className="grid grid-cols-3 gap-1 mb-2">
         <button
           type="button"
-          onClick={() => setGridSettings((prev) => ({ ...prev, showBodyFrame: !prev.showBodyFrame }))}
+          onClick={() =>
+            setGridSettings((prev) => ({
+              ...prev,
+              showBodyFrame: prev.showBodyFrame === false ? true : false,
+            }))
+          }
           className={`py-1 px-1 rounded text-[10px] font-bold border text-center transition-colors cursor-pointer ${
             gridSettings.showBodyFrame !== false
               ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200'

@@ -35,7 +35,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
     >
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
       >
         <div className="flex items-center space-x-2.5 min-w-0">
           <div
@@ -81,7 +81,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               type="button"
               onClick={onSelectPrevGlyph}
               disabled={!onSelectPrevGlyph}
-              className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="前の文字へ (ショートカット: Alt+← または PageUp)"
             >
               <ChevronLeft className="w-4 h-4 shrink-0" />
@@ -91,7 +91,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               type="button"
               onClick={onSelectNextGlyph}
               disabled={!onSelectNextGlyph}
-              className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`min-h-[38px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="次の文字へ (ショートカット: Alt+→ または PageDown)"
             >
               <span>次グリフ</span>
@@ -102,7 +102,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               type="button"
               onClick={onSelectPrevUncompletedGlyph}
               disabled={!onSelectPrevUncompletedGlyph}
-              className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="前の未作成グリフへスキップ"
             >
               <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
@@ -112,7 +112,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               type="button"
               onClick={onSelectNextUncompletedGlyph}
               disabled={!onSelectNextUncompletedGlyph}
-              className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="次の未作成グリフへジャンプ"
             >
               <span>未作成文字</span>

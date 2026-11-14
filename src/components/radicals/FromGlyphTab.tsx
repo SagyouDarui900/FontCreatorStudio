@@ -34,7 +34,7 @@ export const FromGlyphTab: React.FC<FromGlyphTabProps> = ({
                 key={glyph.unicode}
                 type="button"
                 onClick={() => onInsertWithPlacement(glyph.contours)}
-                className={`flex flex-col items-center p-2 rounded-md border group transition-all cursor-pointer ${
+                className={`flex flex-col items-center p-2 rounded-md border group transition-colors cursor-pointer ${
                   isLight
                     ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-emerald-50 shadow-xs'
                     : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'

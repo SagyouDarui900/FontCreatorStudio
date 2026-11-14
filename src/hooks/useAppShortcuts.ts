@@ -45,7 +45,10 @@ export function useAppShortcuts({
       if (isInput) return;
       if (isAnyModalOpen) return;
 
-      const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const uaPlatform = (navigator as { userAgentData?: { platform?: string } })?.userAgentData?.platform;
+      const isMac =
+        typeof navigator !== 'undefined' &&
+        (uaPlatform === 'macOS' || /mac|iphone|ipad|ipod/i.test(navigator.userAgent || ''));
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
       if (ctrlOrCmd && e.key.toLowerCase() === 'z') {

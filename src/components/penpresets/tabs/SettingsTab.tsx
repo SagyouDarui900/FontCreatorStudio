@@ -13,8 +13,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   setWorkingPreset,
 }) => {
   return (
-    <div className="space-y-4 max-w-xl">
-      <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-3">
+    <div className="space-y-2.5">
+      <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
           <Settings className="w-3.5 h-3.5 text-emerald-500" />
           <span>手ぶれ補正 (Stabilizer) 設定</span>
@@ -27,13 +27,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         />
 
         {/* Stabilization Method: Pre / Post */}
-        <div className="flex flex-col space-y-1.5 pt-1">
+        <div className="flex flex-col space-y-1 pt-0.5">
           <span className="text-xs font-medium text-stone-700 dark:text-stone-300">補正方法</span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             <button
               type="button"
               onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'pre' }))}
-              className={`py-1.5 px-3 rounded-md text-xs font-semibold border cursor-pointer ${
+              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border cursor-pointer ${
                 (workingPreset.stabilizationMethod || 'pre') === 'pre'
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
                   : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
@@ -44,7 +44,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <button
               type="button"
               onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'post' }))}
-              className={`py-1.5 px-3 rounded-md text-xs font-semibold border cursor-pointer ${
+              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border cursor-pointer ${
                 workingPreset.stabilizationMethod === 'post'
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
                   : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
@@ -55,24 +55,26 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         </div>
 
-        <SliderControl
-          label="常時補正強度"
-          value={workingPreset.smoothingIntensity ?? 55}
-          min={0}
-          max={100}
-          step={5}
-          unit=""
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, smoothingIntensity: v }))}
-        />
-        <SliderControl
-          label="高速時補正強度"
-          value={workingPreset.speedStabilization ?? 0}
-          min={0}
-          max={100}
-          step={5}
-          unit=""
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedStabilization: v }))}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+          <SliderControl
+            label="常時補正強度"
+            value={workingPreset.smoothingIntensity ?? 55}
+            min={0}
+            max={100}
+            step={5}
+            unit=""
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, smoothingIntensity: v }))}
+          />
+          <SliderControl
+            label="高速時補正強度"
+            value={workingPreset.speedStabilization ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit=""
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedStabilization: v }))}
+          />
+        </div>
 
         <ToggleControl
           label="折れ・角の張り出しを保持 (転折保護)"

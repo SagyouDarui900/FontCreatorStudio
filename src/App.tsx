@@ -115,7 +115,6 @@ function AppMain({
     penPresets,
     setPenPresets,
     activePenPreset,
-    setIsPenPresetsModalOpen,
     handleChangeBrushStyle,
     handleChangeBrushWidth,
     handleChangePressureSensitivity,
@@ -123,37 +122,6 @@ function AppMain({
     handleChangeSmoothingIntensity,
     handleApplyPenPreset,
   } = useToolState();
-
-  // Quick profile for handwriting-optimized settings
-  const handleApplyHandwritingPreset = useCallback(() => {
-    setToolMode('brush');
-    setBrushStyle('brush');
-    setBrushWidth(38);
-    setPressureSensitivity('high');
-    setPressureCurve(DEFAULT_PRESSURE_CURVES.soft);
-    setSmoothingIntensity(60);
-    setAutoSmoothBrush(true);
-    setSmoothStrength('standard');
-    setSmoothPreserveCorners(true);
-    setAutoUnionBrush(false);
-    setGridSettings((prev) => ({
-      ...prev,
-      snapToGrid: false,
-      snapToPoints: false,
-      japaneseGuide: 'cross',
-      showBodyFrame: true,
-      showKanaFrame: true,
-      showMetrics: true,
-      highContrastCursor: true,
-    }));
-    setTraceSettings((prev) => ({
-      ...prev,
-      enabled: true,
-      opacity: 0.18,
-      fontSize: 1000,
-    }));
-    showToast('手書きプリセットを適用しました', 'success');
-  }, [setToolMode, setBrushStyle, setBrushWidth, setPressureSensitivity, setPressureCurve, setSmoothingIntensity, setAutoSmoothBrush, setSmoothStrength, setSmoothPreserveCorners, setAutoUnionBrush, showToast]);
 
   // Trace Guidelines Settings
   const [traceSettings, setTraceSettings] = useState<TraceSettings>({
@@ -185,6 +153,51 @@ function AppMain({
     showCursorCrosshair: false,
   });
 
+  // Quick profile for handwriting-optimized settings
+  const handleApplyHandwritingPreset = useCallback(() => {
+    setToolMode('brush');
+    setBrushStyle('brush');
+    setBrushWidth(38);
+    setPressureSensitivity('high');
+    setPressureCurve(DEFAULT_PRESSURE_CURVES.soft);
+    setSmoothingIntensity(60);
+    setAutoSmoothBrush(true);
+    setSmoothStrength('standard');
+    setSmoothPreserveCorners(true);
+    setAutoUnionBrush(false);
+    setGridSettings((prev) => ({
+      ...prev,
+      snapToGrid: false,
+      snapToPoints: false,
+      japaneseGuide: 'cross',
+      showBodyFrame: true,
+      showKanaFrame: true,
+      showMetrics: true,
+      highContrastCursor: true,
+    }));
+    setTraceSettings((prev) => ({
+      ...prev,
+      enabled: true,
+      opacity: 0.18,
+      fontSize: 1000,
+    }));
+    showToast('手書きプリセットを適用しました', 'success');
+  }, [
+    setToolMode,
+    setBrushStyle,
+    setBrushWidth,
+    setPressureSensitivity,
+    setPressureCurve,
+    setSmoothingIntensity,
+    setAutoSmoothBrush,
+    setSmoothStrength,
+    setSmoothPreserveCorners,
+    setAutoUnionBrush,
+    setGridSettings,
+    setTraceSettings,
+    showToast,
+  ]);
+
   // Modals & Drawers Visibility
   const {
     setIsMobileThemeModalOpen,
@@ -212,6 +225,7 @@ function AppMain({
     setIsGridFittingModalOpen,
     setIsPixelStudioOpen,
     setIsMojikumiStudioOpen,
+    setIsPenPresetsModalOpen,
     isAnyModalOpen,
   } = useModalContext();
 
@@ -635,9 +649,32 @@ function AppMain({
 function AppContent() {
   // Toasts System
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const toastTextToIdRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    const textMap = toastTextToIdRef.current;
+    return () => {
+      timers.forEach((timerId) => clearTimeout(timerId));
+      timers.clear();
+      textMap.clear();
+    };
+  }, []);
 
   const showToast = useCallback((text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    const existingId = toastTextToIdRef.current.get(text);
+    if (existingId) {
+      const existingTimer = toastTimersRef.current.get(existingId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        toastTimersRef.current.delete(existingId);
+      }
+    }
+
+    toastTextToIdRef.current.set(text, id);
     setToasts((prev) => {
       const exists = prev.some((t) => t.text === text);
       if (exists) {
@@ -645,12 +682,23 @@ function AppContent() {
       }
       return [...prev.slice(-2), { id, text, type }];
     });
-    setTimeout(() => {
+
+    const timerId = setTimeout(() => {
+      toastTimersRef.current.delete(id);
+      if (toastTextToIdRef.current.get(text) === id) {
+        toastTextToIdRef.current.delete(text);
+      }
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
+    toastTimersRef.current.set(id, timerId);
   }, []);
 
   const dismissToast = useCallback((id: string) => {
+    const timerId = toastTimersRef.current.get(id);
+    if (timerId) {
+      clearTimeout(timerId);
+      toastTimersRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 

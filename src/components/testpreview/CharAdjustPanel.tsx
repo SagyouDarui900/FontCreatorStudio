@@ -193,7 +193,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               <button
                 type="button"
                 onClick={handleJumpToMainEditor}
-                className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+                className="w-full py-2.5 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition-colors active:scale-95 shadow-sm cursor-pointer"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 <span>「{selectedCharInfo.char}」をエディタで作字する</span>
@@ -207,7 +207,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
           <div className="space-y-3 text-xs flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar my-1">
             {/* Live Vector SVG Preview Canvas Box (Toggleable & Compact) */}
             <div
-              className={`p-2 rounded-xl border flex flex-col items-center justify-center shrink-0 relative overflow-hidden transition-all ${
+              className={`p-2 rounded-xl border flex flex-col items-center justify-center shrink-0 relative overflow-hidden transition-colors ${
                 isLight ? 'bg-white border-emerald-200' : 'bg-[#101812] border-emerald-900/60'
               }`}
             >
@@ -666,7 +666,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               type="button"
               onClick={handleApplyTransformToGlyph}
               disabled={adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100}
-              className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+              className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors ${
                 adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100
                   ? 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-98 shadow-sm'

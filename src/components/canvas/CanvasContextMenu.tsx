@@ -123,10 +123,10 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
     <div
       ref={menuRef}
       style={{ left: pos.left, top: pos.top }}
-      className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs animate-in fade-in duration-150 backdrop-blur-md select-none ${
+      className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs anim-pop select-none ${
         isLight
-          ? 'bg-white/95 border-stone-200 text-stone-800 shadow-stone-400/30'
-          : 'bg-[#151f19]/95 border-emerald-900/60 text-emerald-100 shadow-black/60'
+          ? 'bg-white border-stone-200 text-stone-800 shadow-stone-400/30'
+          : 'bg-[#151f19] border-emerald-900/60 text-emerald-100 shadow-black/60'
       }`}
     >
       {/* Selection context label */}
@@ -173,7 +173,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <Binary className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -192,7 +192,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -211,7 +211,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <Copy className="w-3.5 h-3.5 text-stone-500" />
@@ -230,7 +230,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <FlipHorizontal className="w-3.5 h-3.5 text-stone-500" />
@@ -249,7 +249,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <FlipVertical className="w-3.5 h-3.5 text-stone-500" />
@@ -268,7 +268,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <RotateCw className="w-3.5 h-3.5 text-stone-500" />
@@ -287,7 +287,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                 isGlyphLocked
                   ? 'opacity-45 cursor-not-allowed'
-                  : `hover:${themeClasses.activeToolHover} cursor-pointer`
+                  : `${themeClasses.activeToolHover} cursor-pointer`
               }`}
             >
               <Repeat className="w-3.5 h-3.5 text-stone-500" />
@@ -324,7 +324,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
                 onSelectAllNodes();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left hover:${themeClasses.activeToolHover} cursor-pointer transition-colors`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
             >
               <Maximize2 className="w-3.5 h-3.5 text-stone-500" />
               <span>すべてのノードを選択</span>
@@ -344,7 +344,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             onSelectPrevGlyph();
             onClose();
           }}
-          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:${themeClasses.activeToolHover} cursor-pointer transition-colors`}
+          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
         >
           <div className="flex items-center gap-2">
             <ArrowLeft className="w-3.5 h-3.5 text-stone-500" />
@@ -360,7 +360,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             onSelectNextGlyph();
             onClose();
           }}
-          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left hover:${themeClasses.activeToolHover} cursor-pointer transition-colors`}
+          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
         >
           <div className="flex items-center gap-2">
             <ArrowRight className="w-3.5 h-3.5 text-stone-500" />

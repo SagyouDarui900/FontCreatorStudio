@@ -108,7 +108,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
 }) => {
   return (
      <div
- className={`flex md:hidden fixed bottom-0 inset-x-0 z-40 flex-col transition-all duration-300 ease-out shadow-2xl border-t select-none ${
+ className={`flex md:hidden fixed bottom-0 inset-x-0 z-40 flex-col transition-[height] duration-300 ease-out shadow-2xl border-t select-none ${
  isLight
  ? 'bg-white/98 border-stone-300 text-stone-800'
  : 'bg-[#121c15]/98 border-[#25362b] text-emerald-100'
@@ -142,7 +142,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  setMobileSheetTab('radicals');
  if (mobileSheetSnap === 'peek') setMobileSheetSnap('half');
  }}
- className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-all ${
+ className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-colors ${
  mobileSheetTab === 'radicals' && mobileSheetSnap !== 'peek'
  ? 'text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/40'
  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400'
@@ -157,7 +157,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  setMobileSheetTab('parts');
  if (mobileSheetSnap === 'peek') setMobileSheetSnap('half');
  }}
- className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-all ${
+ className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-colors ${
  mobileSheetTab === 'parts' && mobileSheetSnap !== 'peek'
  ? 'text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/40'
  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400'
@@ -172,7 +172,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  setMobileSheetTab('transform');
  if (mobileSheetSnap === 'peek') setMobileSheetSnap('half');
  }}
- className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-all ${
+ className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-colors ${
  mobileSheetTab === 'transform' && mobileSheetSnap !== 'peek'
  ? 'text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/40'
  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400'
@@ -187,7 +187,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  setMobileSheetTab('compose');
  if (mobileSheetSnap === 'peek') setMobileSheetSnap('half');
  }}
- className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-all ${
+ className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 rounded-lg transition-colors ${
  mobileSheetTab === 'compose' && mobileSheetSnap !== 'peek'
  ? 'text-emerald-700 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/40'
  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400'
@@ -285,7 +285,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  <button
  key={`m_preset_${item.id}`}
  onClick={() => handleLoadPreset(item)}
- className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 active:scale-95 transition-all min-h-[58px] ${
+ className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 active:scale-95 transition-colors min-h-[58px] ${
  isLight
  ? 'bg-stone-50/80 border-stone-200 hover:border-emerald-500 hover:bg-white text-stone-800'
  : 'bg-[#18261e] border-stone-800 hover:border-emerald-500 hover:bg-[#203328] text-emerald-100'
@@ -412,7 +412,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  <div
  key={`m_part_${part.id}`}
  onClick={() => setSelectedPartId(part.id)}
- className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer ${
+ className={`p-3 rounded-xl border flex items-center justify-between gap-2 transition-colors cursor-pointer ${
  isSelected
  ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-500 ring-1 ring-emerald-500'
  : isLight
@@ -488,7 +488,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  const scaled = scaleContours(activePart.contours, sc, sc);
  commitPartChange(scaled);
  }}
- className="py-2 rounded-lg text-xs font-bold bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 active:scale-95 transition-all min-h-[44px]"
+ className="py-2 rounded-lg text-xs font-bold bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 active:scale-95 transition-colors min-h-[44px]"
  >
  {sc > 1 ? `+${Math.round((sc - 1) * 100)}%` : `-${Math.round((1 - sc) * 100)}%`}
  </button>

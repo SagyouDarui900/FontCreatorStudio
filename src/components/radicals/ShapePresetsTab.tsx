@@ -61,7 +61,7 @@ export const ShapePresetsTab: React.FC<ShapePresetsTabProps> = ({
               key={preset.id}
               type="button"
               onClick={() => onInsertWithPlacement(shapeContours)}
-              className={`flex flex-col items-center justify-between p-2 rounded-lg border group transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-between p-2 rounded-lg border group transition-colors cursor-pointer ${
                 isLight
                   ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-emerald-50 shadow-xs'
                   : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'

@@ -45,7 +45,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
                   key={val}
                   type="button"
                   onClick={() => handleUpmChange(val)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-all ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
                     (formData.unitsPerEm ?? 1000) === val
                       ? 'bg-emerald-600 text-white font-bold border-emerald-600'
                       : isLight
@@ -106,7 +106,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
       {/* Dynamic Scaling Option when UPM is modified */}
       {(formData.unitsPerEm ?? 1000) !== (project.metadata.unitsPerEm || 1000) && (
         <div
-          className={`mt-2 p-3 rounded-lg border text-xs space-y-1.5 transition-all ${
+          className={`mt-2 p-3 rounded-lg border text-xs space-y-1.5 transition-colors ${
             isLight
               ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
               : 'bg-[#15231a] border-emerald-800 text-emerald-200'

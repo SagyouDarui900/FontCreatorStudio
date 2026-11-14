@@ -37,7 +37,7 @@ export const QualityIssueCard: React.FC<QualityIssueCardProps> = ({
 
   return (
     <div
-      className={`p-3.5 sm:p-4 rounded-xl border flex flex-col sm:flex-row gap-4 transition-all ${
+      className={`p-3.5 sm:p-4 rounded-xl border flex flex-col sm:flex-row gap-4 transition-colors ${
         isLight
           ? 'bg-white border-stone-200 hover:border-stone-300'
           : 'bg-[#162119] border-[#25362b] hover:border-stone-700'
@@ -302,7 +302,7 @@ export const QualityIssueCard: React.FC<QualityIssueCardProps> = ({
           <button
             onClick={() => onFixIssue(issue)}
             title="輪郭の重なりや極点を自動修正します"
-            className={`w-full sm:w-auto px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-all shrink-0 cursor-pointer ${
+            className={`w-full sm:w-auto px-3.5 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shrink-0 cursor-pointer ${
               issue.autoFixType === 'merge_intersection'
                 ? isLight
                   ? 'bg-amber-600 hover:bg-amber-700 text-white border border-amber-700'

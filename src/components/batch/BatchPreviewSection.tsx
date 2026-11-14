@@ -104,7 +104,7 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
             <button
               key={s.id}
               onClick={() => setScope(s.id as TargetScope)}
-              className={`p-2 rounded border text-left flex flex-col min-w-0 transition-all ${
+              className={`p-2 rounded border text-left flex flex-col min-w-0 transition-colors ${
                 scope === s.id
                   ? isLight
                     ? 'bg-emerald-100/70 border-emerald-600 text-emerald-950 font-bold '

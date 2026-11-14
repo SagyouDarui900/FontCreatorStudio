@@ -71,7 +71,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             fill="#3b82f6"
             fontWeight="bold"
             opacity={0.9}
-            style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+            paintOrder="stroke"
+            stroke={isLight ? '#ffffff' : '#000000'}
+            strokeWidth={3}
+            strokeLinejoin="round"
           >
             Ascender ──
           </text>
@@ -104,7 +107,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             fill="#0ea5e9"
             fontWeight="bold"
             opacity={0.9}
-            style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+            paintOrder="stroke"
+            stroke={isLight ? '#ffffff' : '#000000'}
+            strokeWidth={3}
+            strokeLinejoin="round"
           >
             Cap Height ┄┄
           </text>
@@ -137,7 +143,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             fill="#0284c7"
             fontWeight="bold"
             opacity={0.9}
-            style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+            paintOrder="stroke"
+            stroke={isLight ? '#ffffff' : '#000000'}
+            strokeWidth={3}
+            strokeLinejoin="round"
           >
             x-Height ┈┈
           </text>
@@ -176,7 +185,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             fill="#ef4444"
             fontWeight="bold"
             opacity={0.95}
-            style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+            paintOrder="stroke"
+            stroke={isLight ? '#ffffff' : '#000000'}
+            strokeWidth={3}
+            strokeLinejoin="round"
           >
             ▶ Baseline {isJapanese ? '(欧文底線)' : '(底線)'}
           </text>
@@ -209,7 +221,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             fill="#f97316"
             fontWeight="bold"
             opacity={0.9}
-            style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+            paintOrder="stroke"
+            stroke={isLight ? '#ffffff' : '#000000'}
+            strokeWidth={3}
+            strokeLinejoin="round"
           >
             Descender ─・
           </text>
@@ -243,7 +258,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
               fill="#8b5cf6"
               fontWeight="bold"
               opacity={0.95}
-              style={{ textShadow: isLight ? '0 0 3px #fff, 0 0 3px #fff' : '0 0 3px #000, 0 0 3px #000' }}
+              paintOrder="stroke"
+              stroke={isLight ? '#ffffff' : '#000000'}
+              strokeWidth={3}
+              strokeLinejoin="round"
             >
               | Center ({centerX})
             </text>

@@ -166,6 +166,9 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
 
   // 3. Pointer capture loss handler
   const handleLostPointerCapture = useCallback(() => {
+    if (isTwoFingerGestureRef.current) {
+      return;
+    }
     if (activeDrawingPointerIdRef) {
       activeDrawingPointerIdRef.current = null;
     }
@@ -173,7 +176,6 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     if (isErasingRef.current) resetEraserVisuals();
     isPenDrawingRef.current = false;
-    isTwoFingerGestureRef.current = false;
     setIsPanning(false);
     resetTraceDragState();
     setDraggingMetric(null);

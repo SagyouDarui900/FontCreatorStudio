@@ -51,7 +51,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
         </button>
 
         {showIOSGuide && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 anim-fade">
             <div
               className={`w-full max-w-sm rounded-2xl p-5 shadow-2xl border ${
                 isLight

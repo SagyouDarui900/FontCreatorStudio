@@ -25,7 +25,7 @@ import {
   Maximize,
   Minimize,
 } from 'lucide-react';
-import { ThemeMode, getThemePreset } from '../../utils/theme';
+import { ThemeMode, getThemePreset, getThemeClasses } from '../../utils/theme';
 import { useModalContext } from '../../contexts/ModalContext';
 
 interface ToolsMenuDropdownProps {
@@ -100,23 +100,22 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
   onToggleFullscreen,
 }) => {
   const { openModal } = useModalContext();
+  const themeClasses = getThemeClasses(theme);
+  const toolItemClass = `text-left p-2 rounded-xl border transition-colors flex items-start space-x-2 group cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
+  const smallItemClass = `text-left p-2 rounded-xl border transition-colors flex items-center space-x-2 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
 
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`px-2 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-all border active:scale-95 shrink-0 cursor-pointer ${
+        className={`px-2 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-colors border shrink-0 cursor-pointer ${
           isOpen
-            ? isLight
-              ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-              : 'bg-emerald-950 text-emerald-200 border-emerald-700/60'
-            : isLight
-            ? 'bg-white hover:bg-emerald-50/70 text-stone-700 hover:text-emerald-900 border-stone-200 hover:border-emerald-300'
-            : 'bg-[#151f19] hover:bg-[#1d2b22] text-emerald-200 border-[#25362b] hover:border-emerald-700/60'
+            ? themeClasses.activeTool
+            : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
         }`}
         title="機能メニュー"
       >
-        <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <Sliders className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
         <span className="font-bold leading-none">機能</span>
         <span
           className={`text-[9px] opacity-70 transition-transform duration-150 leading-none ${
@@ -141,14 +140,10 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               maxHeight: 'calc(100vh - 50px)',
               paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 24px)',
             }}
-            className={`fixed right-1 sm:right-3 top-[42px] sm:top-[44px] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 animate-in fade-in duration-150 ${
-              isLight
-                ? 'bg-white border-stone-200 text-stone-800 shadow-xl'
-                : 'bg-[#151f19] border-[#25362b] text-emerald-100 shadow-xl'
-            }`}
+            className={`fixed right-1 sm:right-3 top-[42px] sm:top-[44px] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 shadow-xl anim-pop ${themeClasses.modalBg}`}
           >
             {/* Menu Header */}
-            <div className="flex items-center justify-between px-0.5 pb-2 border-b border-stone-200/80 dark:border-[#223025]">
+            <div className={`flex items-center justify-between px-0.5 pb-2 border-b ${themeClasses.border}`}>
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
                   <Sliders className="w-3.5 h-3.5" />
@@ -157,7 +152,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#202d24] transition-colors cursor-pointer"
+                className={`p-1 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる"
               >
                 <X className="w-4 h-4" />
@@ -170,7 +165,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 onClose();
                 onOpenExportModal?.();
               }}
-              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer group ${
+              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between transition-colors cursor-pointer group ${
                 isLight
                   ? 'bg-emerald-50/80 hover:bg-emerald-100/80 border-emerald-200 text-emerald-950'
                   : 'bg-emerald-950/40 hover:bg-emerald-900/50 border-emerald-800/60 text-emerald-200'
@@ -182,7 +177,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold truncate">フォントを出力 (TTF / OTF)</div>
-                  <div className="text-[10.5px] text-stone-500 dark:text-emerald-300/80 jp-wrap leading-tight">
+                  <div className="text-[10.5px] opacity-75 jp-wrap leading-tight">
                     インストール用・ダウンロード用フォントファイルの書き出し
                   </div>
                 </div>
@@ -199,26 +194,22 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   onToggleMetricsDrawer();
                   onClose();
                 }}
-                className={`w-full sm:hidden p-2 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                className={`w-full sm:hidden p-2 rounded-xl border text-left flex items-center justify-between transition-colors cursor-pointer ${
                   showMetricsDrawer
-                    ? isLight
-                      ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                      : 'bg-emerald-950 text-emerald-200 border-emerald-700/60'
-                    : isLight
-                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                    : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
+                    ? themeClasses.activeTool
+                    : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                 }`}
               >
                 <div className="flex items-center space-x-2 min-w-0 flex-1 mr-2">
-                  <SlidersHorizontal className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <SlidersHorizontal className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">メトリクスパネル</div>
-                    <div className="text-[11px] text-stone-500 dark:text-stone-400 jp-wrap leading-tight">
+                    <div className={`text-[11px] jp-wrap leading-tight ${themeClasses.textMuted}`}>
                       {showMetricsDrawer ? '表示中 (タップで閉じる)' : '文字枠・送り幅の調整'}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
+                <span className={`text-xs font-bold shrink-0 ${themeClasses.accentText}`}>
                   {showMetricsDrawer ? '閉じる' : '開く ➔'}
                 </span>
               </button>
@@ -226,7 +217,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 
             {/* Section 1: 作字・編集ツール */}
             <div>
-              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+              <div className={`px-1 pb-1 text-[11px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                 作字・編集ツール
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
@@ -237,18 +228,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenPixelStudio();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform text-xs font-bold">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform text-xs font-bold ${themeClasses.accentBadge}`}>
                       <Grid className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">ピクセルフォント</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         ドット絵形式の作字・グリッド編集
                       </div>
                     </div>
@@ -261,18 +248,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onOpenRadicalStudio();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={toolItemClass}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                     <Shapes className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">部首・パーツパレット</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       214部首・偏旁冠脚の合成
                     </div>
                   </div>
@@ -285,18 +268,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenPenPresetsModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <Sliders className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">カスタムペン</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         筆先形状・入り抜き・筆圧設定
                       </div>
                     </div>
@@ -309,18 +288,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onOpenTraceModal();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={toolItemClass}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">下絵トレース</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       手書きノートや画像からの輪郭抽出
                     </div>
                   </div>
@@ -332,18 +307,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onOpenSvgModal();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer col-span-1 sm:col-span-2 ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={`${toolItemClass} col-span-1 sm:col-span-2`}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                     <FileCode className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">SVGインポート</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       ベクター画像（SVG）のパス取り込み
                     </div>
                   </div>
@@ -353,7 +324,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 
             {/* Section 2: 自動化・フォント調整 */}
             <div>
-              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+              <div className={`px-1 pb-1 text-[11px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                 自動化・フォント調整
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
@@ -364,18 +335,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenGlyphSynthesisModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <Wand2 className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">濁点・小書き合成</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         清音から濁音・促音・拗音を一括生成
                       </div>
                     </div>
@@ -388,18 +355,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onOpenBatchNormalizeModal();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={toolItemClass}
                 >
                   <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                     <Sliders className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">サイズ・太さ統一</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       字面枠や線の太さの一括正規化
                     </div>
                   </div>
@@ -412,18 +375,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenWeightInterpolationModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <Sliders className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">ウェイト補間</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         太さの異なるファミリー書体を生成
                       </div>
                     </div>
@@ -437,18 +396,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenKerningModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <ArrowLeftRight className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">カーニング調整</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         文字ペアの間隔・余白設定
                       </div>
                     </div>
@@ -462,18 +417,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenQualityModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">品質チェック</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         重複ノード・極点・パス交差の検査
                       </div>
                     </div>
@@ -487,18 +438,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenGlyphCompareModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <Eye className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">グリフ比較</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         複数文字の重ね合わせバランス確認
                       </div>
                     </div>
@@ -512,18 +459,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenOpenTypeFeaturesModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                      <FileCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                      <FileCode className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">縦書き・合字</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         縦書き用グリフと合字 (OpenType) 設定
                       </div>
                     </div>
@@ -537,18 +480,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenMojikumiStudio();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                      <Type className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                      <Type className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">文字組み・組版</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         ベタ/ツメ/アケ比較・アキ量・禁則
                       </div>
                     </div>
@@ -562,18 +501,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenGridFittingModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                    }`}
+                    className={toolItemClass}
                   >
-                    <div className="w-7 h-7 rounded-lg bg-stone-100 dark:bg-[#1a2920] text-emerald-700 dark:text-emerald-300 border border-stone-200/80 dark:border-emerald-800/40 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
                       <Grid className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold truncate">グリッド整列</div>
-                      <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                         低解像度向けの自動ヒンティング
                       </div>
                     </div>
@@ -586,18 +521,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     openModal('jisProgress');
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={toolItemClass}
                 >
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                     <Award className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">JIS規格進捗</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       常用・JIS第1・第2水準の達成率メーター
                     </div>
                   </div>
@@ -609,18 +540,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     openModal('ivsManager');
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-start space-x-2 group cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-emerald-50/60 border-stone-200 hover:border-emerald-300 text-stone-900'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] hover:border-emerald-700/60 text-emerald-100'
-                  }`}
+                  className={toolItemClass}
                 >
                   <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">IVS 異体字管理</div>
-                    <div className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug">
+                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
                       辻・葛・辺などの異体字セレクタ
                     </div>
                   </div>
@@ -629,8 +556,8 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
             </div>
 
             {/* Section 3: ファイル・設定 */}
-            <div className="pt-1 border-t border-stone-200/80 dark:border-[#223025]">
-              <div className="px-1 pb-1 text-[11px] font-bold text-stone-400 dark:text-emerald-500 uppercase tracking-wider">
+            <div className={`pt-1 border-t ${themeClasses.border}`}>
+              <div className={`px-1 pb-1 text-[11px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                 ファイル・設定
               </div>
               <div className="grid grid-cols-2 gap-1.5 mt-0.5">
@@ -639,13 +566,9 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onTriggerImportTtf();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                      : 'bg-[#1a251e] hover:bg-[#202d24] border-[#25362b] text-emerald-200'
-                  }`}
+                  className={smallItemClass}
                 >
-                  <Upload className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400 shrink-0" />
+                  <Upload className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
                   <span className="text-xs font-medium truncate">フォント読込 (.ttf)</span>
                 </button>
 
@@ -654,13 +577,9 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onTriggerLoadProjectJson();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                      : 'bg-[#1a251e] hover:bg-[#202d24] border-[#25362b] text-emerald-200'
-                  }`}
+                  className={smallItemClass}
                 >
-                  <FolderOpen className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400 shrink-0" />
+                  <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
                   <span className="text-xs font-medium truncate">セーブ読込 (.json)</span>
                 </button>
 
@@ -669,13 +588,9 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onSaveProjectJson();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                      : 'bg-[#1a251e] hover:bg-[#202d24] border-[#25362b] text-emerald-200'
-                  }`}
+                  className={smallItemClass}
                 >
-                  <Save className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400 shrink-0" />
+                  <Save className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
                   <span className="text-xs font-medium truncate">セーブ保存 (.json)</span>
                 </button>
 
@@ -684,11 +599,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onOpenFontInfoModal();
                     onClose();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                      : 'bg-[#1a251e] hover:bg-[#202d24] border-[#25362b] text-emerald-200'
-                  }`}
+                  className={smallItemClass}
                 >
                   <Scale className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span className="text-xs font-medium truncate">フォント情報・設定</span>
@@ -700,16 +611,12 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenStorageManagerModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 col-span-2 cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
-                    }`}
+                    className={`${smallItemClass} col-span-2`}
                   >
-                    <HardDrive className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <HardDrive className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate">保存管理・バックアップ</div>
-                      <div className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
                         ストレージ容量・履歴スナップショット
                       </div>
                     </div>
@@ -722,13 +629,9 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenShortcutsModal();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 col-span-2 cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
-                    }`}
+                    className={`${smallItemClass} col-span-2`}
                   >
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <BookOpen className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <span className="text-xs font-medium truncate">ショートカット・操作ガイド</span>
                   </button>
                 )}
@@ -739,16 +642,12 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onClose();
                     onOpenThemeMenu();
                   }}
-                  className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 col-span-2 cursor-pointer ${
-                    isLight
-                      ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                      : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
-                  }`}
+                  className={`${smallItemClass} col-span-2`}
                 >
                   <Palette className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium truncate">カラーテーマ・目の保護</div>
-                    <div className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                    <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
                       現在のテーマ: {getThemePreset(theme).name}
                     </div>
                   </div>
@@ -759,16 +658,12 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onToggleFullscreen();
                       onClose();
                     }}
-                    className={`text-left p-2 rounded-xl border transition-all flex items-center space-x-2 col-span-2 cursor-pointer ${
-                      isLight
-                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-800'
-                        : 'bg-[#18271e] hover:bg-[#203428] border-[#25362b] text-emerald-200'
-                    }`}
+                    className={`${smallItemClass} col-span-2`}
                   >
                     {isFullscreen ? (
-                      <Minimize className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <Minimize className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     ) : (
-                      <Maximize className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <Maximize className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     )}
                     <span className="text-xs font-medium truncate">
                       {isFullscreen ? '全画面モードを解除 (Esc)' : '全画面モードで集中制作'}
@@ -779,7 +674,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
             </div>
 
             {/* Reset / New Project */}
-            <div className="pt-1 border-t border-stone-200/80 dark:border-[#223025]">
+            <div className={`pt-1 border-t ${themeClasses.border}`}>
               <button
                 onClick={() => {
                   onClose();

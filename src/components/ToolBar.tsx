@@ -103,6 +103,9 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const brushMenuRef = useRef<HTMLDivElement>(null);
   const gridMenuRef = useRef<HTMLDivElement>(null);
+  const desktopBrushPopoverRef = useRef<HTMLDivElement>(null);
+  const desktopShapePopoverRef = useRef<HTMLDivElement>(null);
+  const desktopGridPopoverRef = useRef<HTMLDivElement>(null);
   const mobileBrushSheetRef = useRef<HTMLDivElement>(null);
   const mobileShapeSheetRef = useRef<HTMLDivElement>(null);
   const mobileGridSheetRef = useRef<HTMLDivElement>(null);
@@ -125,6 +128,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         showShapeMenu &&
         shapeMenuRef.current &&
         !shapeMenuRef.current.contains(target) &&
+        (!desktopShapePopoverRef.current || !desktopShapePopoverRef.current.contains(target)) &&
         (!mobileShapeSheetRef.current || !mobileShapeSheetRef.current.contains(target))
       ) {
         setShowShapeMenu(false);
@@ -133,6 +137,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         showBrushMenu &&
         brushMenuRef.current &&
         !brushMenuRef.current.contains(target) &&
+        (!desktopBrushPopoverRef.current || !desktopBrushPopoverRef.current.contains(target)) &&
         (!mobileBrushSheetRef.current || !mobileBrushSheetRef.current.contains(target))
       ) {
         setShowBrushMenu(false);
@@ -141,14 +146,24 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         showGridMenu &&
         gridMenuRef.current &&
         !gridMenuRef.current.contains(target) &&
+        (!desktopGridPopoverRef.current || !desktopGridPopoverRef.current.contains(target)) &&
         (!mobileGridSheetRef.current || !mobileGridSheetRef.current.contains(target))
       ) {
         setShowGridMenu(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowShapeMenu(false);
+        setShowBrushMenu(false);
+        setShowGridMenu(false);
+      }
+    };
     document.addEventListener('pointerdown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showShapeMenu, showBrushMenu, showGridMenu]);
 
@@ -413,6 +428,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           onOpenPixelStudio={onOpenPixelStudio}
           themeClasses={themeClasses}
           isLight={isLight}
+          popoverRef={desktopBrushPopoverRef}
         />
       )}
 
@@ -429,6 +445,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           setLastSelectedShape={setLastSelectedShape}
           themeClasses={themeClasses}
           isLight={isLight}
+          popoverRef={desktopShapePopoverRef}
         />
       )}
 
@@ -444,6 +461,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           setGridSettings={setGridSettings}
           themeClasses={themeClasses}
           isLight={isLight}
+          popoverRef={desktopGridPopoverRef}
         />
       )}
 

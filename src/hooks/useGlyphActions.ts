@@ -152,7 +152,7 @@ export function useGlyphActions({
       const ch = targetGlyph.char || String.fromCodePoint(unicode);
       onShowToast(`文字「${ch}」の字形を消去しました (Ctrl+Zで復元可能)`, 'info');
     },
-    [project.glyphs, selectedUnicode, commitHistory, setUndoStack, setProject, onShowToast]
+    [project.glyphs, commitHistory, setProject, onShowToast]
   );
 
   // Copy Glyph contours
@@ -181,7 +181,7 @@ export function useGlyphActions({
         onShowToast('クリップボードに字形がありません', 'warning');
         return;
       }
-      commitHistory();
+      commitHistory(unicode);
       setProject((prev) => {
         const existing = prev.glyphs[unicode] || {
           unicode,
@@ -226,7 +226,7 @@ export function useGlyphActions({
       }
       const smallContours = createSmallKanaContours(sourceGlyph.contours);
 
-      commitHistory();
+      commitHistory(targetUnicode);
       setProject((prev) => {
         const existing = prev.glyphs[targetUnicode] || {
           unicode: targetUnicode,
@@ -275,7 +275,7 @@ export function useGlyphActions({
 
       const combinedContours = [...cloned, ...accentContours];
 
-      commitHistory();
+      commitHistory(targetUnicode);
       setProject((prev) => {
         const existing = prev.glyphs[targetUnicode] || {
           unicode: targetUnicode,
@@ -381,7 +381,10 @@ export function useGlyphActions({
         onShowToast('選択された対象文字はすべて編集ロックされています', 'warning');
         return;
       }
-      commitHistory();
+      unlockedChars.forEach((char) => {
+        const unicode = char.codePointAt(0);
+        if (unicode) commitHistory(unicode);
+      });
       setProject((prev) => {
         const updatedGlyphs = { ...(prev.glyphs || {}) };
         unlockedChars.forEach((char) => {

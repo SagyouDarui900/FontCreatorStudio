@@ -170,7 +170,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         }}
         className={`${
           effectiveIsOverlay
-            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-72 md:w-[300px] shadow-2xl animate-in slide-in-from-left duration-200 outline-none'
+            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 left-0 z-40 w-full sm:w-72 md:w-[300px] shadow-2xl anim-slide-left outline-none'
             : 'relative z-10 shadow-none shrink-0 outline-none'
         } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
@@ -194,7 +194,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             }}
           >
             <div
-              className={`w-1 h-14 rounded transition-all flex items-center justify-center ${
+              className={`w-1 h-14 rounded transition-[transform,background-color] flex items-center justify-center ${
                 isResizing
                   ? 'bg-emerald-500 scale-110'
                   : 'bg-stone-300 dark:bg-stone-600 group-hover:bg-emerald-500 group-hover:scale-105'
@@ -307,7 +307,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {currentSelectedHasContours && (
                 <button
                   onClick={() => onCopyGlyph(currentSelectedGlyph.unicode)}
-                  className={`p-1 rounded text-[10px] font-bold flex items-center gap-0.5 border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                  className={`p-1 rounded text-[10px] font-bold flex items-center gap-0.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                   title="選択中の字形をコピー"
                 >
                   <Copy className="w-3 h-3" />

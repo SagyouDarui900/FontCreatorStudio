@@ -156,7 +156,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
         <button
           type="button"
           onClick={handleRegisterAsCustomPart}
-          className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1 cursor-pointer shadow-xs"
+          className="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold flex items-center space-x-1 transition-colors active:scale-95 mr-1 cursor-pointer shadow-xs"
           title="選択した輪郭を「マイ部首パーツ」として1クリック登録（他の文字で再利用可能）"
         >
           <Star className="w-2.5 h-2.5 fill-stone-950 text-stone-950" />
@@ -168,7 +168,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
         <button
           type="button"
           onClick={handleMergeSelectedContours}
-          className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1 cursor-pointer"
+          className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-colors active:scale-95 mr-1 cursor-pointer"
           title={
             selectedContourIds.length === 1
               ? '一筆書きの自己交差・ループによる重なり白抜きを自動解消'
@@ -185,7 +185,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
           <button
             type="button"
             onClick={handleSubtractSelectedContours}
-            className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1 cursor-pointer"
+            className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-colors active:scale-95 mr-1 cursor-pointer"
             title="前面のパスで背面のパスを型抜き（差分）"
           >
             <span>型抜き</span>
@@ -193,7 +193,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
           <button
             type="button"
             onClick={handleIntersectSelectedContours}
-            className="px-2 py-0.5 rounded bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-all active:scale-95 mr-1 cursor-pointer"
+            className="px-2 py-0.5 rounded bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold flex items-center space-x-1 transition-colors active:scale-95 mr-1 cursor-pointer"
             title="重なった部分のみを抽出（交差）"
           >
             <span>交差</span>

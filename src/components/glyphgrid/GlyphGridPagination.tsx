@@ -21,23 +21,23 @@ export const GlyphGridPagination: React.FC<GlyphGridPaginationProps> = React.mem
 
   const btnClass = `px-2 py-1 rounded flex items-center space-x-1 border transition-colors cursor-pointer ${
     themeClasses
-      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
       : isLight
       ? 'bg-white border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
       : 'bg-[#1f2d24] border-[#2d4034] text-emerald-200 hover:bg-[#283b2f]'
   } disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed`;
 
-  const smallBtnClass = `px-1.5 py-1 rounded border text-[10px] font-bold cursor-pointer ${
+  const smallBtnClass = `px-1.5 py-1 rounded border text-[10px] font-bold cursor-pointer transition-colors ${
     themeClasses
-      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
       : isLight
       ? 'bg-white border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
       : 'bg-[#1f2d24] border-[#2d4034] text-emerald-200 hover:bg-[#283b2f]'
   } disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed`;
 
-  const jumpBtnClass = `px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+  const jumpBtnClass = `px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer transition-colors ${
     themeClasses
-      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} hover:${themeClasses.activeToolHover}`
+      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`
       : isLight ? 'bg-stone-50 border-stone-200 text-stone-600' : 'bg-[#151f18] border-[#25362b] text-emerald-400'
   }`;
 

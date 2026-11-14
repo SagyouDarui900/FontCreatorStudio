@@ -88,7 +88,7 @@ export async function saveProjectToIndexedDB(project: FontProject): Promise<bool
 
       tx.oncomplete = () => {
         // Keep only last 15 rolling autosave entries to prevent infinite growth
-        cleanupOldAutosaves(db, 15);
+        void cleanupOldAutosaves(db, 15);
         resolve(true);
       };
 
@@ -203,30 +203,37 @@ export async function loadAutosaveEntryFromIndexedDB(id: string): Promise<FontPr
  * Cleanup old rolling autosaves exceeding maxCount
  */
 async function cleanupOldAutosaves(db: IDBDatabase, maxCount: number = 15): Promise<void> {
+  if (!db || typeof db.transaction !== 'function') return;
   try {
-    const tx = db.transaction(STORE_AUTOSAVE, 'readwrite');
-    const store = tx.objectStore(STORE_AUTOSAVE);
-    const index = store.index('timestamp');
-    const request = index.getAll();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE_AUTOSAVE, 'readwrite');
+      const store = tx.objectStore(STORE_AUTOSAVE);
+      const index = store.index('timestamp');
+      const request = index.getAll();
 
-    request.onsuccess = () => {
-      try {
-        const entries: IndexedDBAutoSaveEntry[] = request.result || [];
-        if (entries.length > maxCount) {
-          entries.sort((a, b) => b.timestamp - a.timestamp);
-          const toDelete = entries.slice(maxCount);
-          for (const entry of toDelete) {
-            store.delete(entry.id);
+      request.onsuccess = () => {
+        try {
+          const entries: IndexedDBAutoSaveEntry[] = request.result || [];
+          if (entries.length > maxCount) {
+            entries.sort((a, b) => b.timestamp - a.timestamp);
+            const toDelete = entries.slice(maxCount);
+            for (const entry of toDelete) {
+              store.delete(entry.id);
+            }
           }
+        } catch (err) {
+          console.warn('Error deleting old autosave entry:', err);
         }
-      } catch (err) {
-        console.warn('Error deleting old autosave entry:', err);
-      }
-    };
+      };
 
-    request.onerror = (e) => {
-      console.warn('Failed to fetch autosave index for cleanup:', e);
-    };
+      request.onerror = (e) => {
+        console.warn('Failed to fetch autosave index for cleanup:', e);
+      };
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    });
   } catch (err) {
     console.warn('Error during IndexedDB autosave cleanup:', err);
   }

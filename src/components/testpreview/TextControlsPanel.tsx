@@ -85,7 +85,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
                 setTestText(preset.text);
                 setWritingMode(preset.mode);
               }}
-              className={`px-2 py-1 rounded text-[10.5px] font-medium shrink-0 border transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2 py-1 rounded text-[10.5px] font-medium shrink-0 border transition-colors whitespace-nowrap cursor-pointer ${
                 testText === preset.text
                   ? isLight
                     ? 'bg-emerald-700 text-white border-emerald-800 font-bold'
@@ -159,7 +159,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
             <button
               type="button"
               onClick={() => setWritingMode('horizontal')}
-              className={`py-1.5 rounded-md text-xs font-bold transition-all text-center ${
+              className={`py-1.5 rounded-md text-xs font-bold transition-colors text-center ${
                 writingMode === 'horizontal'
                   ? isLight
                     ? 'bg-emerald-800 text-white'
@@ -174,7 +174,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
             <button
               type="button"
               onClick={() => setWritingMode('vertical')}
-              className={`py-1.5 rounded-md text-xs font-bold transition-all text-center ${
+              className={`py-1.5 rounded-md text-xs font-bold transition-colors text-center ${
                 writingMode === 'vertical'
                   ? isLight
                     ? 'bg-emerald-800 text-white'
@@ -385,7 +385,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setFontScaleMultiplier(fontScaleMultiplier === 1.35 ? 1.0 : 1.35)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               fontScaleMultiplier === 1.35
                 ? isLight
                   ? 'bg-emerald-100/90 text-emerald-950 border-emerald-400 font-bold'
@@ -406,7 +406,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setAutoBalanceMargins(!autoBalanceMargins)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               autoBalanceMargins
                 ? isLight
                   ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold'
@@ -427,7 +427,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setUseTsume(!useTsume)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               useTsume
                 ? isLight
                   ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
@@ -446,7 +446,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setShowCharBoxes(!showCharBoxes)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               showCharBoxes
                 ? isLight
                   ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
@@ -465,7 +465,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setShowNotebookGuides(!showNotebookGuides)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               showNotebookGuides
                 ? isLight
                   ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
@@ -484,7 +484,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setShowGenkoGrid(!showGenkoGrid)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               showGenkoGrid
                 ? isLight
                   ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
@@ -503,7 +503,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setShowSpaceMarkers(!showSpaceMarkers)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               showSpaceMarkers
                 ? isLight
                   ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold'
@@ -522,7 +522,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           <button
             type="button"
             onClick={() => setIsWaterfall(!isWaterfall)}
-            className={`p-2 h-14 rounded-lg border text-left transition-all flex flex-col justify-between cursor-pointer ${
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
               isWaterfall
                 ? isLight
                   ? 'bg-emerald-800 text-white border-emerald-900 font-bold'

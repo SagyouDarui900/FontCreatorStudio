@@ -150,7 +150,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  <div className="flex items-center space-x-1 shrink-0">
  <button
  onClick={() => setToolMode('select')}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  toolMode === 'select'
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -167,7 +167,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
 
  <button
  onClick={() => setToolMode('pen')}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  toolMode === 'pen'
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -184,7 +184,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
 
  <button
  onClick={() => setToolMode('brush')}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  toolMode === 'brush'
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -202,7 +202,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  {/* Compact Shape Tool with Dropdown */}
  <div className="relative shrink-0">
  <div
- className={`flex items-center rounded text-xs font-semibold border transition-all ${
+ className={`flex items-center rounded text-xs font-semibold border transition-colors ${
  [
  'rect',
  'square',
@@ -273,7 +273,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  {/* Dropdown Menu for Shapes */}
  {showShapeMenu && (
  <div
- className={`absolute top-full left-0 mt-1.5 p-1 rounded-lg border shadow-xl z-50 grid grid-cols-4 sm:grid-cols-6 gap-1 animate-in fade-in zoom-in-95 duration-100 ${
+ className={`absolute top-full left-0 mt-1.5 p-1 rounded-lg border shadow-xl z-50 grid grid-cols-4 sm:grid-cols-6 gap-1 anim-pop ${
  isLight
  ? 'bg-white/95 border-stone-200 '
  : 'bg-[#152219]/95 border-[#283e2f] '
@@ -306,7 +306,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  setToolMode(s.id);
  setShowShapeMenu(false);
  }}
- className={`p-1.5 rounded flex items-center justify-center transition-all ${
+ className={`p-1.5 rounded flex items-center justify-center transition-colors ${
  toolMode === s.id
  ? 'bg-emerald-800 text-white '
  : isLight
@@ -324,7 +324,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
 
  <button
  onClick={() => setToolMode('eraser')}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  toolMode === 'eraser'
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -341,7 +341,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
 
  <button
  onClick={() => setToolMode('hand')}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  toolMode === 'hand'
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -371,7 +371,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  'info'
  );
  }}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1.5 transition-all shrink-0 border ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1.5 transition-colors shrink-0 border ${
  isAutoUnionMode
  ? isLight
  ? 'bg-emerald-700 text-white border-emerald-800 ring-1 ring-emerald-500/40 font-bold'
@@ -389,7 +389,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  <button
  onClick={handleUnionPart}
  disabled={!activePart || activePart.contours.length === 0}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  isLight
  ? 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 disabled:opacity-30'
  : 'bg-[#18261e] text-emerald-300 border border-emerald-800 hover:bg-[#203429] disabled:opacity-30'
@@ -403,7 +403,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  <button
  onClick={handleNormalizeWinding}
  disabled={!activePart || activePart.contours.length === 0}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  isLight
  ? 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 disabled:opacity-30'
  : 'bg-[#18241c] border border-[#25362b] text-emerald-200 hover:bg-[#202e24] disabled:opacity-30'
@@ -417,7 +417,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  <button
  onClick={handleSimplifyPart}
  disabled={!activePart || activePart.contours.length === 0}
- className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all shrink-0 ${
+ className={`p-1.5 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors shrink-0 ${
  isLight
  ? 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 disabled:opacity-30'
  : 'bg-[#18241c] border border-[#25362b] text-emerald-200 hover:bg-[#202e24] disabled:opacity-30'
@@ -652,7 +652,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
                 {/* Floating Watermark Related Kanji Picker Panel */}
                 {showWatermarkPicker && (
                   <div
-                    className={`absolute top-full right-0 mt-1.5 z-40 p-3 rounded-xl border shadow-2xl w-72 sm:w-80 space-y-2.5 animate-in fade-in zoom-in-95 ${
+                    className={`absolute top-full right-0 mt-1.5 z-40 p-3 rounded-xl border shadow-2xl w-72 sm:w-80 space-y-2.5 anim-pop ${
                       isLight
                         ? 'bg-white/95 border-emerald-300 text-stone-800 '
                         : 'bg-[#121d15]/95 border-emerald-700 text-emerald-100 '
@@ -685,7 +685,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
                               setShowWatermark(true);
                               notify(`下絵ガイドを「${kanji}」に設定しました`, 'info');
                             }}
-                            className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-all ${
+                            className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-colors ${
                               watermarkChar === kanji
                                 ? 'bg-emerald-700 text-white scale-105 ring-2 ring-emerald-400 font-extrabold'
                                 : isLight

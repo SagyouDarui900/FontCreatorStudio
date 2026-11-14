@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { FontProject, GlyphData, PathContour, Point, PixelGlyphData } from '../types';
 
 const EPSILON = 1e-4;
@@ -124,6 +124,10 @@ export function useUndoRedo({
   const [undoStacks, setUndoStacks] = useState<Record<number, GlyphData[]>>({});
   const [redoStacks, setRedoStacks] = useState<Record<number, GlyphData[]>>({});
 
+  // Keep synchronous mirrors so Undo/Redo never invoke sibling setState/setProject inside another updater
+  const undoStacksRef = useRef<Record<number, GlyphData[]>>({});
+  const redoStacksRef = useRef<Record<number, GlyphData[]>>({});
+
   const currentUndoStack = undoStacks[selectedUnicode] || [];
   const currentRedoStack = redoStacks[selectedUnicode] || [];
 
@@ -137,134 +141,138 @@ export function useUndoRedo({
       contours: [],
     };
 
-    setUndoStacks((prev) => {
-      const stack = prev[unicode] || [];
-      if (stack.length > 0) {
-        const last = stack[stack.length - 1];
-        if (areGlyphsEqual(last, existingGlyph)) {
-          return prev;
-        }
-      }
-      return {
-        ...prev,
-        [unicode]: [...stack.slice(-49), cloneGlyph(existingGlyph)],
+    const currentUndo = undoStacksRef.current[unicode] || [];
+    const last = currentUndo.length > 0 ? currentUndo[currentUndo.length - 1] : null;
+    if (!last || !areGlyphsEqual(last, existingGlyph)) {
+      const nextUndoMap = {
+        ...undoStacksRef.current,
+        [unicode]: [...currentUndo.slice(-49), cloneGlyph(existingGlyph)],
       };
-    });
+      undoStacksRef.current = nextUndoMap;
+      setUndoStacks(nextUndoMap);
+    }
 
-    setRedoStacks((prev) => {
-      if (!prev[unicode] || prev[unicode].length === 0) return prev;
-      const copy = { ...prev };
-      delete copy[unicode];
-      return copy;
-    });
+    if (redoStacksRef.current[unicode] && redoStacksRef.current[unicode].length > 0) {
+      const nextRedoMap = { ...redoStacksRef.current };
+      delete nextRedoMap[unicode];
+      redoStacksRef.current = nextRedoMap;
+      setRedoStacks(nextRedoMap);
+    }
   }, [selectedUnicode, selectedChar, projectRef]);
 
   const handleUndo = useCallback(() => {
     const unicode = selectedUnicode;
-    setUndoStacks((prevUndoMap) => {
-      const stack = prevUndoMap[unicode] || [];
-      if (stack.length === 0) {
-        return prevUndoMap;
-      }
-      const previous = stack[stack.length - 1];
-      const nextStack = stack.slice(0, stack.length - 1);
+    const stack = undoStacksRef.current[unicode] || [];
+    if (stack.length === 0) {
+      return;
+    }
 
-      // Record current state of this glyph into its own redo stack
-      const currentSnapshot = currentGlyphRef.current;
-      setRedoStacks((prevRedoMap) => {
-        const redoList = prevRedoMap[unicode] || [];
-        return {
-          ...prevRedoMap,
-          [unicode]: [...redoList.slice(-49), cloneGlyph(currentSnapshot)],
-        };
-      });
+    const previous = stack[stack.length - 1];
+    const nextUndoStack = stack.slice(0, stack.length - 1);
+    const currentSnapshot = currentGlyphRef.current;
+    const redoList = redoStacksRef.current[unicode] || [];
+    const nextRedoStack = [...redoList.slice(-49), cloneGlyph(currentSnapshot)];
 
-      // Restore strictly within the current glyph (no cross-character warping!)
-      setProject((prevProj) => ({
-        ...prevProj,
-        glyphs: {
-          ...prevProj.glyphs,
-          [unicode]: {
-            ...previous,
-            modified: true,
-          },
-        },
-        updatedAt: Date.now(),
-      }));
+    const nextUndoMap = {
+      ...undoStacksRef.current,
+      [unicode]: nextUndoStack,
+    };
+    const nextRedoMap = {
+      ...redoStacksRef.current,
+      [unicode]: nextRedoStack,
+    };
 
-      return {
-        ...prevUndoMap,
-        [unicode]: nextStack,
-      };
-    });
+    undoStacksRef.current = nextUndoMap;
+    redoStacksRef.current = nextRedoMap;
+
+    const restoredGlyph: GlyphData = {
+      ...previous,
+      modified: true,
+    };
+    currentGlyphRef.current = restoredGlyph;
+
+    setUndoStacks(nextUndoMap);
+    setRedoStacks(nextRedoMap);
+    setProject((prevProj) => ({
+      ...prevProj,
+      glyphs: {
+        ...prevProj.glyphs,
+        [unicode]: restoredGlyph,
+      },
+      updatedAt: Date.now(),
+    }));
   }, [selectedUnicode, currentGlyphRef, setProject]);
 
   const handleRedo = useCallback(() => {
     const unicode = selectedUnicode;
-    setRedoStacks((prevRedoMap) => {
-      const stack = prevRedoMap[unicode] || [];
-      if (stack.length === 0) {
-        return prevRedoMap;
-      }
-      const next = stack[stack.length - 1];
-      const nextStack = stack.slice(0, stack.length - 1);
+    const stack = redoStacksRef.current[unicode] || [];
+    if (stack.length === 0) {
+      return;
+    }
 
-      // Record current state of this glyph into its own undo stack
-      const currentSnapshot = currentGlyphRef.current;
-      setUndoStacks((prevUndoMap) => {
-        const undoList = prevUndoMap[unicode] || [];
-        return {
-          ...prevUndoMap,
-          [unicode]: [...undoList.slice(-49), cloneGlyph(currentSnapshot)],
-        };
-      });
+    const next = stack[stack.length - 1];
+    const nextRedoStack = stack.slice(0, stack.length - 1);
+    const currentSnapshot = currentGlyphRef.current;
+    const undoList = undoStacksRef.current[unicode] || [];
+    const nextUndoStack = [...undoList.slice(-49), cloneGlyph(currentSnapshot)];
 
-      // Redo strictly within the current glyph
-      setProject((prevProj) => ({
-        ...prevProj,
-        glyphs: {
-          ...prevProj.glyphs,
-          [unicode]: {
-            ...next,
-            modified: true,
-          },
-        },
-        updatedAt: Date.now(),
-      }));
+    const nextRedoMap = {
+      ...redoStacksRef.current,
+      [unicode]: nextRedoStack,
+    };
+    const nextUndoMap = {
+      ...undoStacksRef.current,
+      [unicode]: nextUndoStack,
+    };
 
-      return {
-        ...prevRedoMap,
-        [unicode]: nextStack,
-      };
-    });
+    redoStacksRef.current = nextRedoMap;
+    undoStacksRef.current = nextUndoMap;
+
+    const restoredGlyph: GlyphData = {
+      ...next,
+      modified: true,
+    };
+    currentGlyphRef.current = restoredGlyph;
+
+    setRedoStacks(nextRedoMap);
+    setUndoStacks(nextUndoMap);
+    setProject((prevProj) => ({
+      ...prevProj,
+      glyphs: {
+        ...prevProj.glyphs,
+        [unicode]: restoredGlyph,
+      },
+      updatedAt: Date.now(),
+    }));
   }, [selectedUnicode, currentGlyphRef, setProject]);
 
   const pushSnapshot = useCallback((glyph: GlyphData, targetUnicode?: number) => {
     const unicode = targetUnicode ?? glyph.unicode ?? selectedUnicode;
-    setUndoStacks((prev) => {
-      const stack = prev[unicode] || [];
-      return {
-        ...prev,
-        [unicode]: [...stack.slice(-49), cloneGlyph(glyph)],
-      };
-    });
-    setRedoStacks((prev) => {
-      if (!prev[unicode] || prev[unicode].length === 0) return prev;
-      const copy = { ...prev };
-      delete copy[unicode];
-      return copy;
-    });
+    const stack = undoStacksRef.current[unicode] || [];
+    const nextUndoMap = {
+      ...undoStacksRef.current,
+      [unicode]: [...stack.slice(-49), cloneGlyph(glyph)],
+    };
+    undoStacksRef.current = nextUndoMap;
+    setUndoStacks(nextUndoMap);
+
+    if (redoStacksRef.current[unicode] && redoStacksRef.current[unicode].length > 0) {
+      const nextRedoMap = { ...redoStacksRef.current };
+      delete nextRedoMap[unicode];
+      redoStacksRef.current = nextRedoMap;
+      setRedoStacks(nextRedoMap);
+    }
   }, [selectedUnicode]);
 
   const setUndoStack = useCallback((action: React.SetStateAction<GlyphData[]>) => {
-    setUndoStacks((prev) => {
-      const currentStack = prev[selectedUnicode] || [];
-      const nextStack = typeof action === 'function' ? action(currentStack) : action;
-      return {
-        ...prev,
-        [selectedUnicode]: nextStack,
-      };
-    });
+    const currentStack = undoStacksRef.current[selectedUnicode] || [];
+    const nextStack = typeof action === 'function' ? action(currentStack) : action;
+    const nextUndoMap = {
+      ...undoStacksRef.current,
+      [selectedUnicode]: nextStack,
+    };
+    undoStacksRef.current = nextUndoMap;
+    setUndoStacks(nextUndoMap);
   }, [selectedUnicode]);
 
   return {

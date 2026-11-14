@@ -18,7 +18,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { TraceSettings } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BundledFontsModal } from './BundledFontsModal';
 
 interface TraceSettingsModalProps {
@@ -49,6 +49,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState<boolean>(false);
 
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
@@ -147,39 +148,31 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
         className={`flex flex-col overflow-hidden ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen bg-[#151e18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-lg xl:max-w-2xl border max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-lg xl:max-w-2xl border max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? `w-screen h-screen rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
+            : `w-full max-w-lg xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
-            <Layers className={`w-4 h-4 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
+            <Layers className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
             <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${
-                isLight ? 'text-emerald-950' : 'text-emerald-200'
-              }`}
+              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${themeClasses.textPrimary}`}
             >
               <span className="truncate">下絵・レタリングトレース設定</span>
               {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-medium shrink-0">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
                   全画面
                 </span>
               )}
@@ -189,14 +182,10 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 border text-xs font-semibold flex items-center space-x-1 transition-colors ${
+              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.accentBadge
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -214,9 +203,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 border transition-colors ${
-                isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
-              }`}
+              className={`p-1 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -228,13 +215,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3.5 text-xs">
           {/* Toggle Enable */}
           <div
-            className={`flex items-center justify-between p-2.5 border ${
-              isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-            }`}
+            className={`flex items-center justify-between p-2.5 rounded-xl border ${themeClasses.cardBg} ${themeClasses.border}`}
           >
             <div className="flex items-center space-x-2">
-              <Eye className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
-              <span className={`font-semibold ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
+              <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
+              <span className={`font-semibold ${themeClasses.textPrimary}`}>
                 下絵ガイドを表示する
               </span>
             </div>
@@ -250,33 +235,25 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
-              className={`p-2.5 border flex flex-col items-center space-y-1 min-w-0 transition-colors ${
+              className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 min-w-0 transition-colors cursor-pointer ${
                 traceSettings.type === 'image'
-                  ? isLight
-                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold'
-                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold'
-                  : isLight
-                  ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
             >
-              <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+              <ImageIcon className="w-4 h-4 shrink-0" />
               <span className="text-xs truncate w-full text-center">写真・下絵画像</span>
             </button>
 
             <button
               onClick={() => setTraceSettings((s) => ({ ...s, type: 'char' }))}
-              className={`p-2.5 border flex flex-col items-center space-y-1 min-w-0 transition-colors ${
+              className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 min-w-0 transition-colors cursor-pointer ${
                 traceSettings.type === 'char'
-                  ? isLight
-                    ? 'bg-emerald-100 border-emerald-700 text-emerald-950 font-bold'
-                    : 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold'
-                  : isLight
-                  ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-400 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
             >
-              <Type className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Type className="w-4 h-4 shrink-0" />
               <span className="text-xs truncate w-full text-center">標準フォント下絵</span>
             </button>
           </div>
@@ -286,9 +263,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             <div className="space-y-3">
               {/* Photo Upload & Camera Buttons */}
               <div
-                className={`p-3 border space-y-2.5 ${
-                  isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-                }`}
+                className={`p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}
               >
                 <input
                   ref={fileInputRef}
@@ -309,43 +284,31 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
-                      isLight
-                        ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
-                        : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
-                    }`}
+                    className={`py-2 px-2.5 rounded-lg border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
-                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                    <Upload className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span className="font-semibold text-[11px]">画像ファイル読込</span>
                   </button>
 
                   <button
                     onClick={() => cameraInputRef.current?.click()}
-                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
-                      isLight
-                        ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
-                        : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
-                    }`}
+                    className={`py-2 px-2.5 rounded-lg border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
-                    <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                    <Camera className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span className="font-semibold text-[11px]">カメラで看板撮影</span>
                   </button>
 
                   <button
                     onClick={handlePasteClipboardImage}
-                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1.5 transition-colors ${
-                      isLight
-                        ? 'bg-[#edf5f0] border-emerald-600 text-emerald-950 hover:bg-[#e0eee6]'
-                        : 'bg-[#16201a] border-emerald-700 text-emerald-200 hover:bg-[#1e2a22]'
-                    }`}
+                    className={`py-2 px-2.5 rounded-lg border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span className="font-semibold text-[11px]">クリップボード貼付</span>
                   </button>
                 </div>
 
                 {currentImageSrc && (
-                  <div className="flex items-center justify-between pt-1 border-t text-[11px] text-emerald-700 font-medium">
+                  <div className={`flex items-center justify-between pt-1.5 border-t text-[11px] font-medium ${themeClasses.border} ${themeClasses.accentText}`}>
                     <span className="flex items-center space-x-1">
                       <span>✓ 画像を読み込みました</span>
                     </span>
@@ -361,7 +324,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                           setTraceSettings((s) => ({ ...s, imageSrc: undefined }));
                         }
                       }}
-                      className="text-rose-600 hover:underline"
+                      className="text-rose-600 hover:underline cursor-pointer"
                     >
                       画像を削除
                     </button>
@@ -370,17 +333,13 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                 {/* Recommended Image Specification Guide */}
                 <div
-                  className={`p-2.5 border text-[10.5px] space-y-1 ${
-                    isLight
-                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                      : 'bg-[#121c15] border-emerald-800/50 text-emerald-200'
-                  }`}
+                  className={`p-2.5 rounded-lg border text-[10.5px] space-y-1 ${themeClasses.accentBadge}`}
                 >
-                  <div className="flex items-center space-x-1 font-bold text-emerald-700 dark:text-emerald-400">
+                  <div className="flex items-center space-x-1 font-bold">
                     <Info className="w-3.5 h-3.5 shrink-0" />
                     <span>推奨画像仕様（フォント下絵・トレース用）</span>
                   </div>
-                  <ul className="space-y-0.5 text-stone-600 dark:text-stone-300 pl-0.5 leading-snug">
+                  <ul className="space-y-0.5 opacity-90 pl-0.5 leading-snug">
                     <li>・<strong>推奨サイズ:</strong> 1000 × 1000 px 〜 2048 × 2048 px （1:1 正方形 / FontForge規格適合）</li>
                     <li>・<strong>背景・輪郭:</strong> 白背景に濃い黒文字（高コントラストなモノクロ）</li>
                     <li>・<strong>余白:</strong> 周囲に10〜15%の適度な余白</li>
@@ -390,24 +349,18 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
               {/* Photo Positioning & Adjustments */}
               <div
-                className={`p-3 border space-y-3 ${
-                  isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-                }`}
+                className={`p-3 rounded-xl border space-y-3 ${themeClasses.cardBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 font-semibold">
-                    <Sliders className={`w-3.5 h-3.5 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
-                    <span className={isLight ? 'text-emerald-950' : 'text-emerald-200'}>
+                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                    <span className={themeClasses.textPrimary}>
                       写真の位置・サイズ・補正調整
                     </span>
                   </div>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 border flex items-center space-x-1 ${
-                      isLight
-                        ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
-                        : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
-                    }`}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                   >
                     <RefreshCw className="w-2.5 h-2.5" />
                     <span>位置リセット</span>
@@ -418,7 +371,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span className={isLight ? 'text-stone-600' : 'text-emerald-400'}>拡大・縮小倍率</span>
+                      <span className={themeClasses.textMuted}>拡大・縮小倍率</span>
                       <span className="font-mono">{Math.round((traceSettings.scale ?? 1) * 100)}%</span>
                     </div>
                     <input
@@ -432,11 +385,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     />
                     {/* Quick Fit Presets */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[10px] text-stone-500 shrink-0">推奨サイズ:</span>
+                      <span className={`text-[10px] shrink-0 ${themeClasses.textMuted}`}>推奨サイズ:</span>
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}
-                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
                             ? 'bg-amber-600 border-amber-600 text-white'
                             : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
@@ -447,7 +400,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.85 }))}
-                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
                             ? 'bg-emerald-600 border-emerald-600 text-white'
                             : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
@@ -458,7 +411,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
-                        className={`px-2 py-0.5 border text-[10px] font-bold transition-colors ${
+                        className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
                             ? 'bg-sky-600 border-sky-600 text-white'
                             : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
@@ -471,7 +424,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span className={isLight ? 'text-stone-600' : 'text-emerald-400'}>回転角度</span>
+                      <span className={themeClasses.textMuted}>回転角度</span>
                       <span className="font-mono">{traceSettings.rotation || 0}°</span>
                     </div>
                     <input
@@ -489,7 +442,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span className={isLight ? 'text-stone-600' : 'text-emerald-400'}>X位置 (左右移動)</span>
+                      <span className={themeClasses.textMuted}>X位置 (左右移動)</span>
                       <span className="font-mono">{Math.round(traceSettings.offsetX ?? 0)}px</span>
                     </div>
                     <input
@@ -505,7 +458,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span className={isLight ? 'text-stone-600' : 'text-emerald-400'}>Y位置 (上下移動)</span>
+                      <span className={themeClasses.textMuted}>Y位置 (上下移動)</span>
                       <span className="font-mono">{Math.round(traceSettings.offsetY ?? 0)}px</span>
                     </div>
                     <input
@@ -521,7 +474,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 </div>
 
                 {/* Photo Enhancements: Contrast, Grayscale, Invert */}
-                <div className={`pt-2 border-t grid grid-cols-2 sm:grid-cols-4 gap-2 ${isLight ? 'border-[#e0eee6]' : 'border-[#25362b]'}`}>
+                <div className={`pt-2 border-t grid grid-cols-2 sm:grid-cols-4 gap-2 ${themeClasses.border}`}>
                   <label className="flex items-center space-x-1.5 cursor-pointer">
                     <input
                       type="checkbox"
@@ -559,11 +512,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         rotation: ((s.rotation || 0) + 90) % 360,
                       }))
                     }
-                    className={`py-1 px-2 border text-[10px] font-semibold flex items-center justify-center space-x-1 ${
-                      isLight
-                        ? 'bg-stone-50 border-[#c8ded3] text-stone-700 hover:bg-stone-100'
-                        : 'bg-[#18231c] border-[#25362b] text-emerald-300 hover:bg-[#223127]'
-                    }`}
+                    className={`py-1 px-2 rounded-lg border text-[10px] font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     <RotateCw className="w-3 h-3" />
                     <span>90°回転</span>
@@ -573,7 +522,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 {/* Contrast Slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[11px]">
-                    <span className={isLight ? 'text-stone-600' : 'text-emerald-400'}>
+                    <span className={themeClasses.textMuted}>
                       コントラスト強調 (看板の文字輪郭をくっきり化)
                     </span>
                     <span className="font-mono">{Math.round((traceSettings.contrast || 1) * 100)}%</span>
@@ -593,35 +542,29 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           ) : (
             /* SYSTEM FONT TRACE CONFIGURATION */
             <div
-              className={`space-y-2.5 p-3 border ${
-                isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-              }`}
+              className={`space-y-2.5 p-3 rounded-xl border ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               <div className="flex flex-col space-y-1">
-                <label className={isLight ? 'text-stone-600' : 'text-emerald-400'}>
+                <label className={themeClasses.textMuted}>
                   表示文字 (初期値: 現在選択中の文字)
                 </label>
                 <input
                   type="text"
                   value={traceSettings.text ?? activeChar ?? ''}
                   onChange={(e) => setTraceSettings((s) => ({ ...s, text: e.target.value }))}
-                  className={`border rounded-sm p-2 focus:outline-none ${
-                    isLight
-                      ? 'bg-[#f7faf8] border-[#c8ded3] text-stone-800 focus:border-emerald-700'
-                      : 'bg-[#16201a] border-[#2d4034] text-emerald-100 focus:border-emerald-500'
-                  }`}
+                  className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 />
               </div>
 
               <div className="flex flex-col space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className={isLight ? 'text-stone-600 font-semibold' : 'text-emerald-400 font-semibold'}>
+                  <label className={`font-semibold ${themeClasses.textMuted}`}>
                     下絵フォント書体
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsLicenseModalOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                    className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>フォントとライセンス一覧</span>
@@ -630,11 +573,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 <select
                   value={traceSettings.fontFamily ?? "'Noto Sans JP', sans-serif"}
                   onChange={(e) => setTraceSettings((s) => ({ ...s, fontFamily: e.target.value }))}
-                  className={`border rounded-sm p-2 focus:outline-none ${
-                    isLight
-                      ? 'bg-[#f7faf8] border-[#c8ded3] text-stone-800 focus:border-emerald-700'
-                      : 'bg-[#16201a] border-[#2d4034] text-emerald-100 focus:border-emerald-500'
-                  }`}
+                  className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 >
                   <option value="'Noto Sans JP', sans-serif">ゴシック体 (Noto Sans JP / OFL)</option>
                   <option value="'Noto Serif JP', serif">明朝体 (Noto Serif JP / OFL)</option>
@@ -648,19 +587,15 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
               </div>
 
               {/* Position & Scale Controls for Font Trace */}
-              <div className={`pt-2 border-t space-y-2.5 ${isLight ? 'border-[#e0eee6]' : 'border-[#25362b]'}`}>
+              <div className={`pt-2 border-t space-y-2.5 ${themeClasses.border}`}>
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs flex items-center space-x-1">
-                    <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>お手本文字の位置・サイズ調整</span>
                   </span>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 border flex items-center space-x-1 ${
-                      isLight
-                        ? 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
-                        : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
-                    }`}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                   >
                     <RefreshCw className="w-2.5 h-2.5" />
                     <span>位置リセット</span>
@@ -683,39 +618,42 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       className="w-full accent-emerald-700"
                     />
                     {/* Quick Fit Presets */}
-                    <div className="flex items-center space-x-1 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-1 pt-0.5">
                       <button
                         type="button"
-                        onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}
-                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
-                          Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
+                        onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.9 }))}
+                        className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
+                          Math.abs((traceSettings.scale ?? 1) - 0.9) < 0.02
                             ? 'bg-amber-600 border-amber-600 text-white'
                             : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
                         }`}
+                        title="余白を広めに取る控えめサイズ (90%)"
                       >
-                        仮名78%
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.85 }))}
-                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
-                          Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
-                        }`}
-                      >
-                        漢字85%
+                        90%
                       </button>
                       <button
                         type="button"
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
-                        className={`px-1.5 py-0.5 border text-[9.5px] font-bold transition-colors ${
+                        className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
+                        }`}
+                        title="字面枠（かな78%・漢字85%）にそのまま適合する標準倍率"
+                      >
+                        標準100%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.1 }))}
+                        className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
+                          Math.abs((traceSettings.scale ?? 1) - 1.1) < 0.02
                             ? 'bg-sky-600 border-sky-600 text-white'
                             : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
                         }`}
+                        title="存在感のある大きめサイズ (110%)"
                       >
-                        100%
+                        110%
                       </button>
                     </div>
                   </div>
@@ -758,11 +696,9 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
           {/* Opacity Slider */}
           <div
-            className={`p-3 border space-y-1 ${
-              isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-            }`}
+            className={`p-3 rounded-xl border space-y-1 ${themeClasses.cardBg} ${themeClasses.border}`}
           >
-            <div className={`flex justify-between ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>
+            <div className={`flex justify-between ${themeClasses.textMuted}`}>
               <span className="font-semibold">下絵の透明度 (不透明度)</span>
               <span className="font-mono">{Math.round((traceSettings.opacity ?? 0.3) * 100)}%</span>
             </div>
@@ -780,20 +716,14 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t flex items-center justify-between ${
-            isLight ? 'bg-[#edf5f0] border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t flex items-center justify-between ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <span className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-emerald-400'}`}>
+          <span className={`text-[11px] ${themeClasses.textMuted}`}>
             ※キャンバス上で「下絵移動」モードでも直接ドラッグ移動できます
           </span>
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 border text-xs font-semibold ${
-              isLight
-                ? 'bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900'
-                : 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-600'
-            }`}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
           >
             完了
           </button>

@@ -24,7 +24,7 @@ export async function shareOrDownloadFont(
   const isAppleDevice =
     typeof navigator !== 'undefined' &&
     (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
   if (isAppleDevice && typeof navigator.share === 'function') {
     try {

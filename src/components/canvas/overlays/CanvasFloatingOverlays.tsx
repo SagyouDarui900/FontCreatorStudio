@@ -234,7 +234,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
       {/* Hand Tool Active Floating HUD Indicator */}
       {(toolMode === 'hand' || isSpacePressed) && (
         <div
-          className={`absolute top-2 left-2 z-30 px-2 py-0.5 rounded-md border flex items-center gap-1.5 text-[10.5px] font-semibold transition-all duration-150 pointer-events-none select-none max-w-fit ${
+          className={`absolute top-2 left-2 z-30 px-2 py-0.5 rounded-md border flex items-center gap-1.5 text-[10.5px] font-semibold transition-colors duration-150 pointer-events-none select-none max-w-fit ${
             isLight
               ? 'bg-white/95 border-emerald-300 text-emerald-900 shadow-sm'
               : 'bg-[#121c15]/95 border-emerald-700/60 text-emerald-200 shadow-sm'

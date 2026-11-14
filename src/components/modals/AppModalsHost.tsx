@@ -153,15 +153,15 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       {activeModal === 'mobileTheme' && (
         <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
           <div
-            className="fixed inset-0 bg-black/60 animate-in fade-in duration-150"
+            className="fixed inset-0 bg-black/60 anim-fade"
             onClick={closeModal}
           />
           <div
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200 pb-[max(env(safe-area-inset-bottom),20px)] ${themeClasses.cardBg}`}
+            className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[85vh] flex flex-col anim-slide-up pb-[max(env(safe-area-inset-bottom),20px)] ${themeClasses.modalBg} ${themeClasses.border}`}
           >
-            <div className="flex items-center justify-between pb-2.5 border-b border-stone-200/80 dark:border-stone-800/80 mb-3 shrink-0">
+            <div className={`flex items-center justify-between pb-2.5 border-b mb-3 shrink-0 ${themeClasses.border}`}>
               <div className="flex items-center space-x-2">
                 <Palette className="w-5 h-5 text-amber-500" />
                 <span className="font-extrabold text-sm">カラーテーマ設定</span>
@@ -169,7 +169,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
               <button
                 type="button"
                 onClick={closeModal}
-                className="p-1.5 rounded-full text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 bg-stone-100 dark:bg-stone-800 cursor-pointer"
+                className={`p-1.5 rounded-full cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる"
               >
                 <X className="w-4 h-4" />
@@ -191,12 +191,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
                     }}
                     className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer active:scale-[0.98] ${
                       isActive
-                        ? isLight
-                          ? 'bg-emerald-50/90 border-emerald-400 ring-2 ring-emerald-400/50'
-                          : 'bg-[#1c2c22] border-emerald-500 ring-2 ring-emerald-500/50'
-                        : isLight
-                        ? 'bg-stone-50/70 hover:bg-stone-100 border-stone-200/80'
-                        : 'bg-[#18231c]/70 hover:bg-[#202f26] border-[#25362b]'
+                        ? `${themeClasses.activeTool} border-transparent`
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     <div
@@ -222,13 +218,13 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
                           {p.badge}
                         </span>
                       </div>
-                      <p className="text-xs text-stone-500 dark:text-stone-400 leading-snug mt-0.5">
+                      <p className={`text-xs leading-snug mt-0.5 ${isActive ? 'opacity-85' : themeClasses.textMuted}`}>
                         {p.description}
                       </p>
                     </div>
 
                     {isActive && (
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+                      <Check className="w-4 h-4 shrink-0 mt-1" />
                     )}
                   </button>
                 );
@@ -479,6 +475,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           project={project}
           setProject={setProject}
           isLight={isLight}
+          theme={theme}
           onShowToast={showToast}
         />
       )}
@@ -491,6 +488,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           project={project}
           setProject={setProject}
           isLight={isLight}
+          theme={theme}
           onShowToast={showToast}
         />
       )}
@@ -503,6 +501,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           isOpen
           onClose={closeModal}
           isLight={isLight}
+          theme={theme}
           selectedUnicode={selectedUnicode}
           onSelectGlyph={(u) => onSelectGlyph(u)}
           onShowToast={showToast}

@@ -102,8 +102,8 @@ export const PenPreviewSection: React.FC<PenPreviewSectionProps> = ({
   }, [workingPreset, previewPattern]);
 
   return (
-    <div className="p-2 sm:p-3 bg-stone-100/70 dark:bg-[#121c16]/90 border-b border-stone-200 dark:border-stone-800 shrink-0">
-      <div className="relative w-full h-24 sm:h-28 md:h-32 rounded-lg overflow-hidden border border-stone-200/80 dark:border-stone-800 shadow-inner bg-stone-200/30 dark:bg-stone-900/40">
+    <div className="p-1.5 sm:px-2.5 sm:py-1.5 bg-stone-100/70 dark:bg-[#121c16]/90 border-b border-stone-200 dark:border-stone-800 shrink-0">
+      <div className="relative w-full h-18 sm:h-20 md:h-22 rounded-lg overflow-hidden border border-stone-200/80 dark:border-stone-800 shadow-inner bg-stone-200/30 dark:bg-stone-900/40">
         {/* Checkerboard Pattern for Transparency Visibility */}
         <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -151,18 +151,18 @@ export const PenPreviewSection: React.FC<PenPreviewSectionProps> = ({
         </svg>
 
         {/* Bottom-left preview metadata tag */}
-        <div className="absolute bottom-2 left-3 flex items-center space-x-2 pointer-events-none">
-          <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300 bg-white/80 dark:bg-black/60 px-2 py-0.5 rounded">
+        <div className="absolute bottom-1.5 left-2 flex items-center space-x-2 pointer-events-none">
+          <span className="text-[10.5px] font-bold text-stone-700 dark:text-stone-300 bg-white/80 dark:bg-black/60 px-1.5 py-0.5 rounded">
             {workingPreset.name} · {workingPreset.brushWidth}px
           </span>
         </div>
 
         {/* Top-right pattern & wireframe controls */}
-        <div className="absolute top-2 right-2 flex items-center space-x-1 bg-white/85 dark:bg-stone-900/85 p-1 rounded-lg border border-stone-200/80 dark:border-stone-800 text-[11px]">
+        <div className="absolute top-1.5 right-1.5 flex items-center space-x-0.5 bg-white/85 dark:bg-stone-900/85 p-0.5 rounded-lg border border-stone-200/80 dark:border-stone-800 text-[10.5px]">
           <button
             type="button"
             onClick={() => setPreviewPattern('scurve')}
-            className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
               previewPattern === 'scurve'
                 ? 'bg-emerald-500 text-white'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
@@ -174,7 +174,7 @@ export const PenPreviewSection: React.FC<PenPreviewSectionProps> = ({
           <button
             type="button"
             onClick={() => setPreviewPattern('straight')}
-            className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
               previewPattern === 'straight'
                 ? 'bg-emerald-500 text-white'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
@@ -186,7 +186,7 @@ export const PenPreviewSection: React.FC<PenPreviewSectionProps> = ({
           <button
             type="button"
             onClick={() => setPreviewPattern('loop')}
-            className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
               previewPattern === 'loop'
                 ? 'bg-emerald-500 text-white'
                 : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'

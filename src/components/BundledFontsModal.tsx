@@ -11,7 +11,7 @@ import {
   FileText,
   Search,
 } from 'lucide-react';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BUNDLED_FONTS_INFO, BundledFontInfo } from '../data/bundledFontsInfo';
 
 interface BundledFontsModalProps {
@@ -26,6 +26,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   theme = 'light' as ThemeMode,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -48,43 +49,33 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade">
       <div
-        className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col border overflow-hidden ${
-          isLight
-            ? 'bg-white border-stone-200 text-stone-800'
-            : 'bg-[#121a14] border-[#25362b] text-emerald-100'
-        }`}
+        className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 border-b shrink-0 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#162219] border-[#25362b]'
-          }`}
+          className={`flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
-            <div className="p-1.5 bg-emerald-600 text-white shrink-0">
+            <div className={`p-1.5 rounded-lg shrink-0 ${themeClasses.accentBtn}`}>
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h2 className="text-xs sm:text-sm font-bold flex flex-wrap items-center gap-1.5">
                 <span>内蔵フォントライセンス情報</span>
-                <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-normal bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                <span className={`px-1.5 py-0.5 rounded-md border text-[9.5px] font-mono font-normal ${themeClasses.accentBadge}`}>
                   SIL OFL 1.1
                 </span>
               </h2>
-              <p className="text-[10.5px] sm:text-[11px] text-stone-500 dark:text-stone-400 truncate">
+              <p className={`text-[10.5px] sm:text-[11px] truncate ${themeClasses.textMuted}`}>
                 下絵および部首抽出に使用されているフォントの権利・利用条件
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-1.5 transition-colors cursor-pointer shrink-0 ml-2 ${
-              isLight
-                ? 'text-stone-400 hover:text-stone-700 hover:bg-stone-200'
-                : 'text-stone-400 hover:text-white hover:bg-[#25362b]'
-            }`}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ml-2 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -92,11 +83,9 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
         {/* License Note */}
         <div
-          className={`p-3 border-b shrink-0 text-xs flex items-start space-x-2 ${
-            isLight ? 'bg-stone-50 border-stone-200 text-stone-700' : 'bg-[#142017] border-[#25362b] text-stone-300'
-          }`}
+          className={`p-3 border-b shrink-0 text-xs flex items-start space-x-2 ${themeClasses.sidebarBg} ${themeClasses.border} ${themeClasses.textMuted}`}
         >
-          <Info className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <Info className={`w-4 h-4 shrink-0 mt-0.5 ${themeClasses.accentText}`} />
           <p className="text-[11px] leading-relaxed">
             下絵の表示や部首のベクター輪郭抽出に使用している書体は、すべてオープンフォントライセンス（SIL Open Font License 1.1）に基づいて収録されています。
           </p>
@@ -104,9 +93,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
         {/* Filter / Search Bar */}
         <div
-          className={`px-3 sm:px-4 py-2 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 text-xs ${
-            isLight ? 'bg-stone-50/50 border-stone-200' : 'bg-[#141e17] border-[#25362b]'
-          }`}
+          className={`px-3 sm:px-4 py-2 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 text-xs ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* Category Tabs */}
           <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
@@ -121,12 +108,8 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
                 onClick={() => setFilterCategory(tab.id)}
                 className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer shrink-0 ${
                   filterCategory === tab.id
-                    ? isLight
-                      ? 'bg-emerald-800 text-white '
-                      : 'bg-emerald-600 text-white '
-                    : isLight
-                    ? 'text-stone-600 hover:bg-stone-200/70'
-                    : 'text-stone-400 hover:bg-[#25362b]'
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
               >
                 {tab.label}
@@ -136,17 +119,13 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
           {/* Search Input */}
           <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="フォント名・製作者で絞り込み..."
-              className={`w-full pl-8 pr-2.5 py-1.5 sm:py-1 rounded-lg border text-xs outline-none ${
-                isLight
-                  ? 'bg-white border-stone-200 text-stone-800 focus:border-emerald-600'
-                  : 'bg-[#101712] border-[#25362b] text-emerald-100 focus:border-emerald-500'
-              }`}
+              className={`w-full pl-8 pr-2.5 py-1.5 sm:py-1 rounded-lg border text-xs outline-none ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
             />
           </div>
         </div>
@@ -156,23 +135,19 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           {filtered.map((font) => (
             <div
               key={font.id}
-              className={`p-3 sm:p-3.5 rounded-xl border transition-all ${
-                isLight
-                  ? 'bg-stone-50/70 border-stone-200 hover:border-emerald-300'
-                  : 'bg-[#151f18] border-[#233327] hover:border-emerald-700/60'
-              }`}
+              className={`p-3 sm:p-3.5 rounded-xl border transition-colors ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               {/* Card Header */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3
-                      className="text-sm sm:text-base font-bold text-stone-900 dark:text-emerald-100"
+                      className={`text-sm sm:text-base font-bold ${themeClasses.textPrimary}`}
                       style={{ fontFamily: font.fontFamily }}
                     >
                       {font.nameJa}
                     </h3>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${themeClasses.accentBadge}`}>
                       {font.category}
                     </span>
                   </div>
@@ -200,9 +175,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
               {/* Sample Character Preview */}
               <div
-                className={`p-2.5 rounded-lg border mb-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none ${
-                  isLight ? 'bg-white border-stone-200' : 'bg-[#101712] border-[#223326]'
-                }`}
+                className={`p-2.5 rounded-lg border mb-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none ${themeClasses.appBg} ${themeClasses.border}`}
               >
                 <div className="flex items-baseline gap-3 shrink-0">
                   <span
@@ -218,18 +191,18 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
                     あいうえお ABC 123
                   </span>
                 </div>
-                <span className="text-[10px] text-stone-400 font-mono shrink-0 hidden sm:inline">
+                <span className={`text-[10px] font-mono shrink-0 hidden sm:inline ${themeClasses.textMuted}`}>
                   CSS: {font.fontFamily}
                 </span>
               </div>
 
               {/* Role & Description */}
               <div className="space-y-1 text-xs">
-                <div className="flex items-start gap-1 text-stone-600 dark:text-stone-300">
-                  <span className="font-semibold shrink-0 text-stone-500 dark:text-stone-400">用途:</span>
+                <div className={`flex items-start gap-1 ${themeClasses.textPrimary}`}>
+                  <span className={`font-semibold shrink-0 ${themeClasses.textMuted}`}>用途:</span>
                   <span>{font.role}</span>
                 </div>
-                <div className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                <div className={`text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
                   {font.description}
                 </div>
                 <div
@@ -246,7 +219,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           ))}
 
           {filtered.length === 0 && (
-            <div className="py-8 text-center text-xs text-stone-400">
+            <div className={`py-8 text-center text-xs ${themeClasses.textMuted}`}>
               該当するフォント情報が見つかりませんでした。
             </div>
           )}
@@ -254,20 +227,14 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`flex flex-col-reverse sm:flex-row sm:items-center justify-between px-3.5 sm:px-5 py-3 border-t shrink-0 gap-2.5 text-xs ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#141e17] border-[#25362b]'
-          }`}
+          className={`flex flex-col-reverse sm:flex-row sm:items-center justify-between px-3.5 sm:px-5 py-3 border-t shrink-0 gap-2.5 text-xs ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="text-[10.5px] sm:text-[11px] text-stone-500 dark:text-stone-400">
+          <div className={`text-[10.5px] sm:text-[11px] ${themeClasses.textMuted}`}>
             ※ 本アプリで作成したフォントには、ご自身で設定した著作権・ライセンスを付与できます。
           </div>
           <button
             onClick={onClose}
-            className={`w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-              isLight
-                ? 'bg-emerald-800 text-white hover:bg-emerald-700'
-                : 'bg-emerald-600 text-white hover:bg-emerald-500'
-            }`}
+            className={`w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
           >
             閉じる
           </button>

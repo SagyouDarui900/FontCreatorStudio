@@ -268,20 +268,94 @@ p {
 }
 
 /*
- * Desktop Performance & Solid Backdrops:
- * Use solid semi-opaque dark backgrounds on desktop for maximum rendering performance,
- * zero transparency artifacts, and crisp typography contrast.
+ * Desktop & Mobile Performance:
+ * Use solid semi-opaque dark backdrops and lightweight shadows for crisp rendering performance
+ * without GPU blur/multi-layer shadow overhead.
  */
+.shadow-2xl,
+.shadow-xl,
+.shadow-lg {
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.16) !important;
+}
+
 @media (min-width: 640px) {
   .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.75) !important;
   }
+}
 
-  .shadow-2xl,
-  .shadow-xl,
-  .shadow-lg {
-    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.15) !important;
+/* Unified GPU-only entrance animations */
+@keyframes uiFadeIn {
+  from {
+    opacity: 0;
   }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes uiPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes uiSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes uiSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes uiSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.anim-fade {
+  animation: uiFadeIn 150ms ease-out both;
+}
+
+.anim-pop {
+  animation: uiPopIn 130ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-slide-up {
+  animation: uiSlideUp 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-slide-left {
+  animation: uiSlideLeft 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-slide-right {
+  animation: uiSlideRight 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Guard dialogs and modal containers against virtual keyboard overflow */
@@ -316,6 +390,15 @@ h1, h2, h3, h4, h5, h6 {
 .glyph-canvas-container,
 #canvas-container {
   will-change: transform;
+}
+
+svg[data-gesturing="true"] {
+  shape-rendering: optimizeSpeed;
+  text-rendering: optimizeSpeed;
+}
+
+svg[data-gesturing="true"] foreignObject {
+  visibility: hidden;
 }
 
 /* ==========================================================================

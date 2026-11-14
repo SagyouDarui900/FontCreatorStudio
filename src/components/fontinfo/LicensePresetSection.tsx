@@ -99,7 +99,7 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
               key={p.id}
               type="button"
               onClick={() => onApplyPreset(p.id)}
-              className={`text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between relative active:scale-[0.99] ${
+              className={`text-left p-3 rounded-xl border transition-colors cursor-pointer flex flex-col justify-between relative active:scale-[0.99] ${
                 isSelected
                   ? isLight
                     ? 'bg-white border-amber-500 ring-2 ring-amber-500/80 shadow-xs'

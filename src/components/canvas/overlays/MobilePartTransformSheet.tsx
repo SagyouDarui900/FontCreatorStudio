@@ -50,10 +50,10 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
     if (!isOpen) return null;
 
     return (
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 animate-fadeIn">
+      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
         <div className="fixed inset-0" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[75vh] overflow-y-auto ${
+          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[75vh] overflow-y-auto anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
         >

@@ -13,7 +13,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { FontProject, GlyphData, GlyphOverlaySettings } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, getThemeClasses } from '../utils/theme';
 
 interface GlyphCompareModalProps {
   isOpen: boolean;
@@ -89,7 +89,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
   theme,
   onShowToast,
 }) => {
-  const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -172,33 +172,27 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 animate-in fade-in duration-200'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 anim-fade'
       }`}
       onClick={onClose}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#141c16] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-2xl xl:max-w-3xl rounded-xl shadow-xl max-h-[90vh] border border-stone-200 bg-white text-stone-800'
-            : 'w-full max-w-2xl xl:max-w-3xl rounded-xl shadow-xl max-h-[90vh] border border-[#25362b] bg-[#141c16] text-emerald-100'
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-2xl xl:max-w-3xl rounded-2xl shadow-2xl max-h-[90vh] border ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className={`px-3.5 py-3 flex items-center justify-between border-b shrink-0 ${
-            isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-          }`}
+          className={`px-4 py-3 flex items-center justify-between border-b shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center ">
+            <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
               <ArrowRightLeft className="w-4 h-4" />
             </div>
             <div>
@@ -212,14 +206,14 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
                     overlaySettings.enabled
-                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                      : 'bg-stone-500/10 text-stone-500 border-stone-500/30'
+                      ? themeClasses.accentBadge
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`
                   }`}
                 >
                   {overlaySettings.enabled ? 'ON' : 'OFF'}
                 </span>
               </h2>
-              <p className="text-xs text-stone-500 dark:text-emerald-400/80">
+              <p className={`text-xs ${themeClasses.textMuted}`}>
                 作成中の文字に他文字を半透明・輪郭で重ね、骨格や太さのバランスを検査
               </p>
             </div>
@@ -228,14 +222,10 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-sky-100 text-sky-900 border-sky-300'
-                    : 'bg-sky-950 text-sky-300 border-sky-700'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -253,7 +243,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1a251e] transition-colors"
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -265,19 +255,17 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3">
           {/* Master Enable Switch */}
           <div
-            className={`p-3 rounded-lg border flex items-center justify-between transition-all ${
+            className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
               overlaySettings.enabled
-                ? 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/60'
-                : isLight
-                ? 'bg-stone-50 border-stone-200'
-                : 'bg-[#101712] border-[#25362b]'
+                ? 'bg-sky-500/10 border-sky-500/40'
+                : themeClasses.subtoolbarBg
             }`}
           >
             <div className="flex items-center space-x-2.5">
               <Eye className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               <div>
                 <div className="text-xs font-bold">重ね合わせ比較レイヤーを表示</div>
-                <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                <div className={`text-[10px] ${themeClasses.textMuted}`}>
                   現在編集中の文字「{activeChar || '未選択'}」の上に半透明で重ねて表示
                 </div>
               </div>
@@ -291,7 +279,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 }
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-stone-300 peer-focus:outline-hidden rounded-full peer dark:bg-stone-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+              <div className="w-11 h-6 bg-stone-400/50 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-sky-600"></div>
             </label>
           </div>
 
@@ -302,7 +290,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>「{activeChar || ''}」の比較対象文字</span>
               </label>
-              <span className="text-[10px] text-stone-400">ワンクリックで切替</span>
+              <span className={`text-[10px] ${themeClasses.textMuted}`}>ワンクリックで切替</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {recommendedChars.map((ch) => {
@@ -312,16 +300,12 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                   <button
                     key={ch}
                     onClick={() => handleSelectRefChar(ch)}
-                    className={`w-10 h-10 rounded-xl border text-base font-bold flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-xl border text-base font-bold flex items-center justify-center transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-sky-600 text-white border-sky-600  ring-2 ring-sky-400/40'
+                        ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-400/40'
                         : isDrawn
-                        ? isLight
-                          ? 'bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-900'
-                          : 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-800 text-sky-200'
-                        : isLight
-                        ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-600'
-                        : 'bg-[#18231c] hover:bg-[#202f26] border-[#25362b] text-stone-300'
+                        ? 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-300'
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     {ch}
@@ -343,18 +327,14 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 onChange={(e) => setGlyphSearchQuery(e.target.value)}
                 placeholder="文字 / U+"
                 aria-label="作成済み文字を検索"
-                className={`w-24 sm:w-32 px-2 py-1 rounded-md border text-[11px] outline-hidden ${
-                  isLight
-                    ? 'bg-white border-stone-200 text-stone-800 placeholder:text-stone-400'
-                    : 'bg-[#101712] border-[#25362b] text-stone-200 placeholder:text-stone-500'
-                }`}
+                className={`w-24 sm:w-32 px-2 py-1 rounded-md border text-[11px] outline-hidden ${themeClasses.cardBg}`}
               />
             </div>
-            <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-lg border border-stone-200 dark:border-[#25362b] bg-stone-50/50 dark:bg-[#101712]/50">
+            <div className={`flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-lg border ${themeClasses.subtoolbarBg}`}>
               {projectDrawnChars.length === 0 ? (
-                <div className="text-xs text-stone-400 p-2">まだ作成済みの文字がありません</div>
+                <div className={`text-xs p-2 ${themeClasses.textMuted}`}>まだ作成済みの文字がありません</div>
               ) : filteredDrawnChars.length === 0 ? (
-                <div className="text-xs text-stone-400 p-2">一致する作成済み文字がありません</div>
+                <div className={`text-xs p-2 ${themeClasses.textMuted}`}>一致する作成済み文字がありません</div>
               ) : (
                 filteredDrawnChars.map((g) => {
                   const isSelected =
@@ -364,12 +344,10 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                     <button
                       key={g.unicode}
                       onClick={() => handleSelectRefChar(g.char, g.unicode)}
-                      className={`px-2 py-0.5 rounded-md border text-xs font-bold transition-all ${
+                      className={`px-2 py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-sky-600 text-white border-sky-600 '
-                          : isLight
-                          ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-800'
-                          : 'bg-[#18231c] hover:bg-[#202f26] border-[#25362b] text-stone-200'
+                          ? 'bg-sky-600 text-white border-sky-600'
+                          : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                       }`}
                     >
                       {g.char}
@@ -379,7 +357,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               )}
             </div>
             {filteredDrawnChars.length < projectDrawnChars.length && (
-              <p className="mt-1 text-[10px] text-stone-400">
+              <p className={`mt-1 text-[10px] ${themeClasses.textMuted}`}>
                 {filteredDrawnChars.length}件を表示中。検索で絞り込めます。
               </p>
             )}
@@ -388,12 +366,8 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           {/* Render Mode & Color Options */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Render Mode */}
-            <div
-              className={`p-3 rounded-lg border ${
-                isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-              }`}
-            >
-              <label className="text-xs font-bold block mb-2 flex items-center gap-1.5">
+            <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
+              <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-sky-600" />
                 <span>表示モード</span>
               </label>
@@ -410,12 +384,10 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                         isOverlayRenderMode(m.id) ? { ...prev, renderMode: m.id } : prev
                       )
                     }
-                    className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-all ${
+                    className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
                       overlaySettings.renderMode === m.id
-                        ? 'bg-sky-600 text-white border-sky-600 '
-                        : isLight
-                        ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                        : 'bg-[#101712] hover:bg-[#1a251e] border-[#25362b] text-stone-300'
+                        ? 'bg-sky-600 text-white border-sky-600'
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     {m.label}
@@ -425,12 +397,8 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             </div>
 
             {/* Color Palette */}
-            <div
-              className={`p-3 rounded-lg border ${
-                isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-              }`}
-            >
-              <label className="text-xs font-bold block mb-2 flex items-center gap-1.5">
+            <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
+              <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
                 <Palette className="w-3.5 h-3.5 text-sky-600" />
                 <span>比較色</span>
               </label>
@@ -445,8 +413,8 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       }
                       title={c.name}
                       style={{ backgroundColor: c.hex }}
-                      className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center ${
-                        isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110 ' : 'hover:scale-105'
+                      className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
+                        isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110' : 'hover:scale-105'
                       }`}
                     >
                       {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
@@ -458,11 +426,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           </div>
 
           {/* Opacity & Fine Offset Sliders */}
-          <div
-            className={`p-3 rounded-lg border space-y-2.5 ${
-              isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-            }`}
-          >
+          <div className={`p-3 rounded-lg border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
             {/* Opacity */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -483,7 +447,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                     opacity: Number(e.target.value),
                   }))
                 }
-                className="w-full accent-sky-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                className="w-full accent-sky-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
               />
             </div>
 
@@ -506,7 +470,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       offsetX: Number(e.target.value),
                     }))
                   }
-                  className="w-full accent-sky-600 h-1.5 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                  className="w-full accent-sky-600 h-1.5 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                 />
               </div>
 
@@ -527,13 +491,13 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       offsetY: Number(e.target.value),
                     }))
                   }
-                  className="w-full accent-sky-600 h-1.5 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                  className="w-full accent-sky-600 h-1.5 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                 />
               </div>
             </div>
 
             {/* Show Metrics toggle */}
-            <div className="flex items-center justify-between pt-2 border-t border-stone-200 dark:border-[#25362b]">
+            <div className={`flex items-center justify-between pt-2 border-t ${themeClasses.border}`}>
               <label className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -551,7 +515,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
               <button
                 onClick={handleResetTransform}
-                className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 flex items-center gap-1"
+                className={`text-xs flex items-center gap-1 transition-colors cursor-pointer ${themeClasses.textMuted} hover:opacity-100`}
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>位置リセット</span>
@@ -562,21 +526,15 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`p-3 border-t flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-          }`}
+          className={`p-3 border-t flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center gap-3">
-            <div className="text-xs text-stone-500">
+            <div className={`text-xs ${themeClasses.textMuted}`}>
               選択中: 「<strong className="text-sky-600 dark:text-sky-400">{overlaySettings.referenceChar || '未設定'}</strong>」
             </div>
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-colors hidden sm:flex ${
-                isLight
-                  ? 'border-stone-300 text-stone-600 hover:bg-stone-100'
-                  : 'border-[#25362b] text-stone-300 hover:bg-[#202f26]'
-              }`}
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium items-center space-x-1.5 transition-colors hidden sm:flex cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               title={isFullscreen ? '通常表示に戻す (F / Esc)' : '全画面表示モード (F)'}
             >
               {isFullscreen ? (
@@ -594,7 +552,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white active:scale-95 transition-all"
+            className="px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white active:scale-95 transition-[transform,background-color] cursor-pointer"
           >
             完了 (キャンバスに反映)
           </button>

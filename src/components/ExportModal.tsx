@@ -13,7 +13,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   FontPreviewSection,
   ExportFormatSection,
@@ -66,6 +66,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [previewFontSize, setPreviewFontSize] = useState<number>(28);
 
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
@@ -200,55 +201,41 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const isAppleTouch =
     typeof navigator !== 'undefined' &&
     (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none anim-fade'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#141e17] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] bg-white border-stone-200 text-stone-800'
-            : 'w-full max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] bg-[#141e17] border-[#223528] text-emerald-100'
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-2xl border ${themeClasses.border} rounded-2xl shadow-2xl max-h-[92vh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`px-5 py-3.5 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18231c] border-[#233327]'
-          }`}
+          className={`px-5 py-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div
-              className={`p-2 rounded-xl shrink-0 ${
-                isLight ? 'bg-amber-100 text-amber-900' : 'bg-emerald-950 text-emerald-300'
-              }`}
-            >
+            <div className={`p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
               <Download className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2
-                className={`text-sm sm:text-base font-bold tracking-wide flex items-center gap-2 ${
-                  isLight ? 'text-emerald-950' : 'text-emerald-200'
-                }`}
-              >
+              <h2 className="text-sm sm:text-base font-bold tracking-wide flex items-center gap-2">
                 <span className="truncate">フォント出力・ダウンロード</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面
                   </span>
                 )}
               </h2>
-              <p className={`text-[11px] truncate ${isLight ? 'text-stone-500' : 'text-emerald-400/80'}`}>
+              <p className={`text-[11px] truncate ${themeClasses.textMuted}`}>
                 TrueType / OpenType 規格準拠のフォントファイルを生成します
               </p>
             </div>
@@ -257,14 +244,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -282,9 +265,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isLight ? 'text-stone-400 hover:bg-stone-200 hover:text-stone-700' : 'text-stone-400 hover:bg-[#202d24] hover:text-emerald-200'
-              }`}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -379,13 +360,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
         {/* Footer Actions */}
         <div
-          className={`px-5 py-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-2.5 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18231c] border-[#233327]'
-          }`}
+          className={`px-5 py-3.5 border-t flex flex-col sm:flex-row items-center justify-between gap-2.5 ${themeClasses.headerBg}`}
         >
-          <div className="text-[11px] opacity-70 w-full sm:w-auto text-center sm:text-left tabular-nums whitespace-nowrap">
-            収録文字: <strong className="font-mono tabular-nums text-emerald-700 dark:text-emerald-400 font-bold">{glyphCount}</strong> 文字 / 倍率:{' '}
-            <strong className="font-mono tabular-nums text-emerald-700 dark:text-emerald-400 font-bold">
+          <div className="text-[11px] opacity-85 w-full sm:w-auto text-center sm:text-left tabular-nums whitespace-nowrap">
+            収録文字: <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>{glyphCount}</strong> 文字 / 倍率:{' '}
+            <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>
               {Math.round(effectiveScale * 100)}%
             </strong>
           </div>
@@ -395,7 +374,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 type="button"
                 onClick={onRequestNewProject}
-                className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center space-x-1.5 transition-colors whitespace-nowrap shrink-0 ${
+                className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center space-x-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isLight
                     ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
                     : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-200 border-amber-800'
@@ -409,11 +388,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             <button
               onClick={onClose}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap shrink-0 ${
-                isLight
-                  ? 'border-stone-300 hover:bg-stone-200 text-stone-700'
-                  : 'border-[#2d4034] hover:bg-[#202d24] text-emerald-200'
-              }`}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
             >
               閉じる
             </button>
@@ -423,7 +398,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 onClick={() => handleExport('share')}
                 disabled={isExporting}
-                className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 whitespace-nowrap shrink-0"
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-[transform,background-color] active:scale-95 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <Share2 className="w-4 h-4 shrink-0" />
                 <span className="whitespace-nowrap">iPadの「ファイル」に保存・共有</span>
@@ -432,7 +407,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 onClick={() => handleExport('download')}
                 disabled={isExporting}
-                className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-all active:scale-95 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 whitespace-nowrap shrink-0"
+                className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-[transform,background-color] active:scale-95 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Download className="w-4 h-4 shrink-0" />
                 <span className="whitespace-nowrap">.{format.toUpperCase()} をダウンロード</span>

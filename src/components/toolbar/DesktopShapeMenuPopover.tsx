@@ -15,6 +15,7 @@ export interface DesktopShapeMenuPopoverProps {
   setLastSelectedShape: (mode: ToolMode) => void;
   themeClasses: ThemeClasses;
   isLight: boolean;
+  popoverRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = React.memo(({
@@ -28,6 +29,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
   setLastSelectedShape,
   themeClasses,
   isLight,
+  popoverRef,
 }) => {
   if (!isOpen) return null;
 
@@ -39,6 +41,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
 
   return (
     <div
+      ref={popoverRef}
       style={{
         top: `${anchorTop}px`,
         ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
@@ -47,9 +50,9 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
       }}
       className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
-      } sm:w-72 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-72 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
     >
-      <div className="px-1 py-0.5 text-[11px] font-bold border-b mb-2 flex items-center justify-between border-stone-200 dark:border-[#223025]">
+      <div className={`px-1 py-0.5 text-[11px] font-bold border-b mb-2 flex items-center justify-between ${themeClasses.border}`}>
         <span className={isLight ? 'text-emerald-800' : 'text-emerald-400'}>図形を選択</span>
         <div className="flex items-center space-x-2">
           <span className="text-[10px] font-normal opacity-60">全20種類</span>
@@ -83,14 +86,10 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 isSelected
-                  ? isLight
-                    ? 'bg-emerald-700 text-white font-bold'
-                    : 'bg-emerald-600 text-white font-bold'
-                  : isLight
-                  ? 'hover:bg-stone-100 text-stone-700'
-                  : 'hover:bg-[#1f2b23] text-emerald-200'
+                  ? `${themeClasses.activeTool} font-bold`
+                  : themeClasses.activeToolHover
               }`}
             >
               <SIcon className="w-3.5 h-3.5 shrink-0" />
@@ -116,14 +115,10 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 isSelected
-                  ? isLight
-                    ? 'bg-emerald-700 text-white font-bold'
-                    : 'bg-emerald-600 text-white font-bold'
-                  : isLight
-                  ? 'hover:bg-stone-100 text-stone-700'
-                  : 'hover:bg-[#1f2b23] text-emerald-200'
+                  ? `${themeClasses.activeTool} font-bold`
+                  : themeClasses.activeToolHover
               }`}
             >
               <SIcon className="w-3.5 h-3.5 shrink-0" />
@@ -149,14 +144,10 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                 isSelected
-                  ? isLight
-                    ? 'bg-emerald-700 text-white font-bold'
-                    : 'bg-emerald-600 text-white font-bold'
-                  : isLight
-                  ? 'hover:bg-stone-100 text-stone-700'
-                  : 'hover:bg-[#1f2b23] text-emerald-200'
+                  ? `${themeClasses.activeTool} font-bold`
+                  : themeClasses.activeToolHover
               }`}
             >
               <SIcon className="w-3.5 h-3.5 shrink-0" />

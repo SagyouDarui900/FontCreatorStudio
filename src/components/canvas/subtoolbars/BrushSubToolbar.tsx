@@ -96,7 +96,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
           <button
             type="button"
             onClick={onOpenPenPresetsModal}
-            className="px-2 py-0.5 rounded text-xs font-bold border transition-all flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 active:scale-95 cursor-pointer"
+            className="px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 active:scale-95 cursor-pointer"
             title="ペン作成・ブラシカスタマイズスタジオを開く"
           >
             <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />

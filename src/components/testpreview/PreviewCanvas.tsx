@@ -134,7 +134,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 setAdjustScaleY(100);
               }}
               onMouseEnter={() => metric && setHoveredGlyphInfo(metric)}
-              className={`inline-flex items-center justify-center relative border border-dashed transition-all cursor-pointer select-none ${
+              className={`inline-flex items-center justify-center relative border border-dashed transition-colors cursor-pointer select-none ${
                 isSelected
                   ? 'ring-2 ring-emerald-500 bg-emerald-500/25 border-emerald-500 text-emerald-950 dark:text-emerald-100 z-10'
                   : !metric
@@ -201,7 +201,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 setAdjustScaleY(100);
               }}
               onMouseEnter={() => metric && setHoveredGlyphInfo(metric)}
-              className={`inline-block relative transition-all cursor-pointer select-none rounded px-0.5 ${
+              className={`inline-block relative transition-colors cursor-pointer select-none rounded px-0.5 ${
                 isSelected
                   ? 'ring-2 ring-emerald-500 bg-emerald-500/20 text-emerald-950 dark:text-emerald-100 z-10'
                   : !metric
@@ -330,7 +330,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         <div className="w-full flex items-start min-h-full py-1 sm:py-2">
           <div
             onWheel={handleVerticalWheel}
-            className={`transition-all rounded-lg shadow-sm border p-4 sm:p-12 mx-auto ${
+            className={`transition-colors rounded-lg shadow-sm border p-4 sm:p-12 mx-auto ${
               writingMode === 'vertical'
                 ? 'min-w-[280px] sm:min-w-[360px] max-w-full overflow-x-auto overscroll-contain min-h-[calc(100dvh-260px)] md:min-h-[calc(100vh-220px)]'
                 : 'w-full max-w-3xl lg:max-w-4xl min-h-[calc(100dvh-260px)] md:min-h-[calc(100vh-220px)]'

@@ -12,6 +12,7 @@ import {
 import { FontQualityModalProps, TabFilter } from './types';
 import { useQualityState } from './hooks/useQualityState';
 import { useQualityActions } from './hooks/useQualityActions';
+import { getThemeClasses } from '../../utils/theme';
 
 export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
   const {
@@ -25,6 +26,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
     commitHistory,
   } = props;
 
+  const themeClasses = getThemeClasses(theme);
   const state = useQualityState(project, theme);
   const actions = useQualityActions({
     project,
@@ -223,26 +225,23 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 animate-in fade-in duration-150'
+          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-900'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151f18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-4xl xl:max-w-5xl rounded-xl border border-stone-200 shadow-xl max-h-[90vh] bg-white text-stone-900'
-            : 'w-full max-w-4xl xl:max-w-5xl rounded-xl border border-[#25362b] shadow-xl max-h-[90vh] bg-[#151f18] text-emerald-100'
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-4xl xl:max-w-5xl rounded-2xl border ${themeClasses.border} shadow-2xl max-h-[90vh]`
         }`}
       >
         {/* Header Bar */}
         <QualityModalHeader
           isLight={isLight}
+          themeClasses={themeClasses}
           mainView={mainView}
           setMainView={setMainView}
           report={report}
@@ -337,6 +336,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
           <QualityIssuesView
             project={project}
             isLight={isLight}
+            themeClasses={themeClasses}
             report={report}
             filteredIssues={filteredIssues}
             totalAutoFixableCount={totalAutoFixableCount}
@@ -366,6 +366,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
         {/* Footer info and close button */}
         <QualityModalFooter
           isLight={isLight}
+          themeClasses={themeClasses}
           isFullscreen={isFullscreen}
           setIsFullscreen={setIsFullscreen}
           onClose={onClose}

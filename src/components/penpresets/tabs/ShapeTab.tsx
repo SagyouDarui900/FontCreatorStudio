@@ -13,33 +13,35 @@ export const ShapeTab: React.FC<ShapeTabProps> = ({
   setWorkingPreset,
 }) => {
   return (
-    <div className="space-y-4 max-w-xl">
-      <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-3">
+    <div className="space-y-2.5">
+      <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
           <Circle className="w-3.5 h-3.5 text-emerald-500" />
           <span>筆先形状・角度・扁平率</span>
         </span>
 
-        <SliderControl
-          label="筆先扁平率 (縦横比)"
-          value={workingPreset.nibAspectRatio ?? 0}
-          min={0}
-          max={100}
-          step={5}
-          unit="%"
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibAspectRatio: v }))}
-          desc="0% = 円形断面, 100% = 極平チゼル・カリグラフィーペン"
-        />
-        <SliderControl
-          label="初期角度"
-          value={workingPreset.nibAngle ?? 25}
-          min={0}
-          max={180}
-          step={5}
-          unit="°"
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibAngle: v }))}
-          desc="明朝体(25°〜45°)やカリグラフィーの傾斜角"
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+          <SliderControl
+            label="筆先扁平率 (縦横比)"
+            value={workingPreset.nibAspectRatio ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibAspectRatio: v }))}
+            desc="0% = 円形断面, 100% = 極平チゼル・カリグラフィー"
+          />
+          <SliderControl
+            label="初期角度"
+            value={workingPreset.nibAngle ?? 25}
+            min={0}
+            max={180}
+            step={5}
+            unit="°"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibAngle: v }))}
+            desc="明朝体(25°〜45°)やカリグラフィーの傾斜角"
+          />
+        </div>
 
         <ToggleControl
           label="回転の追従 (進行方向に筆先を合わせる)"

@@ -337,7 +337,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                   setDiagScope(sc.id as DiagnosticScope);
                   onRescan(sc.id as DiagnosticScope);
                 }}
-                className={`px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors border shrink-0 ${
                   diagScope === sc.id
                     ? isLight
                       ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
@@ -409,7 +409,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
           {/* Card 1: Overall Completion Rate */}
           <button
             onClick={() => setDiagFilter('all')}
-            className={`p-3 rounded-xl border text-left transition-all ${
+            className={`p-3 rounded-xl border text-left transition-colors ${
               diagFilter === 'all'
                 ? isLight
                   ? 'bg-white border-emerald-500 shadow-xs ring-1 ring-emerald-500/20'
@@ -433,7 +433,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
             </div>
             <div className="w-full h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden mt-2">
               <div
-                className="h-full bg-emerald-500 transition-all duration-300"
+                className="h-full bg-emerald-500 transition-[width] duration-300"
                 style={{ width: `${diagReport.overallCompletionRate}%` }}
               />
             </div>
@@ -442,7 +442,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
           {/* Card 2: Empty Glyphs */}
           <button
             onClick={() => setDiagFilter('empty')}
-            className={`p-3 rounded-xl border text-left transition-all ${
+            className={`p-3 rounded-xl border text-left transition-colors ${
               diagFilter === 'empty'
                 ? isLight
                   ? 'bg-white border-rose-500 shadow-xs ring-1 ring-rose-500/20'
@@ -475,7 +475,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
           {/* Card 3: Critically Low Complexity */}
           <button
             onClick={() => setDiagFilter('critically_low')}
-            className={`p-3 rounded-xl border text-left transition-all ${
+            className={`p-3 rounded-xl border text-left transition-colors ${
               diagFilter === 'critically_low'
                 ? isLight
                   ? 'bg-white border-amber-500 shadow-xs ring-1 ring-amber-500/20'
@@ -508,7 +508,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
           {/* Card 4: Draft / In-Progress */}
           <button
             onClick={() => setDiagFilter('draft')}
-            className={`p-3 rounded-xl border text-left transition-all ${
+            className={`p-3 rounded-xl border text-left transition-colors ${
               diagFilter === 'draft'
                 ? isLight
                   ? 'bg-white border-orange-500 shadow-xs ring-1 ring-orange-500/20'
@@ -543,7 +543,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
       {/* Category Progress Bars (Expandable) */}
       {diagReport && diagReport.categoryStats.length > 0 && (
         <div
-          className={`border-b px-5 py-2.5 transition-all ${
+          className={`border-b px-5 py-2.5 transition-colors ${
             isLight ? 'bg-stone-100/50 border-stone-200' : 'bg-[#141d16] border-[#25362b]'
           }`}
         >
@@ -581,7 +581,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                       diagCategoryFilter === cat.id ? 'all' : cat.id
                     )
                   }
-                  className={`p-2 rounded-lg border text-left transition-all text-xs ${
+                  className={`p-2 rounded-lg border text-left transition-colors text-xs ${
                     diagCategoryFilter === cat.id
                       ? isLight
                         ? 'bg-white border-amber-500 ring-1 ring-amber-500/30'
@@ -755,7 +755,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
               return (
                 <div
                   key={item.unicode}
-                  className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                  className={`p-3.5 rounded-xl border transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                     item.status === 'empty'
                       ? isLight
                         ? 'bg-rose-50/40 border-rose-200/80 hover:border-rose-300'
@@ -883,7 +883,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                       {item.isRegisteredInProject ? (
                         <button
                           onClick={() => handleOpenGlyph(item.unicode)}
-                          className={`px-3 py-1 rounded-lg border text-xs font-bold flex items-center space-x-1 transition-all ${
+                          className={`px-3 py-1 rounded-lg border text-xs font-bold flex items-center space-x-1 transition-colors ${
                             isLight
                               ? 'bg-white border-stone-300 text-stone-800 hover:bg-stone-50 shadow-2xs'
                               : 'bg-[#1c2920] border-[#25362b] text-emerald-200 hover:bg-[#25382b]'
@@ -895,7 +895,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                       ) : (
                         <button
                           onClick={() => handleAddGlyph(item)}
-                          className={`px-3 py-1 rounded-lg border text-xs font-bold flex items-center space-x-1 transition-all ${
+                          className={`px-3 py-1 rounded-lg border text-xs font-bold flex items-center space-x-1 transition-colors ${
                             isLight
                               ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 shadow-2xs'
                               : 'bg-emerald-500 text-stone-950 border-emerald-400 hover:bg-emerald-400'

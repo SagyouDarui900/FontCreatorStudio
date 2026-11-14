@@ -124,7 +124,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
 
         {lastActionMessage && (
           <div
-            className={`p-2 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 border animate-fade-in ${
+            className={`p-2 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 border anim-fade ${
               isLight
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                 : 'bg-emerald-950/70 border-emerald-800 text-emerald-200'
@@ -158,7 +158,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
               onClick={() => setSelectedContourIndex(cIdx)}
               onMouseEnter={() => setHoveredContourIndex(cIdx)}
               onMouseLeave={() => setHoveredContourIndex(null)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer ${
+              className={`p-3 rounded-xl border transition-colors cursor-pointer ${
                 isSelected
                   ? isLight
                     ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-500/20 '

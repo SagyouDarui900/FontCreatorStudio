@@ -40,6 +40,8 @@ export interface CanvasSvgStageProps {
   canvasGroupRef: React.RefObject<SVGGElement | null>;
   pan: Point;
   zoom: number;
+  panRef?: React.RefObject<Point>;
+  zoomRef?: React.RefObject<number>;
   upm: number;
   theme: ThemeMode;
   isLight: boolean;
@@ -137,6 +139,8 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   canvasGroupRef,
   pan,
   zoom,
+  panRef,
+  zoomRef,
   upm,
   theme,
   isLight,
@@ -301,7 +305,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
     >
       <g
         ref={canvasGroupRef}
-        transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
+        transform={`translate(${(panRef?.current ?? pan).x}, ${(panRef?.current ?? pan).y}) scale(${zoomRef?.current ?? zoom})`}
       >
         {/* 1. Base Canvas Background & Grid */}
         <CanvasBackgroundLayer
@@ -352,6 +356,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             selectedUnicode={selectedUnicode != null ? String(selectedUnicode) : undefined}
             toolMode={toolMode}
             unitsPerEm={upm}
+            advanceWidth={advanceWidth}
             onPointerDownImage={handlePointerDownTraceImage}
             onPointerDownResize={handlePointerDownTraceResize}
             onDoubleClickReset={handleResetTracePosition}

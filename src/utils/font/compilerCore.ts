@@ -500,7 +500,7 @@ export function compileFont(
   font.tables.os2.fsSelection =
     (isBold ? (isItalic ? 0x0021 : 0x0020) : isItalic ? 0x0001 : 0x0040) | 0x0080;
   font.tables.os2.usFirstCharIndex = minUnicode < 0xffff ? minUnicode : 32;
-  font.tables.os2.usLastCharIndex = Math.min(0xffff, maxUnicode > 0 ? maxUnicode : 65535);
+  font.tables.os2.usLastCharIndex = Math.min(0xffff, maxUnicode > 0 ? maxUnicode : 32);
 
   // Ensure hhea table metrics match
   if (!font.tables.hhea) {
@@ -705,8 +705,19 @@ export function compileFont(
     }
   }
 
-  // OpenType GSUB Layout Tables: 'vert' and 'vrt2' vertical writing substitution features
-  if (font.substitution && typeof (font.substitution as any).addSingle === 'function' && vertSubstPairs.length > 0) {
+  // OpenType GSUB Layout Tables: consolidated vertical writing ('vert', 'vrt2') and ligature features
+  const substitutionApi = (font as unknown as {
+    substitution?: {
+      add?: (
+        feature: string,
+        substitution: { sub: number[]; by: number },
+        script: string
+      ) => void;
+      addSingle?: (feature: string, substitution: { sub: number; by: number }, script: string) => void;
+    };
+  }).substitution;
+
+  if (substitutionApi) {
     try {
       const unicodeToGlyphIndex = new Map<number, number>();
       for (let i = 0; i < font.glyphs.length; i++) {
@@ -723,24 +734,54 @@ export function compileFont(
         }
       }
 
-      // Feature tags MUST be registered in alphabetical order in opentype.js ('vert' before 'vrt2')
-      const features = ['vert', 'vrt2'];
       const scripts = ['DFLT', 'hani', 'kana', 'latn'];
 
-      for (const feature of features) {
-        for (const script of scripts) {
-          for (const pair of vertSubstPairs) {
-            const srcIndex = pair.srcIndex ?? unicodeToGlyphIndex.get(pair.srcUnicode);
-            const vertIndex = pair.vertIndex ?? unicodeToGlyphIndex.get(pair.targetUnicode);
-            if (
-              typeof srcIndex === 'number' &&
-              typeof vertIndex === 'number' &&
-              srcIndex >= 0 &&
-              vertIndex >= 0 &&
-              srcIndex !== vertIndex
-            ) {
+      // Gather consolidated single substitutions for 'vert' and 'vrt2' without duplicates
+      const registeredVertKeys = new Set<string>();
+      const vertPairsToRegister: { srcIndex: number; vertIndex: number; features: ('vert' | 'vrt2')[] }[] = [];
+
+      for (const pair of vertSubstPairs) {
+        const srcIndex = pair.srcIndex ?? unicodeToGlyphIndex.get(pair.srcUnicode);
+        const vertIndex = pair.vertIndex ?? unicodeToGlyphIndex.get(pair.targetUnicode);
+        if (
+          typeof srcIndex === 'number' &&
+          typeof vertIndex === 'number' &&
+          srcIndex >= 0 &&
+          vertIndex >= 0 &&
+          srcIndex !== vertIndex
+        ) {
+          vertPairsToRegister.push({ srcIndex, vertIndex, features: ['vert', 'vrt2'] });
+        }
+      }
+
+      if (openTypeFeaturesEnabled) {
+        for (const sub of featureConfig?.verticalWriting?.substitutions || []) {
+          if (!sub.enabled) continue;
+          const srcIndex = unicodeToGlyphIndex.get(sub.sourceUnicode);
+          const vertIndex = unicodeToGlyphIndex.get(sub.vertUnicode);
+          if (
+            typeof srcIndex === 'number' &&
+            typeof vertIndex === 'number' &&
+            srcIndex >= 0 &&
+            vertIndex >= 0 &&
+            srcIndex !== vertIndex
+          ) {
+            vertPairsToRegister.push({ srcIndex, vertIndex, features: ['vert'] });
+          }
+        }
+      }
+
+      // Feature tags MUST be registered in alphabetical order in opentype.js ('vert' before 'vrt2')
+      if (typeof substitutionApi.addSingle === 'function' && vertPairsToRegister.length > 0) {
+        for (const feature of ['vert', 'vrt2'] as const) {
+          for (const script of scripts) {
+            for (const entry of vertPairsToRegister) {
+              if (!entry.features.includes(feature)) continue;
+              const dedupeKey = `${feature}:${script}:${entry.srcIndex}:${entry.vertIndex}`;
+              if (registeredVertKeys.has(dedupeKey)) continue;
+              registeredVertKeys.add(dedupeKey);
               try {
-                (font.substitution as any).addSingle(feature, { sub: srcIndex, by: vertIndex }, script);
+                substitutionApi.addSingle(feature, { sub: entry.srcIndex, by: entry.vertIndex }, script);
               } catch {
                 // Ignore any duplicate or subtable collision
               }
@@ -748,63 +789,31 @@ export function compileFont(
           }
         }
       }
+
+      // Apply user-configured ligatures to the exported GSUB table
+      if (openTypeFeaturesEnabled && typeof substitutionApi.add === 'function') {
+        for (const ligature of featureConfig?.ligatures || []) {
+          if (!ligature.enabled || ligature.inputChars.length < 2) continue;
+          const sourceIndices = ligature.inputChars
+            .map((char) => char.codePointAt(0))
+            .map((unicode) => (unicode === undefined ? undefined : unicodeToGlyphIndex.get(unicode)));
+          const targetIndex = unicodeToGlyphIndex.get(ligature.substituteUnicode);
+          if (sourceIndices.some((index) => index === undefined) || targetIndex === undefined) continue;
+          for (const script of scripts) {
+            try {
+              substitutionApi.add(
+                ligature.type,
+                { sub: sourceIndices as number[], by: targetIndex },
+                script
+              );
+            } catch {
+              // Ignore subtable collision for unsupported/duplicate ligature feature entries
+            }
+          }
+        }
+      }
     } catch (gsubErr) {
-      console.warn('Failed to generate OpenType GSUB vertical writing table:', gsubErr);
-    }
-  }
-
-  // Apply user-configured ligatures and vertical substitutions to the exported GSUB table.
-  if (font.substitution && openTypeFeaturesEnabled) {
-    const substitutionApi = font.substitution as unknown as {
-      add?: (
-        feature: string,
-        substitution: { sub: number[]; by: number },
-        script: string
-      ) => void;
-      addSingle?: (feature: string, substitution: { sub: number; by: number }, script: string) => void;
-    };
-    const glyphIndexByUnicode = new Map<number, number>();
-    for (let i = 0; i < font.glyphs.length; i++) {
-      const glyph = font.glyphs.get(i);
-      if (typeof glyph.unicode === 'number' && glyph.unicode > 0) {
-        glyphIndexByUnicode.set(glyph.unicode, i);
-      }
-      for (const unicode of glyph.unicodes || []) {
-        if (typeof unicode === 'number' && unicode > 0) {
-          glyphIndexByUnicode.set(unicode, i);
-        }
-      }
-    }
-
-    const scripts = ['DFLT', 'latn', 'hani', 'kana'];
-    if (typeof substitutionApi.addSingle === 'function') {
-      for (const sub of featureConfig?.verticalWriting?.substitutions || []) {
-        if (!sub.enabled) continue;
-        const sourceIndex = glyphIndexByUnicode.get(sub.sourceUnicode);
-        const targetIndex = glyphIndexByUnicode.get(sub.vertUnicode);
-        if (sourceIndex === undefined || targetIndex === undefined || sourceIndex === targetIndex) continue;
-        for (const script of scripts) {
-          substitutionApi.addSingle('vert', { sub: sourceIndex, by: targetIndex }, script);
-        }
-      }
-    }
-
-    if (typeof substitutionApi.add === 'function') {
-      for (const ligature of featureConfig?.ligatures || []) {
-        if (!ligature.enabled || ligature.inputChars.length < 2) continue;
-        const sourceIndices = ligature.inputChars
-          .map((char) => char.codePointAt(0))
-          .map((unicode) => (unicode === undefined ? undefined : glyphIndexByUnicode.get(unicode)));
-        const targetIndex = glyphIndexByUnicode.get(ligature.substituteUnicode);
-        if (sourceIndices.some((index) => index === undefined) || targetIndex === undefined) continue;
-        for (const script of scripts) {
-          substitutionApi.add(
-            ligature.type,
-            { sub: sourceIndices as number[], by: targetIndex },
-            script
-          );
-        }
-      }
+      console.warn('Failed to generate OpenType GSUB tables:', gsubErr);
     }
   }
 

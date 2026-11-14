@@ -67,7 +67,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/60 animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/75 anim-fade">
       <div className="fixed inset-0" onClick={onClose} />
       <div
         className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 pb-28 sm:pb-5 border-t sm:border shadow-2xl max-h-[85vh] overflow-y-auto ${
@@ -93,7 +93,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
         <div className="space-y-3.5 text-xs">
           {/* Square Grid & Snapping with Intuitive Slider */}
           <div
-            className={`p-3 rounded-xl border transition-all ${
+            className={`p-3 rounded-xl border transition-colors ${
               gridSettings.showGrid
                 ? isLight
                   ? 'bg-emerald-50/70 border-emerald-300'
@@ -361,7 +361,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       japaneseGuide: g.id,
                     }))
                   }
-                  className={`py-1.5 px-1 rounded-lg border text-center font-bold transition-all ${
+                  className={`py-1.5 px-1 rounded-lg border text-center font-bold transition-colors ${
                     (gridSettings.japaneseGuide || 'tian') === g.id
                       ? 'bg-emerald-600 text-white border-emerald-600'
                       : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
@@ -391,7 +391,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       verticalGuide: vg.id,
                     }))
                   }
-                  className={`py-1.5 px-1 rounded-lg border text-center font-bold transition-all ${
+                  className={`py-1.5 px-1 rounded-lg border text-center font-bold transition-colors ${
                     (gridSettings.verticalGuide || 'none') === vg.id
                       ? 'bg-purple-600 text-white border-purple-600'
                       : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
@@ -482,7 +482,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   setOutlineOnly(false);
                   showCanvasToast('塗りつぶし表示モードに切り替えました');
                 }}
-                className={`p-2 rounded-lg border text-center font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`p-2 rounded-lg border text-center font-bold transition-colors flex items-center justify-center gap-1.5 ${
                   !isOutlineMode
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
@@ -497,7 +497,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   setOutlineOnly(true);
                   showCanvasToast('輪郭表示モード（ワイヤーフレーム）を有効にしました');
                 }}
-                className={`p-2 rounded-lg border text-center font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`p-2 rounded-lg border text-center font-bold transition-colors flex items-center justify-center gap-1.5 ${
                   isOutlineMode
                     ? 'bg-sky-600 text-white border-sky-600'
                     : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
@@ -518,7 +518,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   setNodeStyle('clean');
                   setShowNodes(true);
                 }}
-                className={`p-2 rounded-lg border text-center font-bold transition-all ${
+                className={`p-2 rounded-lg border text-center font-bold transition-colors ${
                   showNodes && nodeStyle === 'clean'
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
@@ -531,7 +531,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   setNodeStyle('selected_only');
                   setShowNodes(true);
                 }}
-                className={`p-2 rounded-lg border text-center font-bold transition-all ${
+                className={`p-2 rounded-lg border text-center font-bold transition-colors ${
                   showNodes && nodeStyle === 'selected_only'
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'
@@ -541,7 +541,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
               </button>
               <button
                 onClick={() => setShowNodes((prev) => !prev)}
-                className={`p-2 rounded-lg border text-center font-bold transition-all ${
+                className={`p-2 rounded-lg border text-center font-bold transition-colors ${
                   !showNodes
                     ? 'bg-amber-600 text-white border-amber-600'
                     : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300'

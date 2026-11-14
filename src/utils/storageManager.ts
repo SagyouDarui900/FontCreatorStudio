@@ -454,17 +454,21 @@ export function clearNonEssentialCache(): { success: boolean; freedBytes: number
   const nonEssentialKeyFragments = ['guide_assist', 'subtoolbar', 'palm_rejection', 'overlay', 'sidebar_width'];
 
   try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
 
-      const isNonEssential = nonEssentialKeyFragments.some((frag) => key.includes(frag));
-      if (isNonEssential) {
-        const val = localStorage.getItem(key) || '';
-        freedBytes += getStringSizeBytes(key) + getStringSizeBytes(val);
-        localStorage.removeItem(key);
-        clearedKeys.push(key);
+      if (nonEssentialKeyFragments.some((frag) => key.includes(frag))) {
+        keysToRemove.push(key);
       }
+    }
+
+    for (const key of keysToRemove) {
+      const val = localStorage.getItem(key) || '';
+      freedBytes += getStringSizeBytes(key) + getStringSizeBytes(val);
+      localStorage.removeItem(key);
+      clearedKeys.push(key);
     }
 
     window.dispatchEvent(new Event('storage'));

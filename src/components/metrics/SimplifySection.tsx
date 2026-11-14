@@ -29,7 +29,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
     >
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
       >
         <span className={`text-xs font-bold flex items-center space-x-1.5 ${themeClasses.accentText}`}>
           <Wand2 className="w-4 h-4" />
@@ -47,7 +47,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
 
       {isExpanded && (
         <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
-          <p className="text-[11px] leading-relaxed text-stone-600 dark:text-emerald-300/80 pt-1">
+          <p className={`text-[11px] leading-relaxed pt-1 ${themeClasses.textMuted}`}>
             不要なアンカーポイント（重複・共線点）を自動削除し、字形を保ちながらファイル容量を削減します。
           </p>
 
@@ -56,10 +56,10 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
             <button
               type="button"
               onClick={() => setSimplifyLevel('mild')}
-              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-colors cursor-pointer truncate ${
                 simplifyLevel === 'mild'
                   ? `${themeClasses.activeTool} border`
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
               }`}
               title="形状保持 100%: 直線上の不要ノードと重複ノードのみ除去"
             >
@@ -68,10 +68,10 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
             <button
               type="button"
               onClick={() => setSimplifyLevel('normal')}
-              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-colors cursor-pointer truncate ${
                 simplifyLevel === 'normal'
                   ? `${themeClasses.activeTool} border`
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
               }`}
               title="推奨: 形状保持 99.8%、手描き線の微細ブレを整流してスリム化"
             >
@@ -80,10 +80,10 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
             <button
               type="button"
               onClick={() => setSimplifyLevel('strong')}
-              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-all cursor-pointer truncate ${
+              className={`min-h-[34px] py-1 px-1 rounded-md font-bold border transition-colors cursor-pointer truncate ${
                 simplifyLevel === 'strong'
                   ? `${themeClasses.activeTool} border`
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
               }`}
               title="強力: 大幅な頂点削減。データ容量を最優先で削減"
             >
@@ -96,7 +96,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
             type="button"
             onClick={onExecuteSimplify}
             disabled={contours.length === 0 || totalNodes === 0}
-            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
+            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
             title="現在のグリフの全輪郭を単純化 (ショートカット: Alt+S)"
           >
             <Zap className="w-4 h-4 fill-current shrink-0" />

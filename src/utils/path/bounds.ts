@@ -5,6 +5,36 @@ import {
 } from "../../types";
 import { contoursToSvgPath } from "./svg";
 
+function getCubicExtremaValues(p0: number, p1: number, p2: number, p3: number): number[] {
+  const results: number[] = [];
+  const a = -p0 + 3 * p1 - 3 * p2 + p3;
+  const b = 2 * (p0 - 2 * p1 + p2);
+  const c = p1 - p0;
+
+  const evalCubic = (t: number) => {
+    const mt = 1 - t;
+    return mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3;
+  };
+
+  if (Math.abs(a) < 1e-9) {
+    if (Math.abs(b) > 1e-9) {
+      const t = -c / b;
+      if (t > 0 && t < 1) results.push(evalCubic(t));
+    }
+    return results;
+  }
+
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return results;
+
+  const sqrtDisc = Math.sqrt(discriminant);
+  const t1 = (-b + sqrtDisc) / (2 * a);
+  const t2 = (-b - sqrtDisc) / (2 * a);
+  if (t1 > 0 && t1 < 1) results.push(evalCubic(t1));
+  if (t2 > 0 && t2 < 1 && Math.abs(t2 - t1) > 1e-9) results.push(evalCubic(t2));
+  return results;
+}
+
 export function getContoursBoundingBox(contours: PathContour[]): {
   minX: number;
   minY: number;
@@ -22,25 +52,39 @@ export function getContoursBoundingBox(contours: PathContour[]): {
 
   let hasPoints = false;
 
-  for (const contour of contours) {
-    for (const node of contour.nodes) {
-      hasPoints = true;
-      minX = Math.min(minX, node.x);
-      minY = Math.min(minY, node.y);
-      maxX = Math.max(maxX, node.x);
-      maxY = Math.max(maxY, node.y);
+  const expandPoint = (x: number, y: number) => {
+    hasPoints = true;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  };
 
-      if (node.handleIn) {
-        minX = Math.min(minX, node.handleIn.x);
-        minY = Math.min(minY, node.handleIn.y);
-        maxX = Math.max(maxX, node.handleIn.x);
-        maxY = Math.max(maxY, node.handleIn.y);
+  for (const contour of contours) {
+    const nodes = contour.nodes;
+    const len = nodes.length;
+    if (len === 0) continue;
+
+    for (let i = 0; i < len; i++) {
+      const p0 = nodes[i];
+      expandPoint(p0.x, p0.y);
+
+      const hasNext = i < len - 1 || contour.closed;
+      if (!hasNext || len < 2) continue;
+
+      const p3 = nodes[(i + 1) % len];
+      if (!p0.handleOut && !p3.handleIn) continue;
+
+      const p1 = p0.handleOut || p0;
+      const p2 = p3.handleIn || p3;
+
+      for (const ex of getCubicExtremaValues(p0.x, p1.x, p2.x, p3.x)) {
+        if (ex < minX) minX = ex;
+        if (ex > maxX) maxX = ex;
       }
-      if (node.handleOut) {
-        minX = Math.min(minX, node.handleOut.x);
-        minY = Math.min(minY, node.handleOut.y);
-        maxX = Math.max(maxX, node.handleOut.x);
-        maxY = Math.max(maxY, node.handleOut.y);
+      for (const ey of getCubicExtremaValues(p0.y, p1.y, p2.y, p3.y)) {
+        if (ey < minY) minY = ey;
+        if (ey > maxY) maxY = ey;
       }
     }
   }

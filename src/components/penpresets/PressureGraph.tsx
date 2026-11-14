@@ -17,9 +17,9 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
   const graphSvgRef = useRef<SVGSVGElement | null>(null);
   const draggingHandleRef = useRef<'p1' | 'p2' | null>(null);
 
-  const graphMargin = 20;
+  const graphMargin = 14;
   const graphW = 200;
-  const graphH = 120;
+  const graphH = 104;
   const p1: PressureCurvePoint = curveConfig.p1 || { x: 0.25, y: 0.1 };
   const p2: PressureCurvePoint = curveConfig.p2 || { x: 0.25, y: 1.0 };
 
@@ -54,8 +54,10 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
   const handleGraphPointerMove = (e: React.PointerEvent) => {
     if (!draggingHandleRef.current || !graphSvgRef.current) return;
     const rect = graphSvgRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const totalW = graphW + graphMargin * 2;
+    const totalH = graphH + graphMargin * 2;
+    const mouseX = ((e.clientX - rect.left) / rect.width) * totalW;
+    const mouseY = ((e.clientY - rect.top) / rect.height) * totalH;
 
     const normX = Math.max(0.01, Math.min(0.99, (mouseX - graphMargin) / graphW));
     const normY = Math.max(0.0, Math.min(1.0, 1.0 - (mouseY - graphMargin) / graphH));
@@ -80,11 +82,11 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
   };
 
   return (
-    <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-3">
+    <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
           <Sliders className="w-3.5 h-3.5 text-emerald-500" />
-          <span>筆圧カーブ調整 (Pressure Response Curve)</span>
+          <span>筆圧カーブ調整</span>
         </span>
         <button
           type="button"
@@ -94,7 +96,7 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
               enabled: !curveConfig.enabled,
             })
           }
-          className={`text-[10px] px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+          className={`text-[10px] px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
             curveConfig.enabled
               ? 'bg-emerald-600 text-white'
               : 'bg-stone-200 dark:bg-stone-800 text-stone-500'
@@ -105,7 +107,7 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
       </div>
 
       {/* Preset Curves Selector */}
-      <div className="grid grid-cols-5 gap-1.5 pt-1">
+      <div className="grid grid-cols-5 gap-1">
         {Object.entries(DEFAULT_PRESSURE_CURVES).map(([key, def]) => {
           const isSelected = curveConfig.presetId === key;
           const label = CURVE_PRESET_LABELS[key] || { name: key, desc: '' };
@@ -114,7 +116,7 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
               key={key}
               type="button"
               onClick={() => onChangeCurveConfig({ ...def, enabled: true })}
-              className={`p-1.5 rounded-lg border text-left transition-all cursor-pointer ${
+              className={`py-1 px-1 rounded border text-center transition-colors cursor-pointer ${
                 isSelected
                   ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-xs'
                   : 'border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 hover:border-stone-300'
@@ -122,7 +124,7 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
               title={label.desc}
             >
               <div
-                className={`text-[11px] font-bold truncate ${
+                className={`text-[10.5px] font-bold truncate ${
                   isSelected ? 'text-emerald-700 dark:text-emerald-300' : 'text-stone-700 dark:text-stone-300'
                 }`}
               >
@@ -134,16 +136,17 @@ export const PressureGraph: React.FC<PressureGraphProps> = ({
       </div>
 
       {/* Interactive Bezier Curve Graph */}
-      <div className="pt-2 flex flex-col items-center">
+      <div className="pt-1 flex flex-col items-center">
         <div className="relative border border-stone-200 dark:border-stone-800 rounded-lg p-1 bg-white dark:bg-stone-950 shadow-inner">
           <svg
             ref={graphSvgRef}
             width={graphW + graphMargin * 2}
             height={graphH + graphMargin * 2}
+            viewBox={`0 0 ${graphW + graphMargin * 2} ${graphH + graphMargin * 2}`}
             onPointerMove={handleGraphPointerMove}
             onPointerUp={handleGraphPointerUp}
             onPointerCancel={handleGraphPointerUp}
-            className="touch-none select-none"
+            className="touch-none select-none max-w-full h-auto"
           >
             {/* Grid & Reference lines */}
             <line

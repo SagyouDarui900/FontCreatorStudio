@@ -98,7 +98,7 @@ const PresetCard = React.memo<PresetCardProps>(({
 }) => {
   return (
     <div
-      className={`p-2 rounded-lg border flex items-center space-x-2.5 transition-all ${
+      className={`p-2 rounded-lg border flex items-center space-x-2.5 transition-colors ${
         isLoadedInCanvas
           ? isLight
             ? 'bg-emerald-50/90 border-emerald-600 ring-1 ring-emerald-600/30'
@@ -159,7 +159,7 @@ const PresetCard = React.memo<PresetCardProps>(({
           <button
             onClick={() => onLoadPreset(radical)}
             disabled={isLoadingPreset}
-            className={`flex-1 py-1 px-1.5 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
+            className={`flex-1 py-1 px-1.5 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-colors ${
               isLoadedInCanvas
                 ? isLight
                   ? 'bg-emerald-700 text-white'
@@ -174,7 +174,7 @@ const PresetCard = React.memo<PresetCardProps>(({
           </button>
           <button
             onClick={() => onInsertPresetDirectly(radical, insertPlacement, false)}
-            className={`py-1 px-2 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-all ${
+            className={`py-1 px-2 rounded text-[10.5px] font-bold flex items-center justify-center space-x-1 transition-colors ${
               isLight
                 ? 'bg-stone-100 hover:bg-emerald-600 hover:text-white text-stone-800 border border-stone-200'
                 : 'bg-[#18261e] hover:bg-emerald-500 hover:text-stone-950 text-emerald-200 border border-[#25362b]'
@@ -214,7 +214,7 @@ const CustomPartCard = React.memo<CustomPartCardProps>(({
   return (
     <div
       onClick={() => onSelect(part.id)}
-      className={`group p-2 rounded-lg border flex items-center space-x-2.5 cursor-pointer transition-all ${
+      className={`group p-2 rounded-lg border flex items-center space-x-2.5 cursor-pointer transition-colors ${
         isSelected
           ? isLight
             ? 'bg-emerald-50 border-emerald-700 ring-1 ring-emerald-700/30'
@@ -395,7 +395,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
           </div>
         ) : (
           <div
-            className={`hidden md:flex static inset-y-0 left-0 w-64 xl:w-72 border-r flex-col shrink-0 min-h-0 relative overflow-hidden transition-all ${
+            className={`hidden md:flex static inset-y-0 left-0 w-64 xl:w-72 border-r flex-col shrink-0 min-h-0 relative overflow-hidden transition-[width] ${
               isLight ? 'bg-white border-stone-200/60' : 'bg-[#162119] border-stone-800/60'
             }`}
           >
@@ -425,7 +425,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <button
  type="button"
  onClick={() => setLeftSidebarTab('presets')}
- className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-all ${
+ className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-colors ${
  leftSidebarTab === 'presets'
  ? isLight
  ? 'bg-white text-emerald-950 ring-1 ring-emerald-700/20'
@@ -440,7 +440,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <button
  type="button"
  onClick={() => setLeftSidebarTab('kanji_db')}
- className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-all ${
+ className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-colors ${
  leftSidebarTab === 'kanji_db'
  ? isLight
  ? 'bg-white text-emerald-950 ring-1 ring-emerald-700/20'
@@ -456,7 +456,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <button
  type="button"
  onClick={() => setLeftSidebarTab('custom')}
- className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-all ${
+ className={`py-1.5 px-1 rounded-md text-[11px] font-bold flex items-center justify-center space-x-1 transition-colors ${
  leftSidebarTab === 'custom'
  ? isLight
  ? 'bg-white text-emerald-950 ring-1 ring-emerald-700/20'
@@ -477,7 +477,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <div className="grid grid-cols-2 gap-1">
  <button
  onClick={() => onCreateNewPart(activeCategory)}
- className={`py-1.5 px-2 rounded-md font-bold text-xs flex items-center justify-center space-x-1 transition-all ${
+ className={`py-1.5 px-2 rounded-md font-bold text-xs flex items-center justify-center space-x-1 transition-colors ${
  isLight
  ? 'bg-emerald-800 text-white hover:bg-emerald-900'
  : 'bg-emerald-600 text-white hover:bg-emerald-500'
@@ -488,7 +488,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  </button>
  <button
  onClick={onExtractFromCurrentGlyph}
- className={`py-1.5 px-2 rounded-md font-bold text-[11px] flex items-center justify-center space-x-1 border transition-all ${
+ className={`py-1.5 px-2 rounded-md font-bold text-[11px] flex items-center justify-center space-x-1 border transition-colors ${
  isLight
  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
  : 'bg-[#1e2d23] border-emerald-800 text-emerald-300 hover:bg-[#273a2e]'
@@ -503,7 +503,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <div className="grid grid-cols-2 gap-1">
  <button
  onClick={() => onOpenExtractModal()}
- className={`py-1 px-2 rounded-md text-[11px] font-semibold flex items-center justify-center space-x-1 border transition-all ${
+ className={`py-1 px-2 rounded-md text-[11px] font-semibold flex items-center justify-center space-x-1 border transition-colors ${
  isLight
  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50'
  : 'bg-[#18261e] border-[#25362b] text-stone-300 hover:bg-[#203227]'
@@ -514,7 +514,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  </button>
  <button
  onClick={() => onUpgradeDefaultParts(selectedFontStyle)}
- className={`py-1 px-2 rounded-md text-[11px] font-semibold flex items-center justify-center space-x-1 border transition-all ${
+ className={`py-1 px-2 rounded-md text-[11px] font-semibold flex items-center justify-center space-x-1 border transition-colors ${
  isLight
  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
  : 'bg-[#1b2f21] border-emerald-700 text-emerald-300 hover:bg-[#233f2c]'
@@ -593,7 +593,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <button
  key={style.id}
  onClick={() => setSelectedFontStyle(style)}
- className={`py-1 px-1.5 rounded-md transition-all text-[11px] flex items-center justify-center space-x-1 ${
+ className={`py-1 px-1.5 rounded-md transition-colors text-[11px] flex items-center justify-center space-x-1 ${
  selectedFontStyle.id === style.id
  ? isLight
  ? 'bg-white text-emerald-900 font-bold'
@@ -725,7 +725,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  return (
  <div
  key={radical.id}
- className={`rounded-xl border transition-all overflow-hidden ${
+ className={`rounded-xl border transition-colors overflow-hidden ${
  isExpanded
  ? isLight
  ? 'bg-white border-emerald-600 ring-1 ring-emerald-600/30'
@@ -803,7 +803,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  {/* Primary 1-Click Batch Insert Action Button */}
  <button
  onClick={() => onBatchInsertRadicalEntry(radical)}
- className={`w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-all ${
+ className={`w-full py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors ${
  isLight
  ? 'bg-emerald-800 hover:bg-emerald-900 text-white active:scale-[0.99]'
  : 'bg-emerald-700 hover:bg-emerald-600 text-white active:scale-[0.99]'
@@ -829,7 +829,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  setShowWatermark(true);
  notify(`漢字「${kanji}」を下絵ガイドに設定しました`, 'info');
  }}
- className={`relative p-1.5 rounded-md text-base font-serif font-bold transition-all flex flex-col items-center justify-center group/k ${
+ className={`relative p-1.5 rounded-md text-base font-serif font-bold transition-colors flex flex-col items-center justify-center group/k ${
  isWatermark
  ? 'bg-emerald-700 text-white scale-105 ring-2 ring-emerald-500'
  : isLight

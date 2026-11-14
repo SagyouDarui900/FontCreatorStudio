@@ -292,7 +292,10 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               fill={kanjiFrameColor}
               fontSize={10}
               fontWeight="bold"
-              style={{ textShadow: isLight ? '0 0 3px #ffffff, 0 0 3px #ffffff' : '0 0 3px #000000, 0 0 3px #000000' }}
+              paintOrder="stroke"
+              stroke={isLight ? '#ffffff' : '#000000'}
+              strokeWidth={3}
+              strokeLinejoin="round"
             >
               漢字枠 (85%) ─・
             </text>
@@ -334,7 +337,10 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               fill={kanaFrameColor}
               fontSize={10}
               fontWeight="bold"
-              style={{ textShadow: isLight ? '0 0 3px #ffffff, 0 0 3px #ffffff' : '0 0 3px #000000, 0 0 3px #000000' }}
+              paintOrder="stroke"
+              stroke={isLight ? '#ffffff' : '#000000'}
+              strokeWidth={3}
+              strokeLinejoin="round"
             >
               かな枠 (78%) ・・・
             </text>

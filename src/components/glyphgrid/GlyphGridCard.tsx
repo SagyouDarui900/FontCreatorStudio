@@ -63,18 +63,18 @@ export const GlyphGridCard = memo(
         title={`「${item.char}」 U+${item.code.toString(16).toUpperCase().padStart(4, '0')} (${item.code})${
           hasContours ? ` · 作成済 (${strokeCount}画)` : ' · 未作成'
         } - 右クリックでメニュー`}
-        className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-all duration-150 select-none overflow-hidden ${
+        className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
           isSelected
             ? isLight
               ? `bg-white ${themeClasses?.accentBorder || 'border-emerald-600'} ring-2 ring-offset-1 ring-emerald-600/40 z-10 shadow-sm`
               : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.accentBorder || 'border-emerald-400'} ring-2 ring-offset-1 ring-offset-stone-900 ring-emerald-500/40 z-10 shadow-sm`
             : hasContours
             ? isLight
-              ? `bg-white ${themeClasses?.border || 'border-stone-200'} text-stone-900 hover:${themeClasses?.accentBorder || 'border-emerald-400'}`
-              : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.border || 'border-[#223026]'} text-stone-100 hover:${themeClasses?.accentBorder || 'border-emerald-400'}`
+              ? `bg-white ${themeClasses?.border || 'border-stone-200'} text-stone-900 hover:border-emerald-400`
+              : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.border || 'border-[#223026]'} text-stone-100 hover:border-emerald-400`
             : isLight
-            ? `bg-stone-50/70 ${themeClasses?.border || 'border-stone-200/80'} text-stone-400 hover:bg-white hover:${themeClasses?.accentBorder || 'border-emerald-300'}`
-            : `bg-stone-900/30 ${themeClasses?.border || 'border-[#1a251e]'} text-stone-500 hover:${themeClasses?.cardBg || 'bg-[#18231c]'}`
+            ? `bg-stone-50/70 ${themeClasses?.border || 'border-stone-200/80'} text-stone-400 hover:bg-white hover:border-emerald-300`
+            : `bg-stone-900/30 ${themeClasses?.border || 'border-[#1a251e]'} text-stone-500 hover:bg-[#18231c] hover:border-emerald-500/40`
         }`}
       >
         {/* Subtle Manuscript Guide Crosshairs */}

@@ -471,21 +471,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       />
 
       <div
-        className={`fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 w-full sm:w-[320px] sm:max-w-xs border-l shadow-2xl z-40 flex flex-col select-none transition-colors animate-in slide-in-from-right duration-200 ${themeClasses.sidebarBg}`}
+        className={`fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 w-full sm:w-[320px] sm:max-w-xs border-l shadow-2xl z-40 flex flex-col select-none transition-colors anim-slide-right ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
-          className={`p-2.5 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`p-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2">
-            <Type className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
+            <Type className={`w-4 h-4 ${themeClasses.accentText}`} />
             <div className="flex flex-col">
-              <span className={`text-xs font-bold tracking-wide ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
+              <span className={`text-xs font-bold tracking-wide ${themeClasses.textPrimary}`}>
                 部首・フォントパーツ
               </span>
-              <span className="text-[10px] text-stone-500 dark:text-stone-400">
+              <span className={`text-[10px] ${themeClasses.textMuted}`}>
                 ベクター輪郭の登録・文字への挿入
               </span>
             </div>
@@ -497,22 +495,16 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
                 const firstRad = KANJI_RADICALS.find((r) => r.id === 'rad_kihen') || KANJI_RADICALS[0];
                 handleOpenBatchModalForPreset(firstRad);
               }}
-              className={`px-2 py-1 rounded-lg text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
-                isLight
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
-                  : 'bg-[#1c2920] border-emerald-700 text-emerald-200 hover:bg-[#25392b]'
-              }`}
+              className={`px-2 py-1 rounded-lg text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${themeClasses.accentBadge} hover:opacity-90`}
               title="部首パーツを指定した複数の漢字へ一括自動配置・合成します"
             >
-              <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <Layers className="w-3.5 h-3.5 shrink-0" />
               <span>一括流し込み</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                isLight ? 'text-stone-500 hover:bg-stone-100' : 'text-stone-400 hover:bg-[#202d24]'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <X className="w-4 h-4" />
             </button>
@@ -521,7 +513,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Status Toast */}
         {statusNotice && (
-          <div className="bg-emerald-800 text-white text-[11px] font-bold py-1.5 px-3 text-center border-b border-emerald-700 animate-in fade-in">
+          <div className="bg-emerald-800 text-white text-[11px] font-bold py-1.5 px-3 text-center border-b border-emerald-700 anim-fade">
             {statusNotice}
           </div>
         )}
@@ -586,9 +578,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-6 p-1 gap-1 border-b text-[10px] font-semibold shrink-0 ${
-            isLight ? 'bg-[#edf5f0] border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-          }`}
+          className={`flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-6 p-1 gap-1 border-b text-[10px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {[
             { id: 'preset', label: '定番部首' },
@@ -602,12 +592,10 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as DrawerTab)}
-              className={`py-1.5 px-2 sm:px-1 rounded text-center whitespace-nowrap transition-all shrink-0 sm:shrink cursor-pointer ${
+              className={`py-1.5 px-2 sm:px-1 rounded text-center whitespace-nowrap transition-colors shrink-0 sm:shrink cursor-pointer ${
                 activeTab === tab.id
-                  ? isLight
-                    ? 'bg-white text-emerald-950 shadow-xs font-bold border border-emerald-200'
-                    : 'bg-[#1c2920] text-emerald-300 shadow-xs font-bold border border-[#2d4032]'
-                  : 'text-stone-600 dark:text-stone-400 hover:text-emerald-800'
+                  ? `${themeClasses.activeTool} border`
+                  : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
               }`}
             >
               {tab.label}
@@ -617,21 +605,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Font Style Selector for Radicals */}
         <div
-          className={`px-2.5 py-2 border-b space-y-1 shrink-0 ${
-            isLight ? 'bg-[#f4f8f5] border-[#d8e6df]' : 'bg-[#141e17] border-[#25362b]'
-          }`}
+          className={`px-2.5 py-2 border-b space-y-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center justify-between text-[11px]">
-            <span className="font-bold flex items-center space-x-1">
-              <Type className="w-3.5 h-3.5 text-emerald-600" />
+            <span className={`font-bold flex items-center space-x-1 ${themeClasses.textPrimary}`}>
+              <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>部首書体スタイル (プレビュー＆抽出):</span>
             </span>
             <button
               type="button"
               onClick={() => setIsLicenseModalOpen(true)}
-              className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+              className={`inline-flex items-center gap-1 text-[10px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
             >
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+              <ShieldCheck className="w-3 h-3" />
               <span>OFL 1.1 ライセンス一覧</span>
             </button>
           </div>
@@ -641,14 +627,10 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
                 key={opt.id}
                 type="button"
                 onClick={() => handleSelectFontStyle(opt)}
-                className={`py-1.5 px-2 rounded border text-center transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                className={`py-1.5 px-2 rounded border text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
                   selectedFontStyle.id === opt.id
-                    ? isLight
-                      ? 'bg-emerald-800 border-emerald-900 text-white font-bold shadow-xs'
-                      : 'bg-emerald-600 border-emerald-500 text-white font-bold shadow-xs'
-                    : isLight
-                    ? 'bg-white border-stone-300 text-stone-700 hover:bg-emerald-50'
-                    : 'bg-[#1c2920] border-[#2d4032] text-stone-300 hover:bg-[#25362b]'
+                    ? themeClasses.accentBtn
+                    : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                 }`}
                 title={`${opt.label} (${opt.subLabel})`}
               >

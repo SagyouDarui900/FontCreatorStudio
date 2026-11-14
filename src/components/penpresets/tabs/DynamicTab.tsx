@@ -13,35 +13,37 @@ export const DynamicTab: React.FC<DynamicTabProps> = ({
   setWorkingPreset,
 }) => {
   return (
-    <div className="space-y-4 max-w-xl">
-      <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-3">
+    <div className="space-y-2.5">
+      <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
           <Activity className="w-3.5 h-3.5 text-emerald-500" />
           <span>速度による動的変化</span>
         </span>
 
-        <SliderControl
-          label="速度:太さ"
-          value={workingPreset.speedWidthFactor ?? 0}
-          min={-100}
-          max={100}
-          step={5}
-          unit="%"
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedWidthFactor: v }))}
-          desc="正: 速く引くと太い / 負: 速く払うとシャープに細くなる"
-        />
-        <SliderControl
-          label="速度:かすれ"
-          value={workingPreset.speedFeatherFactor ?? 0}
-          min={0}
-          max={100}
-          step={5}
-          unit="%"
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedFeatherFactor: v }))}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+          <SliderControl
+            label="速度:太さ"
+            value={workingPreset.speedWidthFactor ?? 0}
+            min={-100}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedWidthFactor: v }))}
+            desc="正: 速く引くと太い / 負: 速く払うと細くなる"
+          />
+          <SliderControl
+            label="速度:かすれ"
+            value={workingPreset.speedFeatherFactor ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedFeatherFactor: v }))}
+          />
+        </div>
       </div>
 
-      <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-3">
+      <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
           <Flame className="w-3.5 h-3.5 text-emerald-500" />
           <span>筆圧による抑揚</span>

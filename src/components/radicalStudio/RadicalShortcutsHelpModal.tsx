@@ -15,9 +15,9 @@ export const RadicalShortcutsHelpModal: React.FC<RadicalShortcutsHelpModalProps>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 animate-fadeIn">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 anim-fade">
       <div
-        className={`w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden ${
+        className={`w-full max-w-md rounded-2xl border shadow-2xl flex flex-col overflow-hidden ${
           isLight ? 'bg-white border-[#c8ded3]' : 'bg-[#16221a] border-[#25362b]'
         }`}
       >

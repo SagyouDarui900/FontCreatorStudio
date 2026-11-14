@@ -29,7 +29,7 @@ export const GuideAssistOverlay: React.FC<GuideAssistOverlayProps> = React.memo(
 
   return (
     <div
-      className="absolute bottom-full mb-1.5 right-0 sm:right-2 z-50 pointer-events-auto select-none animate-in fade-in slide-in-from-bottom-1 duration-150"
+      className="absolute bottom-full mb-1.5 right-0 sm:right-2 z-50 pointer-events-auto select-none anim-pop"
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >

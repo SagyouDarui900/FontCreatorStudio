@@ -58,7 +58,7 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
             value={previewText}
             onChange={(e) => setPreviewText(e.target.value)}
             placeholder="プレビューしたい文字列を自由に入力..."
-            className={`w-full pl-8.5 pr-8 py-1.5 text-xs rounded-lg border transition-all ${
+            className={`w-full pl-8.5 pr-8 py-1.5 text-xs rounded-lg border transition-colors ${
               isLight
                 ? 'bg-white border-stone-300 text-stone-900 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
                 : 'bg-[#0f1712] border-[#25382b] text-emerald-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
@@ -92,7 +92,7 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
             key={preset.label}
             type="button"
             onClick={() => setPreviewText(preset.text)}
-            className={`px-2 py-0.5 rounded-md text-[10.5px] font-medium transition-all ${
+            className={`px-2 py-0.5 rounded-md text-[10.5px] font-medium transition-colors ${
               previewText === preset.text
                 ? 'bg-emerald-700 text-white font-bold '
                 : 'bg-white dark:bg-[#18261e] border border-stone-200 dark:border-[#283d30] text-stone-700 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-[#203328]'
@@ -122,7 +122,7 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
 
       {/* Rendered Live Font Display Box */}
       <div
-        className={`p-4 rounded-xl border flex items-center justify-center min-h-[76px] overflow-x-auto transition-all ${
+        className={`p-4 rounded-xl border flex items-center justify-center min-h-[76px] overflow-x-auto transition-colors ${
           isLight
             ? 'bg-white border-stone-200 shadow-inner'
             : 'bg-black/40 border-[#25362b] shadow-inner'
@@ -134,7 +134,7 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
               fontFamily: `'${previewFontFamily}', sans-serif`,
               fontSize: `${previewFontSize}px`,
             }}
-            className="tracking-normal select-none text-stone-900 dark:text-emerald-100 transition-all text-center whitespace-nowrap px-2"
+            className="tracking-normal select-none text-stone-900 dark:text-emerald-100 transition-colors text-center whitespace-nowrap px-2"
           >
             {previewText}
           </div>

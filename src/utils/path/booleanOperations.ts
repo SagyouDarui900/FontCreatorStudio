@@ -531,6 +531,7 @@ export function unionContours(
       return binary[py * canvasW + px];
     };
 
+    // Scan through canvasH / canvasW inclusive so outer boundary edges against OOB 0 pixels are emitted
     for (let y = 0; y <= canvasH; y++) {
       for (let x = 0; x <= canvasW; x++) {
         const top = getPixel(x, y - 1);
@@ -543,7 +544,7 @@ export function unionContours(
         const right = getPixel(x, y);
         if (left !== right) {
           if (left === 1 && right === 0) addEdge({ x, y }, { x, y: y + 1 });
-          else addEdge({ x: y + 1, y }, { x, y });
+          else addEdge({ x, y: y + 1 }, { x, y });
         }
       }
     }

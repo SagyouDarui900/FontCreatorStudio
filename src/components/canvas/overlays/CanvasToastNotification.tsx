@@ -15,7 +15,7 @@ export const CanvasToastNotification: React.FC<CanvasToastNotificationProps> = R
   return (
     <div className="absolute bottom-14 sm:bottom-12 right-2 sm:right-3 z-30 pointer-events-none max-w-[calc(100vw-32px)] sm:max-w-sm">
       <div
-        className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full sm:rounded-lg border shadow-md sm:shadow-lg flex items-center gap-1.5 sm:gap-2 transition-all ${
+        className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full sm:rounded-lg border shadow-md sm:shadow-lg flex items-center gap-1.5 sm:gap-2 anim-pop transition-colors ${
           isLight
             ? 'bg-stone-900/90 border-stone-700 text-stone-100 '
             : 'bg-[#15241b]/95 border-emerald-600/60 text-emerald-100 '

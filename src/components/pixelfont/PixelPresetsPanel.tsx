@@ -344,7 +344,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     autoSaveGlyph(grid, currentUnicode);
                     onShowToast(`ドット形状を「${shape.label}」に設定しました`, 'info');
                   }}
-                  className={`p-2.5 border text-left rounded-xl transition-all active:scale-95 cursor-pointer ${
+                  className={`p-2.5 border text-left rounded-xl transition-colors active:scale-95 cursor-pointer ${
                     dotShape === shape.id
                       ? 'bg-emerald-600 text-white border-emerald-500 font-bold'
                       : isLight
@@ -603,7 +603,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       if (onReturnToCanvas) onReturnToCanvas();
                       onShowToast('下絵から自動ドット化して作図キャンバスに配置しました', 'success');
                     }}
-                    className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 cursor-pointer border border-emerald-500 transition-all"
+                    className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 cursor-pointer border border-emerald-500 transition-colors"
                   >
                     <Sparkles className="w-4 h-4 shrink-0" />
                     <span>下絵から自動ドット化してキャンバスへ</span>
@@ -671,7 +671,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           {onReturnToCanvas && (
             <button
               onClick={onReturnToCanvas}
-              className="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white dark:bg-stone-700 dark:hover:bg-stone-600 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition-all cursor-pointer"
+              className="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white dark:bg-stone-700 dark:hover:bg-stone-600 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition-colors cursor-pointer"
             >
               <Pencil className="w-4 h-4" />
               <span>作図キャンバスに戻る</span>
@@ -700,7 +700,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
             <button
               key={p.id}
               onClick={() => onPresetSelect(p.id)}
-              className={`px-2 py-0.5 font-mono font-bold text-xs border transition-all flex items-center space-x-1 cursor-pointer ${
+              className={`px-2 py-0.5 font-mono font-bold text-xs border transition-colors flex items-center space-x-1 cursor-pointer ${
                 isSelected
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight

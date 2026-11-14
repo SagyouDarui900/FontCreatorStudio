@@ -142,11 +142,11 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
 
   return (
     <div
-      className={`w-full md:w-80 border-t md:border-t-0 md:border-l border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-[#121c16]/60 p-3 flex flex-col shrink-0 ${
+      className={`w-full md:w-68 lg:w-72 border-t md:border-t-0 md:border-l border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-[#121c16]/60 p-2 flex flex-col shrink-0 ${
         mobileView === 'params' ? 'hidden md:flex' : 'flex'
       }`}
     >
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex items-center justify-between pb-1.5">
         <span className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center space-x-1">
           <PenTool className="w-3.5 h-3.5 text-emerald-500" />
           <span>試し書きキャンバス</span>
@@ -162,7 +162,7 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
       </div>
 
       {/* Canvas Scratchpad Container */}
-      <div className="relative flex-1 rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-950 shadow-inner min-h-[220px]">
+      <div className="relative flex-1 rounded-lg border border-stone-200 dark:border-stone-800 overflow-hidden bg-white dark:bg-stone-950 shadow-inner min-h-[180px]">
         <canvas
           ref={scratchpadCanvasRef}
           width={320}
@@ -173,17 +173,17 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
           onPointerCancel={handleScratchpadPointerUp}
           className="w-full h-full cursor-crosshair touch-none"
         />
-        <div className="absolute bottom-2 right-2 text-[10px] text-stone-400 dark:text-stone-600 pointer-events-none">
+        <div className="absolute bottom-1.5 right-2 text-[10px] text-stone-400 dark:text-stone-600 pointer-events-none">
           マウス・ペンタブ対応
         </div>
       </div>
 
       {/* Live Pressure Meter */}
-      <div className="pt-2 flex items-center space-x-2 text-[10px] text-stone-500">
+      <div className="pt-1.5 flex items-center space-x-2 text-[10px] text-stone-500">
         <span>リアルタイム筆圧:</span>
         <div className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-emerald-500 transition-all duration-75"
+            className="h-full bg-emerald-500 transition-[width] duration-75"
             style={{ width: `${Math.round(livePressure * 100)}%` }}
           />
         </div>

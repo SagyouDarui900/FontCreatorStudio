@@ -35,11 +35,11 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
   return (
  <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end" ref={sheetRef}>
  <div
- className="fixed inset-0 bg-black/60 animate-fadeIn"
+ className="fixed inset-0 bg-black/60 anim-fade"
  onClick={() => onClose()}
  />
  <div
- className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[85vh] flex flex-col animate-slideUp pb-[max(env(safe-area-inset-bottom),16px)] overflow-hidden ${themeClasses.cardBg}`}
+ className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[85vh] flex flex-col anim-slide-up pb-[max(env(safe-area-inset-bottom),16px)] overflow-hidden ${themeClasses.cardBg}`}
  >
  {/* Header */}
  <div className="flex items-center justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 mb-2.5 shrink-0">
@@ -401,7 +401,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  onClose();
  onQuickSaveGlyph();
  }}
- className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+ className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-colors cursor-pointer"
  >
  <Save className="w-4 h-4" />
  <span>文字の即時保存</span>
@@ -415,7 +415,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  onClose();
  onOpenExportModal();
  }}
- className="p-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all col-span-2 shadow-sm"
+ className="p-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-colors col-span-2 shadow-sm cursor-pointer"
  >
  <Download className="w-4 h-4" />
  <span>フォントを出力 (TTF / OTF / WOFF)</span>

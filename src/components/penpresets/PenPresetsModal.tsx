@@ -258,14 +258,16 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-2 sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 anim-fade p-1.5 sm:p-3">
       <div
         className={`flex flex-col min-h-0 bg-white dark:bg-[#18231c] text-stone-900 dark:text-stone-100 border border-stone-300 dark:border-stone-800 overflow-hidden ${
-          isFullscreen ? 'w-full h-full' : 'w-full max-w-5xl h-[92vh] max-h-[900px]'
+          isFullscreen
+            ? 'w-full h-full'
+            : `w-full ${showPresetDrawer ? 'max-w-5xl' : 'max-w-4xl'} h-[86vh] max-h-[720px] rounded-xl shadow-2xl`
         }`}
       >
         {/* Header */}
-        <div className="px-4 py-2.5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-[#121c16] shrink-0">
+        <div className="px-3 py-1.5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-[#121c16] shrink-0">
           <div className="flex items-center space-x-3">
             <button
               type="button"
@@ -415,13 +417,13 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 shrink-0 min-w-[68px] sm:min-w-[78px] py-2 px-2 flex flex-col items-center justify-center space-y-1 text-xs font-semibold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+                className={`flex-1 shrink-0 min-w-[60px] sm:min-w-[72px] py-1.5 px-2 flex flex-row items-center justify-center gap-1.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#18231c]'
                     : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100/50 dark:hover:bg-stone-800/40'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'opacity-70'}`} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'opacity-70'}`} />
                 <span className="text-[11px] whitespace-nowrap">{tab.label}</span>
               </button>
             );
@@ -444,7 +446,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
           )}
 
           {/* Left: Tab Control Panels */}
-          <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 p-3 sm:p-4 space-y-4 overscroll-contain ${mobileView === 'scratchpad' ? 'hidden md:block' : 'block'}`}>
+          <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 p-2.5 sm:p-3 space-y-2.5 overscroll-contain ${mobileView === 'scratchpad' ? 'hidden md:block' : 'block'}`}>
             {activeTab === 'basic' && (
               <BasicTab
                 workingPreset={workingPreset}
@@ -506,7 +508,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#121c16] flex items-center justify-between shrink-0">
+        <div className="px-3 py-2 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#121c16] flex items-center justify-between shrink-0">
           <button
             type="button"
             onClick={() => {

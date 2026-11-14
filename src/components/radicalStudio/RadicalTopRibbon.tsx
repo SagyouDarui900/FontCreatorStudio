@@ -35,7 +35,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
         <button
           onClick={() => handleQuickInsertPlacement('hen')}
           disabled={isPartDisabled}
-          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 ${
             isLight
               ? 'bg-white border border-stone-200 hover:bg-emerald-600 hover:text-white text-stone-800'
               : 'bg-[#1c2e22] border border-stone-700 hover:bg-emerald-500 hover:text-stone-950 text-emerald-200'
@@ -47,7 +47,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
         <button
           onClick={() => handleQuickInsertPlacement('tsukuri')}
           disabled={isPartDisabled}
-          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 ${
             isLight
               ? 'bg-white border border-emerald-300 hover:bg-emerald-600 hover:text-white text-emerald-950'
               : 'bg-[#1c2e22] border border-emerald-700/80 hover:bg-emerald-500 hover:text-stone-950 text-emerald-200'
@@ -59,7 +59,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
         <button
           onClick={() => handleQuickInsertPlacement('kanmuri')}
           disabled={isPartDisabled}
-          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 ${
             isLight
               ? 'bg-white border border-emerald-300 hover:bg-emerald-600 hover:text-white text-emerald-950'
               : 'bg-[#1c2e22] border border-emerald-700/80 hover:bg-emerald-500 hover:text-stone-950 text-emerald-200'
@@ -71,7 +71,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
         <button
           onClick={() => handleQuickInsertPlacement('ashi')}
           disabled={isPartDisabled}
-          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 ${
             isLight
               ? 'bg-white border border-emerald-300 hover:bg-emerald-600 hover:text-white text-emerald-950'
               : 'bg-[#1c2e22] border border-emerald-700/80 hover:bg-emerald-500 hover:text-stone-950 text-emerald-200'
@@ -83,7 +83,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
         <button
           onClick={() => handleQuickInsertPlacement('original')}
           disabled={isPartDisabled}
-          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-all active:scale-95 disabled:opacity-40 ${
+          className={`px-2 py-1 rounded text-xs font-bold flex items-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 ${
             isLight
               ? 'bg-emerald-800 text-white hover:bg-emerald-900'
               : 'bg-emerald-600 text-white hover:bg-emerald-500'
@@ -99,7 +99,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
       <div className="flex items-center space-x-1.5 shrink-0">
         <button
           onClick={handleExtractFromCurrentGlyph}
-          className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center space-x-1.5 border transition-all active:scale-95 shadow-2xs ${
+          className={`px-2.5 py-1 rounded-md text-xs font-bold flex items-center space-x-1.5 border transition-colors active:scale-95 shadow-2xs ${
             isLight
               ? 'bg-white border-emerald-300 text-emerald-900 hover:bg-emerald-50'
               : 'bg-[#1a2b20] border-emerald-700 text-emerald-200 hover:bg-[#22382a]'

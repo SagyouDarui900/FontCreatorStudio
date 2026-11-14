@@ -146,12 +146,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           onClick={onToggleGridDrawer}
           className={`h-7 px-2 rounded-md transition-colors inline-flex items-center gap-1 text-xs font-bold shrink-0 border cursor-pointer ${
             showGridDrawer
-              ? isLight
-                ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                : 'bg-emerald-950 text-emerald-300 border-emerald-700/60'
-              : isLight
-              ? 'text-stone-600 hover:bg-stone-100 border-stone-200/80'
-              : 'text-stone-300 hover:bg-[#1d2720] border-[#222e25]'
+              ? themeClasses.activeTool
+              : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
           }`}
           title="文字一覧（コード表）の表示/非表示"
         >
@@ -159,7 +155,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <span className="hidden sm:inline leading-none">文字一覧</span>
         </button>
 
-        <div className={`h-4 w-[1px] hidden sm:block ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`} />
+        <div className={`h-4 w-[1px] hidden sm:block ${themeClasses.border}`} />
 
         {/* Brand & Project Info (Single-line compact CAD header) */}
         <div className="flex items-center gap-1.5 shrink min-w-0">
@@ -173,35 +169,29 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           </span>
           {project.metadata.styleName && project.metadata.styleName !== 'Regular' && (
             <span
-              className={`text-[9px] px-1 py-0.5 rounded font-mono hidden lg:inline-block leading-none shrink-0 ${
-                isLight ? 'bg-stone-100 text-stone-700 border border-stone-200' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              }`}
+              className={`text-[9px] px-1 py-0.5 rounded font-mono hidden lg:inline-block leading-none shrink-0 border ${themeClasses.accentBadge}`}
               title={`スタイル: ${project.metadata.styleName}`}
             >
               {project.metadata.styleName}
             </span>
           )}
           <span
-            className={`text-[10px] font-mono tabular-nums hidden xl:inline truncate leading-none ${
-              isLight ? 'text-stone-500' : 'text-emerald-400'
-            }`}
+            className={`text-[10px] font-mono tabular-nums hidden xl:inline truncate leading-none ${themeClasses.textMuted}`}
             title={`編集中: ${selectedChar || 'なし'} (U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}) · 全${glyphCount}字`}
           >
-            <strong className={isLight ? 'text-emerald-700 font-sans' : 'text-amber-300 font-sans'}>{selectedChar || 'なし'}</strong>{' '}
+            <strong className={`${themeClasses.accentText} font-sans`}>{selectedChar || 'なし'}</strong>{' '}
             · {glyphCount}字
           </span>
           {onToggleLockGlyph && (
             <button
               id="btn-header-lock-glyph"
               onClick={onToggleLockGlyph}
-              className={`h-6 px-1.5 rounded-md transition-all inline-flex items-center gap-1 border text-[10px] font-bold shrink-0 whitespace-nowrap cursor-pointer ${
+              className={`h-6 px-1.5 rounded-md transition-colors inline-flex items-center gap-1 border text-[10px] font-bold shrink-0 whitespace-nowrap cursor-pointer ${
                 isGlyphLocked
                   ? isLight
                     ? 'bg-amber-100 text-amber-900 border-amber-300'
                     : 'bg-amber-950/80 text-amber-300 border-amber-700'
-                  : isLight
-                  ? 'bg-stone-50 hover:bg-stone-100 text-stone-500 hover:text-stone-800 border-stone-200'
-                  : 'bg-[#18241d] hover:bg-[#202f26] text-stone-400 hover:text-emerald-300 border-[#25362b]'
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={
                 isGlyphLocked
@@ -216,7 +206,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 </>
               ) : (
                 <>
-                  <Unlock className="w-2.5 h-2.5 text-stone-400 shrink-0" />
+                  <Unlock className="w-2.5 h-2.5 opacity-60 shrink-0" />
                   <span className="hidden sm:inline leading-none whitespace-nowrap">ロック</span>
                 </>
               )}
@@ -229,21 +219,15 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <div className="flex items-center gap-1 shrink-0">
         {/* Undo / Redo Group */}
         <div
-          className={`flex items-center h-7 rounded-md border p-0.5 gap-0.5 ${
-            isLight ? 'bg-stone-100/80 border-stone-200' : 'bg-[#18241d] border-[#223025]'
-          }`}
+          className={`flex items-center h-7 rounded-md border p-0.5 gap-0.5 ${themeClasses.subtoolbarBg}`}
         >
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center cursor-pointer ${
+            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center ${
               canUndo
-                ? isLight
-                  ? 'text-stone-700 hover:bg-white active:scale-95'
-                  : 'text-emerald-200 hover:bg-[#202f26] active:scale-95'
-                : isLight
-                ? 'text-stone-300 cursor-not-allowed'
-                : 'text-stone-600 cursor-not-allowed'
+                ? `${themeClasses.activeToolHover} cursor-pointer`
+                : 'opacity-30 cursor-not-allowed'
             }`}
             title="元に戻す (Ctrl+Z)"
           >
@@ -252,14 +236,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center cursor-pointer ${
+            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center ${
               canRedo
-                ? isLight
-                  ? 'text-stone-700 hover:bg-white active:scale-95'
-                  : 'text-emerald-200 hover:bg-[#202f26] active:scale-95'
-                : isLight
-                ? 'text-stone-300 cursor-not-allowed'
-                : 'text-stone-600 cursor-not-allowed'
+                ? `${themeClasses.activeToolHover} cursor-pointer`
+                : 'opacity-30 cursor-not-allowed'
             }`}
             title="やり直す (Ctrl+Y)"
           >
@@ -270,14 +250,10 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {/* Test Waterfall Modal */}
         <button
           onClick={onOpenTestModal}
-          className={`h-7 px-2 rounded-md text-xs font-bold inline-flex items-center gap-1 transition-all active:scale-95 border shrink-0 cursor-pointer ${
-            isLight
-              ? 'bg-stone-100/90 text-stone-800 hover:bg-stone-200/90 border-stone-200'
-              : 'bg-[#18241d] text-emerald-200 hover:bg-[#202f26] border-[#25362b]'
-          }`}
+          className={`h-7 px-2 rounded-md text-xs font-bold inline-flex items-center gap-1 transition-colors border shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
           title="フォント試し打ち・文章リアルタイムプレビュー"
         >
-          <Play className="w-3.5 h-3.5 fill-current text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <Play className={`w-3.5 h-3.5 fill-current shrink-0 ${themeClasses.accentText}`} />
           <span className="hidden sm:inline leading-none">試し打ち</span>
         </button>
 
@@ -285,18 +261,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         <button
           id="btn-header-radicals"
           onClick={onToggleRadicals}
-          className={`h-7 hidden lg:inline-flex px-2 rounded-md text-xs font-semibold items-center gap-1 transition-all active:scale-95 border cursor-pointer ${
+          className={`h-7 hidden lg:inline-flex px-2 rounded-md text-xs font-semibold items-center gap-1 transition-colors border cursor-pointer ${
             showRadicals
-              ? isLight
-                ? 'bg-emerald-100 text-emerald-950 font-bold border-emerald-300'
-                : 'bg-emerald-700 text-white font-bold border-emerald-600'
-              : isLight
-              ? 'text-stone-600 hover:bg-stone-100 border-stone-200/80'
-              : 'text-stone-300 hover:bg-[#1d2720] border-[#222e25]'
+              ? `${themeClasses.activeTool} font-bold`
+              : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
           }`}
           title="部首パレット (康熙214部首・高品質パーツ)"
         >
-          <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <Layers className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
           <span className="leading-none">部首</span>
         </button>
       </div>
@@ -315,18 +287,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             id="btn-header-metrics"
             onClick={onToggleMetricsDrawer}
-            className={`px-2 h-7 rounded-md text-xs font-bold hidden md:inline-flex items-center gap-1 transition-all border active:scale-95 cursor-pointer shrink-0 ${
+            className={`px-2 h-7 rounded-md text-xs font-bold hidden md:inline-flex items-center gap-1 transition-colors border cursor-pointer shrink-0 ${
               showMetricsDrawer
-                ? isLight
-                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                  : 'bg-emerald-950 text-emerald-200 border-emerald-700/60'
-                : isLight
-                ? 'bg-white hover:bg-emerald-50/70 text-stone-700 hover:text-emerald-900 border-stone-200 hover:border-emerald-300'
-                : 'bg-[#151f19] hover:bg-[#1d2b22] text-emerald-200 border-[#25362b] hover:border-emerald-700/60'
+                ? themeClasses.activeTool
+                : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
             }`}
             title="メトリクス・文字ツール（送り幅・字面枠・変形など）"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <SlidersHorizontal className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
             <span className="font-bold leading-none hidden xl:inline">メトリクス</span>
           </button>
         )}
@@ -390,7 +358,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {/* Export Font Modal Prominent Trigger */}
         <button
           onClick={handleExportTtf}
-          className={`px-2.5 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-all active:scale-95 shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
+          className={`px-2.5 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-colors shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
           title="OSやiPad・アプリで使えるフォントを出力 (TTF/OTF/WOFF)"
         >
           <Download className="w-3.5 h-3.5 shrink-0" />

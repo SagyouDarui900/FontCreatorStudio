@@ -50,7 +50,7 @@ export const PlacementSelector: React.FC<PlacementSelectorProps> = ({
               key={item.id}
               type="button"
               onClick={() => setPlacement(item.id)}
-              className={`py-1 px-1 rounded border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+              className={`py-1 px-1 rounded border text-center transition-colors cursor-pointer flex flex-col items-center justify-center ${
                 isSelected
                   ? isLight
                     ? 'bg-emerald-800 border-emerald-900 text-white font-bold shadow-xs'

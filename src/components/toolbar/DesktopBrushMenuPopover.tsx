@@ -37,6 +37,7 @@ export interface DesktopBrushMenuPopoverProps {
   onOpenPixelStudio?: () => void;
   themeClasses: ThemeClasses;
   isLight: boolean;
+  popoverRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = React.memo(({
@@ -60,6 +61,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
   onOpenPixelStudio,
   themeClasses,
   isLight,
+  popoverRef,
 }) => {
   if (!isOpen) return null;
 
@@ -74,6 +76,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
 
   return (
     <div
+      ref={popoverRef}
       style={{
         top: `${anchorTop}px`,
         ...(anchorLeft !== undefined ? { left: `${anchorLeft}px` } : {}),
@@ -82,9 +85,9 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
       }}
       className={`fixed inset-x-3 max-w-sm mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-14 md:left-16' : ''
-      } sm:w-80 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl animate-in fade-in duration-150 overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-80 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
     >
-      <div className="px-2 py-1 text-[11px] font-bold border-b mb-1.5 flex items-center justify-between border-stone-200 dark:border-[#223025]">
+      <div className={`px-2 py-1 text-[11px] font-bold border-b mb-1.5 flex items-center justify-between ${themeClasses.border}`}>
         <div className="flex items-center space-x-1.5">
           <span className={isLight ? 'text-emerald-800' : 'text-emerald-400'}>手書きペンの種類</span>
           {isCustomPen && (
@@ -138,14 +141,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
                       setToolMode('brush');
                       onClose();
                     }}
-                    className={`w-full text-left p-2 rounded-xl transition-all flex items-start space-x-2.5 ${
+                    className={`w-full text-left p-2 rounded-xl transition-colors flex items-start space-x-2.5 cursor-pointer ${
                       isSelected
-                        ? isLight
-                          ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-300'
-                          : 'bg-emerald-950/80 text-emerald-200 font-bold border border-emerald-700'
-                        : isLight
-                        ? 'hover:bg-stone-100 text-stone-700'
-                        : 'hover:bg-[#1d2921] text-emerald-300'
+                        ? `${themeClasses.activeTool} font-bold border`
+                        : themeClasses.activeToolHover
                     }`}
                   >
                     <div
@@ -200,14 +199,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
                 setToolMode('brush');
                 onClose();
               }}
-              className={`w-full text-left p-2 rounded-xl transition-all flex items-start space-x-2.5 ${
+              className={`w-full text-left p-2 rounded-xl transition-colors flex items-start space-x-2.5 cursor-pointer ${
                 isSelected
-                  ? isLight
-                    ? 'bg-emerald-50 text-emerald-950 font-bold border border-emerald-300'
-                    : 'bg-emerald-950/80 text-emerald-200 font-bold border border-emerald-700'
-                  : isLight
-                  ? 'hover:bg-stone-100 text-stone-700'
-                  : 'hover:bg-[#1d2921] text-emerald-300'
+                  ? `${themeClasses.activeTool} font-bold border`
+                  : themeClasses.activeToolHover
               }`}
             >
               <div
@@ -244,10 +239,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             onClose();
             onOpenPixelStudio();
           }}
-          className="w-full mt-1.5 py-2 px-2.5 rounded-xl text-xs font-bold bg-stone-100 hover:bg-stone-200 dark:bg-[#18261e] dark:hover:bg-[#22352a] text-stone-800 dark:text-emerald-200 border border-stone-200 dark:border-[#25362b] flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
+          className={`w-full mt-1.5 py-2 px-2.5 rounded-xl text-xs font-bold border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`}
           title="グリッド上でドットを配置し、ピクセルフォントを作字します"
         >
-          <Grid className="w-3.5 h-3.5 text-emerald-300" />
+          <Grid className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
           <span>ピクセルフォント作成</span>
         </button>
       )}
@@ -259,7 +254,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             onClose();
             onOpenPenPresetsModal();
           }}
-          className="w-full mt-2 py-2 px-2 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white dark:text-stone-950 flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
+          className={`w-full mt-2 py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
         >
           <Plus className="w-3.5 h-3.5" />
           <span>カスタムブラシを作成・編集</span>
@@ -287,14 +282,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             <button
               key={mode.id}
               onClick={() => onChangePressureSensitivity?.(mode.id)}
-              className={`py-1 px-1 rounded-lg text-center transition-all cursor-pointer ${
+              className={`py-1 px-1 rounded-lg text-center transition-colors border cursor-pointer ${
                 (pressureSensitivity || 'normal') === mode.id
-                  ? isLight
-                    ? 'bg-emerald-700 text-white font-bold'
-                    : 'bg-emerald-500 text-stone-950 font-bold'
-                  : isLight
-                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                  : 'bg-[#18231c] hover:bg-[#1f2d24] text-emerald-200/80'
+                  ? `${themeClasses.activeTool} font-bold`
+                  : `${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`
               }`}
             >
               <div className="text-[10.5px] font-bold leading-none">{mode.label}</div>
@@ -349,14 +340,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             <button
               key={preset.val}
               onClick={() => onChangeSmoothingIntensity?.(preset.val)}
-              className={`py-1 px-0.5 rounded text-[9.5px] font-bold text-center transition-all cursor-pointer ${
+              className={`py-1 px-0.5 rounded text-[9.5px] font-bold text-center transition-colors border cursor-pointer ${
                 smoothingIntensity === preset.val
-                  ? isLight
-                    ? 'bg-emerald-700 text-white'
-                    : 'bg-emerald-500 text-stone-950'
-                  : isLight
-                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                  : 'bg-[#18231c] hover:bg-[#1f2d24] text-emerald-200/80'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`
               }`}
             >
               {preset.label}

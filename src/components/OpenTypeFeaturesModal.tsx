@@ -29,6 +29,7 @@ import {
   ProportionalMetricsConfig,
 } from '../types';
 import { deriveProjectPaltMetrics } from '../utils/font';
+import { ThemeMode, getThemeClasses } from '../utils/theme';
 
 interface OpenTypeFeaturesModalProps {
   project: FontProject;
@@ -36,6 +37,7 @@ interface OpenTypeFeaturesModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLight: boolean;
+  theme?: ThemeMode;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
@@ -82,8 +84,10 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
   isOpen,
   onClose,
   isLight,
+  theme,
   onShowToast,
 }) => {
+  const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
   const [activeTab, setActiveTab] = useState<OpenTypeTab>('vert');
   const [opticalSideBearingPercent, setOpticalSideBearingPercent] = useState<number>(
     project.openTypeFeatures?.palt?.opticalSideBearingPercent ?? 5
@@ -308,23 +312,17 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/75 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/75 anim-fade">
       <div
-        className={`w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border transition-colors ${
-          isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#121c15] border-[#223326] text-stone-100'
-        }`}
+        className={`w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar */}
         <div
-          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-b shrink-0 gap-3 ${
-            isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#16231a] border-[#223326]'
-          }`}
+          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-b shrink-0 gap-3 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
             <div
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-                isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
-              }`}
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
             >
               <AlignVerticalJustifyCenter className="w-5 h-5" />
             </div>
@@ -336,14 +334,14 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
                     config.enabled
-                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                      : 'bg-stone-500/10 text-stone-500 border-stone-500/30'
+                      ? themeClasses.accentBadge
+                      : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
                   }`}
                 >
                   {config.enabled ? 'ON' : 'OFF'}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-stone-500 dark:text-stone-400 mt-0.5 truncate">
+              <p className={`text-[11px] sm:text-xs mt-0.5 truncate ${themeClasses.textMuted}`}>
                 日本語縦書き・合字・ペア調整のビジュアル設計と検証
               </p>
             </div>
@@ -353,10 +351,10 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
             {/* Global Feature Enable Toggle */}
             <button
               onClick={toggleFeaturesGlobal}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 config.enabled
-                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800'
-                  : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700'
+                  ? `${themeClasses.accentBtn} border-transparent`
+                  : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
@@ -365,7 +363,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1f3024] transition-colors"
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -374,9 +372,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex items-center px-3 sm:px-5 py-2 border-b shrink-0 text-xs font-bold gap-1 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 ${
-            isLight ? 'bg-stone-100/60 border-stone-200' : 'bg-[#141e17] border-[#25362b]'
-          }`}
+          className={`flex items-center px-3 sm:px-5 py-2 border-b shrink-0 text-xs font-bold gap-1 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {[
             {
@@ -426,14 +422,10 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                     setActiveTab(tab.id);
                   }
                 }}
-                className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-2 transition-all whitespace-nowrap shrink-0 ${
+                className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isSelected
-                    ? isLight
-                      ? 'bg-emerald-800 text-white font-bold'
-                      : 'bg-emerald-600 text-white font-bold'
-                    : isLight
-                    ? 'text-stone-600 hover:bg-stone-200/80'
-                    : 'text-stone-400 hover:bg-[#1a281e]'
+                    ? themeClasses.accentBtn
+                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -442,14 +434,14 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 {tab.count !== undefined && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                      isSelected ? 'bg-white/20 text-white' : 'bg-black/10 dark:bg-white/10'
                     }`}
                   >
                     {tab.count}
                   </span>
                 )}
                 {tab.badge && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500 text-white animate-pulse">
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500 text-white">
                     {tab.badge}
                   </span>
                 )}
@@ -465,26 +457,22 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
             <div className="space-y-6 max-w-4xl mx-auto">
               {/* Vertical Writing Main Controls Card */}
               <div
-                className={`p-4 sm:p-5 rounded-2xl border transition-colors space-y-4 ${
-                  isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                }`}
+                className={`p-4 sm:p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center space-x-3">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                         config.verticalWriting.enabled
-                          ? isLight
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-                          : 'bg-stone-200 text-stone-500 border-stone-300 dark:bg-stone-800 dark:border-stone-700'
+                          ? themeClasses.accentBadge
+                          : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
                       }`}
                     >
                       <AlignVerticalJustifyCenter className="w-5 h-5" />
                     </div>
                     <div>
                       <h3 className="font-bold text-sm sm:text-base">日本語縦書き (OpenType `vert` & `vhea` Table)</h3>
-                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                      <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>
                         縦書き時に句読点・鍵括弧・長音記号（ー）等を自動的に縦向きグリフに置換・配置します
                       </p>
                     </div>
@@ -493,11 +481,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleAutoDetectVerticalGlyphs}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all  ${
-                        isLight
-                          ? 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
-                          : 'bg-[#1b2b20] text-emerald-300 border-emerald-800 hover:bg-[#223628]'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                       <span>既存グリフから全自動バインド</span>
@@ -505,10 +489,10 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
                     <button
                       onClick={toggleVerticalWriting}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all  ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                         config.verticalWriting.enabled
-                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                          : 'bg-stone-300 dark:bg-stone-800 text-stone-700 dark:text-stone-300'
+                          ? themeClasses.accentBtn
+                          : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted}`
                       }`}
                     >
                       {config.verticalWriting.enabled ? '縦書き機能 ON' : '縦書き機能 OFF'}
@@ -517,11 +501,11 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 </div>
 
                 {/* Vertical Metrics Global Settings */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-stone-200 dark:border-[#25382b]">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t ${themeClasses.border}`}>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold flex items-center justify-between text-stone-700 dark:text-stone-300">
+                    <label className="text-xs font-bold flex items-center justify-between">
                       <span>デフォルト縦向き全角送り幅 (`vertAdvanceHeight`)</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                      <span className={`font-mono ${themeClasses.accentText}`}>
                         {config.verticalWriting.defaultVertAdvance} units
                       </span>
                     </label>
@@ -546,9 +530,9 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold flex items-center justify-between text-stone-700 dark:text-stone-300">
+                    <label className="text-xs font-bold flex items-center justify-between">
                       <span>縦書きY原点 (`VORG` Table Origin)</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                      <span className={`font-mono ${themeClasses.accentText}`}>
                         {config.verticalWriting.vertOriginY} units
                       </span>
                     </label>
@@ -577,11 +561,11 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
               {/* Vertical Glyph Replacement Rules List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center space-x-1.5">
-                    <AlignVerticalJustifyCenter className="w-3.5 h-3.5 text-emerald-500" />
+                  <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}>
+                    <AlignVerticalJustifyCenter className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>標準縦書き置換ルール一覧 (`vert` GSUB Table)</span>
                   </h4>
-                  <span className="text-xs text-stone-400">
+                  <span className={`text-xs ${themeClasses.textMuted}`}>
                     有効: {config.verticalWriting.substitutions.filter((s) => s.enabled).length} /{' '}
                     {config.verticalWriting.substitutions.length} 件
                   </span>
@@ -596,23 +580,19 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                     return (
                       <div
                         key={sub.id}
-                        className={`p-3 rounded-xl border transition-all flex items-center justify-between ${
+                        className={`p-3 rounded-xl border transition-colors flex items-center justify-between ${
                           sub.enabled
-                            ? isLight
-                              ? 'bg-white border-emerald-300/80 '
-                              : 'bg-[#18261c] border-emerald-800 '
-                            : isLight
-                            ? 'bg-stone-50 border-stone-200/80 opacity-60'
-                            : 'bg-[#131b15] border-[#1f2e22] opacity-50'
+                            ? `${themeClasses.cardBg} ${themeClasses.accentBorder}`
+                            : `${themeClasses.subtoolbarBg} ${themeClasses.border} opacity-60`
                         }`}
                       >
                         <div className="flex items-center space-x-3 min-w-0">
                           <button
                             onClick={() => toggleVertSub(sub.id)}
-                            className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
                               sub.enabled
                                 ? 'bg-emerald-600 border-emerald-600 text-white'
-                                : 'border-stone-300 dark:border-stone-700'
+                                : themeClasses.border
                             }`}
                           >
                             {sub.enabled && <Check className="w-3.5 h-3.5" />}
@@ -622,19 +602,19 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                             <div className="flex items-center space-x-2">
                               <span className="font-bold text-sm truncate">{presetInfo?.name || srcChar}</span>
                             </div>
-                            <div className="flex items-center space-x-1.5 text-[11px] font-mono text-stone-500 dark:text-stone-400 mt-0.5">
-                              <span className="px-1 py-0.2 rounded bg-stone-100 dark:bg-stone-800 border dark:border-stone-700">
+                            <div className={`flex items-center space-x-1.5 text-[11px] font-mono mt-0.5 ${themeClasses.textMuted}`}>
+                              <span className={`px-1 py-0.2 rounded border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
                                 {srcChar} (U+{sub.sourceUnicode.toString(16).toUpperCase()})
                               </span>
-                              <ArrowRight className="w-3 h-3 text-stone-400 shrink-0" />
-                              <span className="px-1 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold">
+                              <ArrowRight className="w-3 h-3 shrink-0" />
+                              <span className={`px-1 py-0.2 rounded border font-bold ${themeClasses.accentBadge}`}>
                                 {vertChar}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <span className="text-[10px] font-bold text-stone-400 shrink-0 ml-2">
+                        <span className={`text-[10px] font-bold shrink-0 ml-2 ${themeClasses.textMuted}`}>
                           `vert`
                         </span>
                       </div>
@@ -650,38 +630,32 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
             <div className="space-y-6 max-w-4xl mx-auto">
               {/* Ligature Overview & Add Form Card */}
               <div
-                className={`p-4 sm:p-5 rounded-2xl border transition-colors space-y-4 ${
-                  isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                }`}
+                className={`p-4 sm:p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center space-x-3">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-                      isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-                    }`}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
                   >
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm sm:text-base">標準・選択的合字 (OpenType `liga` & `dlig` GSUB)</h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                    <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>
                       特定の文字が連続して入力された際（例: `f` + `i` ＝ `fi`）、自動的に連結合字グリフに置換します
                     </p>
                   </div>
                 </div>
 
                 {/* Add Custom Ligature Form */}
-                <div className="pt-3 border-t border-stone-200 dark:border-[#25382b] space-y-3">
-                  <h4 className="text-xs font-bold text-stone-700 dark:text-stone-300">新しい合字ルールの定義・追加</h4>
+                <div className={`pt-3 border-t space-y-3 ${themeClasses.border}`}>
+                  <h4 className="text-xs font-bold">新しい合字ルールの定義・追加</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <input
                       type="text"
                       placeholder="合字名称 (例: トモダチ合字)"
                       value={newLigName}
                       onChange={(e) => setNewLigName(e.target.value)}
-                      className={`px-3 py-2 rounded-xl border text-xs outline-hidden ${
-                        isLight ? 'bg-white border-stone-200' : 'bg-[#111a13] border-[#25382b]'
-                      }`}
+                      className={`px-3 py-2 rounded-xl border text-xs outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     />
 
                     <input
@@ -689,9 +663,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                       placeholder="トリガー文字並び (例: fi または トモ)"
                       value={newLigInputs}
                       onChange={(e) => setNewLigInputs(e.target.value)}
-                      className={`px-3 py-2 rounded-xl border text-xs font-mono outline-hidden ${
-                        isLight ? 'bg-white border-stone-200' : 'bg-[#111a13] border-[#25382b]'
-                      }`}
+                      className={`px-3 py-2 rounded-xl border text-xs font-mono outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     />
 
                     <div className="flex items-center space-x-2">
@@ -700,14 +672,12 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                         placeholder="合字Unicode (例: U+FB01)"
                         value={newLigTargetUnicode}
                         onChange={(e) => setNewLigTargetUnicode(e.target.value)}
-                        className={`flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-hidden ${
-                          isLight ? 'bg-white border-stone-200' : 'bg-[#111a13] border-[#25382b]'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-xl border text-xs font-mono outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                       />
 
                       <button
                         onClick={handleAddCustomLigature}
-                        className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center space-x-1 shrink-0 transition-colors "
+                        className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center space-x-1 shrink-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
                       >
                         <Plus className="w-4 h-4" />
                         <span>追加</span>
@@ -720,8 +690,8 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
               {/* Registered Ligature List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center space-x-1.5">
-                    <Layers className="w-3.5 h-3.5 text-emerald-500" />
+                  <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}>
+                    <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>登録済み合字ルール一覧 ({config.ligatures.length} 件)</span>
                   </h4>
                 </div>
@@ -730,23 +700,19 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   {config.ligatures.map((lig) => (
                     <div
                       key={lig.id}
-                      className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
+                      className={`p-3.5 rounded-2xl border transition-colors flex items-center justify-between ${
                         lig.enabled
-                          ? isLight
-                            ? 'bg-white border-emerald-300 '
-                            : 'bg-[#18261c] border-emerald-800 '
-                          : isLight
-                          ? 'bg-stone-50 border-stone-200 opacity-60'
-                          : 'bg-[#131b15] border-[#1f2e22] opacity-50'
+                          ? `${themeClasses.cardBg} ${themeClasses.accentBorder}`
+                          : `${themeClasses.subtoolbarBg} ${themeClasses.border} opacity-60`
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
                         <button
                           onClick={() => toggleLigature(lig.id)}
-                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
                             lig.enabled
                               ? 'bg-emerald-600 border-emerald-600 text-white'
-                              : 'border-stone-300 dark:border-stone-700'
+                              : themeClasses.border
                           }`}
                         >
                           {lig.enabled && <Check className="w-3.5 h-3.5" />}
@@ -766,12 +732,12 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                             </span>
                           </div>
 
-                          <div className="flex items-center space-x-1.5 text-xs font-mono text-stone-500 dark:text-stone-400 mt-1">
-                            <span className="px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border dark:border-stone-700 font-bold">
+                          <div className={`flex items-center space-x-1.5 text-xs font-mono mt-1 ${themeClasses.textMuted}`}>
+                            <span className={`px-1.5 py-0.5 rounded border font-bold ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
                               {lig.inputChars.join(' + ')}
                             </span>
-                            <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-black">
+                            <ArrowRight className="w-3.5 h-3.5" />
+                            <span className={`px-1.5 py-0.5 rounded border font-black ${themeClasses.accentBadge}`}>
                               U+{lig.substituteUnicode.toString(16).toUpperCase()}
                             </span>
                           </div>
@@ -780,7 +746,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
                       <button
                         onClick={() => handleRemoveLigature(lig.id)}
-                        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                         title="削除"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -796,31 +762,27 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
           {activeTab === 'gpos' && (
             <div className="space-y-6 max-w-4xl mx-auto">
               <div
-                className={`p-5 rounded-2xl border transition-colors space-y-4 ${
-                  isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                }`}
+                className={`p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center space-x-3">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-                      isLight ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-                    }`}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
                   >
                     <ArrowUpDown className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm sm:text-base">文字ペア送り幅調整 (`kern` GPOS Table)</h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                    <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>
                       特定の文字同士が隣り合った際の文字間余白（カーニング）をデザインユニット単位で補正します
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 text-xs text-stone-600 dark:text-stone-300 space-y-2">
+                <div className="pt-2 text-xs space-y-2">
                   <p>
                     現在、プロジェクト内には <strong>{Object.keys(project.kerning || {}).length} 件</strong> のアクティブなカーニングペアが登録されています。
                   </p>
-                  <p className="text-stone-500 dark:text-stone-400">
+                  <p className={themeClasses.textMuted}>
                     ※ より詳細な2Dカーニング調整やペアマトリクス編集は、ツールバーの「カーニング調整」モーダルからシームレスに行えます。
                   </p>
                 </div>
@@ -832,19 +794,15 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
           {activeTab === 'palt' && (
             <div className="space-y-6 max-w-4xl mx-auto">
               <div
-                className={`p-5 rounded-2xl border transition-colors space-y-4 ${
-                  isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                }`}
+                className={`p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center space-x-3">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                         config.palt?.enabled
-                          ? isLight
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : 'bg-emerald-900/60 text-emerald-300 border-emerald-700'
-                          : 'bg-stone-200 text-stone-500 border-stone-300 dark:bg-stone-800 dark:border-stone-700'
+                          ? themeClasses.accentBadge
+                          : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
                       }`}
                     >
                       <Sparkles className="w-5 h-5" />
@@ -853,7 +811,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                       <h3 className="font-bold text-sm sm:text-base">
                         プロポーショナルメトリクス (`palt` / `vpal` GPOS Table)
                       </h3>
-                      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                      <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>
                         全角（1000 UPM）の仮想ボディから字面外の余白を詰め、ツメ組み時に文字固有の字幅で送る機能です
                       </p>
                     </div>
@@ -862,11 +820,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleAutoDerivePalt}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all ${
-                        isLight
-                          ? 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
-                          : 'bg-[#1b2b20] text-emerald-300 border-emerald-800 hover:bg-[#223628]'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                       <span>全グリフの字面から一括自動算出</span>
@@ -874,10 +828,10 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
                     <button
                       onClick={togglePaltGlobal}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                         config.palt?.enabled
-                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                          : 'bg-stone-300 dark:bg-stone-800 text-stone-700 dark:text-stone-300'
+                          ? themeClasses.accentBtn
+                          : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted}`
                       }`}
                     >
                       {config.palt?.enabled ? 'palt機能 ON' : 'palt機能 OFF'}
@@ -886,12 +840,12 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 </div>
 
                 {/* Optical Padding slider */}
-                <div className="pt-3 border-t border-stone-200 dark:border-[#25382b] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className={`pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${themeClasses.border}`}>
                   <div className="space-y-0.5">
-                    <span className="font-bold text-stone-700 dark:text-stone-300">
+                    <span className="font-bold">
                       光学サイドベアリング余白比率（字面の左右に確保する最小余白）
                     </span>
-                    <p className="text-[11px] text-stone-500">
+                    <p className={`text-[11px] ${themeClasses.textMuted}`}>
                       手引き第12・14ページ準拠：字面輪郭（インク領域）の外側に付与する均等マージン率
                     </p>
                   </div>
@@ -905,7 +859,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                       onChange={(e) => setOpticalSideBearingPercent(Number(e.target.value))}
                       className="w-32 accent-emerald-600"
                     />
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 w-12 text-right">
+                    <span className={`font-mono font-bold w-12 text-right ${themeClasses.accentText}`}>
                       {opticalSideBearingPercent}%
                     </span>
                   </div>
@@ -915,31 +869,29 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
               {/* Registered / Derived Palt Glyph Metrics List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center space-x-1.5">
-                    <Type className="w-3.5 h-3.5 text-emerald-500" />
+                  <h4 className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}>
+                    <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>登録済みグリフのツメ量一覧 ({(config.palt?.paltList || []).length} 件)</span>
                   </h4>
-                  <span className="text-[11px] font-mono text-stone-400">
+                  <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>
                     有効: {(config.palt?.paltList || []).filter((p) => p.enabled).length} 件
                   </span>
                 </div>
 
                 {(config.palt?.paltList || []).length === 0 ? (
                   <div
-                    className={`p-8 rounded-2xl border text-center space-y-3 ${
-                      isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                    }`}
+                    className={`p-8 rounded-2xl border text-center space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                   >
                     <Sparkles className="w-8 h-8 text-amber-500 mx-auto" />
                     <div className="space-y-1">
                       <p className="font-bold text-sm">プロポーショナルメトリクス情報がまだ算出されていません</p>
-                      <p className="text-xs text-stone-500">
+                      <p className={`text-xs ${themeClasses.textMuted}`}>
                         「全グリフの字面から一括自動算出」をクリックすると、作成した漢字・かなのインク境界から自動でツメ幅を生成します。
                       </p>
                     </div>
                     <button
                       onClick={handleAutoDerivePalt}
-                      className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs"
+                      className={`px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
                     >
                       今すぐ自動算出する
                     </button>
@@ -949,29 +901,25 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                     {config.palt!.paltList.map((metric) => (
                       <div
                         key={metric.unicode}
-                        className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all ${
+                        className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
                           metric.enabled
-                            ? isLight
-                              ? 'bg-white border-emerald-300'
-                              : 'bg-[#18261c] border-emerald-800'
-                            : isLight
-                            ? 'bg-stone-50 border-stone-200 opacity-60'
-                            : 'bg-[#131b15] border-[#1f2e22] opacity-50'
+                            ? `${themeClasses.cardBg} ${themeClasses.accentBorder}`
+                            : `${themeClasses.subtoolbarBg} ${themeClasses.border} opacity-60`
                         }`}
                       >
                         <div className="flex items-center space-x-2.5 min-w-0">
                           <button
                             onClick={() => togglePaltItem(metric.unicode)}
-                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${
+                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                               metric.enabled
                                 ? 'bg-emerald-600 border-emerald-600 text-white'
-                                : 'border-stone-300 dark:border-stone-700'
+                                : themeClasses.border
                             }`}
                           >
                             {metric.enabled && <Check className="w-3 h-3" />}
                           </button>
 
-                          <div className="w-8 h-8 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-lg font-bold shrink-0">
+                          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-lg font-bold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
                             {metric.char}
                           </div>
 
@@ -979,13 +927,13 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                             <div className="font-sans font-bold truncate">
                               U+{metric.unicode.toString(16).toUpperCase()}
                             </div>
-                            <div className="text-stone-500 text-[10px]">
-                              {metric.originalAdvance} → <strong className="text-emerald-600 dark:text-emerald-400">{metric.proportionalAdvance}</strong> ({metric.deltaAdvance})
+                            <div className={`text-[10px] ${themeClasses.textMuted}`}>
+                              {metric.originalAdvance} → <strong className={themeClasses.accentText}>{metric.proportionalAdvance}</strong> ({metric.deltaAdvance})
                             </div>
                           </div>
                         </div>
 
-                        <div className="text-right text-[10px] font-mono text-stone-400">
+                        <div className={`text-right text-[10px] font-mono ${themeClasses.textMuted}`}>
                           <div>L:{metric.opticalMarginLeft}</div>
                           <div>R:{metric.opticalMarginRight}</div>
                         </div>
@@ -1001,17 +949,15 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
           {activeTab === 'preview' && (
             <div className="space-y-6 max-w-4xl mx-auto">
               <div
-                className={`p-5 rounded-2xl border transition-colors space-y-4 ${
-                  isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#152319] border-[#25382b]'
-                }`}
+                className={`p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-sm sm:text-base flex items-center space-x-2">
-                      <Eye className="w-4 h-4 text-emerald-500" />
+                      <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
                       <span>インタラクティブ縦書き＆合字レンダリング検証</span>
                     </h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                    <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>
                       縦書きレイアウトと入力テキストを確認できます。GSUB (`vert`, `liga`) の最終的な適用は、書き出したフォント側で行われます
                     </p>
                   </div>
@@ -1023,11 +969,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                           prev === 'vertical-rl' ? 'horizontal-tb' : 'vertical-rl'
                         )
                       }
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                        isLight
-                          ? 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-50'
-                          : 'bg-[#1b2b20] text-emerald-200 border-emerald-800 hover:bg-[#23382a]'
-                      }`}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                     >
                       {previewWritingMode === 'vertical-rl' ? '縦書き (vertical-rl)' : '横書き (horizontal-tb)'}
                     </button>
@@ -1036,24 +978,20 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
                 {/* Input Control */}
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-stone-600 dark:text-stone-400">
+                  <label className={`text-xs font-bold ${themeClasses.textMuted}`}>
                     検証用テストテキスト入力:
                   </label>
                   <textarea
                     rows={2}
                     value={previewText}
                     onChange={(e) => setPreviewText(e.target.value)}
-                    className={`w-full p-3 rounded-xl border text-xs outline-hidden transition-colors ${
-                      isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#101812] border-[#25382b] text-emerald-100'
-                    }`}
+                    className={`w-full p-3 rounded-xl border text-xs outline-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   />
                 </div>
 
                 {/* Live Writing Render Display Area */}
                 <div
-                  className={`p-6 rounded-2xl border min-h-[220px] flex items-center justify-center overflow-auto transition-all ${
-                    isLight ? 'bg-white border-stone-200 shadow-inner' : 'bg-[#0e1610] border-[#223628] shadow-inner'
-                  }`}
+                  className={`p-6 rounded-2xl border min-h-[220px] flex items-center justify-center overflow-auto transition-colors shadow-inner ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
                   <div
                     style={{
@@ -1063,14 +1001,14 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                       lineHeight: '1.8',
                       letterSpacing: '0.05em',
                     }}
-                    className="text-stone-900 dark:text-emerald-100 font-medium select-text max-h-[300px]"
+                    className={`font-medium select-text max-h-[300px] ${themeClasses.textPrimary}`}
                   >
                     {previewText}
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 text-[11px] text-stone-500 dark:text-stone-400">
-                  <Info className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <div className={`flex items-center space-x-2 text-[11px] ${themeClasses.textMuted}`}>
+                  <Info className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                   <span>
                     この画面はブラウザの縦書きレイアウトを確認するプレビューです。設定した縦向き字形と合字は、書き出したフォントを対応アプリで検証してください。
                   </span>

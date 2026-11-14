@@ -53,7 +53,7 @@ export const StrokeEqualizerPanel: React.FC<StrokeEqualizerPanelProps> = ({
 
   return (
     <div
-      className={`px-5 py-4 border-b transition-all text-xs ${
+      className={`px-5 py-4 border-b transition-colors text-xs ${
         isLight
           ? 'bg-emerald-50/70 border-emerald-200 text-stone-800'
           : 'bg-[#102016] border-[#223d2b] text-emerald-100'
@@ -139,7 +139,7 @@ export const StrokeEqualizerPanel: React.FC<StrokeEqualizerPanelProps> = ({
                 key={m.id}
                 type="button"
                 onClick={() => setEqMode(m.id)}
-                className={`w-full text-left p-2 rounded-lg border transition-all text-xs ${
+                className={`w-full text-left p-2 rounded-lg border transition-colors text-xs ${
                   eqMode === m.id
                     ? isLight
                       ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-500/20'
@@ -193,7 +193,7 @@ export const StrokeEqualizerPanel: React.FC<StrokeEqualizerPanelProps> = ({
                 key={sc.id}
                 type="button"
                 onClick={() => setEqScope(sc.id)}
-                className={`w-full text-left p-2 rounded-lg border transition-all text-xs ${
+                className={`w-full text-left p-2 rounded-lg border transition-colors text-xs ${
                   eqScope === sc.id
                     ? isLight
                       ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-500/20'
@@ -256,7 +256,7 @@ export const StrokeEqualizerPanel: React.FC<StrokeEqualizerPanelProps> = ({
             <button
               onClick={onRunEqualization}
               disabled={isEqualizing}
-              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-all ${
+              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-colors ${
                 isLight
                   ? 'bg-emerald-700 text-white hover:bg-emerald-800 active:scale-98'
                   : 'bg-emerald-500 text-black hover:bg-emerald-400 active:scale-98'

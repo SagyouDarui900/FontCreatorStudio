@@ -104,7 +104,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {/* Snap to Grid */}
         <button
           onClick={() => setGridSettings((s) => ({ ...s, snapToGrid: !s.snapToGrid }))}
-          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-all flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.snapToGrid
               ? themeClasses.activeTool
               : themeClasses.activeToolHover

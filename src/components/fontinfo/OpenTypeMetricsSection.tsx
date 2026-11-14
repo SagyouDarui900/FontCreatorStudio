@@ -1,20 +1,32 @@
 import React from 'react';
 import { Database } from 'lucide-react';
 import { FontMetadata } from '../../types';
+import { ThemeClasses } from '../../utils/theme';
 
 export interface OpenTypeMetricsSectionProps {
   formData: FontMetadata;
   setFormData: React.Dispatch<React.SetStateAction<FontMetadata>>;
   isLight: boolean;
+  themeClasses?: ThemeClasses;
 }
 
 export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = React.memo(({
   formData,
   setFormData,
   isLight,
+  themeClasses,
 }) => {
+  const labelCls = `font-bold text-[11px] sm:text-xs ${themeClasses ? themeClasses.accentText : isLight ? 'text-emerald-950' : 'text-emerald-300'}`;
+  const inputCls = `w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
+    themeClasses
+      ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+      : isLight
+      ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
+      : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
+  }`;
+
   return (
-    <div className="space-y-4 animate-fadeIn">
+    <div className="space-y-4 anim-fade">
       <div
         className={`p-3 sm:p-3.5 rounded-xl border space-y-1.5 ${
           isLight ? 'bg-indigo-50/70 border-indigo-200 text-slate-800' : 'bg-indigo-950/40 border-indigo-800/60 text-slate-200'
@@ -32,14 +44,16 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
         {/* Weight Class */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             usWeightClass (ウェイト数値)
           </label>
           <select
             value={formData.usWeightClass ?? 400}
             onChange={(e) => setFormData({ ...formData, usWeightClass: Number(e.target.value) })}
             className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-              isLight
+              themeClasses
+                ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+                : isLight
                 ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
                 : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
             }`}
@@ -58,7 +72,7 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
 
         {/* Vendor ID */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             achVendID (ベンダーID / 4文字)
           </label>
           <input
@@ -67,102 +81,78 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
             value={formData.vendorId || 'OTED'}
             onChange={(e) => setFormData({ ...formData, vendorId: e.target.value.toUpperCase() })}
             placeholder="OTED"
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Typo Ascender */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             sTypoAscender (OS/2 アセンダ)
           </label>
           <input
             type="number"
             value={formData.typoAscender ?? formData.ascender ?? 880}
             onChange={(e) => setFormData({ ...formData, typoAscender: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Typo Descender */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             sTypoDescender (OS/2 ディセンダ)
           </label>
           <input
             type="number"
             value={formData.typoDescender ?? formData.descender ?? -120}
             onChange={(e) => setFormData({ ...formData, typoDescender: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Win Ascent */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             usWinAscent (Windows 上部限界)
           </label>
           <input
             type="number"
             value={formData.winAscent ?? Math.max(formData.ascender ?? 880, 800)}
             onChange={(e) => setFormData({ ...formData, winAscent: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Win Descent */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             usWinDescent (Windows 下部限界)
           </label>
           <input
             type="number"
             value={formData.winDescent ?? Math.abs(formData.descender ?? -120)}
             onChange={(e) => setFormData({ ...formData, winDescent: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Typo LineGap */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             sTypoLineGap (追加行間)
           </label>
           <input
             type="number"
             value={formData.typoLineGap ?? formData.lineGap ?? 0}
             onChange={(e) => setFormData({ ...formData, typoLineGap: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
 
         {/* Italic Angle */}
         <div className="flex flex-col space-y-1">
-          <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+          <label className={labelCls}>
             italicAngle (イタリック傾斜角)
           </label>
           <input
@@ -170,11 +160,7 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
             step="0.5"
             value={formData.italicAngle ?? 0}
             onChange={(e) => setFormData({ ...formData, italicAngle: Number(e.target.value) })}
-            className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs font-mono transition-colors focus:outline-none focus:ring-1 ${
-              isLight
-                ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-            }`}
+            className={inputCls}
           />
         </div>
       </div>

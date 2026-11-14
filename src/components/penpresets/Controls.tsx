@@ -25,7 +25,7 @@ export const SliderControl: React.FC<SliderControlProps> = ({
   const handleInc = () => onChange(Math.min(max, Math.round((value + step) * 100) / 100));
 
   return (
-    <div className="flex flex-col space-y-1.5 py-1.5 border-b border-stone-200/60 dark:border-stone-800/60 last:border-0">
+    <div className="flex flex-col space-y-1 py-1 border-b border-stone-200/60 dark:border-stone-800/60 last:border-0">
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-stone-700 dark:text-stone-300">{label}</span>
         <span className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
@@ -33,12 +33,12 @@ export const SliderControl: React.FC<SliderControlProps> = ({
           {unit}
         </span>
       </div>
-      {desc && <span className="text-[10px] text-stone-500 dark:text-stone-400">{desc}</span>}
-      <div className="flex items-center space-x-2">
+      {desc && <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">{desc}</span>}
+      <div className="flex items-center space-x-1.5">
         <button
           type="button"
           onClick={handleDec}
-          className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors font-bold text-sm cursor-pointer"
+          className="w-6 h-6 shrink-0 rounded flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors font-bold text-xs cursor-pointer"
         >
           -
         </button>
@@ -54,7 +54,7 @@ export const SliderControl: React.FC<SliderControlProps> = ({
         <button
           type="button"
           onClick={handleInc}
-          className="w-7 h-7 shrink-0 rounded-md flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors font-bold text-sm cursor-pointer"
+          className="w-6 h-6 shrink-0 rounded flex items-center justify-center bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors font-bold text-xs cursor-pointer"
         >
           +
         </button>
@@ -77,10 +77,10 @@ export const ToggleControl: React.FC<ToggleControlProps> = ({
   desc,
 }) => {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-stone-200/60 dark:border-stone-800/60 last:border-0">
-      <div className="flex flex-col pr-3">
+    <div className="flex items-center justify-between py-1.5 border-b border-stone-200/60 dark:border-stone-800/60 last:border-0">
+      <div className="flex flex-col pr-2">
         <span className="text-xs font-medium text-stone-700 dark:text-stone-300">{label}</span>
-        {desc && <span className="text-[10px] text-stone-500 dark:text-stone-400">{desc}</span>}
+        {desc && <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">{desc}</span>}
       </div>
       <button
         type="button"

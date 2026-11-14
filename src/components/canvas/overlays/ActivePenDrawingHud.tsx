@@ -60,7 +60,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
           ? { left: `${penHudPos.x}px`, top: `${penHudPos.y}px` }
           : { left: '50%', transform: 'translateX(-50%)', top: showSubToolbar ? '56px' : '12px' }
       }
-      className="absolute z-30 pointer-events-auto select-none animate-in fade-in zoom-in-95 duration-100"
+      className="absolute z-30 pointer-events-auto select-none anim-pop"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
@@ -93,7 +93,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
         {/* Undo Last Point */}
         <button
           onClick={handleUndoPenNode}
-          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold flex items-center space-x-1 transition-all active:scale-95 whitespace-nowrap ${
+          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold flex items-center space-x-1 transition-colors active:scale-95 whitespace-nowrap ${
             isLight
               ? 'bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900'
               : 'bg-[#1e2d23] hover:bg-[#283d30] text-emerald-200'
@@ -110,7 +110,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
           <button
             onClick={() => handleFinishPenContour(false)}
             disabled={activePenContour.nodes.length < 2}
-            className={`px-2 py-0.5 rounded-l-full text-[11px] font-semibold flex items-center space-x-1 transition-all disabled:opacity-30 active:scale-95 whitespace-nowrap ${
+            className={`px-2 py-0.5 rounded-l-full text-[11px] font-semibold flex items-center space-x-1 transition-colors disabled:opacity-30 active:scale-95 whitespace-nowrap ${
               isLight
                 ? 'bg-sky-50 hover:bg-sky-100 text-sky-800 border-r border-sky-200'
                 : 'bg-sky-950/70 hover:bg-sky-900/80 text-sky-200 border-r border-sky-800'
@@ -126,7 +126,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
           <button
             type="button"
             onClick={() => setShowPenStrokeMenu((prev) => !prev)}
-            className={`px-1.5 py-0.5 rounded-r-full text-[10px] font-mono font-bold flex items-center space-x-0.5 transition-all active:scale-95 ${
+            className={`px-1.5 py-0.5 rounded-r-full text-[10px] font-mono font-bold flex items-center space-x-0.5 transition-colors active:scale-95 ${
               isLight
                 ? 'bg-sky-100 hover:bg-sky-200 text-sky-900'
                 : 'bg-sky-900/90 hover:bg-sky-800 text-sky-100'
@@ -144,7 +144,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
               onClick={() => setShowPenStrokeMenu(false)}
             >
               <div
-                className={`p-3 rounded-2xl shadow-2xl border flex flex-col space-y-2.5 min-w-[240px] text-xs pointer-events-auto animate-in fade-in zoom-in-95 duration-100 ${
+                className={`p-3 rounded-2xl shadow-2xl border flex flex-col space-y-2.5 min-w-[240px] text-xs pointer-events-auto anim-pop ${
                   isLight
                     ? 'bg-white border-sky-200 text-stone-800'
                     : 'bg-[#0f1b14] border-sky-800/80 text-sky-100'
@@ -198,7 +198,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
                         onClick={() => {
                           handleSetPenStrokeWidth(w);
                         }}
-                        className={`py-1 rounded text-center transition-all cursor-pointer ${
+                        className={`py-1 rounded text-center transition-colors cursor-pointer ${
                           penStrokeWidth === w
                             ? 'bg-sky-600 text-white font-bold ring-1 ring-sky-400'
                             : 'bg-stone-100 dark:bg-stone-800/80 hover:bg-sky-100 dark:hover:bg-sky-950 text-stone-700 dark:text-stone-300'
@@ -222,7 +222,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
                       <button
                         key={cap.id}
                         onClick={() => handleSetPenCapStyle(cap.id as 'round' | 'butt' | 'square')}
-                        className={`py-1 rounded text-center transition-all cursor-pointer ${
+                        className={`py-1 rounded text-center transition-colors cursor-pointer ${
                           penCapStyle === cap.id
                             ? 'bg-sky-600 text-white font-bold'
                             : 'bg-stone-100 dark:bg-stone-800/80 hover:bg-sky-100 dark:hover:bg-sky-950 text-stone-700 dark:text-stone-300'
@@ -241,7 +241,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
                     handleFinishPenContour(false);
                   }}
                   disabled={activePenContour.nodes.length < 2}
-                  className="mt-1 w-full py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-30 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-98 transition-all cursor-pointer"
+                  className="mt-1 w-full py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-30 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-98 transition-colors cursor-pointer"
                 >
                   <CornerDownLeft className="w-3.5 h-3.5" />
                   <span>この太さ ({penStrokeWidth}px) で線確定</span>
@@ -255,7 +255,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
         <button
           onClick={() => handleFinishPenContour(true)}
           disabled={activePenContour.nodes.length < 3}
-          className="px-2.5 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center space-x-1 transition-all disabled:opacity-30 active:scale-95 whitespace-nowrap"
+          className="px-2.5 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center space-x-1 transition-colors disabled:opacity-30 active:scale-95 whitespace-nowrap"
           title="パスを閉じて輪郭として確定する (C または 始点をクリック)"
         >
           <Check className="w-3 h-3 shrink-0" />

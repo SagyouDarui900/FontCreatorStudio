@@ -95,12 +95,12 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
 
     return (
       <div
-        className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/75 animate-in fade-in duration-200"
+        className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/75 anim-fade"
         onClick={onClose}
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-xl shadow-2xl border-t p-4 pb-8 space-y-4 animate-in slide-in-from-bottom duration-250 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-xl shadow-2xl border-t p-4 pb-8 space-y-4 anim-slide-up ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
         >
           {/* Drawer Handle & Header */}
           <div className="flex flex-col items-center pb-2.5 border-b border-stone-200 dark:border-[#25382c]">

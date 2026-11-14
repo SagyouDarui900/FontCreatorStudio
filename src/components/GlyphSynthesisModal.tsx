@@ -30,7 +30,7 @@ import {
 } from '../utils/path';
 import { batchGenerateSmallKana } from '../utils/kanaHelper';
 
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 
 interface GlyphSynthesisModalProps {
   isOpen: boolean;
@@ -54,6 +54,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
   theme,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
   const [activeTab, setActiveTab] = useState<'dakuten' | 'smallKana'>('dakuten');
 
   // Unified updater function supporting both prop styles
@@ -253,28 +254,22 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-4 bg-black/75 animate-in fade-in duration-150'
+          : 'flex items-center justify-center p-4 bg-black/75 anim-fade'
       }`}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-900'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-4xl xl:max-w-5xl max-h-[92vh] rounded-2xl border border-stone-200 shadow-2xl bg-white text-stone-900'
-            : 'w-full max-w-4xl xl:max-w-5xl max-h-[92vh] rounded-2xl border border-[#293d30] shadow-2xl bg-[#151e18] text-emerald-100'
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-4xl xl:max-w-5xl max-h-[92vh] rounded-2xl border shadow-2xl ${themeClasses.border}`
         }`}
       >
         {/* Modal Header */}
         <div
-          className={`flex items-center justify-between px-4 sm:px-5 py-3 border-b shrink-0 ${
-            isLight ? 'bg-emerald-50/70 border-emerald-200/80' : 'bg-[#1b261f] border-[#2b3e32]'
-          }`}
+          className={`flex items-center justify-between px-4 sm:px-5 py-3 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-lg bg-emerald-700 text-white shrink-0">
@@ -289,7 +284,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-stone-500 dark:text-emerald-400/80 truncate">
+              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
                 清音から濁音・半濁音、通常かなから小書き文字を一括生成
               </p>
             </div>
@@ -298,14 +293,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-                  : 'bg-[#101813] border-[#293d30] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.accentBadge
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -323,9 +314,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors ${
-                isLight ? 'text-stone-400 border-stone-200 hover:text-stone-600 hover:bg-stone-100' : 'text-emerald-400 border-[#293d30] hover:text-stone-200 hover:bg-[#202d24]'
-              }`}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -335,18 +324,14 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b px-3 sm:px-5 pt-1.5 gap-1.5 text-xs font-bold shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#131b15] border-[#223126]'
-          }`}
+          className={`flex border-b px-3 sm:px-5 pt-1.5 gap-1.5 text-xs font-bold shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             onClick={() => setActiveTab('dakuten')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'dakuten'
-                ? isLight
-                  ? 'border-emerald-700 text-emerald-900'
-                  : 'border-emerald-400 text-emerald-300'
-                : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-emerald-300'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
+                : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -355,12 +340,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
           <button
             onClick={() => setActiveTab('smallKana')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors cursor-pointer ${
               activeTab === 'smallKana'
-                ? isLight
-                  ? 'border-emerald-700 text-emerald-900'
-                  : 'border-emerald-400 text-emerald-300'
-                : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-emerald-300'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
+                : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
             }`}
           >
             <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -379,13 +362,11 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               <div className="lg:col-span-7 flex flex-col gap-3.5">
                 {/* Scope & Overwrite Card */}
                 <div
-                  className={`p-3.5 rounded-lg border flex flex-col gap-3 ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex flex-col gap-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
                     <span className="font-bold flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                      <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                       <span>対象範囲</span>
                     </span>
                     <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5 sm:pb-0">
@@ -393,14 +374,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         <button
                           key={s}
                           onClick={() => setDakuScope(s)}
-                          className={`px-2.5 py-1 text-[11px] rounded font-bold transition-all whitespace-nowrap ${
+                          className={`px-2.5 py-1 text-[11px] rounded font-bold transition-colors whitespace-nowrap cursor-pointer ${
                             dakuScope === s
-                              ? isLight
-                                ? 'bg-emerald-700 text-white '
-                                : 'bg-emerald-400 text-stone-950 font-black'
-                              : isLight
-                              ? 'bg-white border text-stone-600 hover:bg-stone-100'
-                              : 'bg-[#223126] text-emerald-300 hover:bg-[#2c3f31]'
+                              ? themeClasses.accentBtn
+                              : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                           }`}
                         >
                           {s === 'all' ? 'ひらがな＋カタカナ' : s === 'hiragana' ? 'ひらがな' : 'カタカナ'}
@@ -422,18 +399,16 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                 {/* Style Options */}
                 <div
-                  className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>濁点・半濁点のスタイル</span>
                   </span>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-600 dark:text-emerald-300 mb-1">
+                      <label className={`block text-[11px] font-bold mb-1 ${themeClasses.textMuted}`}>
                         濁点「゛」スタイル
                       </label>
                       <div className="grid grid-cols-2 gap-1">
@@ -448,14 +423,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                           <button
                             key={st.id}
                             onClick={() => setDakuStyle(st.id)}
-                            className={`p-1.5 text-[11px] rounded border font-medium text-center transition-all ${
+                            className={`p-1.5 text-[11px] rounded border font-medium text-center transition-colors cursor-pointer ${
                               dakuStyle === st.id
-                                ? isLight
-                                  ? 'bg-emerald-100 border-emerald-500 text-emerald-900 font-bold'
-                                  : 'bg-emerald-950 border-emerald-400 text-emerald-200 font-bold'
-                                : isLight
-                                ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
-                                : 'bg-[#16211a] border-[#26372c] text-stone-300 hover:bg-[#203024]'
+                                ? `${themeClasses.accentBadge} font-bold`
+                                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                             }`}
                           >
                             {st.name}
@@ -465,7 +436,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-600 dark:text-emerald-300 mb-1">
+                      <label className={`block text-[11px] font-bold mb-1 ${themeClasses.textMuted}`}>
                         半濁点「゜」スタイル
                       </label>
                       <div className="grid grid-cols-3 gap-1">
@@ -479,14 +450,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                           <button
                             key={st.id}
                             onClick={() => setHandakuStyle(st.id)}
-                            className={`p-1.5 text-[11px] rounded border font-medium text-center transition-all ${
+                            className={`p-1.5 text-[11px] rounded border font-medium text-center transition-colors cursor-pointer ${
                               handakuStyle === st.id
-                                ? isLight
-                                  ? 'bg-emerald-100 border-emerald-500 text-emerald-900 font-bold'
-                                  : 'bg-emerald-950 border-emerald-400 text-emerald-200 font-bold'
-                                : isLight
-                                ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
-                                : 'bg-[#16211a] border-[#26372c] text-stone-300 hover:bg-[#203024]'
+                                ? `${themeClasses.accentBadge} font-bold`
+                                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                             }`}
                           >
                             {st.name}
@@ -497,10 +464,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                   </div>
 
                   {/* Position Fine Tuning */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-stone-200 dark:border-stone-800 text-xs">
+                  <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500">左右位置 (X):</span>
+                        <span className={themeClasses.textMuted}>左右位置 (X):</span>
                         <span className="font-mono font-bold">{dakuOffsetX > 0 ? `+${dakuOffsetX}` : dakuOffsetX}px</span>
                       </div>
                       <input
@@ -510,13 +477,13 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="5"
                         value={dakuOffsetX}
                         onChange={(e) => setDakuOffsetX(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
                     </div>
 
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500">上下位置 (Y):</span>
+                        <span className={themeClasses.textMuted}>上下位置 (Y):</span>
                         <span className="font-mono font-bold">{dakuOffsetY > 0 ? `+${dakuOffsetY}` : dakuOffsetY}px</span>
                       </div>
                       <input
@@ -526,13 +493,13 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="5"
                         value={dakuOffsetY}
                         onChange={(e) => setDakuOffsetY(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
                     </div>
 
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500">濁点サイズ:</span>
+                        <span className={themeClasses.textMuted}>濁点サイズ:</span>
                         <span className="font-mono font-bold">{Math.round(dakuScale * 100)}%</span>
                       </div>
                       <input
@@ -542,7 +509,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="0.05"
                         value={dakuScale}
                         onChange={(e) => setDakuScale(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
                     </div>
                   </div>
@@ -554,7 +521,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         setDakuOffsetY(0);
                         setDakuScale(1.0);
                       }}
-                      className="text-[11px] text-stone-500 hover:text-stone-800 dark:hover:text-stone-300 flex items-center gap-1"
+                      className={`text-[11px] flex items-center gap-1 cursor-pointer ${themeClasses.textMuted} hover:opacity-80`}
                     >
                       <RotateCcw className="w-3 h-3" />
                       <span>位置リセット</span>
@@ -564,31 +531,25 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                 {/* Parent Char Quick Selectors */}
                 <div
-                  className={`p-3 rounded-lg border ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
-                  <div className="flex items-center justify-between text-[11px] mb-2 font-bold text-stone-600 dark:text-emerald-300">
+                  <div className={`flex items-center justify-between text-[11px] mb-2 font-bold ${themeClasses.textMuted}`}>
                     <span>対象文字プレビュー:</span>
-                    <span className="text-emerald-700 dark:text-emerald-400">
+                    <span className={themeClasses.accentText}>
                       作成済: {availableDakutenSources.filter((s) => s.hasContours).length} / {availableDakutenSources.length}字
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1 bg-white dark:bg-[#121a14] rounded border border-stone-200 dark:border-stone-800">
+                  <div className={`flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}>
                     {availableDakutenSources.map((item) => (
                       <button
                         key={item.char}
                         onClick={() => setDakuPreviewChar(item.char)}
-                        className={`w-7 h-7 rounded text-xs font-bold transition-all flex items-center justify-center ${
+                        className={`w-7 h-7 rounded text-xs font-bold transition-colors flex items-center justify-center ${
                           dakuPreviewChar === item.char
-                            ? 'bg-emerald-700 text-white ring-2 ring-emerald-500'
+                            ? `${themeClasses.accentBtn} ring-2 ring-emerald-500`
                             : item.hasContours
-                            ? isLight
-                              ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-emerald-950/70 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-900'
-                            : isLight
-                            ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
-                            : 'bg-stone-900/60 text-stone-600 cursor-not-allowed'
+                            ? `${themeClasses.accentBadge} cursor-pointer hover:opacity-90`
+                            : 'bg-black/5 dark:bg-white/5 text-stone-400 dark:text-stone-600 cursor-not-allowed'
                         }`}
                         title={`「${item.char}」→ 濁音:「${item.daku || ''}」${
                           item.handaku ? ` 半濁音:「${item.handaku}」` : ''
@@ -604,21 +565,19 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               {/* Right Live Preview Box */}
               <div className="lg:col-span-5 flex flex-col gap-3">
                 <div
-                  className={`p-3.5 sm:p-4 rounded-lg border flex flex-col items-center justify-center ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 sm:p-4 rounded-lg border flex flex-col items-center justify-center ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className="w-full flex items-center justify-between text-xs font-bold mb-2">
                     <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                      <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                       <span>合成プレビュー</span>
                     </span>
-                    <span className="text-[11px] font-mono text-stone-500">
+                    <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>
                       「{dakuPreviewChar}」⇒「{DAKUTEN_MAPPINGS[dakuPreviewChar]?.daku || DAKUTEN_MAPPINGS[dakuPreviewChar]?.handaku || ''}」
                     </span>
                   </div>
 
-                  <div className="w-52 h-52 sm:w-60 sm:h-60 relative rounded-lg border bg-white dark:bg-[#101712] border-stone-200 dark:border-stone-800 flex items-center justify-center overflow-hidden ">
+                  <div className={`w-52 h-52 sm:w-60 sm:h-60 relative rounded-lg border flex items-center justify-center overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}>
                     {/* Em box crosshairs */}
                     <div className="absolute inset-0 pointer-events-none opacity-15">
                       <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />
@@ -636,14 +595,14 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         />
                       </svg>
                     ) : (
-                      <div className="text-center p-4 text-xs text-stone-400 dark:text-emerald-700">
+                      <div className={`text-center p-4 text-xs ${themeClasses.textMuted}`}>
                         親文字「{dakuPreviewChar}」がまだ作成されていません
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-2 text-[11px] text-stone-500 text-center flex items-center gap-1">
-                    <Info className="w-3 h-3 shrink-0 text-emerald-600" />
+                  <div className={`mt-2 text-[11px] text-center flex items-center gap-1 ${themeClasses.textMuted}`}>
+                    <Info className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
                     <span>親文字に選択した濁点・半濁点を合成します</span>
                   </div>
                 </div>
@@ -651,11 +610,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                 {/* Batch Action Button */}
                 <button
                   onClick={handleExecuteDakutenBatch}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm  flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
-                    isLight
-                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  }`}
+                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.99] cursor-pointer ${themeClasses.accentBtn}`}
                 >
                   <Wand2 className="w-4 h-4" />
                   <span>濁音・半濁点を一括合成</span>
@@ -671,13 +626,11 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               <div className="lg:col-span-7 flex flex-col gap-3.5">
                 {/* Scope & Overwrite Card */}
                 <div
-                  className={`p-3.5 rounded-lg border flex flex-col gap-3 ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex flex-col gap-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
                     <span className="font-bold flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                      <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                       <span>対象範囲</span>
                     </span>
                     <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5 sm:pb-0">
@@ -685,14 +638,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         <button
                           key={s}
                           onClick={() => setSmallScope(s)}
-                          className={`px-2.5 py-1 text-[11px] rounded font-bold transition-all whitespace-nowrap ${
+                          className={`px-2.5 py-1 text-[11px] rounded font-bold transition-colors whitespace-nowrap cursor-pointer ${
                             smallScope === s
-                              ? isLight
-                                ? 'bg-emerald-700 text-white '
-                                : 'bg-emerald-400 text-stone-950 font-black'
-                              : isLight
-                              ? 'bg-white border text-stone-600 hover:bg-stone-100'
-                              : 'bg-[#223126] text-emerald-300 hover:bg-[#2c3f31]'
+                              ? themeClasses.accentBtn
+                              : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                           }`}
                         >
                           {s === 'all' ? 'ひらがな＋カタカナ' : s === 'hiragana' ? 'ひらがな' : 'カタカナ'}
@@ -714,20 +663,18 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                 {/* Scale & Placement Options */}
                 <div
-                  className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>スケール・配置・太さ補正</span>
                   </span>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500 font-bold">縮小倍率:</span>
-                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                        <span className={`${themeClasses.textMuted} font-bold`}>縮小倍率:</span>
+                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
                           {Math.round(smallScale * 100)}%
                         </span>
                       </div>
@@ -738,9 +685,9 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="0.02"
                         value={smallScale}
                         onChange={(e) => setSmallScale(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
-                      <div className="flex justify-between text-[9px] text-stone-400 mt-0.5">
+                      <div className={`flex justify-between text-[9px] mt-0.5 ${themeClasses.textMuted}`}>
                         <span>60% (小さめ)</span>
                         <span>72% (標準)</span>
                         <span>85% (大きめ)</span>
@@ -749,8 +696,8 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500 font-bold">太さ補正:</span>
-                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                        <span className={`${themeClasses.textMuted} font-bold`}>太さ補正:</span>
+                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
                           +{smallWeightBoost}px
                         </span>
                       </div>
@@ -761,9 +708,9 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="1"
                         value={smallWeightBoost}
                         onChange={(e) => setSmallWeightBoost(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
-                      <div className="flex justify-between text-[9px] text-stone-400 mt-0.5">
+                      <div className={`flex justify-between text-[9px] mt-0.5 ${themeClasses.textMuted}`}>
                         <span>0px</span>
                         <span>+4px (標準)</span>
                         <span>+12px</span>
@@ -773,7 +720,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                   {/* Placement Mode */}
                   <div className="text-xs">
-                    <label className="block text-[11px] font-bold text-stone-600 dark:text-emerald-300 mb-1">
+                    <label className={`block text-[11px] font-bold mb-1 ${themeClasses.textMuted}`}>
                       配置位置
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
@@ -788,14 +735,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         <button
                           key={pl.id}
                           onClick={() => setSmallPlacement(pl.id)}
-                          className={`p-1.5 text-[10px] rounded border font-medium text-center transition-all ${
+                          className={`p-1.5 text-[10px] rounded border font-medium text-center transition-colors cursor-pointer ${
                             smallPlacement === pl.id
-                              ? isLight
-                                ? 'bg-emerald-100 border-emerald-500 text-emerald-900 font-bold'
-                                : 'bg-emerald-950 border-emerald-400 text-emerald-200 font-bold'
-                              : isLight
-                              ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
-                              : 'bg-[#16211a] border-[#26372c] text-stone-300 hover:bg-[#203024]'
+                              ? `${themeClasses.accentBadge} font-bold`
+                              : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                           }`}
                         >
                           {pl.name}
@@ -805,10 +748,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                   </div>
 
                   {/* Position Fine Tuning */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200 dark:border-stone-800 text-xs">
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500">左右オフセット (X):</span>
+                        <span className={themeClasses.textMuted}>左右オフセット (X):</span>
                         <span className="font-mono font-bold">{smallOffsetX > 0 ? `+${smallOffsetX}` : smallOffsetX}px</span>
                       </div>
                       <input
@@ -818,13 +761,13 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="5"
                         value={smallOffsetX}
                         onChange={(e) => setSmallOffsetX(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
                     </div>
 
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-stone-500">上下オフセット (Y):</span>
+                        <span className={themeClasses.textMuted}>上下オフセット (Y):</span>
                         <span className="font-mono font-bold">{smallOffsetY > 0 ? `+${smallOffsetY}` : smallOffsetY}px</span>
                       </div>
                       <input
@@ -834,7 +777,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         step="5"
                         value={smallOffsetY}
                         onChange={(e) => setSmallOffsetY(Number(e.target.value))}
-                        className="w-full h-1.5 accent-emerald-600 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                        className="w-full h-1.5 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                       />
                     </div>
                   </div>
@@ -842,31 +785,25 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
                 {/* Source Kana Grid */}
                 <div
-                  className={`p-3 rounded-lg border ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
-                  <div className="flex items-center justify-between text-[11px] mb-2 font-bold text-stone-600 dark:text-emerald-300">
+                  <div className={`flex items-center justify-between text-[11px] mb-2 font-bold ${themeClasses.textMuted}`}>
                     <span>対象文字プレビュー:</span>
-                    <span className="text-emerald-700 dark:text-emerald-400">
+                    <span className={themeClasses.accentText}>
                       作成済: {availableSmallSources.filter((s) => s.hasContours).length} / {availableSmallSources.length}字
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1 bg-white dark:bg-[#121a14] rounded border border-stone-200 dark:border-stone-800">
+                  <div className={`flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}>
                     {availableSmallSources.map((item) => (
                       <button
                         key={item.char}
                         onClick={() => setSmallPreviewChar(item.char)}
-                        className={`w-7 h-7 rounded text-xs font-bold transition-all flex items-center justify-center ${
+                        className={`w-7 h-7 rounded text-xs font-bold transition-colors flex items-center justify-center ${
                           smallPreviewChar === item.char
-                            ? 'bg-emerald-700 text-white ring-2 ring-emerald-500'
+                            ? `${themeClasses.accentBtn} ring-2 ring-emerald-500`
                             : item.hasContours
-                            ? isLight
-                              ? 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-emerald-950/70 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-900'
-                            : isLight
-                            ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
-                            : 'bg-stone-900/60 text-stone-600 cursor-not-allowed'
+                            ? `${themeClasses.accentBadge} cursor-pointer hover:opacity-90`
+                            : 'bg-black/5 dark:bg-white/5 text-stone-400 dark:text-stone-600 cursor-not-allowed'
                         }`}
                         title={`「${item.char}」⇒ 小文字「${item.smallChar}」${
                           item.hasContours ? ' (作図済)' : ' (未作図)'
@@ -882,21 +819,19 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               {/* Right Live Preview Box */}
               <div className="lg:col-span-5 flex flex-col gap-3">
                 <div
-                  className={`p-3.5 sm:p-4 rounded-lg border flex flex-col items-center justify-center ${
-                    isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#19231c] border-[#2b3e32]'
-                  }`}
+                  className={`p-3.5 sm:p-4 rounded-lg border flex flex-col items-center justify-center ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className="w-full flex items-center justify-between text-xs font-bold mb-2">
                     <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                      <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                       <span>配置プレビュー</span>
                     </span>
-                    <span className="text-[11px] font-mono text-stone-500">
+                    <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>
                       「{smallPreviewChar}」⇒「{KANA_PAIRS[smallPreviewChar]?.smallChar || ''}」
                     </span>
                   </div>
 
-                  <div className="w-52 h-52 sm:w-60 sm:h-60 relative rounded-lg border bg-white dark:bg-[#101712] border-stone-200 dark:border-stone-800 flex items-center justify-center overflow-hidden ">
+                  <div className={`w-52 h-52 sm:w-60 sm:h-60 relative rounded-lg border flex items-center justify-center overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}>
                     {/* Em box crosshairs & baseline */}
                     <div className="absolute inset-0 pointer-events-none opacity-15">
                       <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />
@@ -922,14 +857,14 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                         />
                       </svg>
                     ) : (
-                      <div className="text-center p-4 text-xs text-stone-400 dark:text-emerald-700">
+                      <div className={`text-center p-4 text-xs ${themeClasses.textMuted}`}>
                         親文字「{smallPreviewChar}」がまだ作成されていません
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-2 text-[11px] text-stone-500 text-center flex items-center gap-1">
-                    <Info className="w-3 h-3 shrink-0 text-emerald-600" />
+                  <div className={`mt-2 text-[11px] text-center flex items-center gap-1 ${themeClasses.textMuted}`}>
+                    <Info className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
                     <span>背景の薄い文字は原字（通常サイズ）です</span>
                   </div>
                 </div>
@@ -937,11 +872,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                 {/* Batch Action Button */}
                 <button
                   onClick={handleExecuteSmallKanaBatch}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm  flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
-                    isLight
-                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  }`}
+                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.99] cursor-pointer ${themeClasses.accentBtn}`}
                 >
                   <Wand2 className="w-4 h-4" />
                   <span>小書き文字を一括生成</span>

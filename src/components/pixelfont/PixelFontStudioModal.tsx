@@ -23,6 +23,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../../types';
+import { getThemeClasses } from '../../utils/theme';
 import { shareOrDownloadFont } from '../../utils/font';
 import { pixelGridToContours, rasterizeGlyphToPixelGrid } from '../../utils/pixelFontUtils';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
@@ -42,10 +43,12 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
   isOpen,
   onClose,
   isLight,
+  theme = isLight ? 'light' : 'dark',
   selectedUnicode,
   onSelectGlyph,
   onShowToast,
 }) => {
+  const themeClasses = getThemeClasses(theme);
   const [glyphSearchQuery, setGlyphSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [showGlyphDrawer, setShowGlyphDrawer] = useState<boolean>(false);
@@ -617,7 +620,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-2 bg-black/85 animate-in fade-in duration-150 pointer-events-auto"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-2 bg-black/75 anim-fade pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -631,10 +634,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     >
       <div
         className={`w-full ${
-          isFullscreen ? 'h-full max-h-none' : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px]'
-        } rounded-none border-0 sm:border-2 flex flex-col overflow-hidden select-none transition-colors ${
-          isLight ? 'bg-white border-stone-400 text-stone-900' : 'bg-[#0c130f] border-[#294232] text-emerald-100'
-        }`}
+          isFullscreen
+            ? 'h-full max-h-none rounded-none border-0'
+            : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px] rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border'
+        } flex flex-col overflow-hidden select-none ${themeClasses.modalBg}`}
       >
         <input
           ref={fileInputRef}
@@ -646,9 +649,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
         {/* DESKTOP TOP HEADER */}
         <div
-          className={`hidden md:flex items-center justify-between px-3 sm:px-4 py-2 border-b-2 shrink-0 ${
-            isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#121c16] border-[#294232]'
-          }`}
+          className={`hidden md:flex items-center justify-between px-3 sm:px-4 py-2 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-none bg-emerald-600 text-white flex items-center justify-center font-mono font-bold text-sm border border-emerald-400">
@@ -766,9 +767,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
         {/* MOBILE TOP HEADER */}
         <div
-          className={`flex md:hidden items-center justify-between px-2.5 py-1.5 border-b shrink-0 ${
-            isLight ? 'bg-stone-100 border-stone-300' : 'bg-[#121c16] border-[#294232]'
-          }`}
+          className={`flex md:hidden items-center justify-between px-2.5 py-1.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
             <div className="w-7 h-7 bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-400">
@@ -1220,9 +1219,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
         {/* MOBILE BOTTOM NAVIGATION BAR */}
         <div
-          className={`flex md:hidden items-center justify-around h-14 shrink-0 border-t z-30 ${
-            isLight ? 'bg-white/98 border-stone-300 shadow-lg' : 'bg-[#0a0f0c]/98 border-[#294232]'
-          }`}
+          className={`flex md:hidden items-center justify-around h-14 shrink-0 border-t z-30 shadow-lg ${themeClasses.headerBg} ${themeClasses.border}`}
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 2px)' }}
         >
           {[
@@ -1237,12 +1234,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setMobileTab(tab.id)}
-                className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 transition-all relative cursor-pointer ${
+                className={`flex-1 min-h-[44px] flex flex-col items-center justify-center py-1 transition-colors relative cursor-pointer ${
                   isActive
-                    ? 'text-emerald-600 dark:text-emerald-400 font-extrabold'
-                    : isLight
-                    ? 'text-stone-500 hover:text-stone-900'
-                    : 'text-stone-400 hover:text-stone-100'
+                    ? `${themeClasses.accentText} font-extrabold`
+                    : `${themeClasses.textMuted} hover:opacity-90`
                 }`}
               >
                 <div className="relative">

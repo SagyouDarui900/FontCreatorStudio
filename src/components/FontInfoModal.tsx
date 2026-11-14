@@ -222,16 +222,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
       className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none anim-fade'
       }`}
     >
       <div
-        className={`flex flex-col transition-colors duration-150 overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#151e18] text-emerald-100'
-            : `w-full max-w-xl xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[90vh] ${themeClasses.modalBg}`
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-xl xl:max-w-2xl border ${themeClasses.border} rounded-2xl shadow-2xl max-h-[90vh]`
         }`}
       >
         {/* Header */}
@@ -239,15 +237,11 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           className={`p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
-            <Settings className={`w-4 h-4 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
-            <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${
-                isLight ? 'text-emerald-950' : 'text-emerald-200'
-              }`}
-            >
+            <Settings className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0">
               <span className="truncate">フォント情報・ライセンス</span>
               {isFullscreen && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
                   全画面
                 </span>
               )}
@@ -257,14 +251,10 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors ${
+              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -282,9 +272,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 rounded-lg border transition-colors ${
-                isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
-              }`}
+              className={`p-1 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -294,36 +282,28 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b text-xs font-semibold overflow-x-auto scrollbar-none shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${themeClasses.cardBg}`}
+          className={`flex border-b text-xs font-semibold overflow-x-auto scrollbar-none shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${themeClasses.subtoolbarBg}`}
         >
           <button
             type="button"
             onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'info'
-                ? isLight
-                  ? 'bg-white text-emerald-950 shadow-xs font-bold ring-1 ring-emerald-600/30'
-                  : 'bg-emerald-900/60 text-emerald-200 font-bold ring-1 ring-emerald-500/40'
-                : isLight
-                ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
-            <Settings className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <Settings className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">基本・情報</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('license')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'license'
-                ? isLight
-                  ? 'bg-white text-amber-950 shadow-xs font-bold ring-1 ring-amber-500/30'
-                  : 'bg-amber-950/60 text-amber-200 font-bold ring-1 ring-amber-500/40'
-                : isLight
-                ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             <Scale className="w-3.5 h-3.5 shrink-0 text-amber-500" />
@@ -333,14 +313,10 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('opentype')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'opentype'
-                ? isLight
-                  ? 'bg-white text-indigo-950 shadow-xs font-bold ring-1 ring-indigo-500/30'
-                  : 'bg-indigo-950/60 text-indigo-200 font-bold ring-1 ring-indigo-500/40'
-                : isLight
-                ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             <Layers className="w-3.5 h-3.5 shrink-0 text-indigo-500" />
@@ -350,17 +326,13 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('guide')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'guide'
-                ? isLight
-                  ? 'bg-white text-emerald-950 shadow-xs font-bold ring-1 ring-emerald-600/30'
-                  : 'bg-emerald-900/60 text-emerald-200 font-bold ring-1 ring-emerald-500/40'
-                : isLight
-                ? 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-                : `${themeClasses.textMuted} hover:text-stone-200 hover:bg-white/5`
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">権利ガイド</span>
           </button>
         </div>
@@ -369,12 +341,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-4 text-xs scrollbar-none">
           {/* TAB 1: BASIC INFO & METRICS */}
           {activeTab === 'info' && (
-            <div className="space-y-3.5 animate-fadeIn">
+            <div className="space-y-3.5 anim-fade">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs flex items-center justify-between ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
                     <span>フォント名 (Family Name)</span>
-                    <span className="text-[10px] text-emerald-600 font-normal">必須</span>
+                    <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
                   </label>
                   <input
                     type="text"
@@ -382,18 +354,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.familyName || ''}
                     onChange={(e) => setFormData({ ...formData, familyName: e.target.value })}
                     placeholder="例: MyCustomFont"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs flex items-center justify-between ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
                     <span>スタイル名 (Subfamily)</span>
-                    <span className="text-[10px] text-emerald-600 font-normal">必須</span>
+                    <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
                   </label>
                   <input
                     type="text"
@@ -401,18 +369,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.styleName || ''}
                     onChange={(e) => setFormData({ ...formData, styleName: e.target.value })}
                     placeholder="Regular, Bold, Medium など"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     作者・制作者名 (Designer)
                   </label>
                   <input
@@ -420,16 +384,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.designer || ''}
                     onChange={(e) => setFormData({ ...formData, designer: e.target.value })}
                     placeholder="あなたのペンネーム / 組織名"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     バージョン (Version)
                   </label>
                   <input
@@ -437,18 +397,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.version || ''}
                     onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                     placeholder="1.000"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     Webサイト / ポートフォリオ URL
                   </label>
                   <input
@@ -456,16 +412,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.designerUrl || ''}
                     onChange={(e) => setFormData({ ...formData, designerUrl: e.target.value })}
                     placeholder="https://..."
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     フォント説明 (Description)
                   </label>
                   <input
@@ -473,11 +425,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.description || ''}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="自作の日本語手書き風フォントです"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
                 </div>
               </div>
@@ -505,7 +453,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
           {/* TAB 2: LICENSE & COPYRIGHT SETTINGS */}
           {activeTab === 'license' && (
-            <div className="space-y-4 animate-fadeIn">
+            <div className="space-y-4 anim-fade">
               <LicensePresetSection
                 isLight={isLight}
                 formData={formData}
@@ -516,7 +464,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               {/* Editable License Fields */}
               <div className="space-y-3.5">
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     著作権表記 (Copyright String - Name ID 0)
                   </label>
                   <input
@@ -524,16 +472,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.copyright || ''}
                     onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
                     placeholder={`Copyright (c) ${new Date().getFullYear()} by ${formData.designer || 'Your Name'}. All rights reserved.`}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 break-all ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
                   />
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     ライセンス規約文 (License Description - Name ID 13)
                   </label>
                   <textarea
@@ -541,16 +485,12 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.license || ''}
                     onChange={(e) => setFormData({ ...formData, license: e.target.value })}
                     placeholder="フォントの利用規約文・配布条件を入力..."
-                    className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-1 font-mono text-[11px] sm:text-xs leading-relaxed break-all resize-y min-h-[110px] ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 font-mono text-[11px] sm:text-xs leading-relaxed break-all resize-y min-h-[110px] ${themeClasses.cardBg}`}
                   />
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className={`font-bold text-[11px] sm:text-xs ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
+                  <label className="font-bold text-[11px] sm:text-xs">
                     ライセンス案内 URL (License Info URL - Name ID 14)
                   </label>
                   <input
@@ -558,11 +498,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.licenseUrl || ''}
                     onChange={(e) => setFormData({ ...formData, licenseUrl: e.target.value })}
                     placeholder="https://..."
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 break-all ${
-                      isLight
-                        ? 'bg-white border-[#c8ded3] text-stone-800 focus:border-emerald-700 focus:ring-emerald-700'
-                        : 'bg-[#101813] border-[#2d4034] text-emerald-100 focus:border-emerald-500 focus:ring-emerald-500'
-                    }`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
                   />
                 </div>
               </div>
@@ -580,14 +516,10 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
           {/* TAB 3: COPYRIGHT & COMMERCIAL USE FAQ GUIDE */}
           {activeTab === 'guide' && (
-            <div className="space-y-3.5 animate-fadeIn text-[11px]">
-              <div
-                className={`p-3 sm:p-3.5 rounded-xl border ${
-                  isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-emerald-950/50 border-emerald-800 text-emerald-100'
-                }`}
-              >
+            <div className="space-y-3.5 anim-fade text-[11px]">
+              <div className={`p-3 sm:p-3.5 rounded-xl border ${themeClasses.accentBadge}`}>
                 <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>作成フォントの著作権・商用利用についての保証</span>
                 </div>
                 <p className="leading-relaxed opacity-90">
@@ -596,46 +528,34 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               </div>
 
               <div className="space-y-2.5">
-                <div
-                  className={`p-3 rounded-xl border ${
-                    isLight ? 'bg-white border-stone-200' : 'bg-[#151f18] border-[#25362b]'
-                  }`}
-                >
-                  <h4 className="font-bold flex items-center gap-1 text-emerald-800 dark:text-emerald-300 text-xs">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <div className={`p-3 rounded-xl border ${themeClasses.cardBg}`}>
+                  <h4 className={`font-bold flex items-center gap-1 text-xs ${themeClasses.accentText}`}>
+                    <Check className="w-3.5 h-3.5 shrink-0" />
                     <span>Q. 作成したフォントは商用利用できますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-80 leading-relaxed">
+                  <p className="mt-1 opacity-85 leading-relaxed">
                     <strong>A. はい、商用利用可能です。</strong>
                     同人誌や商業出版、ポスター・チラシ、WebサイトでのWebフォント利用、YouTubeやTV番組のテロップ、ゲームやスマートフォンアプリ、LINEスタンプ、グッズ販売、社名・ブランドロゴなど、あらゆる用途で自由に無制限にご活用いただけます。
                   </p>
                 </div>
 
-                <div
-                  className={`p-3 rounded-xl border ${
-                    isLight ? 'bg-white border-stone-200' : 'bg-[#151f18] border-[#25362b]'
-                  }`}
-                >
-                  <h4 className="font-bold flex items-center gap-1 text-emerald-800 dark:text-emerald-300 text-xs">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <div className={`p-3 rounded-xl border ${themeClasses.cardBg}`}>
+                  <h4 className={`font-bold flex items-center gap-1 text-xs ${themeClasses.accentText}`}>
+                    <Check className="w-3.5 h-3.5 shrink-0" />
                     <span>Q. 作成したフォントを有料で販売・無償配布できますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-80 leading-relaxed">
+                  <p className="mt-1 opacity-85 leading-relaxed">
                     <strong>A. はい、Boothや自サイト等での有料販売・無償配布も自由に行えます。</strong>
                     当ツール運営側がロイヤリティや利用料を請求することは一切ございません。
                   </p>
                 </div>
 
-                <div
-                  className={`p-3 rounded-xl border ${
-                    isLight ? 'bg-white border-stone-200' : 'bg-[#151f18] border-[#25362b]'
-                  }`}
-                >
-                  <h4 className="font-bold flex items-center gap-1 text-emerald-800 dark:text-emerald-300 text-xs">
+                <div className={`p-3 rounded-xl border ${themeClasses.cardBg}`}>
+                  <h4 className={`font-bold flex items-center gap-1 text-xs ${themeClasses.accentText}`}>
                     <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>Q. 下絵（トレース機能）を使う場合の注意点はありますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-80 leading-relaxed">
+                  <p className="mt-1 opacity-85 leading-relaxed">
                     <strong>A. ご自身の手書き文字・スケッチ、または権利のクリアな素材をご利用ください。</strong>
                     他者が制作した著作権のあるフォントをトレースして再配布する行為は権利侵害となります。独自の手書き原稿またはパブリックドメイン資料から作成してください。
                   </p>
@@ -645,8 +565,8 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className={`pt-3.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 ${isLight ? 'border-[#d8e6df]' : 'border-[#25362b]'}`}>
-            <div className="text-[11px] text-center sm:text-left text-stone-500 dark:text-stone-400">
+          <div className={`pt-3.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 ${themeClasses.border}`}>
+            <div className={`text-[11px] text-center sm:text-left ${themeClasses.textMuted}`}>
               {activeTab === 'info' && 'フォント名やEMメトリクスを設定'}
               {activeTab === 'license' && 'ライセンス・著作権情報を埋め込み'}
               {activeTab === 'opentype' && 'OS/2 & hhea メタデータを設定'}
@@ -656,21 +576,13 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 rounded-lg font-medium transition-colors cursor-pointer text-xs ${
-                  isLight
-                    ? 'bg-white border border-[#c8ded3] text-stone-700 hover:bg-emerald-50'
-                    : 'bg-[#18231c] border border-[#25362b] text-emerald-300 hover:bg-[#202d24]'
-                }`}
+                className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 border rounded-lg font-medium transition-colors cursor-pointer text-xs ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               >
                 閉じる
               </button>
               <button
                 type="submit"
-                className={`flex-1 sm:flex-none px-5 py-2 sm:py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer text-xs shadow-xs active:scale-95 ${
-                  isLight
-                    ? 'bg-emerald-800 hover:bg-emerald-900 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                }`}
+                className={`flex-1 sm:flex-none px-5 py-2 sm:py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-[transform,background-color] cursor-pointer text-xs shadow-xs active:scale-95 ${themeClasses.accentBtn}`}
               >
                 <Check className="w-4 h-4" />
                 <span>設定を保存</span>

@@ -108,7 +108,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  <button
  key={b.id}
  onClick={() => setBrushStyle(b.id)}
- className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap transition-all ${
+ className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap transition-colors ${
  brushStyle === b.id
  ? 'bg-emerald-800 text-white font-bold '
  : 'text-stone-600 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-white'
@@ -122,7 +122,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  {/* Quick Auto-Union Switch for Brush */}
  <button
  onClick={() => setIsAutoUnionMode(!isAutoUnionMode)}
- className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all flex items-center space-x-1 shrink-0 ${
+ className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors flex items-center space-x-1 shrink-0 ${
  isAutoUnionMode
  ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-600'
  : 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-[#1a261e] dark:text-stone-400 dark:border-[#25382b]'
@@ -220,7 +220,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  {/* Straight Mode Toggle */}
  <button
  onClick={() => setIsStraightMode(!isStraightMode)}
- className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${
+ className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-colors ${
  isStraightMode
  ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-400 text-emerald-900 dark:text-emerald-200'
  : 'bg-white dark:bg-[#18261e] border-stone-200 dark:border-[#25382b] text-stone-500 dark:text-stone-400'
@@ -263,7 +263,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  {/* Auto-Union Switch for Shape */}
  <button
  onClick={() => setIsAutoUnionMode(!isAutoUnionMode)}
- className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all flex items-center space-x-1 shrink-0 ${
+ className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors flex items-center space-x-1 shrink-0 ${
  isAutoUnionMode
  ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-600'
  : 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-[#1a261e] dark:text-stone-400 dark:border-[#25382b]'
@@ -277,7 +277,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  <button
  onClick={handleUnionPart}
  disabled={!activePart || (activePart.contours?.length ?? 0) === 0}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-colors"
  title="現在の部首パーツと合体する"
  >
  既存パーツと合体
@@ -302,7 +302,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  {/* Auto-Union Switch for Pen */}
  <button
  onClick={() => setIsAutoUnionMode(!isAutoUnionMode)}
- className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all flex items-center space-x-1 shrink-0 ml-2 ${
+ className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors flex items-center space-x-1 shrink-0 ml-2 ${
  isAutoUnionMode
  ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-600'
  : 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-[#1a261e] dark:text-stone-400 dark:border-[#25382b]'
@@ -344,7 +344,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  <div className="flex items-center space-x-1 bg-stone-100 dark:bg-[#1a281f] p-0.5 rounded-lg border border-stone-200 dark:border-[#25382b]">
  <button
  onClick={() => setEraserMode('stroke')}
- className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+ className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors ${
  eraserMode === 'stroke'
  ? 'bg-rose-600 text-white shadow-xs'
  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
@@ -355,7 +355,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  </button>
  <button
  onClick={() => setEraserMode('cut')}
- className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+ className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors ${
  eraserMode === 'cut'
  ? 'bg-rose-600 text-white shadow-xs'
  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
@@ -366,7 +366,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  </button>
  <button
  onClick={() => setEraserMode('node')}
- className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+ className={`px-2.5 py-1 rounded text-[11px] font-bold transition-colors ${
  eraserMode === 'node'
  ? 'bg-rose-600 text-white shadow-xs'
  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900'
@@ -384,7 +384,7 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  <button
  key={sz}
  onClick={() => setEraserRadius(sz)}
- className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center transition-all ${
+ className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center transition-colors ${
  eraserRadius === sz
  ? 'bg-rose-500 text-white scale-110 shadow-xs'
  : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-300'
@@ -418,14 +418,14 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  </span>
  <button
  onClick={handleToggleSelectedNodeType}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-colors"
  title="角頂点(Corner)と滑らかな曲線頂点(Smooth)を切り替え"
  >
  曲率切替 (Smooth/Corner)
  </button>
  <button
  onClick={handleDeleteSelectedNode}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 transition-colors"
  title="選択中のノードを削除 (Delete)"
  >
  ノード削除
@@ -438,21 +438,21 @@ export const RadicalToolSettingsBar: React.FC<RadicalToolSettingsBarProps> = Rea
  </span>
  <button
  onClick={handleDuplicateSelectedContour}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-emerald-100 dark:bg-[#18261e] dark:hover:bg-[#203428] text-stone-700 dark:text-emerald-200 border border-stone-200 dark:border-[#25382b] transition-colors"
  title="選択した輪郭を複製"
  >
  輪郭を複製
  </button>
  <button
  onClick={handleUnionPart}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/70 dark:hover:bg-emerald-900 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/70 dark:hover:bg-emerald-900 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 transition-colors"
  title="全輪郭と結合して1つの輪郭に合体"
  >
  部首と合体
  </button>
  <button
  onClick={handleDeleteSelectedContour}
- className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 transition-all"
+ className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 transition-colors"
  title="選択した輪郭を削除 (Delete)"
  >
  輪郭を削除

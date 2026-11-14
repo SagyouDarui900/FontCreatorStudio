@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FontProject, GlyphData, PathContour, BezierNode } from '../types';
 import { groupContoursForRendering } from '../utils/path';
+import { ThemeMode, getThemeClasses } from '../utils/theme';
 
 interface GridFittingModalProps {
   project: FontProject;
@@ -22,6 +23,7 @@ interface GridFittingModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLight: boolean;
+  theme?: ThemeMode;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
@@ -272,8 +274,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   isOpen,
   onClose,
   isLight,
+  theme,
   onShowToast,
 }) => {
+  const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
   // Target PPEM Sizes
   const targetSizes = [9, 10, 12, 14, 16, 18, 20, 24, 32, 48];
   const [selectedPpem, setSelectedPpem] = useState<number>(16);
@@ -581,23 +585,17 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   const currentSvgPath = contoursToSvgPath(enablePreview ? fittedGlyph.contours : currentGlyph.contours);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-4 md:p-6 bg-black/75 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-4 md:p-6 bg-black/75 anim-fade">
       <div
-        className={`w-full max-w-6xl h-[98vh] sm:h-[94vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border transition-colors ${
-          isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#101812] border-[#223326] text-stone-100'
-        }`}
+        className={`w-full max-w-6xl h-[98vh] sm:h-[94vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar - Ultra Compact on Mobile */}
         <div
-          className={`flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3.5 border-b shrink-0 ${
-            isLight ? 'bg-stone-50/90 border-stone-200' : 'bg-[#142018] border-[#223326]'
-          }`}
+          className={`flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <div
-              className={`hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border  shrink-0 ${
-                isLight ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-amber-950/60 border-amber-800 text-amber-400'
-              }`}
+              className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 shrink-0"
             >
               <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -610,7 +608,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                   Grid-Fitting Engine v2.0
                 </span>
               </div>
-              <p className="hidden sm:block text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+              <p className={`hidden sm:block text-xs mt-0.5 ${themeClasses.textMuted}`}>
                 9px〜24pxの小サイズ表示で文字線がボケたりかすれないよう、ステム・境界座標をピクセル格子に整数整列します
               </p>
             </div>
@@ -619,11 +617,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={handleApplyToCurrentGlyph}
- className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-all active:scale-98 ${
-                isLight
-                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                  : 'bg-amber-600 hover:bg-amber-500 text-white'
-              }`}
+              className="hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
               title="選択中の1文字のみにヒンティングを適用します"
             >
               <Check className="w-4 h-4" />
@@ -632,20 +626,16 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             <button
               onClick={handleBatchApplyHinting}
- className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-all active:scale-98 ${
-                isLight
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              }`}
+              className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
               title="すべての文字のステムを選択中のグリッド条件で一括整列します"
             >
-              <Sparkles className="w-4 h-4 text-emerald-200" />
+              <Sparkles className="w-4 h-4 opacity-90" />
               <span>全文字一括 {selectedPpem}px 適用</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1a2e21] transition-colors"
+              className={`p-1.5 sm:p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -654,13 +644,11 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
         {/* Toolbar: PPEM Selector & View Controls (Single horizontal scroll line on mobile) */}
         <div
-          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap scrollbar-none ${
-            isLight ? 'bg-stone-100/70 border-stone-200' : 'bg-[#121d15] border-[#223326]'
-          }`}
+          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap scrollbar-none ${themeClasses.subtoolbarBg}`}
         >
           {/* Target PPEM Size Selector */}
           <div className="flex items-center space-x-1.5 shrink-0">
-            <span className="text-stone-500 dark:text-stone-400 shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs">
+            <span className={`shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs ${themeClasses.textMuted}`}>
               <Monitor className="w-3.5 h-3.5 text-amber-500 hidden sm:inline-block" />
               <span className="hidden sm:inline">検証解像度 (PPEM):</span>
               <span className="sm:hidden text-amber-500 font-bold">PPEM:</span>
@@ -670,12 +658,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                 <button
                   key={sz}
                   onClick={() => setSelectedPpem(sz)}
-                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg transition-all font-mono text-[10px] sm:text-[11px] ${
+                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors font-mono text-[10px] sm:text-[11px] cursor-pointer ${
                     selectedPpem === sz
-                      ? 'bg-amber-600 text-white font-black '
-                      : isLight
-                      ? 'bg-white text-stone-700 hover:bg-stone-200 border border-stone-200'
-                      : 'bg-[#1a291f] text-stone-300 hover:bg-[#24392b] border border-[#233829]'
+                      ? 'bg-amber-600 text-white border-amber-600 font-black'
+                      : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   {sz}px
@@ -697,10 +683,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                 <button
                   key={mode.id}
                   onClick={() => setRenderingMode(mode.id)}
-                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[9px] sm:text-[10px] font-bold transition-all ${
+                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[9px] sm:text-[10px] font-bold transition-colors cursor-pointer ${
                     renderingMode === mode.id
-                      ? 'bg-emerald-600 text-white '
-                      : 'text-stone-500 hover:text-stone-900 dark:hover:text-white'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   {mode.label}
@@ -710,12 +696,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             <button
               onClick={() => setEnablePreview((prev) => !prev)}
-              className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-xl border text-[10px] sm:text-[11px] font-bold flex items-center space-x-1 transition-all shrink-0 ${
+              className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-xl border text-[10px] sm:text-[11px] font-bold flex items-center space-x-1 transition-colors shrink-0 cursor-pointer ${
                 enablePreview
-                  ? 'bg-emerald-600 text-white border-emerald-600 '
-                  : isLight
-                  ? 'bg-white text-stone-600 border-stone-300'
-                  : 'bg-[#18261c] text-stone-300 border-[#25382b]'
+                  ? `${themeClasses.accentBtn} border-transparent`
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
             >
               <Zap className="w-3 h-3 text-amber-300" />
@@ -725,33 +709,33 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         </div>
 
         {/* Mobile Tab Navigation */}
-        <div className="flex sm:hidden border-b border-stone-200 dark:border-[#223326] bg-stone-100 dark:bg-[#121c15] shrink-0">
+        <div className={`flex sm:hidden border-b shrink-0 ${themeClasses.subtoolbarBg}`}>
           <button
             onClick={() => setActiveTab('preview')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 ${
+            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'preview'
                 ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-stone-500'
+                : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
             プレビュー
           </button>
           <button
             onClick={() => setActiveTab('stems')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 ${
+            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'stems'
                 ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-stone-500'
+                : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
             ステム解析 ({detectedStems.length})
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 ${
+            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'settings'
                 ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-stone-500'
+                : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
             ヒンティング設定
@@ -759,48 +743,46 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         </div>
 
         {/* Main Body Grid */}
-        <div className="flex-1 min-h-0 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-stone-200 dark:divide-[#223326]">
+        <div className={`flex-1 min-h-0 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x ${themeClasses.border}`}>
           {/* Left Sidebar: Glyph List & Stem Inspector */}
           <div
-            className={`w-full md:w-72 shrink-0 p-3 sm:p-4 pb-24 sm:pb-4 space-y-3 sm:space-y-4 overflow-y-auto ${
+            className={`w-full md:w-72 shrink-0 p-3 sm:p-4 pb-24 sm:pb-4 space-y-3 sm:space-y-4 overflow-y-auto ${themeClasses.sidebarBg} ${
               activeTab !== 'stems' ? 'hidden sm:block' : ''
             }`}
           >
             {/* Glyph Search */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <Search className={`w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
               <input
                 type="text"
                 placeholder="文字・Unicode検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-8 pr-3 py-1.5 rounded-xl border text-xs outline-hidden ${
-                  isLight ? 'bg-stone-50 border-stone-200 text-stone-900' : 'bg-[#111913] border-[#25362b] text-stone-100'
-                }`}
+                className={`w-full pl-8 pr-3 py-1.5 rounded-xl border text-xs outline-hidden ${themeClasses.cardBg}`}
               />
             </div>
 
             {/* Quick Presets Buttons */}
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+              <span className={`text-[10px] font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
                 クイックヒンティングプリセット:
               </span>
               <div className="grid grid-cols-3 gap-1">
                 <button
                   onClick={() => applyPreset('retro')}
-                  className="px-2 py-1.5 rounded-lg text-[10px] font-bold border bg-stone-100 dark:bg-[#18261c] border-stone-200 dark:border-[#223828] hover:border-amber-500 transition-colors"
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
                 >
                   ドットゲーム
                 </button>
                 <button
                   onClick={() => applyPreset('web_ui')}
-                  className="px-2 py-1.5 rounded-lg text-[10px] font-bold border bg-stone-100 dark:bg-[#18261c] border-stone-200 dark:border-[#223828] hover:border-amber-500 transition-colors"
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
                 >
                   Web・UI画面
                 </button>
                 <button
                   onClick={() => applyPreset('soft')}
-                  className="px-2 py-1.5 rounded-lg text-[10px] font-bold border bg-stone-100 dark:bg-[#18261c] border-stone-200 dark:border-[#223828] hover:border-amber-500 transition-colors"
+                  className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
                 >
                   ソフト整列
                 </button>
@@ -809,20 +791,18 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             {/* Glyph Grid Selector */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider flex items-center justify-between">
+              <label className={`text-[11px] font-bold uppercase tracking-wider flex items-center justify-between ${themeClasses.textMuted}`}>
                 <span>検証対象文字選択 ({glyphList.length}):</span>
               </label>
-              <div className="grid grid-cols-5 gap-1.5 max-h-36 sm:max-h-40 overflow-y-auto p-1.5 border rounded-xl border-stone-200 dark:border-[#223326] bg-stone-50/50 dark:bg-[#0d150e]">
+              <div className={`grid grid-cols-5 gap-1.5 max-h-36 sm:max-h-40 overflow-y-auto p-1.5 border rounded-xl ${themeClasses.subtoolbarBg}`}>
                 {glyphList.map((g) => (
                   <button
                     key={g.unicode}
                     onClick={() => setSelectedUnicode(g.unicode)}
-                    className={`h-9 rounded-lg font-bold text-sm flex items-center justify-center transition-all ${
+                    className={`h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
                       selectedUnicode === g.unicode
-                        ? 'bg-amber-600 text-white '
-                        : isLight
-                        ? 'bg-white border border-stone-200 hover:bg-stone-100 text-stone-800'
-                        : 'bg-[#152219] border border-[#223628] hover:bg-[#1f3326] text-stone-200'
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     <span>{g.char}</span>
@@ -832,11 +812,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             </div>
 
             {/* Stem Detection Box */}
-            <div
-              className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 ${
-                isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#142018] border-[#223326]'
-              }`}
-            >
+            <div className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold flex items-center space-x-1.5">
                   <Flame className="w-4 h-4 text-amber-500" />
@@ -848,7 +824,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
               </div>
 
               {detectedStems.length === 0 ? (
-                <p className="text-[11px] text-stone-400 py-2">
+                <p className={`text-[11px] py-2 ${themeClasses.textMuted}`}>
                   選択中の文字から垂直・水平の主要ステムが検出されませんでした。
                 </p>
               ) : (
@@ -858,12 +834,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                       key={stem.id}
                       onMouseEnter={() => setHoveredStemId(stem.id)}
                       onMouseLeave={() => setHoveredStemId(null)}
-                      className={`flex items-center justify-between text-[11px] p-2 rounded-lg border transition-all cursor-pointer ${
+                      className={`flex items-center justify-between text-[11px] p-2 rounded-lg border transition-colors cursor-pointer ${
                         hoveredStemId === stem.id
                           ? 'border-amber-500 bg-amber-500/10'
-                          : isLight
-                          ? 'bg-white border-stone-200 hover:bg-stone-100'
-                          : 'bg-[#18261c] border-[#223628] hover:bg-[#1f3326]'
+                          : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                       }`}
                     >
                       <div className="flex items-center space-x-2">
@@ -876,7 +850,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                           {stem.type === 'v' ? '縦ステム (v)' : '横ステム (h)'}
                         </span>
                       </div>
-                      <div className="text-right font-mono text-[10px] text-stone-500 dark:text-stone-400">
+                      <div className={`text-right font-mono text-[10px] ${themeClasses.textMuted}`}>
                         <div>位置: {stem.pos}u (幅 {stem.width}u)</div>
                         {stem.shiftDelta !== undefined && (
                           <div className={stem.shiftDelta !== 0 ? 'text-amber-500 font-bold' : ''}>
@@ -904,7 +878,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                   「{currentGlyph.char}」 (U+{selectedUnicode.toString(16).toUpperCase()}) — {selectedPpem}px
                 </span>
               </h3>
-              <span className="text-[10px] sm:text-xs font-mono text-stone-400">
+              <span className={`text-[10px] sm:text-xs font-mono ${themeClasses.textMuted}`}>
                 1px = {(upm / selectedPpem).toFixed(1)}u
               </span>
             </div>
@@ -913,30 +887,30 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             <div className="flex sm:hidden items-center justify-center space-x-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
               <button
                 onClick={() => setMobilePreviewDisplay('raster')}
-                className={`flex-1 py-1 text-[10px] font-bold rounded-lg ${
+                className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
                   mobilePreviewDisplay === 'raster'
-                    ? 'bg-amber-600 text-white '
-                    : 'text-stone-500'
+                    ? 'bg-amber-600 text-white'
+                    : themeClasses.textMuted
                 }`}
               >
                 ピクセル格子
               </button>
               <button
                 onClick={() => setMobilePreviewDisplay('vector')}
-                className={`flex-1 py-1 text-[10px] font-bold rounded-lg ${
+                className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
                   mobilePreviewDisplay === 'vector'
-                    ? 'bg-amber-600 text-white '
-                    : 'text-stone-500'
+                    ? 'bg-amber-600 text-white'
+                    : themeClasses.textMuted
                 }`}
               >
                 ベクトル & ステム
               </button>
               <button
                 onClick={() => setMobilePreviewDisplay('both')}
-                className={`flex-1 py-1 text-[10px] font-bold rounded-lg ${
+                className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
                   mobilePreviewDisplay === 'both'
-                    ? 'bg-amber-600 text-white '
-                    : 'text-stone-500'
+                    ? 'bg-amber-600 text-white'
+                    : themeClasses.textMuted
                 }`}
               >
                 両方表示
@@ -949,16 +923,16 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
               <div
                 className={`p-3 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
                   mobilePreviewDisplay === 'raster' ? 'hidden sm:flex' : 'flex'
-                } ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#0f1711] border-[#223326]'}`}
+                } ${themeClasses.subtoolbarBg}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center space-x-1">
+                  <span className={`text-xs font-bold flex items-center space-x-1 ${themeClasses.textMuted}`}>
                     <Layers className="w-3.5 h-3.5 text-amber-500" />
                     <span>ベクトルパス & ステムガイド</span>
                   </span>
                   <button
                     onClick={() => setShowStemOverlay((prev) => !prev)}
-                    className="text-[10px] px-2 py-0.5 rounded-md font-bold border border-stone-300 dark:border-stone-700 text-stone-500"
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted}`}
                   >
                     ステム: {showStemOverlay ? 'ON' : 'OFF'}
                   </button>
@@ -1034,10 +1008,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
               <div
                 className={`p-3 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
                   mobilePreviewDisplay === 'vector' ? 'hidden sm:flex' : 'flex'
-                } ${isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#0f1711] border-[#223326]'}`}
+                } ${themeClasses.subtoolbarBg}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center space-x-1">
+                  <span className={`text-xs font-bold flex items-center space-x-1 ${themeClasses.textMuted}`}>
                     <Monitor className="w-3.5 h-3.5 text-amber-500" />
                     <span>{selectedPpem}px ラスタライズ結果</span>
                   </span>
@@ -1047,34 +1021,34 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                 </div>
 
                 {/* Canvas Pixel Display */}
-                <div className="w-full h-48 sm:h-72 border rounded-xl flex items-center justify-center p-2 sm:p-3 overflow-hidden bg-white dark:bg-[#070d08]">
+                <div className={`w-full h-48 sm:h-72 border rounded-xl flex items-center justify-center p-2 sm:p-3 overflow-hidden ${themeClasses.cardBg}`}>
                   <canvas
                     ref={canvasRef}
                     width={280}
                     height={280}
-                    className="max-w-[200px] sm:max-w-[280px] max-h-[200px] sm:max-h-[280px] rounded-lg border border-stone-200 dark:border-stone-800 shadow-inner"
+                    className={`max-w-[200px] sm:max-w-[280px] max-h-[200px] sm:max-h-[280px] rounded-lg border shadow-inner ${themeClasses.border}`}
                   />
                 </div>
 
                 {/* Actual Size 1x Preview */}
                 <div className="flex items-center justify-between pt-1">
                   <div className="flex items-center space-x-2 sm:space-x-3">
-                    <span className="text-[10px] sm:text-[11px] font-bold text-stone-500">原寸 ({selectedPpem}px):</span>
-                    <div className="p-1.5 sm:p-2 bg-white dark:bg-black rounded-lg border border-stone-200 dark:border-stone-800 inline-flex items-center justify-center min-w-[32px] min-h-[32px]">
+                    <span className={`text-[10px] sm:text-[11px] font-bold ${themeClasses.textMuted}`}>原寸 ({selectedPpem}px):</span>
+                    <div className={`p-1.5 sm:p-2 rounded-lg border inline-flex items-center justify-center min-w-[32px] min-h-[32px] ${themeClasses.cardBg}`}>
                       <span
                         style={{
                           fontSize: `${selectedPpem}px`,
                           lineHeight: '1',
                           filter: renderingMode === 'mono' ? 'contrast(200%)' : 'none',
                         }}
-                        className="text-stone-900 dark:text-white font-bold"
+                        className="font-bold"
                       >
                         {currentGlyph.char}
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-mono text-stone-400">
+                  <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
                     {selectedPpem}x{selectedPpem}
                   </span>
                 </div>
@@ -1132,25 +1106,23 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                   <button
                     key={opt.value}
                     onClick={() => setConfig((prev) => ({ ...prev, minStemWidthPx: opt.value }))}
-                    className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                    className={`py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                       config.minStemWidthPx === opt.value
-                        ? 'bg-amber-600 text-white border-amber-600 '
-                        : isLight
-                        ? 'bg-white border-stone-200 hover:bg-stone-100 text-stone-800'
-                        : 'bg-[#18261c] border-[#223628] hover:bg-[#1f3326] text-stone-200'
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-stone-400">
+              <p className={`text-[10px] ${themeClasses.textMuted}`}>
                 漢字や複雑な文字で横線が消えないよう、最低線幅を補正保持します。
               </p>
             </div>
 
             {/* Toggles */}
-            <div className="space-y-2.5 pt-2 border-t border-stone-200 dark:border-[#223326]">
+            <div className={`space-y-2.5 pt-2 border-t ${themeClasses.border}`}>
               <label className="flex items-center justify-between text-xs font-bold cursor-pointer">
                 <span>垂直ステム (縦線) スナップ</span>
                 <input
@@ -1201,10 +1173,10 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             </div>
 
             {/* Revert / Apply Actions */}
-            <div className="pt-4 space-y-2 border-t border-stone-200 dark:border-[#223326] hidden sm:block">
+            <div className={`pt-4 space-y-2 border-t hidden sm:block ${themeClasses.border}`}>
               <button
                 onClick={handleApplyToCurrentGlyph}
- className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all flex items-center justify-center space-x-2"
+                className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>「{currentGlyph.char}」に整列適用</span>
@@ -1212,9 +1184,9 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
               <button
                 onClick={handleBatchApplyHinting}
- className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all flex items-center justify-center space-x-2"
+                className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-2 cursor-pointer ${themeClasses.accentBtn}`}
               >
-                <Sparkles className="w-4 h-4 text-emerald-200" />
+                <Sparkles className="w-4 h-4 opacity-90" />
                 <span>全文字一括ヒンティング適用</span>
               </button>
             </div>
@@ -1222,30 +1194,28 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         </div>
 
         {/* Mobile Sticky Floating Action Bar */}
-        <div className="flex sm:hidden items-center justify-between gap-2 px-3 py-2 border-t bg-stone-100/90 dark:bg-[#121c15] border-stone-200 dark:border-[#223326] shrink-0">
+        <div className={`flex sm:hidden items-center justify-between gap-2 px-3 py-2 border-t shrink-0 ${themeClasses.subtoolbarBg}`}>
           <button
             onClick={handleApplyToCurrentGlyph}
- className="flex-1 py-2 rounded-xl bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1 "
+            className="flex-1 py-2 rounded-xl bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1 transition-colors"
           >
             <Check className="w-3.5 h-3.5" />
             <span>「{currentGlyph.char}」に適用</span>
           </button>
           <button
             onClick={handleBatchApplyHinting}
- className="flex-1 py-2 rounded-xl bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 "
+            className={`flex-1 py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1 transition-colors ${themeClasses.accentBtn}`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+            <Sparkles className="w-3.5 h-3.5 opacity-90" />
             <span>全文字一括適用</span>
           </button>
         </div>
 
         {/* Modal Footer (Desktop) */}
         <div
-          className={`hidden sm:flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#142018] border-[#223326]'
-          }`}
+          className={`hidden sm:flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
         >
-          <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400">
+          <div className={`flex items-center space-x-2 ${themeClasses.textMuted}`}>
             <Info className="w-4 h-4 text-amber-500 shrink-0" />
             <span>
               ヒンティング処理を行うことで、Webブラウザ、ゲームUI、AviUtl、各種Wordで小サイズ表示時の文字掠れが劇的に改善します
@@ -1254,7 +1224,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 font-bold text-xs transition-colors "
+            className={`px-5 py-2 rounded-xl border font-bold text-xs transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
           >
             完了・閉じる
           </button>

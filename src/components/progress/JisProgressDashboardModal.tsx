@@ -18,7 +18,7 @@ import {
 } from '../../data/jisKanjiSets';
 import { JIS_LEVEL_1_KANJI } from '../../data/jisLevel1';
 import { JIS_LEVEL_2_KANJI } from '../../data/jisLevel2';
-import { isLightTheme, getThemeClasses, ThemeMode } from '../../utils/theme';
+import { getThemeClasses, ThemeMode } from '../../utils/theme';
 
 export interface JisProgressDashboardModalProps {
   isOpen: boolean;
@@ -41,7 +41,6 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
   onSelectGlyph,
   onShowToast,
 }) => {
-  const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
   const [activeTab, setActiveTab] = useState<StandardTab>('jouyou');
@@ -158,10 +157,10 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
+        className={`w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
@@ -182,7 +181,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors cursor-pointer ${themeClasses.activeToolHover}`}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -190,9 +189,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
         {/* Metric Cards Top Section */}
         <div
-          className={`p-4 border-b grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0 ${
-            isLight ? 'bg-stone-50/60' : 'bg-stone-900/40'
-          } ${themeClasses.border}`}
+          className={`p-4 border-b grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* 常用漢字 */}
           <button
@@ -200,30 +197,26 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jouyou');
               setCurrentPage(1);
             }}
-            className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jouyou'
-                ? isLight
-                  ? 'bg-white border-emerald-500 shadow-md ring-2 ring-emerald-400/20'
-                  : 'bg-[#15271e] border-emerald-500 shadow-md ring-2 ring-emerald-500/20'
-                : isLight
-                ? 'bg-white hover:border-stone-300'
-                : 'bg-[#141b17] hover:border-stone-700'
+                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} shadow-md ring-2 ring-emerald-500/20`
+                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-stone-600 dark:text-stone-300">常用漢字 (2,136字)</span>
+              <span className={`text-xs font-bold ${themeClasses.textPrimary}`}>常用漢字 (2,136字)</span>
               <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
                 {progress.jouyou.percent}%
               </span>
             </div>
-            <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mb-1.5">
+            <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden mb-1.5">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                className="h-full bg-emerald-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jouyou.percent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-              <span>完了: <strong className="text-stone-800 dark:text-stone-200">{progress.jouyou.completed}</strong> 字</span>
+            <div className={`flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+              <span>完了: <strong className={themeClasses.textPrimary}>{progress.jouyou.completed}</strong> 字</span>
               <span>未作: {progress.jouyou.missingChars.length} 字</span>
             </div>
           </button>
@@ -234,30 +227,26 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jis1');
               setCurrentPage(1);
             }}
-            className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jis1'
-                ? isLight
-                  ? 'bg-white border-teal-500 shadow-md ring-2 ring-teal-400/20'
-                  : 'bg-[#142624] border-teal-500 shadow-md ring-2 ring-teal-500/20'
-                : isLight
-                ? 'bg-white hover:border-stone-300'
-                : 'bg-[#141b17] hover:border-stone-700'
+                ? `${themeClasses.cardBg} border-teal-500 shadow-md ring-2 ring-teal-500/20`
+                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-stone-600 dark:text-stone-300">JIS第1水準 (2,965字)</span>
+              <span className={`text-xs font-bold ${themeClasses.textPrimary}`}>JIS第1水準 (2,965字)</span>
               <span className="font-mono font-bold text-sm text-teal-600 dark:text-teal-400">
                 {progress.jis1.percent}%
               </span>
             </div>
-            <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mb-1.5">
+            <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden mb-1.5">
               <div
-                className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                className="h-full bg-teal-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jis1.percent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-              <span>完了: <strong className="text-stone-800 dark:text-stone-200">{progress.jis1.completed}</strong> 字</span>
+            <div className={`flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+              <span>完了: <strong className={themeClasses.textPrimary}>{progress.jis1.completed}</strong> 字</span>
               <span>未作: {progress.jis1.missingChars.length} 字</span>
             </div>
           </button>
@@ -268,30 +257,26 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jis2');
               setCurrentPage(1);
             }}
-            className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+            className={`p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jis2'
-                ? isLight
-                  ? 'bg-white border-cyan-500 shadow-md ring-2 ring-cyan-400/20'
-                  : 'bg-[#132429] border-cyan-500 shadow-md ring-2 ring-cyan-500/20'
-                : isLight
-                ? 'bg-white hover:border-stone-300'
-                : 'bg-[#141b17] hover:border-stone-700'
+                ? `${themeClasses.cardBg} border-cyan-500 shadow-md ring-2 ring-cyan-500/20`
+                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-stone-600 dark:text-stone-300">JIS第2水準 (3,390字)</span>
+              <span className={`text-xs font-bold ${themeClasses.textPrimary}`}>JIS第2水準 (3,390字)</span>
               <span className="font-mono font-bold text-sm text-cyan-600 dark:text-cyan-400">
                 {progress.jis2.percent}%
               </span>
             </div>
-            <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden mb-1.5">
+            <div className="w-full h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden mb-1.5">
               <div
-                className="h-full bg-cyan-500 rounded-full transition-all duration-300"
+                className="h-full bg-cyan-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jis2.percent}%` }}
               />
             </div>
-            <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400">
-              <span>完了: <strong className="text-stone-800 dark:text-stone-200">{progress.jis2.completed}</strong> 字</span>
+            <div className={`flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+              <span>完了: <strong className={themeClasses.textPrimary}>{progress.jis2.completed}</strong> 字</span>
               <span>未作: {progress.jis2.missingChars.length} 字</span>
             </div>
           </button>
@@ -308,10 +293,10 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                 setStatusFilter('all');
                 setCurrentPage(1);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                 statusFilter === 'all'
                   ? themeClasses.accentBtn
-                  : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                  : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
               }`}
             >
               全文字 ({rawList.length})
@@ -321,7 +306,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                 setStatusFilter('missing');
                 setCurrentPage(1);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
                 statusFilter === 'missing'
                   ? 'bg-rose-500 text-white'
                   : 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10'
@@ -335,7 +320,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                 setStatusFilter('completed');
                 setCurrentPage(1);
               }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
                 statusFilter === 'completed'
                   ? 'bg-emerald-600 text-white'
                   : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
@@ -369,7 +354,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                   className={`px-2 py-0.5 rounded-md font-bold transition-colors cursor-pointer ${
                     sortOrder === opt.id
                       ? themeClasses.accentBtn
-                      : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
                   }`}
                 >
                   {opt.label}
@@ -420,20 +405,16 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                   <button
                     key={ch}
                     onClick={() => handleJumpToChar(ch)}
-                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer group relative ${
+                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-colors cursor-pointer group relative ${
                       isCompleted
-                        ? isLight
-                          ? 'bg-emerald-50/80 border-emerald-300 text-stone-900 hover:bg-emerald-100 hover:scale-105'
-                          : 'bg-[#12241b] border-emerald-800 text-emerald-100 hover:bg-[#1a3327] hover:scale-105'
-                        : isLight
-                        ? 'bg-white border-stone-200 text-stone-400 hover:border-emerald-400 hover:text-stone-800 hover:scale-105'
-                        : 'bg-[#151c17] border-stone-800 text-stone-500 hover:border-emerald-600 hover:text-stone-200 hover:scale-105'
+                        ? `${themeClasses.accentBadge} hover:opacity-90`
+                        : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                     }`}
                     title={`「${ch}」U+${unicode?.toString(16).toUpperCase()}${
                       kuten ? ` (JIS区点 ${kuten.kuTenStr})` : ''
                     } - ${isCompleted ? '作成済み' : '未作成'}`}
                   >
-                    <span className="text-xl font-medium leading-none mb-1 group-hover:scale-110 transition-transform">
+                    <span className="text-xl font-medium leading-none mb-1">
                       {ch}
                     </span>
                     <span className="text-[9px] font-mono leading-none opacity-60">
@@ -466,17 +447,17 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               <button
                 disabled={validPage <= 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-40 cursor-pointer"
+                className={`px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-40 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 前へ
               </button>
-              <span className="text-xs font-mono font-bold px-2">
+              <span className={`text-xs font-mono font-bold px-2 ${themeClasses.textPrimary}`}>
                 {validPage} / {totalPages}
               </span>
               <button
                 disabled={validPage >= totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-40 cursor-pointer"
+                className={`px-2.5 py-1 rounded-lg border text-xs font-bold disabled:opacity-40 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 次へ
               </button>
@@ -485,7 +466,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} hover:${themeClasses.activeToolHover}`}
+            className={`px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
           >
             閉じる
           </button>

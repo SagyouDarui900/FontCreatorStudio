@@ -60,7 +60,7 @@ export const JsonBackupSection: React.FC<JsonBackupSectionProps> = React.memo(({
         <button
           type="button"
           onClick={handleDownloadJsonBackup}
-          className={`w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer ${
+          className={`w-full sm:w-auto px-3.5 py-2 sm:py-1.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors active:scale-95 cursor-pointer ${
             isDownloaded
               ? 'bg-emerald-600 text-white'
               : isLight

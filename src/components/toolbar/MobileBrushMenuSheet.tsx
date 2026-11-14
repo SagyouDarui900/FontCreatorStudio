@@ -53,11 +53,11 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
   return (
  <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end" ref={sheetRef}>
  <div
- className="fixed inset-0 bg-black/60 animate-fadeIn"
+ className="fixed inset-0 bg-black/60 anim-fade"
  onClick={() => onClose()}
  />
  <div
- className={`relative z-10 w-full rounded-t-2xl p-4 pb-[max(env(safe-area-inset-bottom),24px)] border-t shadow-2xl max-h-[75vh] flex flex-col animate-slideUp ${themeClasses.cardBg}`}
+ className={`relative z-10 w-full rounded-t-2xl p-4 pb-[max(env(safe-area-inset-bottom),24px)] border-t shadow-2xl max-h-[75vh] flex flex-col anim-slide-up ${themeClasses.cardBg}`}
  >
  <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800 mb-2 shrink-0">
  <span className="font-bold text-sm text-emerald-800 dark:text-emerald-300">手書きペンの種類 (全{PEN_PRESETS.length}種)</span>
@@ -138,7 +138,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  setToolMode('brush');
  onClose();
  }}
- className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center space-x-3 ${
+ className={`w-full text-left p-2.5 rounded-xl transition-colors flex items-center space-x-3 cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-100/90 text-emerald-950 font-bold border border-emerald-300'
@@ -200,7 +200,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  setToolMode('brush');
  onClose();
  }}
- className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center space-x-3 ${
+ className={`w-full text-left p-2.5 rounded-xl transition-colors flex items-center space-x-3 cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-100/90 text-emerald-950 font-bold border border-emerald-300'
@@ -271,7 +271,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  <button
  key={preset.val}
  onClick={() => onChangeSmoothingIntensity?.(preset.val)}
- className={`py-1.5 px-1 rounded-lg text-xs font-bold text-center transition-all ${
+ className={`py-1.5 px-1 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer ${
  smoothingIntensity === preset.val
  ? isLight
  ? 'bg-emerald-700 text-white '

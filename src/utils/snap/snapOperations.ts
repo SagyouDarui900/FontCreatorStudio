@@ -3,6 +3,10 @@ import { MetricsTargets, CustomGuideTarget, SnapMovementResult, SnapPointResult 
 import { projectPointOntoLine } from './math';
 import { getHorizontalSnapTargets, getVerticalSnapTargets } from './targets';
 
+function getNearestCenterAlignedGrid(pos: number, step: number, centerOrigin: number): number {
+  return Math.round((pos - centerOrigin) / step) * step + centerOrigin;
+}
+
 /**
  * Snap contour movement (dragging entire path) to Baseline, LSB, Metrics, and other contours
  */
@@ -81,11 +85,12 @@ export function snapContourMovement(
   }
 
   // Check magnetic grid snap candidate
+  const gridCenterOrigin = (metrics.descender ?? 1000) / 2;
   let bestGridSnapY: { delta: number; nearestGridY: number; source: typeof ySources[0]; diff: number } | null = null;
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {
     const step = gridSettings.gridSize;
     for (const src of ySources) {
-      const nearestGridY = Math.round(src.pos / step) * step;
+      const nearestGridY = getNearestCenterAlignedGrid(src.pos, step, gridCenterOrigin);
       const diff = Math.abs(src.pos - nearestGridY);
       if (diff <= threshold) {
         if (bestGridSnapY === null || diff < bestGridSnapY.diff) {
@@ -177,7 +182,7 @@ export function snapContourMovement(
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {
     const step = gridSettings.gridSize;
     for (const src of xSources) {
-      const nearestGridX = Math.round(src.pos / step) * step;
+      const nearestGridX = getNearestCenterAlignedGrid(src.pos, step, gridCenterOrigin);
       const diff = Math.abs(src.pos - nearestGridX);
       if (diff <= threshold) {
         if (bestGridSnapX === null || diff < bestGridSnapX.diff) {
@@ -275,11 +280,12 @@ export function snapSinglePoint(
   }
 
   // Evaluate grid snap for Y
+  const gridCenterOrigin = (metrics.descender ?? 1000) / 2;
   let gridSnapY: number | null = null;
   let gridDiffY = threshold + 1;
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {
     const step = gridSettings.gridSize;
-    const nearestGridY = Math.round(rawPos.y / step) * step;
+    const nearestGridY = getNearestCenterAlignedGrid(rawPos.y, step, gridCenterOrigin);
     const diff = Math.abs(rawPos.y - nearestGridY);
     if (diff <= threshold) {
       gridSnapY = nearestGridY;
@@ -332,7 +338,7 @@ export function snapSinglePoint(
   let gridDiffX = threshold + 1;
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {
     const step = gridSettings.gridSize;
-    const nearestGridX = Math.round(rawPos.x / step) * step;
+    const nearestGridX = getNearestCenterAlignedGrid(rawPos.x, step, gridCenterOrigin);
     const diff = Math.abs(rawPos.x - nearestGridX);
     if (diff <= threshold) {
       gridSnapX = nearestGridX;

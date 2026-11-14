@@ -46,19 +46,17 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
 
   return (
     <div
-      className={`fixed inset-0 z-[60] select-none ${
+      className={`fixed inset-0 z-[60] select-none anim-fade ${
         isFullscreen
           ? 'flex flex-col w-screen h-screen p-0 bg-black/90 overflow-hidden'
           : 'flex items-center justify-center p-2 sm:p-4 bg-black/75'
       }`}
     >
       <div
-        className={`w-full flex flex-col transition-colors duration-150 overflow-hidden ${
+        className={`w-full flex flex-col overflow-hidden ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen rounded-none border-none bg-[#141c16] text-emerald-100'
-            : `w-full sm:max-w-7xl border rounded-none sm:rounded-2xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg}`
+            ? `w-screen h-screen rounded-none border-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
+            : `w-full sm:max-w-7xl border rounded-none sm:rounded-2xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header Bar and Guidance Banner */}
@@ -78,23 +76,17 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
             {(isSidebarOpen || isMobileScreen) && (
               <div
                 style={{ width: isMobileScreen ? '100%' : `${leftSidebarWidth}px` }}
-                className={`order-2 md:order-1 w-full md:w-auto flex-1 md:flex-initial md:h-full min-h-0 flex flex-col shrink-0 overflow-hidden border-t md:border-t-0 md:border-r max-w-full ${
-                  isLight ? 'bg-[#f7faf8] border-[#d8e6df]' : 'bg-[#131b15] border-[#25362b]'
-                }`}
+                className={`order-2 md:order-1 w-full md:w-auto flex-1 md:flex-initial md:h-full min-h-0 flex flex-col shrink-0 overflow-hidden border-t md:border-t-0 md:border-r max-w-full ${themeClasses.sidebarBg} ${themeClasses.border}`}
               >
                 {/* Mobile Tab Switcher */}
-                <div className="flex md:hidden border-b border-emerald-200/60 dark:border-[#223326] bg-[#edf5f0] dark:bg-[#121c15] shrink-0">
+                <div className={`flex md:hidden border-b shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
                   <button
                     type="button"
                     onClick={() => setMobileTab('settings')}
-                    className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all cursor-pointer ${
+                    className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-colors cursor-pointer ${
                       mobileTab === 'settings'
-                        ? isLight
-                          ? 'border-emerald-700 text-emerald-950 bg-white/80 shadow-xs'
-                          : 'border-emerald-400 text-emerald-100 bg-emerald-950/70 shadow-xs'
-                        : isLight
-                        ? 'border-transparent text-stone-600 hover:text-stone-900'
-                        : 'border-transparent text-emerald-400/80 hover:text-emerald-200'
+                        ? `${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.cardBg}`
+                        : `border-transparent ${themeClasses.textMuted}`
                     }`}
                   >
                     <Sliders className="w-3.5 h-3.5" />
@@ -106,14 +98,10 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
                       setIsSideAdjusterOpen(true);
                       setMobileTab('adjust');
                     }}
-                    className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-all cursor-pointer ${
+                    className={`flex-1 py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-colors cursor-pointer ${
                       mobileTab === 'adjust'
-                        ? isLight
-                          ? 'border-emerald-700 text-emerald-950 bg-white/80 shadow-xs'
-                          : 'border-emerald-400 text-emerald-100 bg-emerald-950/70 shadow-xs'
-                        : isLight
-                        ? 'border-transparent text-stone-600 hover:text-stone-900'
-                        : 'border-transparent text-emerald-400/80 hover:text-emerald-200'
+                        ? `${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.cardBg}`
+                        : `border-transparent ${themeClasses.textMuted}`
                     }`}
                   >
                     <Edit3 className="w-3.5 h-3.5" />
@@ -121,7 +109,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
                       {selectedCharInfo ? `「${selectedCharInfo.char}」個別調整` : '文字個別調整'}
                     </span>
                     {selectedCharInfo && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     )}
                   </button>
                 </div>
@@ -144,7 +132,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
                 onPointerMove={handleLeftResizePointerMove}
                 onPointerUp={handleLeftResizePointerUp}
                 onDoubleClick={() => setLeftSidebarWidth(280)}
-                className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-all z-30 group items-center justify-center select-none"
+                className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group items-center justify-center select-none"
                 title="ドラッグで左設定パネルの幅を調整 (ダブルクリックで初期幅280pxにリセット)"
               >
                 <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />
@@ -167,7 +155,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
                 onPointerMove={handleRightResizePointerMove}
                 onPointerUp={handleRightResizePointerUp}
                 onDoubleClick={() => setRightAdjusterWidth(300)}
-                className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-all z-30 group items-center justify-center select-none"
+                className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group items-center justify-center select-none"
                 title="ドラッグで右微調整パネルの幅を調整 (ダブルクリックで初期幅300pxにリセット)"
               >
                 <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />
@@ -201,7 +189,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
                   onPointerMove={handleRightResizePointerMove}
                   onPointerUp={handleRightResizePointerUp}
                   onDoubleClick={() => setRightAdjusterWidth(300)}
-                  className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-all z-30 group items-center justify-center select-none"
+                  className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group items-center justify-center select-none"
                   title="ドラッグで右微調整パネルの幅を調整 (ダブルクリックで初期幅300pxにリセット)"
                 >
                   <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />

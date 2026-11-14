@@ -88,7 +88,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                   handlePresetChange(p.id);
                 }
               }}
-              className={`p-2 rounded border text-center flex flex-col justify-center items-center min-w-0 transition-all ${
+              className={`p-2 rounded border text-center flex flex-col justify-center items-center min-w-0 transition-colors ${
                 sizePreset === p.id
                   ? isLight
                     ? 'bg-emerald-800 text-white font-bold'

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { PathContour, RadicalPlacement, GlyphData } from '../../types';
 import { transformContoursForPlacement, contoursToSvgPath } from '../../utils/path';
-import { isLightTheme, getThemeClasses, ThemeMode } from '../../utils/theme';
+import { getThemeClasses, ThemeMode } from '../../utils/theme';
 
 export interface BatchRadicalModalProps {
   isOpen: boolean;
@@ -35,7 +35,6 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   onBatchInsert,
   theme,
 }) => {
-  const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
   const [placement, setPlacement] = useState<RadicalPlacement>('hen');
@@ -115,10 +114,10 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
+        className={`w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
@@ -139,7 +138,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors cursor-pointer ${themeClasses.activeToolHover}`}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -147,16 +146,12 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
 
         {/* Configuration Row: Placement & Preview */}
         <div
-          className={`p-4 border-b flex flex-col sm:flex-row items-center gap-4 shrink-0 ${
-            isLight ? 'bg-stone-50/60' : 'bg-stone-900/40'
-          } ${themeClasses.border}`}
+          className={`p-4 border-b flex flex-col sm:flex-row items-center gap-4 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* Radical Preview Box */}
           <div className="flex items-center gap-3 shrink-0">
             <div
-              className={`w-20 h-20 rounded-xl border flex items-center justify-center relative overflow-hidden ${
-                isLight ? 'bg-white border-stone-200' : 'bg-stone-950 border-stone-800'
-              }`}
+              className={`w-20 h-20 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               <svg viewBox="0 0 1000 1000" className="w-full h-full p-2">
                 <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="currentColor" strokeDasharray="40 40" strokeWidth="10" className="text-stone-300 dark:text-stone-700" />
@@ -164,7 +159,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
               </svg>
             </div>
             <div>
-              <span className="text-xs font-bold text-stone-600 dark:text-stone-300 block mb-1">
+              <span className={`text-xs font-bold block mb-1 ${themeClasses.textPrimary}`}>
                 変形配置位置
               </span>
               <div className="grid grid-cols-4 gap-1">
@@ -184,9 +179,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
                     className={`px-2 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
                       placement === item.id
                         ? themeClasses.accentBtn
-                        : isLight
-                        ? 'bg-white border-stone-200 hover:bg-stone-100 text-stone-700'
-                        : 'bg-stone-900 border-stone-800 hover:bg-stone-800 text-stone-300'
+                        : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     {item.label}
@@ -197,8 +190,8 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
           </div>
 
           {/* Quick Stats & Custom Input */}
-          <div className="flex-1 w-full border-t sm:border-t-0 sm:border-l border-stone-200 dark:border-stone-800 sm:pl-4">
-            <label className="text-xs font-bold text-stone-600 dark:text-stone-300 block mb-1">
+          <div className={`flex-1 w-full border-t sm:border-t-0 sm:border-l sm:pl-4 pt-3 sm:pt-0 ${themeClasses.border}`}>
+            <label className={`text-xs font-bold block mb-1 ${themeClasses.textPrimary}`}>
               流し込み対象漢字の追加指定（自由入力）
             </label>
             <input
@@ -220,26 +213,26 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
         >
           <div className="flex items-center gap-1.5">
             <span className={`font-bold ${themeClasses.textPrimary}`}>
-              対象選択: <strong className="text-emerald-600 dark:text-emerald-400">{selectedChars.size}</strong> / {candidateKanjiList.length} 文字
+              対象選択: <strong className={themeClasses.accentText}>{selectedChars.size}</strong> / {candidateKanjiList.length} 文字
             </span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleSelectAll}
-              className="px-2 py-0.5 rounded border text-[11px] font-bold hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+              className={`px-2 py-0.5 rounded border text-[11px] font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
             >
               全選択
             </button>
             <button
               onClick={handleSelectMissingOnly}
-              className="px-2 py-0.5 rounded border text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+              className={`px-2 py-0.5 rounded border text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer ${themeClasses.border}`}
             >
               未作成のみ選択
             </button>
             <button
               onClick={handleDeselectAll}
-              className="px-2 py-0.5 rounded border text-[11px] font-bold hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+              className={`px-2 py-0.5 rounded border text-[11px] font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
             >
               全解除
             </button>
@@ -249,7 +242,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
         {/* Candidates Grid */}
         <div className="flex-1 min-h-[240px] max-h-[45vh] overflow-y-auto p-4">
           {candidateKanjiList.length === 0 ? (
-            <div className="h-32 flex items-center justify-center text-xs text-stone-500">
+            <div className={`h-32 flex items-center justify-center text-xs ${themeClasses.textMuted}`}>
               候補漢字がありません。上の入力欄に漢字を追加してください。
             </div>
           ) : (
@@ -264,12 +257,10 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
                   <button
                     key={ch}
                     onClick={() => handleToggleChar(ch)}
-                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer relative ${
+                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-colors cursor-pointer relative ${
                       isSelected
-                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
-                        : isLight
-                        ? 'bg-white border-stone-200 text-stone-700 hover:border-stone-400'
-                        : 'bg-stone-900 border-stone-800 text-stone-300 hover:border-stone-700'
+                        ? `${themeClasses.accentBadge} ring-2 ring-emerald-500/20`
+                        : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     <span className="text-xl font-medium leading-none mb-1">{ch}</span>
@@ -290,22 +281,22 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
         <div
           className={`px-5 py-3 border-t flex items-center justify-between shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
-          <div className="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <div className={`text-xs flex items-center gap-1.5 ${themeClasses.textMuted}`}>
+            <AlertCircle className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
             <span>既存の作図データがある文字は、輪郭を保護したまま追加合成されます</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} hover:${themeClasses.activeToolHover}`}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
             >
               キャンセル
             </button>
             <button
               disabled={selectedChars.size === 0}
               onClick={handleExecuteBatch}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold disabled:opacity-40 flex items-center gap-1.5 shadow-md transition-colors cursor-pointer ${themeClasses.accentBtn}`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>選択した {selectedChars.size} 文字へ一括流し込み</span>

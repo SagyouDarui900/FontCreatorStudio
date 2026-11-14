@@ -350,7 +350,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   return (
     <div
       className={`relative z-10 w-full min-w-0 flex flex-col h-full overflow-hidden select-none transition-colors ${
-        effectiveIsOverlay ? 'animate-in slide-in-from-right duration-200' : ''
+        effectiveIsOverlay ? 'anim-slide-right' : ''
       } ${themeClasses.sidebarBg}`}
     >
       {/* Panel Header */}
@@ -375,7 +375,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           {activeTab === 'metrics' && (
             <button
               onClick={handleToggleAll}
-              className={`px-1.5 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`px-1.5 py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title={isAllExpanded ? 'すべての項目を折りたたむ' : 'すべての項目を展開'}
             >
               {isAllExpanded ? '全閉' : '全開'}
@@ -385,7 +385,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           {onClose && (
             <button
               onClick={onClose}
-              className={`h-6 px-1.5 rounded transition-all flex items-center gap-0.5 text-[11px] font-bold active:scale-95 cursor-pointer border whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`h-6 px-1.5 rounded transition-colors flex items-center gap-0.5 text-[11px] font-bold active:scale-95 cursor-pointer border whitespace-nowrap ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="パネルを閉じる (作図エリアへ戻る)"
             >
               <X className="w-3.5 h-3.5 shrink-0" />
@@ -400,10 +400,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           <button
             type="button"
             onClick={() => setActiveTab('metrics')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'metrics'
                 ? `${themeClasses.activeTool} shadow-sm`
-                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
             }`}
           >
             <Sliders className="w-3.5 h-3.5" />
@@ -412,10 +412,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           <button
             type="button"
             onClick={() => setActiveTab('precision')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'precision'
                 ? `${themeClasses.activeTool} shadow-sm`
-                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
             }`}
           >
             <Layers className="w-3.5 h-3.5" />

@@ -30,7 +30,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
     >
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
       >
         <span className={`text-xs font-bold flex items-center space-x-1.5 ${themeClasses.accentText}`}>
           <AlignCenter className="w-4 h-4 shrink-0" />
@@ -65,10 +65,10 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
                     setSpacingPreset(preset.id);
                     onExecuteAutoSpacing(preset.id);
                   }}
-                  className={`p-2 rounded-lg border text-left flex items-start justify-between transition-all cursor-pointer active:scale-98 ${
+                  className={`p-2 rounded-lg border text-left flex items-start justify-between transition-colors cursor-pointer active:scale-98 ${
                     isSelected
                       ? `${themeClasses.activeTool} border`
-                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   <div className="min-w-0 pr-1">
@@ -95,7 +95,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
             type="button"
             onClick={() => onExecuteAutoSpacing(spacingPreset)}
             disabled={contours.length === 0}
-            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-2 transition-all active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
+            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-2 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
             title="サイドベアリングを自動適用 (ショートカット: Shift+Alt+S)"
           >
             <AlignCenter className="w-4 h-4 shrink-0" />

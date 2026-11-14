@@ -23,8 +23,8 @@ export const PenPresetsSidebar: React.FC<PenPresetsSidebarProps> = ({
   onImportPresets,
 }) => {
   return (
-    <div className="w-72 border-r border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-[#141e17] flex flex-col shrink-0 animate-in slide-in-from-left duration-150 overflow-hidden">
-      <div className="p-2.5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
+    <div className="w-56 border-r border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-[#141e17] flex flex-col shrink-0 anim-slide-left overflow-hidden">
+      <div className="p-2 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
         <span className="text-xs font-bold text-stone-700 dark:text-stone-300">マイプリセット</span>
         <div className="flex items-center space-x-1">
           <button
@@ -42,14 +42,14 @@ export const PenPresetsSidebar: React.FC<PenPresetsSidebarProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
         {presets.map((p) => {
           const isSelected = p.id === workingPreset.id;
           return (
             <div
               key={p.id}
               onClick={() => onSelectPreset(p)}
-              className={`p-2 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
+              className={`p-1.5 rounded-lg border text-xs cursor-pointer transition-colors flex items-center justify-between ${
                 isSelected
                   ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200'
                   : 'border-stone-200/80 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 bg-white dark:bg-stone-900'

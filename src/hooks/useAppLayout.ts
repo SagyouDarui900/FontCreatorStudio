@@ -36,13 +36,11 @@ export function useAppLayout({
     window.addEventListener('resize', handleResize);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-      window.visualViewport.addEventListener('scroll', handleResize);
     }
     return () => {
       window.removeEventListener('resize', handleResize);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
       }
     };
   }, []);
@@ -75,26 +73,22 @@ export function useAppLayout({
   const toggleGridDrawer = useCallback(() => setShowGridDrawer((prev) => !prev), [setShowGridDrawer]);
 
   const toggleMetricsDrawer = useCallback(() => {
-    setShowMetricsDrawer((prev) => {
-      const next = !prev;
-      // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
-      if (next) {
-        setShowRadicals(false);
-      }
-      return next;
-    });
-  }, [setShowMetricsDrawer, setShowRadicals]);
+    const next = !showMetricsDrawer;
+    // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
+    if (next && showRadicals) {
+      setShowRadicals(false);
+    }
+    setShowMetricsDrawer(next);
+  }, [showMetricsDrawer, showRadicals, setShowMetricsDrawer, setShowRadicals]);
 
   const toggleRadicals = useCallback(() => {
-    setShowRadicals((prev) => {
-      const next = !prev;
-      // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
-      if (next) {
-        setShowMetricsDrawer(false);
-      }
-      return next;
-    });
-  }, [setShowRadicals, setShowMetricsDrawer]);
+    const next = !showRadicals;
+    // RadicalsDrawer（部首一覧）と MetricsPanel（メトリクス）が右端で重なり合わないよう排他制御
+    if (next && showMetricsDrawer) {
+      setShowMetricsDrawer(false);
+    }
+    setShowRadicals(next);
+  }, [showRadicals, showMetricsDrawer, setShowRadicals, setShowMetricsDrawer]);
 
   const handleCloseGridDrawer = useCallback(() => setShowGridDrawer(false), [setShowGridDrawer]);
   const handleCloseMetricsDrawer = useCallback(() => setShowMetricsDrawer(false), [setShowMetricsDrawer]);

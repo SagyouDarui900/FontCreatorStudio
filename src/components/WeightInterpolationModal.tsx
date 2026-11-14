@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { FontProject, GlyphData, PathContour } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   adjustContoursWeight,
   contoursToSvgPath,
@@ -71,6 +71,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   onShowToast,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Mode: 'family' (Weight expansion / variation) or 'master' (Master-to-master morphing)
   const [activeTab, setActiveTab] = useState<'family' | 'master'>('family');
@@ -357,30 +358,24 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-all ${
+      className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 animate-in fade-in duration-200'
+          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 anim-fade'
       }`}
       onClick={onClose}
     >
       <div
-        className={`flex flex-col transition-all overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen rounded-none border-none shadow-none bg-white text-stone-800'
-              : 'w-screen h-screen rounded-none border-none shadow-none bg-[#141c16] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-4xl xl:max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] border border-stone-200 bg-white text-stone-800'
-            : 'w-full max-w-4xl xl:max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] border border-[#25362b] bg-[#141c16] text-emerald-100'
+            ? 'w-screen h-screen rounded-none border-none shadow-none'
+            : `w-full max-w-4xl xl:max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] border ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className={`px-5 py-4 flex items-center justify-between border-b shrink-0 ${
-            isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-          }`}
+          className={`px-5 py-4 flex items-center justify-between border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
@@ -394,12 +389,12 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     全画面モード
                   </span>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-normal">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-normal ${themeClasses.accentBadge}`}>
                     Vector Interpolation
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-stone-500 dark:text-emerald-400/80">
+              <p className={`text-xs ${themeClasses.textMuted}`}>
                 線の太さ（ウェイト）の一括増減・ファミリー展開・2マスター間幾何補間
               </p>
             </div>
@@ -408,14 +403,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.accentBadge
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
@@ -433,7 +424,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#1a251e] transition-colors"
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -443,16 +434,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b px-3 sm:px-5 pt-2 shrink-0 gap-4 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 whitespace-nowrap ${
-            isLight ? 'border-stone-200 bg-stone-50/40' : 'border-[#25362b] bg-[#101712]/50'
-          }`}
+          className={`flex border-b px-3 sm:px-5 pt-2 shrink-0 gap-4 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             onClick={() => setActiveTab('family')}
-            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'family'
-                ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-extrabold'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+                : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
             }`}
           >
             <Layers className="w-3.5 h-3.5 shrink-0" />
@@ -460,10 +449,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           </button>
           <button
             onClick={() => setActiveTab('master')}
-            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'master'
-                ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-extrabold'
-                : 'border-transparent text-stone-400 hover:text-stone-600 dark:hover:text-stone-300'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+                : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -487,12 +476,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <button
                         key={p.key}
                         onClick={() => handlePresetSelect(p)}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                        className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-500/10 border-emerald-600 text-emerald-700 dark:text-emerald-300 shadow-xs ring-1 ring-emerald-500/30'
-                            : isLight
-                            ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
-                            : 'bg-[#18231c] hover:bg-[#1f2d24] border-[#25362b] text-stone-300'
+                            ? `${themeClasses.accentBadge} ring-1 ring-emerald-500/30`
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         <div className="text-xs font-bold">{p.label}</div>
@@ -507,13 +494,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Weight Delta Slider */}
                 <div
-                  className={`p-4 rounded-xl border ${
-                    isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                  }`}
+                  className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold">太さオフセット（微調整）</label>
-                    <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                    <span className={`text-xs font-mono font-bold ${themeClasses.accentText}`}>
                       {weightDelta > 0 ? `+${weightDelta}` : weightDelta} px
                     </span>
                   </div>
@@ -527,9 +512,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       setSelectedPreset('custom');
                       setWeightDelta(Number(e.target.value));
                     }}
-                    className="w-full accent-emerald-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                    className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                   />
-                  <div className="flex justify-between text-[10px] text-stone-400 font-mono mt-1">
+                  <div className={`flex justify-between text-[10px] font-mono mt-1 ${themeClasses.textMuted}`}>
                     <span>細字化 (-60px)</span>
                     <span>標準 (0px)</span>
                     <span>極太化 (+150px)</span>
@@ -538,9 +523,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                 {/* Scope Selection */}
                 <div
-                  className={`p-4 rounded-xl border ${
-                    isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                  }`}
+                  className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <label className="text-xs font-bold block mb-2">適用対象（スコープ）</label>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -558,12 +541,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                             setScope(s.id);
                           }
                         }}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                        className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
                           scope === s.id
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : isLight
-                            ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                            : 'bg-[#101712] hover:bg-[#1a251e] border-[#25362b] text-stone-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         {s.label}
@@ -575,13 +556,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
               {/* Vector Preview Section */}
               <div
-                className={`p-4 rounded-xl border space-y-3 ${
-                  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-                }`}
+                className={`p-4 rounded-xl border space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                    <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>単文字ベクタープレビュー（{currentGlyph?.char || ''}）</span>
                   </span>
                   <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
@@ -597,9 +576,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                 {/* SVG Canvas Preview */}
                 <div
-                  className={`w-full h-48 rounded-xl border flex items-center justify-center relative overflow-hidden ${
-                    isLight ? 'bg-white border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                  }`}
+                  className={`w-full h-48 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
                   <svg viewBox="0 0 1000 1000" className="w-44 h-44">
                     {/* Baseline & Center Guides */}
@@ -642,9 +619,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             /* Master Interpolation Tab */
             <div className="space-y-5">
               <div
-                className={`p-4 rounded-xl border ${
-                  isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                }`}
+                className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="text-xs font-bold mb-3">補間マスターグリフの選択</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -656,11 +631,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     <select
                       value={masterAUnicode}
                       onChange={(e) => setMasterAUnicode(Number(e.target.value))}
-                      className={`w-full p-2 rounded-lg border text-xs ${
-                        isLight
-                          ? 'bg-white border-stone-200 text-stone-800'
-                          : 'bg-[#101712] border-[#25362b] text-stone-200'
-                      }`}
+                      className={`w-full p-2 rounded-lg border text-xs ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
                       {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
@@ -678,11 +649,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     <select
                       value={masterBUnicode}
                       onChange={(e) => setMasterBUnicode(Number(e.target.value))}
-                      className={`w-full p-2 rounded-lg border text-xs ${
-                        isLight
-                          ? 'bg-white border-stone-200 text-stone-800'
-                          : 'bg-[#101712] border-[#25362b] text-stone-200'
-                      }`}
+                      className={`w-full p-2 rounded-lg border text-xs ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
                       {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
@@ -696,13 +663,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
               {/* Interpolation Factor Slider */}
               <div
-                className={`p-4 rounded-xl border ${
-                  isLight ? 'bg-stone-50/60 border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                }`}
+                className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold">補間ブレンド比率 (t)</label>
-                  <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                  <span className={`text-xs font-mono font-bold ${themeClasses.accentText}`}>
                     {Math.round(interpFactor * 100)}%
                   </span>
                 </div>
@@ -713,7 +678,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   step={0.01}
                   value={interpFactor}
                   onChange={(e) => setInterpFactor(Number(e.target.value))}
-                  className="w-full accent-emerald-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg cursor-pointer"
+                  className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                 />
 
                 {/* Quick Step Buttons */}
@@ -722,12 +687,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     <button
                       key={step}
                       onClick={() => setInterpFactor(step)}
-                      className={`flex-1 py-1 text-[11px] rounded border font-mono transition-all ${
+                      className={`flex-1 py-1 text-[11px] rounded border font-mono transition-colors cursor-pointer ${
                         Math.abs(interpFactor - step) < 0.02
-                          ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
-                          : isLight
-                          ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                          : 'bg-[#101712] hover:bg-[#1f2d24] border-[#25362b] text-stone-300'
+                          ? `${themeClasses.accentBtn} font-bold`
+                          : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                       }`}
                     >
                       {Math.round(step * 100)}%
@@ -738,19 +701,15 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
               {/* Master Morphing Preview */}
               <div
-                className={`p-4 rounded-xl border space-y-3 ${
-                  isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-                }`}
+                className={`p-4 rounded-xl border space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
               >
                 <div className="text-xs font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>モーフィング補間プレビュー</span>
                 </div>
 
                 <div
-                  className={`w-full h-52 rounded-xl border flex items-center justify-center relative overflow-hidden ${
-                    isLight ? 'bg-white border-stone-200' : 'bg-[#162018] border-[#25362b]'
-                  }`}
+                  className={`w-full h-52 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
                   <svg viewBox="0 0 1000 1000" className="w-48 h-48">
                     {/* Master A Ghost */}
@@ -792,7 +751,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   <div className="absolute top-2 left-3 flex gap-2 text-[10px] font-mono">
                     <span className="text-sky-600">■ Master A ({glyphA?.char || 'A'})</span>
                     <span className="text-rose-600">■ Master B ({glyphB?.char || 'B'})</span>
-                    <span className="text-emerald-600 font-bold">■ 補間結果</span>
+                    <span className={`${themeClasses.accentText} font-bold`}>■ 補間結果</span>
                   </div>
                 </div>
               </div>
@@ -802,20 +761,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
         {/* Footer Actions */}
         <div
-          className={`p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#101712] border-[#25362b]'
-          }`}
+          className={`p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           {activeTab === 'family' ? (
             <>
               <button
                 onClick={handleBatchExportWeightFamilyZip}
                 disabled={isExportingZip}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
-                  isLight
-                    ? 'bg-emerald-50 hover:bg-emerald-100/80 border-emerald-200 text-emerald-800'
-                    : 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-800 text-emerald-300'
-                } disabled:opacity-50`}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors border cursor-pointer ${themeClasses.accentBadge} hover:opacity-90 disabled:opacity-50`}
               >
                 <FolderArchive className="w-4 h-4" />
                 <span>全5ウェイト一括ZIP出力</span>
@@ -824,18 +777,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCreateNewWeightProject}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
-                    isLight
-                      ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                      : 'bg-[#1a251e] hover:bg-[#25362b] border-[#25362b] text-stone-200'
-                  }`}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>新規ウェイトプロジェクト作成</span>
                 </button>
                 <button
                   onClick={handleApplyToProject}
-                  className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95 transition-all"
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>現在のプロジェクトに適用</span>
@@ -846,17 +795,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             <div className="w-full flex justify-end gap-2">
               <button
                 onClick={onClose}
-                className={`px-4 py-2 rounded-xl text-xs font-medium border ${
-                  isLight
-                    ? 'bg-white hover:bg-stone-100 border-stone-200 text-stone-700'
-                    : 'bg-[#1a251e] hover:bg-[#25362b] border-[#25362b] text-stone-200'
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 キャンセル
               </button>
               <button
                 onClick={handleApplyMasterInterp}
-                className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs active:scale-95 transition-all"
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>補間結果を「{currentGlyph?.char || ''}」に適用</span>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { TraceSettings, ToolMode } from '../../types';
-
-const SCREEN_BASELINE_Y = 800;
+import { computeTraceCharMetrics } from './traceCharMetrics';
 
 export type TraceResizeHandle = 'nw' | 'ne' | 'se' | 'sw' | 'n' | 's' | 'e' | 'w';
 
@@ -12,6 +11,7 @@ interface TraceReferenceLayerProps {
   selectedUnicode?: string;
   toolMode: ToolMode;
   unitsPerEm?: number;
+  advanceWidth?: number;
   onPointerDownImage?: (e: React.PointerEvent) => void;
   onPointerDownResize?: (e: React.PointerEvent, handle: TraceResizeHandle) => void;
   onDoubleClickReset?: () => void;
@@ -26,6 +26,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     selectedUnicode,
     toolMode,
     unitsPerEm = 1000,
+    advanceWidth,
     onPointerDownImage,
     onPointerDownResize,
     onDoubleClickReset,
@@ -34,7 +35,6 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
 
     const upm = unitsPerEm || 1000;
     const half = upm / 2;
-    const screenBaselineY = Math.round(upm * 0.8);
 
     const scale = traceSettings.scale ?? 1;
     const offsetX = traceSettings.offsetX ?? 0;
@@ -42,18 +42,20 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     const isAdjustMode = toolMode === 'trace_adjust';
 
     const charToRender = traceSettings.text || activeChar || 'あ';
-    const isKana = /[ぁ-んァ-ヶー]/.test(charToRender);
-    const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(charToRender);
-    const isJapanese = isKana || isKanji || /[、。々〆〇\u3000-\u303F\uFF01-\uFF60]/.test(charToRender);
-
-    const userFontScale = traceSettings.fontSize ? traceSettings.fontSize / 1000 : 1;
-
-    // Char bounding box virtual dimension (centered around half, half)
-    const charBoxSize = Math.round(
-      (isKana ? upm * 0.78 : isKanji ? upm * 0.85 : upm * 0.80) * userFontScale
-    );
-    const charBoxX = half - charBoxSize / 2;
-    const charBoxY = half - charBoxSize / 2;
+    const {
+      anchorX,
+      effectiveFontSize,
+      effectiveY,
+      dominantBaseline,
+      charBoxSize,
+      charBoxX,
+      charBoxY,
+    } = computeTraceCharMetrics({
+      charToRender,
+      unitsPerEm: upm,
+      fontSize: traceSettings.fontSize,
+      advanceWidth,
+    });
 
     // Image bounding box (0, 0, upm, upm)
     const imgBoxX = 0;
@@ -65,45 +67,6 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     const activeBoxW = traceSettings.type === 'char' ? charBoxSize : imgBoxSize;
     const activeBoxH = traceSettings.type === 'char' ? charBoxSize : imgBoxSize;
 
-    // Calculate safe font size and baseline based on character category
-    // In Japanese typography: Kanji standard body is 85% of EM box, Kana is 78%, centered in (half, half)
-    let effectiveFontSize: number;
-    let effectiveY: number;
-    let dominantBaseline: 'central' | 'alphabetic';
-
-    if (isKanji) {
-      effectiveFontSize = Math.round(upm * 0.85 * userFontScale);
-      effectiveY = half;
-      dominantBaseline = 'central';
-    } else if (isKana) {
-      effectiveFontSize = Math.round(upm * 0.78 * userFontScale);
-      effectiveY = half;
-      dominantBaseline = 'central';
-    } else if (isJapanese) {
-      effectiveFontSize = Math.round(upm * 0.80 * userFontScale);
-      effectiveY = half;
-      dominantBaseline = 'central';
-    } else {
-      // Latin with descenders (g, j, p, q, y, ç) or deep brackets
-      const hasDescender = /[gjpqyç_\[\]\(\)\{\}\|]/.test(charToRender);
-      const hasTallAscenderOrDiacritic = /[À-ÖØ-öø-ÿÅÄÖÜÉÈÊËÎÏÔÙÛ]/.test(charToRender);
-
-      if (hasDescender && hasTallAscenderOrDiacritic) {
-        effectiveFontSize = Math.round(upm * 0.72 * userFontScale);
-        effectiveY = Math.round(upm * 0.76);
-      } else if (hasDescender) {
-        effectiveFontSize = Math.round(upm * 0.74 * userFontScale);
-        effectiveY = Math.round(upm * 0.78);
-      } else if (hasTallAscenderOrDiacritic) {
-        effectiveFontSize = Math.round(upm * 0.74 * userFontScale);
-        effectiveY = Math.round(upm * 0.79);
-      } else {
-        effectiveFontSize = Math.round(upm * 0.76 * userFontScale);
-        effectiveY = screenBaselineY;
-      }
-      dominantBaseline = 'alphabetic';
-    }
-
     return (
       <g
         className="trace-reference-layer"
@@ -113,9 +76,9 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
       >
         {traceSettings.type === 'char' ? (
           <g>
-            {/* Standard OpenType Baseline Rendering with safe canvas auto-fit bounds */}
+            {/* Standard OpenType EM/Baseline Rendering without double-shrinking */}
             <text
-              x={half}
+              x={anchorX}
               y={effectiveY}
               textAnchor="middle"
               dominantBaseline={dominantBaseline}

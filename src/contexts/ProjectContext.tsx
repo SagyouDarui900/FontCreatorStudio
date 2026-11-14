@@ -42,7 +42,7 @@ export interface ProjectContextType {
   canRedo: boolean;
   handleUndo: () => void;
   handleRedo: () => void;
-  commitHistory: () => void;
+  commitHistory: (targetUnicode?: number) => void;
   clipboardContours: PathContour[] | null;
   setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>>;
   handleQuickSaveCurrentGlyph: () => void;
@@ -244,7 +244,15 @@ export function ProjectProvider({
       if (checkIsLockedAndNotify()) return;
       commitHistory();
       setProject((prev) => {
-        const existing = prev.glyphs[selectedUnicode] || currentGlyph;
+        const existing = prev.glyphs[selectedUnicode] || {
+          unicode: selectedUnicode,
+          char: selectedChar,
+          name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
+          advanceWidth: prev.metadata?.unitsPerEm || 1000,
+          lsb: 50,
+          contours: [],
+          modified: false,
+        };
         return {
           ...prev,
           glyphs: {
@@ -259,7 +267,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, selectedUnicode, currentGlyph, commitHistory, setProject]
+    [checkIsLockedAndNotify, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleUpdateLsb = useCallback(
@@ -267,7 +275,15 @@ export function ProjectProvider({
       if (checkIsLockedAndNotify()) return;
       commitHistory();
       setProject((prev) => {
-        const existing = prev.glyphs[selectedUnicode] || currentGlyph;
+        const existing = prev.glyphs[selectedUnicode] || {
+          unicode: selectedUnicode,
+          char: selectedChar,
+          name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
+          advanceWidth: prev.metadata?.unitsPerEm || 1000,
+          lsb: 50,
+          contours: [],
+          modified: false,
+        };
         return {
           ...prev,
           glyphs: {
@@ -282,7 +298,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, selectedUnicode, currentGlyph, commitHistory, setProject]
+    [checkIsLockedAndNotify, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleQuickSaveCurrentGlyph = useCallback(() => {

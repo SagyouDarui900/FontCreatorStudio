@@ -9,7 +9,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { FontProject, GlyphData, PathContour } from '../types';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   analyzeGlyphContourDensity,
   simplifySingleContourInGlyph,
@@ -51,6 +51,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
   onRefreshQualityReport,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // Interaction State
   const [tolerance, setTolerance] = useState<number>(3.5);
@@ -377,23 +378,17 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
   if (!isOpen || unicode === null) return null;
 
   return (
-    <div className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/75 animate-fade-in ${
+    <div className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/75 anim-fade ${
       isFullscreen ? 'p-0' : 'p-3 sm:p-5'
     }`}>
       <div
-        className={`w-full rounded-2xl border shadow-2xl flex flex-col overflow-hidden transition-all duration-200 ${
-          isFullscreen ? 'h-full max-h-full rounded-none border-0' : 'max-w-6xl max-h-[94vh]'
-        } ${
-          isLight
-            ? 'bg-stone-50 border-stone-300 text-stone-900 '
-            : 'bg-[#101813] border-[#223528] text-emerald-50 '
-        }`}
+        className={`w-full border flex flex-col overflow-hidden ${
+          isFullscreen ? 'h-full max-h-full rounded-none border-0' : 'rounded-2xl shadow-2xl max-w-6xl max-h-[94vh]'
+        } ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* Modal Header */}
         <div
-          className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${
-            isLight ? 'bg-white border-stone-200' : 'bg-[#142018] border-[#243a2b]'
-          }`}
+          className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-md shrink-0">
@@ -410,7 +405,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                   {char} (U+{unicode.toString(16).toUpperCase()})
                 </span>
               </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400 truncate">
+              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
                 過剰なアンカー密度をヒートマップで視覚化し、クリックで局所または輪郭単位の単純化を即時適用できます
               </p>
             </div>
@@ -419,22 +414,20 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
           <div className="flex items-center space-x-2 shrink-0">
             {/* Prev/Next Problem Glyphs Navigation */}
             {allProblemUnicodes.length > 1 && (
-              <div className="flex items-center space-x-1 border rounded-lg p-0.5 border-stone-200 dark:border-[#2a4030]">
+              <div className={`flex items-center space-x-1 border rounded-lg p-0.5 ${themeClasses.border}`}>
                 <button
                   onClick={handlePrevGlyph}
                   disabled={!hasPrev}
                   className={`p-1.5 rounded-md text-xs transition-colors ${
                     hasPrev
-                      ? isLight
-                        ? 'hover:bg-stone-100 text-stone-700'
-                        : 'hover:bg-[#1e3023] text-emerald-200'
+                      ? `${themeClasses.textPrimary} ${themeClasses.activeToolHover} cursor-pointer`
                       : 'opacity-30 cursor-not-allowed'
                   }`}
                   title="前の過密文字へ"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-[11px] px-1 font-mono text-stone-500 dark:text-stone-400">
+                <span className={`text-[11px] px-1 font-mono ${themeClasses.textMuted}`}>
                   {currentIndexInProblems + 1}/{allProblemUnicodes.length}
                 </span>
                 <button
@@ -442,9 +435,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                   disabled={!hasNext}
                   className={`p-1.5 rounded-md text-xs transition-colors ${
                     hasNext
-                      ? isLight
-                        ? 'hover:bg-stone-100 text-stone-700'
-                        : 'hover:bg-[#1e3023] text-emerald-200'
+                      ? `${themeClasses.textPrimary} ${themeClasses.activeToolHover} cursor-pointer`
                       : 'opacity-30 cursor-not-allowed'
                   }`}
                   title="次の過密文字へ"
@@ -461,11 +452,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                   onSelectGlyph(unicode);
                   onClose();
                 }}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
-                  isLight
-                    ? 'bg-stone-100 border-stone-300 hover:bg-stone-200 text-stone-800'
-                    : 'bg-[#1b2a20] border-[#2c4433] hover:bg-[#24392b] text-emerald-200'
-                }`}
+                className={`p-2 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 title="通常のエディタキャンバスでこの文字を開く"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -475,9 +462,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-2 rounded-xl transition-colors ${
-                isLight ? 'hover:bg-stone-100 text-stone-600' : 'hover:bg-[#1b2b20] text-stone-400 hover:text-white'
-              }`}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title={isFullscreen ? '通常表示 (F)' : '全画面表示 (F)'}
             >
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
@@ -485,9 +470,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
             <button
               onClick={onClose}
-              className={`p-2 rounded-xl transition-colors ${
-                isLight ? 'hover:bg-stone-100 text-stone-600' : 'hover:bg-[#1b2b20] text-stone-400 hover:text-white'
-              }`}
+              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />

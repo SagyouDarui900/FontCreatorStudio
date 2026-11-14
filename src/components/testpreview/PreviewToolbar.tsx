@@ -140,7 +140,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
                 setLayoutMode('split');
                 setIsSidebarOpen(true);
               }}
-              className={`h-6 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`h-6 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
                 layoutMode === 'split'
                   ? isLight
                     ? 'bg-emerald-800 text-white'
@@ -157,7 +157,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             <button
               type="button"
               onClick={() => setLayoutMode('top')}
-              className={`h-6 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`h-6 px-2 rounded text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
                 layoutMode === 'top'
                   ? isLight
                     ? 'bg-emerald-800 text-white'
@@ -178,7 +178,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-all cursor-pointer ${
+              className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 !isSidebarOpen
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight
@@ -203,7 +203,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             <button
               type="button"
               onClick={() => setIsTopControlsCollapsed(!isTopControlsCollapsed)}
-              className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-all cursor-pointer ${
+              className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 isTopControlsCollapsed
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight
@@ -230,7 +230,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsSideAdjusterOpen(!isSideAdjusterOpen)}
-            className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-all cursor-pointer ${
+            className={`hidden md:flex h-7 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
               isSideAdjusterOpen
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : isLight
@@ -247,7 +247,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className={`h-7 px-2 sm:px-2.5 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer ${
+            className={`h-7 px-2 sm:px-2.5 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
               isFullscreen
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : isLight

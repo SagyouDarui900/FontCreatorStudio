@@ -31,7 +31,7 @@ import {
  Book,
  Mouse,
 } from 'lucide-react';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BeginnerTutorialTab } from './help/BeginnerTutorialTab';
 import { GlossaryTab } from './help/GlossaryTab';
 import { FeedbackTab } from './help/FeedbackTab';
@@ -164,6 +164,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  const [isFullscreen, setIsFullscreen] = useState(false);
 
  const isLight = isLightTheme(theme);
+ const themeClasses = getThemeClasses(theme);
 
  // Keyboard shortcut listener: Escape and F
  useEffect(() => {
@@ -206,64 +207,52 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  return (
  <div
- className={`fixed inset-0 z-[60] transition-colors ${
+ className={`fixed inset-0 z-[60] ${
  isFullscreen
  ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
- : 'flex items-center justify-center p-2 sm:p-4 bg-black/65 animate-in fade-in duration-150'
+ : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade'
  }`}
  >
  <div
- className={`flex flex-col transition-colors overflow-hidden ${
+ className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
  isFullscreen
- ? isLight
- ? 'w-screen h-screen -none border-none shadow-none bg-white text-stone-900'
- : 'w-screen h-screen -none border-none shadow-none bg-[#141e17] text-emerald-100'
- : isLight
- ? 'w-full max-w-3xl xl:max-w-4xl border max-h-[92vh] bg-white border-stone-300 text-stone-900'
- : 'w-full max-w-3xl xl:max-w-4xl border max-h-[92vh] bg-[#141e17] border-[#25362b] text-emerald-100'
+ ? 'w-screen h-screen rounded-none border-none shadow-none'
+ : `w-full max-w-3xl xl:max-w-4xl border ${themeClasses.border} rounded-2xl shadow-2xl max-h-[92vh]`
  }`}
  >
  {/* Modal Top Header */}
  <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18231c] border-[#233327]'
- }`}
+ className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
  >
  <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
  <div
- className={`p-2 border flex items-center justify-center shrink-0 ${
- isLight ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-emerald-900/60 border-emerald-800 text-emerald-300'
- }`}
+ className={`p-2 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.accentBadge}`}
  >
  <BookOpen className="w-5 h-5" />
  </div>
  <div className="min-w-0 flex-1">
  <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2 min-w-0">
  <span className="truncate">FontCreator 説明書 & ガイド</span>
- <span className="text-[10px] px-1.5 py-0.2 font-mono font-normal bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-normal border ${themeClasses.accentBadge}`}>
  v2.0
  </span>
  {isFullscreen && (
- <span className="text-[10px] px-1.5 py-0.2 bg-emerald-600 text-white font-medium">
+ <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${themeClasses.accentBtn}`}>
  全画面モード
  </span>
  )}
  </h2>
- <p className="text-xs opacity-75">作字手順・機能説明・ショートカットキー一覧</p>
+ <p className={`text-xs ${themeClasses.textMuted}`}>作字手順・機能説明・ショートカットキー一覧</p>
  </div>
  </div>
  <div className="flex items-center space-x-1.5">
  {/* Fullscreen Toggle */}
  <button
  onClick={() => setIsFullscreen(!isFullscreen)}
- className={`p-1.5 px-2.5 border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+ className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
  isFullscreen
- ? isLight
- ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
- : 'bg-emerald-950 text-emerald-300 border-emerald-700'
- : isLight
- ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
- : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+ ? themeClasses.activeTool
+ : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
  }`}
  title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
  >
@@ -281,11 +270,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  </button>
  <button
  onClick={onClose}
- className={`p-1.5 border transition-colors cursor-pointer ${
- isLight
- ? 'bg-white border-stone-200 text-stone-400 hover:bg-stone-100 hover:text-stone-700'
- : 'bg-[#101813] border-[#25362b] text-stone-400 hover:bg-[#1c2920] hover:text-emerald-200'
- }`}
+ className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
  title="閉じる (Esc)"
  >
  <X className="w-5 h-5" />
@@ -295,60 +280,50 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Tab Navigation */}
  <div
- className={`flex items-center px-4 sm:px-6 border-b shrink-0 gap-2 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs font-bold ${
- isLight ? 'bg-white border-stone-200' : 'bg-[#141e17] border-[#223025]'
- }`}
+ className={`flex items-center px-4 sm:px-6 border-b shrink-0 gap-2 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs font-bold ${themeClasses.subtoolbarBg}`}
  >
  <button
  onClick={() => setActiveTab('tutorial')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'tutorial'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
- <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+ <BookOpen className="w-4 h-4 shrink-0" />
  <span>初心者入門ガイド</span>
  </button>
 
  <button
  onClick={() => setActiveTab('glossary')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'glossary'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
- <Book className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+ <Book className="w-4 h-4 shrink-0" />
  <span>用語・概念辞典</span>
  </button>
 
  <button
  onClick={() => setActiveTab('features')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'features'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
- <Lightbulb className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+ <Lightbulb className="w-4 h-4 shrink-0" />
  <span>制作機能・自動化</span>
  </button>
 
  <button
  onClick={() => setActiveTab('shortcuts')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'shortcuts'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
  <Keyboard className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -357,12 +332,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  <button
  onClick={() => setActiveTab('faq')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'faq'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
  <HelpCircle className="w-4 h-4 text-sky-500 shrink-0" />
@@ -371,15 +344,13 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  <button
  onClick={() => setActiveTab('feedback')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap ${
+ className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
  activeTab === 'feedback'
- ? isLight
- ? 'border-emerald-600 text-emerald-800 font-extrabold'
- : 'border-emerald-400 text-emerald-200 font-extrabold'
- : 'border-transparent text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200'
+ ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
- <Github className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+ <Github className="w-4 h-4 shrink-0" />
  <span>フィードバック & 不具合報告 (GitHub)</span>
  </button>
  </div>
@@ -599,17 +570,13 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  {/* Search & Category Filter Bar */}
  <div className="space-y-2.5">
  <div className="relative">
- <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+ <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
  <input
  type="text"
  value={searchQuery}
  onChange={(e) => setSearchQuery(e.target.value)}
  placeholder="ショートカットや機能を検索（例: ブラシ, 移動, 保存, 拡大）..."
- className={`w-full pl-9 pr-3 py-2 rounded-sm /* 入力のみ最大rounded-sm */ border text-xs outline-none transition-colors ${
- isLight
- ? 'bg-stone-50 border-stone-300 text-stone-900 focus:bg-white focus:border-emerald-600'
- : 'bg-[#18241d] border-[#2c3d31] text-emerald-100 focus:border-emerald-500'
- }`}
+ className={`w-full pl-9 pr-3 py-2 rounded-lg border text-xs outline-none transition-colors ${themeClasses.cardBg}`}
  />
  </div>
 
@@ -621,12 +588,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <button
  key={cat.id}
  onClick={() => setSelectedCategory(cat.id)}
- className={`px-2.5 py-1  font-medium flex items-center space-x-1.5 shrink-0 transition-colors ${
+ className={`px-2.5 py-1 rounded-lg border font-medium flex items-center space-x-1.5 shrink-0 transition-colors cursor-pointer ${
  isActive
- ? 'bg-emerald-600 text-white font-bold '
- : isLight
- ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
- : 'bg-[#1a261f] hover:bg-[#23332a] text-emerald-300'
+ ? `${themeClasses.activeTool} border-transparent`
+ : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
  }`}
  >
  <Icon className="w-3.5 h-3.5" />
@@ -643,16 +608,12 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  filteredShortcuts.map((item, idx) => (
  <div
  key={idx}
- className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5  border text-xs transition-colors ${
- isLight
- ? 'bg-stone-50/50 hover:bg-stone-50 border-stone-200/80'
- : 'bg-[#18241d]/50 hover:bg-[#18241d] border-[#25362b]'
- }`}
+ className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-lg border text-xs transition-colors ${themeClasses.subtoolbarBg}`}
  >
  <div className="flex items-center space-x-2 min-w-0 pr-1">
  <span className="jp-wrap">{item.description}</span>
  {item.badge && (
- <span className="text-[9.5px] px-1.5 py-0.2  font-mono shrink-0 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono shrink-0 border ${themeClasses.accentBadge}`}>
  {item.badge}
  </span>
  )}
@@ -661,12 +622,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  {item.keys.map((k, kIdx) => (
  <kbd
  key={kIdx}
- className={`px-2 py-0.5  font-mono font-bold text-[11px]  border ${
+ className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] border ${
  k === 'または' || k === '+' || k === '/'
- ? 'bg-transparent border-transparent shadow-none text-stone-400 font-sans text-xs px-0.5'
- : isLight
- ? 'bg-white border-stone-300 text-stone-800'
- : 'bg-[#101712] border-[#2d4034] text-emerald-200'
+ ? `bg-transparent border-transparent shadow-none font-sans text-xs px-0.5 ${themeClasses.textMuted}`
+ : themeClasses.cardBg
  }`}
  >
  {k}
@@ -676,7 +635,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  </div>
  ))
  ) : (
- <div className="text-center py-8 text-xs text-stone-400 dark:text-emerald-400/60">
+ <div className={`text-center py-8 text-xs ${themeClasses.textMuted}`}>
  一致するショートカットが見つかりませんでした
  </div>
  )}
@@ -819,20 +778,18 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  {/* Modal Footer */}
  <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${
- isLight ? 'bg-stone-50 border-stone-200 text-stone-600' : 'bg-[#18231c] border-[#233327] text-stone-400'
- }`}
+ className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
  >
- <div className="flex items-center space-x-2">
+ <div className={`flex items-center space-x-2 ${themeClasses.textMuted}`}>
  <span>キーボードショートカットはいつでも</span>
- <kbd className="px-1.5 py-0.5  font-mono font-bold text-[10px] bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-emerald-200">
+ <kbd className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] border ${themeClasses.cardBg}`}>
  ?
  </kbd>
  <span>キーで開けます</span>
  </div>
  <button
  onClick={onClose}
- className="px-4 py-1.5  font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition-colors"
+ className={`px-4 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  閉じる
  </button>

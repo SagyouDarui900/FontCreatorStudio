@@ -243,7 +243,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
               return (
                 <div
                   key={item.number}
-                  className={`relative p-1.5 rounded-lg border flex flex-col items-center justify-between transition-all group ${
+                  className={`relative p-1.5 rounded-lg border flex flex-col items-center justify-between transition-colors group ${
                     isLight
                       ? 'bg-white border-stone-200 hover:border-emerald-600 hover:shadow-xs'
                       : 'bg-[#17221b] border-[#25362b] hover:border-emerald-500 hover:shadow-xs'
@@ -327,7 +327,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
 
                   {/* Extracting overlay spinner */}
                   {isExtracting && (
-                    <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-xs rounded-lg flex items-center justify-center text-white text-[9px] font-bold">
+                    <div className="absolute inset-0 bg-stone-900/80 rounded-lg flex items-center justify-center text-white text-[9px] font-bold">
                       抽出中…
                     </div>
                   )}

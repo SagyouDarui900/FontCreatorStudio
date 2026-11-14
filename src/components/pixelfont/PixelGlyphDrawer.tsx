@@ -82,7 +82,7 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
                 <button
                   key={item.unicode}
                   onClick={() => onSelectGlyphItem(item.unicode)}
-                  className={`aspect-square min-h-[52px] flex flex-col items-center justify-center border relative transition-all active:scale-95 cursor-pointer ${
+                  className={`aspect-square min-h-[52px] flex flex-col items-center justify-center border relative transition-colors active:scale-95 cursor-pointer ${
                     isSelected
                       ? 'bg-emerald-600 text-white border-emerald-400 font-extrabold shadow-md'
                       : isLight
@@ -174,7 +174,7 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
               <button
                 key={item.unicode}
                 onClick={() => onSelectGlyphItem(item.unicode)}
-                className={`aspect-square flex flex-col items-center justify-center border relative transition-all cursor-pointer ${
+                className={`aspect-square flex flex-col items-center justify-center border relative transition-colors cursor-pointer ${
                   isSelected
                     ? 'bg-emerald-600 text-white border-emerald-400 font-extrabold'
                     : isLight

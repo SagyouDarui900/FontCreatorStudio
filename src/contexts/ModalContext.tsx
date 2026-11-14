@@ -80,6 +80,10 @@ export interface ModalContextType {
   setIsMojikumiStudioOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isPenPresetsModalOpen: boolean;
   setIsPenPresetsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isJisProgressModalOpen: boolean;
+  setIsJisProgressModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isIvsManagerOpen: boolean;
+  setIsIvsManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
 
   // Helper flags and actions
   isAnyModalOpen: boolean;
@@ -115,35 +119,46 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     setShowRadicals(false);
   }, []);
 
-  // Stable setters for backward compatibility
-  const makeSetter = (id: ModalId) => (action: React.SetStateAction<boolean>) => {
-    setActiveModal((curr) => {
-      const isCurr = curr === id;
-      const next = typeof action === 'function' ? action(isCurr) : action;
-      return next ? id : curr === id ? null : curr;
-    });
-  };
+  // Stable setter factory for backward compatibility
+  const createModalSetter = useCallback(
+    (id: ModalId): React.Dispatch<React.SetStateAction<boolean>> =>
+      (action) => {
+        setActiveModal((curr) => {
+          const isCurr = curr === id;
+          const next = typeof action === 'function' ? action(isCurr) : action;
+          return next ? id : curr === id ? null : curr;
+        });
+      },
+    []
+  );
 
-  const setIsMobileThemeModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('mobileTheme'), []);
-  const setIsTestModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('test'), []);
-  const setIsFontInfoModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('fontInfo'), []);
-  const setIsTraceModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('trace'), []);
-  const setIsSvgModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('svg'), []);
-  const setIsBatchNormalizeModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('batchNormalize'), []);
-  const setIsQualityModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('quality'), []);
-  const setIsSynthesisModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('synthesis'), []);
-  const setIsKerningModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('kerning'), []);
-  const setIsWeightInterpModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('weightInterp'), []);
-  const setIsGlyphCompareModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('glyphCompare'), []);
-  const setIsRadicalStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('radicalStudio'), []);
-  const setIsStorageManagerOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('storageManager'), []);
-  const setIsShortcutsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('shortcuts'), []);
-  const setIsExportModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('export'), []);
-  const setIsOpenTypeFeaturesModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('openTypeFeatures'), []);
-  const setIsGridFittingModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('gridFitting'), []);
-  const setIsPixelStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('pixelStudio'), []);
-  const setIsMojikumiStudioOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('mojikumi'), []);
-  const setIsPenPresetsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>(makeSetter('penPresets'), []);
+  const modalSetters = useMemo(
+    () => ({
+      setIsMobileThemeModalOpen: createModalSetter('mobileTheme'),
+      setIsTestModalOpen: createModalSetter('test'),
+      setIsFontInfoModalOpen: createModalSetter('fontInfo'),
+      setIsTraceModalOpen: createModalSetter('trace'),
+      setIsSvgModalOpen: createModalSetter('svg'),
+      setIsBatchNormalizeModalOpen: createModalSetter('batchNormalize'),
+      setIsQualityModalOpen: createModalSetter('quality'),
+      setIsSynthesisModalOpen: createModalSetter('synthesis'),
+      setIsKerningModalOpen: createModalSetter('kerning'),
+      setIsWeightInterpModalOpen: createModalSetter('weightInterp'),
+      setIsGlyphCompareModalOpen: createModalSetter('glyphCompare'),
+      setIsRadicalStudioOpen: createModalSetter('radicalStudio'),
+      setIsStorageManagerOpen: createModalSetter('storageManager'),
+      setIsShortcutsModalOpen: createModalSetter('shortcuts'),
+      setIsExportModalOpen: createModalSetter('export'),
+      setIsOpenTypeFeaturesModalOpen: createModalSetter('openTypeFeatures'),
+      setIsGridFittingModalOpen: createModalSetter('gridFitting'),
+      setIsPixelStudioOpen: createModalSetter('pixelStudio'),
+      setIsMojikumiStudioOpen: createModalSetter('mojikumi'),
+      setIsPenPresetsModalOpen: createModalSetter('penPresets'),
+      setIsJisProgressModalOpen: createModalSetter('jisProgress'),
+      setIsIvsManagerOpen: createModalSetter('ivsManager'),
+    }),
+    [createModalSetter]
+  );
 
   const isAnyModalOpen = activeModal !== null;
 
@@ -160,45 +175,28 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       showMetricsDrawer,
       setShowMetricsDrawer,
       isMobileThemeModalOpen: activeModal === 'mobileTheme',
-      setIsMobileThemeModalOpen,
       isTestModalOpen: activeModal === 'test',
-      setIsTestModalOpen,
       isFontInfoModalOpen: activeModal === 'fontInfo',
-      setIsFontInfoModalOpen,
       isTraceModalOpen: activeModal === 'trace',
-      setIsTraceModalOpen,
       isSvgModalOpen: activeModal === 'svg',
-      setIsSvgModalOpen,
       isBatchNormalizeModalOpen: activeModal === 'batchNormalize',
-      setIsBatchNormalizeModalOpen,
       isQualityModalOpen: activeModal === 'quality',
-      setIsQualityModalOpen,
       isSynthesisModalOpen: activeModal === 'synthesis',
-      setIsSynthesisModalOpen,
       isKerningModalOpen: activeModal === 'kerning',
-      setIsKerningModalOpen,
       isWeightInterpModalOpen: activeModal === 'weightInterp',
-      setIsWeightInterpModalOpen,
       isGlyphCompareModalOpen: activeModal === 'glyphCompare',
-      setIsGlyphCompareModalOpen,
       isRadicalStudioOpen: activeModal === 'radicalStudio',
-      setIsRadicalStudioOpen,
       isStorageManagerOpen: activeModal === 'storageManager',
-      setIsStorageManagerOpen,
       isShortcutsModalOpen: activeModal === 'shortcuts',
-      setIsShortcutsModalOpen,
       isExportModalOpen: activeModal === 'export',
-      setIsExportModalOpen,
       isOpenTypeFeaturesModalOpen: activeModal === 'openTypeFeatures',
-      setIsOpenTypeFeaturesModalOpen,
       isGridFittingModalOpen: activeModal === 'gridFitting',
-      setIsGridFittingModalOpen,
       isPixelStudioOpen: activeModal === 'pixelStudio',
-      setIsPixelStudioOpen,
       isMojikumiStudioOpen: activeModal === 'mojikumi',
-      setIsMojikumiStudioOpen,
       isPenPresetsModalOpen: activeModal === 'penPresets',
-      setIsPenPresetsModalOpen,
+      isJisProgressModalOpen: activeModal === 'jisProgress',
+      isIvsManagerOpen: activeModal === 'ivsManager',
+      ...modalSetters,
       isAnyModalOpen,
       closeAllModals,
     }),
@@ -210,26 +208,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       showRadicals,
       showGridDrawer,
       showMetricsDrawer,
-      setIsMobileThemeModalOpen,
-      setIsTestModalOpen,
-      setIsFontInfoModalOpen,
-      setIsTraceModalOpen,
-      setIsSvgModalOpen,
-      setIsBatchNormalizeModalOpen,
-      setIsQualityModalOpen,
-      setIsSynthesisModalOpen,
-      setIsKerningModalOpen,
-      setIsWeightInterpModalOpen,
-      setIsGlyphCompareModalOpen,
-      setIsRadicalStudioOpen,
-      setIsStorageManagerOpen,
-      setIsShortcutsModalOpen,
-      setIsExportModalOpen,
-      setIsOpenTypeFeaturesModalOpen,
-      setIsGridFittingModalOpen,
-      setIsPixelStudioOpen,
-      setIsMojikumiStudioOpen,
-      setIsPenPresetsModalOpen,
+      modalSetters,
       isAnyModalOpen,
       closeAllModals,
     ]

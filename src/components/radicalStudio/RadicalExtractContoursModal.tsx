@@ -34,9 +34,9 @@ export const RadicalExtractContoursModal: React.FC<RadicalExtractContoursModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 animate-fadeIn">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 anim-fade">
       <div
-        className={`w-full max-w-lg rounded-xl border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden ${
+        className={`w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden ${
           isLight ? 'bg-white border-[#c8ded3]' : 'bg-[#16221a] border-[#25362b]'
         }`}
       >
@@ -75,7 +75,7 @@ export const RadicalExtractContoursModal: React.FC<RadicalExtractContoursModalPr
               <button
                 key={glyph.unicode}
                 onClick={() => onExtractFromGlyph(glyph)}
-                className={`p-2 rounded-lg border flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`p-2 rounded-lg border flex flex-col items-center justify-center space-y-1 transition-colors ${
                   isLight
                     ? 'bg-[#f7faf8] border-[#d8e6df] hover:border-emerald-700 hover:bg-emerald-50'
                     : 'bg-[#121a14] border-[#25362b] hover:border-emerald-500 hover:bg-[#1a2820]'

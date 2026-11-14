@@ -18,10 +18,12 @@ import {
   TabFilter,
 } from '../types';
 import { QualityIssueCard } from './QualityIssueCard';
+import { ThemeClasses, getThemeClasses } from '../../../utils/theme';
 
 export interface QualityIssuesViewProps {
   project: FontProject;
   isLight: boolean;
+  themeClasses?: ThemeClasses;
   report: FontQualityReport | null;
   filteredIssues: QualityIssue[];
   totalAutoFixableCount: number;
@@ -54,6 +56,7 @@ export interface QualityIssuesViewProps {
 export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
   project,
   isLight,
+  themeClasses: passedThemeClasses,
   report,
   filteredIssues,
   totalAutoFixableCount,
@@ -78,13 +81,12 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
   onOpenHeatmap,
   notify,
 }) => {
+  const themeClasses = passedThemeClasses ?? getThemeClasses(isLight ? 'light' : 'dark');
   return (
     <>
       {/* Top Quality Health Summary & Compact Controls */}
       <div
-        className={`p-2.5 sm:p-3 border-b shrink-0 transition-colors space-y-2 ${
-          isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#131d16] border-[#223326]'
-        }`}
+        className={`p-2.5 sm:p-3 border-b shrink-0 transition-colors space-y-2 ${themeClasses.subtoolbarBg}`}
       >
         {/* Health Score & Quick Tool Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -107,7 +109,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                   {healthStatus.label}
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+              <p className={`text-[11px] truncate ${themeClasses.textMuted}`}>
                 {report && report.totalIssues > 0
                   ? `${report.totalIssues}件の改善推奨事項（${report.totalGlyphsChecked}字検査済）`
                   : 'すべての品質基準を満たしています'}
@@ -121,18 +123,14 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
               <button
                 onClick={() => onBatchFix(undefined)}
                 title="修正（白抜き解消・極点最適化・線幅均一化・ベースライン整列）を一括実行します"
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all active:scale-98 cursor-pointer ${
-                  isLight
-                    ? 'bg-emerald-700 hover:bg-emerald-800 text-white border border-emerald-800'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500'
-                }`}
+                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-200" />
                 <span>全 {totalAutoFixableCount} 件を一括自動修正</span>
               </button>
             )}
 
-            <div className="flex items-center gap-1 border-l pl-2 border-stone-300 dark:border-stone-700">
+            <div className={`flex items-center gap-1 border-l pl-2 ${themeClasses.border}`}>
               <button
                 onClick={() => {
                   setIsExtremaPanelOpen((prev) => !prev);
@@ -141,14 +139,10 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                     setIsOptimizePanelOpen(false);
                   }
                 }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                   isExtremaPanelOpen
-                    ? isLight
-                      ? 'bg-cyan-700 text-white border-cyan-800'
-                      : 'bg-cyan-600 text-white border-cyan-500'
-                    : isLight
-                    ? 'bg-white text-cyan-900 border-cyan-200 hover:bg-cyan-50'
-                    : 'bg-[#17251d] text-cyan-200 border-cyan-900/60 hover:bg-[#1f3328]'
+                    ? 'bg-cyan-700 text-white border-cyan-800'
+                    : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                 }`}
                 title="極点ノードの自動追加・軸整列ツールを開く"
               >
@@ -164,18 +158,14 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                     setIsExtremaPanelOpen(false);
                   }
                 }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                   isEqualizePanelOpen
-                    ? isLight
-                      ? 'bg-emerald-700 text-white border-emerald-800'
-                      : 'bg-emerald-600 text-white border-emerald-500'
-                    : isLight
-                    ? 'bg-white text-emerald-900 border-emerald-200 hover:bg-emerald-50'
-                    : 'bg-[#17251d] text-emerald-200 border-emerald-900/60 hover:bg-[#1f3328]'
+                    ? `${themeClasses.activeTool} border-transparent`
+                    : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                 }`}
                 title="線幅均一化・かすれ潰れ補正ツールを開く"
               >
-                <Scale className="w-3 h-3 text-emerald-500" />
+                <Scale className={`w-3 h-3 ${isEqualizePanelOpen ? '' : themeClasses.accentText}`} />
                 <span>線幅均一化</span>
               </button>
 
@@ -187,18 +177,14 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                     setIsExtremaPanelOpen(false);
                   }
                 }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                   isOptimizePanelOpen
-                    ? isLight
-                      ? 'bg-emerald-700 text-white border-emerald-800'
-                      : 'bg-emerald-600 text-white border-emerald-500'
-                    : isLight
-                    ? 'bg-white text-emerald-900 border-emerald-200 hover:bg-emerald-50'
-                    : 'bg-[#17251d] text-emerald-200 border-emerald-900/60 hover:bg-[#1f3328]'
+                    ? `${themeClasses.activeTool} border-transparent`
+                    : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                 }`}
                 title="冗長ノードの間引きツールを開く"
               >
-                <Wand2 className="w-3 h-3 text-emerald-500" />
+                <Wand2 className={`w-3 h-3 ${isOptimizePanelOpen ? '' : themeClasses.accentText}`} />
                 <span>ノード軽量化</span>
               </button>
 
@@ -215,11 +201,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                     }
                   }
                 }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
-                  isLight
-                    ? 'bg-white text-amber-900 border-amber-300 hover:bg-amber-50'
-                    : 'bg-[#17251d] text-amber-200 border-amber-900/60 hover:bg-[#1f3328]'
-                }`}
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
                 title="アンカー密度ヒートマップを開く"
               >
                 <Flame className="w-3 h-3 text-amber-500" />
@@ -237,39 +219,31 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
 
       {/* Filter & Search Toolbar */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-2 border-b text-xs ${
-          isLight ? 'bg-white border-stone-200' : 'bg-[#141e17] border-[#25362b]'
-        }`}
+        className={`flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-2 border-b text-xs ${themeClasses.headerBg}`}
       >
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
           {/* Search Input */}
           <div className="relative min-w-[140px] max-w-xs flex-1">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="文字、Unicode、指摘内容検索... (/)"
-              className={`w-full pl-8 pr-3 py-1.5 rounded-lg border text-xs outline-hidden transition-colors ${
-                isLight
-                  ? 'bg-stone-50 border-stone-200 focus:border-emerald-600 focus:bg-white text-stone-900'
-                  : 'bg-[#111913] border-[#25362b] focus:border-emerald-500 text-emerald-100'
-              }`}
+              className={`w-full pl-8 pr-3 py-1.5 rounded-lg border text-xs outline-hidden transition-colors ${themeClasses.cardBg}`}
             />
           </div>
 
-          {/* Severity Filter Pills */}
-          <div className="flex items-center space-x-1 bg-stone-100 dark:bg-[#162119] p-0.5 rounded-lg border border-stone-200 dark:border-[#223326] shrink-0">
+          {/* Severity Filter */}
+          <div className={`flex items-center space-x-1 p-0.5 rounded-lg border shrink-0 ${themeClasses.subtoolbarBg}`}>
             <button
               type="button"
               onClick={() => setSeverityFilter('all')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
                 severityFilter === 'all'
-                  ? isLight
-                    ? 'bg-white text-stone-900 shadow-xs'
-                    : 'bg-[#1e2e23] text-emerald-300'
-                  : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
               }`}
             >
               全重要度
@@ -277,12 +251,12 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
             <button
               type="button"
               onClick={() => setSeverityFilter('error')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                 severityFilter === 'error'
                   ? isLight
                     ? 'bg-rose-100 text-rose-900 border border-rose-300'
                     : 'bg-rose-950 text-rose-300 border border-rose-800'
-                  : 'text-stone-500 hover:text-rose-600 dark:hover:text-rose-400'
+                  : `${themeClasses.textMuted} hover:text-rose-600 dark:hover:text-rose-400`
               }`}
             >
               <span>エラー</span>
@@ -295,12 +269,12 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
             <button
               type="button"
               onClick={() => setSeverityFilter('warning')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                 severityFilter === 'warning'
                   ? isLight
                     ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : 'bg-amber-950 text-amber-300 border border-amber-800'
-                  : 'text-stone-500 hover:text-amber-600 dark:hover:text-amber-400'
+                  : `${themeClasses.textMuted} hover:text-amber-600 dark:hover:text-amber-400`
               }`}
             >
               <span>警告</span>
@@ -313,12 +287,12 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
             <button
               type="button"
               onClick={() => setSeverityFilter('info')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
                 severityFilter === 'info'
                   ? isLight
                     ? 'bg-sky-100 text-sky-900 border border-sky-300'
                     : 'bg-sky-950 text-sky-300 border border-sky-800'
-                  : 'text-stone-500 hover:text-sky-600 dark:hover:text-sky-400'
+                  : `${themeClasses.textMuted} hover:text-sky-600 dark:hover:text-sky-400`
               }`}
             >
               <span>情報</span>

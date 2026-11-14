@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Point } from '../../../types';
+import { clampPanToViewport } from './viewportMath';
 
 interface UseCanvasViewportOptions {
   upm: number;
@@ -16,42 +17,42 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
 
   const zoomRef = useRef<number>(zoom);
-  useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
+  zoomRef.current = zoom;
 
   const panRef = useRef<Point>(pan);
-  useEffect(() => {
-    panRef.current = pan;
-  }, [pan]);
+  panRef.current = pan;
 
-  // Boundary Clamping for Viewport Panning (prevents canvas from drifting into infinite empty space)
+  const invalidateContainerRect = useCallback(() => {
+    containerRectRef.current = null;
+  }, []);
+
+  const getContainerRectFast = useCallback((): { left: number; top: number; width: number; height: number } | null => {
+    if (containerRectRef.current) {
+      return containerRectRef.current;
+    }
+    if (!containerRef.current) return null;
+    const rect = containerRef.current.getBoundingClientRect();
+    containerRectRef.current = rect;
+    if (rect.width > 0 && rect.height > 0) {
+      containerDimensionsRef.current = { width: rect.width, height: rect.height };
+    }
+    return rect;
+  }, []);
+
+  // Boundary Clamping for Viewport Panning (uses cached dimensions to avoid forced reflows during 60-120fps pinch/pan)
   const clampPan = useCallback(
     (p: Point, currentZoom: number): Point => {
-      if (!containerRef.current) return p;
-      const rect = containerRef.current.getBoundingClientRect();
-      const cWidth = rect.width;
-      const cHeight = rect.height;
-      if (cWidth <= 0 || cHeight <= 0) return p;
-
-      const canvasWidth = upm * currentZoom;
-      const canvasHeight = upm * currentZoom;
-
-      // Minimum visible overlap: keep at least 35% or 180px in view
-      const minVisibleX = Math.min(canvasWidth * 0.35, 180);
-      const minVisibleY = Math.min(canvasHeight * 0.35, 180);
-
-      const minX = -canvasWidth + minVisibleX;
-      const maxX = cWidth - minVisibleX;
-      const minY = -canvasHeight + minVisibleY;
-      const maxY = cHeight - minVisibleY;
-
-      return {
-        x: Math.min(maxX, Math.max(minX, p.x)),
-        y: Math.min(maxY, Math.max(minY, p.y)),
-      };
+      let cWidth = containerDimensionsRef.current.width;
+      let cHeight = containerDimensionsRef.current.height;
+      if (cWidth <= 0 || cHeight <= 0) {
+        const rect = getContainerRectFast();
+        if (!rect) return p;
+        cWidth = rect.width;
+        cHeight = rect.height;
+      }
+      return clampPanToViewport(p, currentZoom, upm, cWidth, cHeight);
     },
-    [upm]
+    [upm, getContainerRectFast]
   );
 
   // Auto-center canvas on initial mount, resize, or drawer toggle with optimal zoom
@@ -63,6 +64,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       if (cWidth <= 0 || cHeight <= 0) {
         if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
+          containerRectRef.current = rect;
           if (rect.width > 0) cWidth = rect.width;
           if (rect.height > 0) cHeight = rect.height;
         }
@@ -76,23 +78,33 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         cHeight = containerRef.current?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight - 100 : 600) || 600;
       }
 
+      if (cWidth > 0 && cHeight > 0) {
+        containerDimensionsRef.current = { width: cWidth, height: cHeight };
+      }
+
       if (mode === '100%') {
-        setZoom(1.0);
-        setPan({
+        const nextPan = {
           x: Math.round((cWidth - upm) / 2),
           y: Math.round((cHeight - upm) / 2),
-        });
+        };
+        zoomRef.current = 1.0;
+        panRef.current = nextPan;
+        setZoom(1.0);
+        setPan(nextPan);
         return;
       }
 
       if (mode === 'width') {
         const margin = cWidth < 640 ? 12 : 24;
         const widthZoom = Math.max(0.35, Math.min(3.5, (cWidth - margin) / upm));
-        setZoom(widthZoom);
-        setPan({
+        const nextPan = {
           x: Math.round((cWidth - upm * widthZoom) / 2),
           y: Math.round(Math.max(16, (cHeight - upm * widthZoom) / 2)),
-        });
+        };
+        zoomRef.current = widthZoom;
+        panRef.current = nextPan;
+        setZoom(widthZoom);
+        setPan(nextPan);
         return;
       }
 
@@ -103,11 +115,14 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         Math.max(0.1, (cHeight - margin) / upm)
       );
       const clampedZoom = Math.max(0.35, Math.min(3.5, idealZoom));
-      setZoom(clampedZoom);
-      setPan({
+      const nextPan = {
         x: Math.round((cWidth - upm * clampedZoom) / 2),
         y: Math.round((cHeight - upm * clampedZoom) / 2),
-      });
+      };
+      zoomRef.current = clampedZoom;
+      panRef.current = nextPan;
+      setZoom(clampedZoom);
+      setPan(nextPan);
     },
     [upm]
   );
@@ -115,50 +130,51 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
   // Smooth centered zoom step helper
   const handleZoomStep = useCallback(
     (factor: number) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getContainerRectFast();
+      if (!rect) return;
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
-      setZoom((prevZoom) => {
-        const nextZoom = Math.max(0.35, Math.min(5.0, prevZoom * factor));
-        const scale = nextZoom / prevZoom;
-        setPan((prevPan) => {
-          const newPan = {
-            x: centerX - (centerX - prevPan.x) * scale,
-            y: centerY - (centerY - prevPan.y) * scale,
-          };
-          return clampPan(newPan, nextZoom);
-        });
-        return nextZoom;
-      });
+      const prevZoom = zoomRef.current;
+      const nextZoom = Math.max(0.35, Math.min(5.0, prevZoom * factor));
+      const scale = nextZoom / prevZoom;
+      const prevPan = panRef.current;
+      const nextPan = clampPan(
+        {
+          x: centerX - (centerX - prevPan.x) * scale,
+          y: centerY - (centerY - prevPan.y) * scale,
+        },
+        nextZoom
+      );
+      zoomRef.current = nextZoom;
+      panRef.current = nextPan;
+      setZoom(nextZoom);
+      setPan(nextPan);
     },
-    [clampPan]
+    [clampPan, getContainerRectFast]
   );
 
-  // Screen to Canvas Coordinates Converter (Always fresh rect with exact subpixel mapping and zero drift)
+  // Screen to Canvas Coordinates Converter (uses cached rect during active gestures)
   const screenToCanvas = useCallback((clientX: number, clientY: number): Point => {
-    const rect = containerRef.current?.getBoundingClientRect();
+    const rect = getContainerRectFast();
     if (!rect) return { x: 0, y: 0 };
-    containerRectRef.current = rect;
     const currentZoom = zoomRef.current || 1;
     const currentPan = panRef.current || { x: 0, y: 0 };
     const x = (clientX - rect.left - currentPan.x) / currentZoom;
     const y = (clientY - rect.top - currentPan.y) / currentZoom;
     return { x, y };
-  }, []);
+  }, [getContainerRectFast]);
 
   // Canvas to Screen Coordinates Converter
   const canvasToScreen = useCallback((canvasX: number, canvasY: number): Point => {
-    const rect = containerRef.current?.getBoundingClientRect();
+    const rect = getContainerRectFast();
     if (!rect) return { x: 0, y: 0 };
-    containerRectRef.current = rect;
     const currentZoom = zoomRef.current || 1;
     const currentPan = panRef.current || { x: 0, y: 0 };
     return {
       x: rect.left + currentPan.x + canvasX * currentZoom,
       y: rect.top + currentPan.y + canvasY * currentZoom,
     };
-  }, []);
+  }, [getContainerRectFast]);
 
   // Invalidate cached container rect on window resize/orientation change or scrolling
   useEffect(() => {
@@ -169,16 +185,17 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       containerRectRef.current = null;
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
+        containerRectRef.current = rect;
         if (rect.width > 0 && rect.height > 0) {
           resetView('fit', rect.width, rect.height);
         }
       }
     };
     window.addEventListener('resize', handleWindowResize);
-    window.addEventListener('scroll', handleInvalidateContainerRect);
+    window.addEventListener('scroll', handleInvalidateContainerRect, { capture: true, passive: true });
     return () => {
       window.removeEventListener('resize', handleWindowResize);
-      window.removeEventListener('scroll', handleInvalidateContainerRect);
+      window.removeEventListener('scroll', handleInvalidateContainerRect, { capture: true });
     };
   }, [resetView]);
 
@@ -219,12 +236,16 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
           const prev = containerDimensionsRef.current;
+          containerDimensionsRef.current = { width, height };
           if (prev.width === 0 || prev.height === 0 || Math.abs(prev.width - width) > 100) {
             resetView('fit', width, height);
           } else {
-            setPan((prevPan) => clampPan(prevPan, zoomRef.current));
+            const clamped = clampPan(panRef.current, zoomRef.current);
+            if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
+              panRef.current = clamped;
+              setPan(clamped);
+            }
           }
-          containerDimensionsRef.current = { width, height };
         }
       }
     });
@@ -236,6 +257,8 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
     containerRef,
     containerRectRef,
     containerDimensionsRef,
+    getContainerRectFast,
+    invalidateContainerRect,
     zoom,
     setZoom,
     zoomRef,

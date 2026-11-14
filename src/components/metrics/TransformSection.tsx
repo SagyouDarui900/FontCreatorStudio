@@ -74,7 +74,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
       >
         <div
           onClick={onToggle}
-          className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+          className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
         >
           <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textPrimary}`}>
             傾斜・変形・配置
@@ -100,7 +100,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
                     key={deg}
                     type="button"
                     onClick={() => onSlant(deg)}
-                    className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                    className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                   >
                     {deg > 0 ? `+${deg}°` : `${deg}°`}
                   </button>
@@ -113,7 +113,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={onFlipH}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <FlipHorizontal className="w-4 h-4 shrink-0" />
                 <span>左右反転</span>
@@ -122,7 +122,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={onFlipV}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <FlipVertical className="w-4 h-4 shrink-0" />
                 <span>上下反転</span>
@@ -131,7 +131,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onScale(1.1)}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <Maximize2 className="w-4 h-4 shrink-0" />
                 <span>拡大 +10%</span>
@@ -140,7 +140,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onScale(0.9)}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <Minimize2 className="w-4 h-4 shrink-0" />
                 <span>縮小 -10%</span>
@@ -149,7 +149,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onAspectScale(0.85, 1.0)}
-                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="横幅をスリム化して縦長の長体に変換 (X:85%)"
               >
                 <span>長体 (横縮小)</span>
@@ -158,7 +158,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onAspectScale(1.15, 0.85)}
-                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="縦幅を抑えて横広の扁平に変換 (X:115%, Y:85%)"
               >
                 <span>扁平 (横広化)</span>
@@ -170,7 +170,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               type="button"
               onClick={onSmoothAndFix}
               disabled={contours.length === 0}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="変形・拡大縮小時に生じたガタツキやベジェ曲線の折れ曲がり歪みを自動補正"
             >
               <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -180,7 +180,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             <button
               type="button"
               onClick={onFitToEmBox}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="はみ出た文字や大きすぎる文字を、キャンバスの字面枠（漢字85%/仮名78%）にぴったり収まるよう自動縮小・中央配置します"
             >
               <Maximize2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -190,7 +190,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             <button
               type="button"
               onClick={onCenter}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               <AlignCenter className="w-4 h-4 shrink-0" />
               <span>EM枠の中央に配置 ({upm}×{upm})</span>
@@ -200,7 +200,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             <button
               type="button"
               onClick={onConvertToSmallKana}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="通常の文字を小文字用（ぁ, ッ等）の位置とサイズに自動縮小"
             >
               <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -216,7 +216,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
       >
         <div
           onClick={onToggleOutline}
-          className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+          className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
         >
           <span className={`text-xs font-bold ${themeClasses.textPrimary}`}>
             骨格線の肉付け（アウトライン化）
@@ -257,7 +257,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
       {/* 7. Clear Button */}
       <div className="pt-1">
         {isConfirmingClear ? (
-          <div className="flex items-center space-x-2 animate-in fade-in duration-150">
+          <div className="flex items-center space-x-2 anim-fade">
             <button
               type="button"
               onClick={onExecuteClear}
@@ -269,11 +269,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             <button
               type="button"
               onClick={() => setIsConfirmingClear(false)}
-              className={`min-h-[44px] py-2 px-4 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                isLight
-                  ? 'bg-white hover:bg-stone-100 text-stone-700 border-stone-300'
-                  : 'bg-[#1a261f] hover:bg-[#25362b] text-stone-300 border-[#2d4034]'
-              }`}
+              className={`min-h-[44px] py-2 px-4 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               取消
             </button>
@@ -286,11 +282,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               setIsConfirmingClear(true);
             }}
             disabled={contours.length === 0}
-            className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-40 cursor-pointer ${
-              isLight
-                ? 'border-rose-300 text-rose-700 hover:bg-rose-50'
-                : 'border-rose-900/60 text-rose-400 hover:bg-rose-950/40'
-            }`}
+            className="w-full min-h-[42px] py-2 rounded-lg border border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors disabled:opacity-40 cursor-pointer"
             title="現在のグリフのすべての輪郭を消去 (Ctrl+Zで元に戻せます)"
           >
             <Trash2 className="w-4 h-4 shrink-0" />

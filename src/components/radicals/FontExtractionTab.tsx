@@ -84,7 +84,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
             type="button"
             onClick={() => onPerformExtraction(extractChar, extractRegion)}
             disabled={isExtracting}
-            className={`px-3 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1 shadow-xs transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1 shadow-xs transition-colors cursor-pointer ${
               isLight
                 ? 'bg-emerald-800 text-white hover:bg-emerald-900'
                 : 'bg-emerald-600 text-white hover:bg-emerald-500'
@@ -108,7 +108,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
                 setExtractChar(p.char);
                 onPerformExtraction(p.char, extractRegion);
               }}
-              className={`px-2 py-0.5 rounded border text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded border text-xs font-semibold transition-colors cursor-pointer ${
                 extractChar === p.char
                   ? isLight
                     ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
@@ -241,7 +241,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
           type="button"
           onClick={() => onInsertWithPlacement(extractedContours)}
           disabled={extractedContours.length === 0}
-          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-all cursor-pointer ${
+          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors cursor-pointer ${
             extractedContours.length > 0
               ? isLight
                 ? 'bg-emerald-800 text-white hover:bg-emerald-900'
@@ -261,7 +261,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
             )
           }
           disabled={extractedContours.length === 0}
-          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 border transition-all cursor-pointer ${
+          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 border transition-colors cursor-pointer ${
             extractedContours.length > 0
               ? isLight
                 ? 'bg-white border-emerald-700 text-emerald-900 hover:bg-emerald-50'

@@ -36,10 +36,10 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
+        className={`w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
@@ -60,7 +60,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition-colors cursor-pointer ${themeClasses.activeToolHover}`}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -72,20 +72,20 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
         >
           <button
             onClick={() => setActiveTab('presets')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'presets'
                 ? themeClasses.accentBtn
-                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             代表的なIVS漢字プリセット
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               activeTab === 'about'
                 ? themeClasses.accentBtn
-                : `${themeClasses.textMuted} hover:${themeClasses.textPrimary}`
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             IVS規格とフォント出力仕様について
@@ -109,12 +109,10 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                   return (
                     <div
                       key={item.baseChar}
-                      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                      className={`p-4 rounded-xl border flex flex-col justify-between transition-colors ${themeClasses.cardBg} ${
                         isCurrent
-                          ? 'border-emerald-500 bg-emerald-50/20 ring-1 ring-emerald-500/30'
-                          : isLight
-                          ? 'bg-stone-50/60 border-stone-200 hover:border-stone-300'
-                          : 'bg-stone-900/40 border-stone-800 hover:border-stone-700'
+                          ? `${themeClasses.accentBorder} ring-1 ring-emerald-500/30`
+                          : themeClasses.border
                       }`}
                     >
                       <div>
@@ -134,15 +132,15 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                         </div>
 
                         {/* Variants breakdown */}
-                        <div className="space-y-1.5 mt-3 pt-2 border-t border-stone-200 dark:border-stone-800">
+                        <div className={`space-y-1.5 mt-3 pt-2 border-t ${themeClasses.border}`}>
                           {item.variants.map((v) => (
-                            <div key={v.selectorCode} className="text-xs bg-white dark:bg-stone-950 p-2 rounded-lg border border-stone-200/60 dark:border-stone-800">
+                            <div key={v.selectorCode} className={`text-xs p-2 rounded-lg border ${themeClasses.toolbarBg} ${themeClasses.border}`}>
                               <div className="flex items-center justify-between font-bold text-[11px] mb-0.5">
-                                <span className="text-emerald-700 dark:text-emerald-300">{v.selectorName}</span>
+                                <span className={themeClasses.accentText}>{v.selectorName}</span>
                                 <span className="font-mono text-[10px] opacity-60">U+{v.selectorCode.toString(16).toUpperCase()}</span>
                               </div>
-                              <p className="text-[11px] text-stone-600 dark:text-stone-400">{v.description}</p>
-                              <span className="inline-block mt-1 text-[10px] font-bold text-teal-600 dark:text-teal-400">
+                              <p className={`text-[11px] ${themeClasses.textMuted}`}>{v.description}</p>
+                              <span className={`inline-block mt-1 text-[10px] font-bold ${themeClasses.accentText}`}>
                                 特徴: {v.distinction}
                               </span>
                             </div>
@@ -151,7 +149,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                       </div>
 
                       <div className="mt-3 pt-2 flex items-center justify-between">
-                        <span className="text-[10px] text-stone-400 font-mono">
+                        <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
                           {hasContours ? '作図データあり' : '未作成'}
                         </span>
                         <button
@@ -160,7 +158,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                             onClose();
                             onShowToast(`「${item.baseChar}」のエディタを開きました`, 'success');
                           }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 cursor-pointer transition-colors"
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${themeClasses.accentBtn}`}
                         >
                           <span>エディタで開く</span>
                           <ArrowRight className="w-3 h-3" />
@@ -172,8 +170,8 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-4 text-xs leading-relaxed text-stone-700 dark:text-stone-300">
-              <h3 className="text-sm font-bold text-stone-900 dark:text-white">IVS（Ideographic Variation Sequence）とは？</h3>
+            <div className={`space-y-4 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
+              <h3 className={`text-sm font-bold ${themeClasses.textPrimary}`}>IVS（Ideographic Variation Sequence）とは？</h3>
               <p>
                 従来のUnicodeでは「辻」や「葛」といった漢字は1つのコードポイント（例: 辻=U+8FBB）しか割り当てられていませんでしたが、
                 人名・地名における「一点しんにょう」と「二点しんにょう」のように、微細だが法的に重要な字形差を区別するために制定された仕組みです。
@@ -183,7 +181,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                 同一コードポイントでありながら異なるグリフ（字形）を呼び出すことができます。
               </p>
 
-              <h3 className="text-sm font-bold text-stone-900 dark:text-white mt-4">武蔵システム OTEdit / TTEdit との互換性</h3>
+              <h3 className={`text-sm font-bold mt-4 ${themeClasses.textPrimary}`}>武蔵システム OTEdit / TTEdit との互換性</h3>
               <p>
                 本アプリで作成したフォントは、OpenType の <code>cmap format 14 (Unicode Variation Sequences)</code> テーブルに対応したメタデータを保持し、
                 Adobe InDesign、Illustrator、Word などのIVS対応環境で標準文字と異体字の両立を実現できます。
@@ -198,7 +196,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
         >
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} hover:${themeClasses.activeToolHover}`}
+            className={`px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
           >
             閉じる
           </button>

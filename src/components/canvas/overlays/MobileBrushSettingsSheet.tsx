@@ -40,10 +40,10 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
     if (!isOpen) return null;
 
     return (
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 animate-fadeIn">
+      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
         <div className="fixed inset-0" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[82vh] overflow-y-auto ${
+          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[82vh] overflow-y-auto anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 80px)' }}
@@ -222,7 +222,7 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
                       }
                       onClose();
                     }}
-                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                    className={`p-2.5 rounded-xl border text-left transition-colors ${
                       isSelected
                         ? isLight
                           ? 'bg-emerald-100/90 text-emerald-950 font-bold border-emerald-400 ring-1 ring-emerald-400'

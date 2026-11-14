@@ -82,11 +82,11 @@ export const ToolbarPositionMenu: React.FC<ToolbarPositionMenuProps> = ({
     <div
       ref={menuRef}
       style={anchorStyle}
-      className={`fixed z-50 w-64 p-2 rounded-xl border shadow-xl animate-in fade-in zoom-in-95 duration-100 ${themeClasses.cardBg}`}
+      className={`fixed z-50 w-64 p-2 rounded-xl border shadow-xl anim-pop ${themeClasses.cardBg}`}
       role="dialog"
       aria-label="ツールバー配置設定"
     >
-      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-stone-200 dark:border-[#223025]">
+      <div className={`flex items-center justify-between pb-1.5 mb-1.5 border-b ${themeClasses.border}`}>
         <span className="text-[11px] font-bold tracking-tight text-stone-700 dark:text-stone-300">
           ツールバーの配置
         </span>

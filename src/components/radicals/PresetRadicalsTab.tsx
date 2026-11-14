@@ -87,7 +87,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
               <button
                 type="button"
                 onClick={() => onInsertPresetRadical(radical)}
-                className={`w-full flex flex-col items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${
+                className={`w-full flex flex-col items-center justify-between p-2 rounded-lg border transition-colors cursor-pointer ${
                   isLight
                     ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-emerald-50 shadow-xs'
                     : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'
@@ -122,7 +122,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
                     e.stopPropagation();
                     onBatchInsertPresetRadical(radical);
                   }}
-                  className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold border opacity-85 group-hover:opacity-100 transition-all flex items-center gap-0.5 cursor-pointer ${
+                  className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold border opacity-85 group-hover:opacity-100 transition-colors flex items-center gap-0.5 cursor-pointer ${
                     isLight
                       ? 'bg-emerald-50/95 border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white'
                       : 'bg-[#132219]/95 border-emerald-700 text-emerald-300 hover:bg-emerald-600 hover:text-white'
@@ -151,7 +151,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
         <button
           type="button"
           onClick={onImportAllPresetRadicals}
-          className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-all cursor-pointer ${
+          className={`px-2.5 py-1 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
             isLight
               ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
               : 'bg-[#1c2920] border-emerald-600 text-emerald-200 hover:bg-[#233529]'

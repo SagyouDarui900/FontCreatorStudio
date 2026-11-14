@@ -138,7 +138,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
           </div>
         ) : (
           <div
-            className={`hidden md:flex static inset-y-0 right-0 w-80 lg:w-88 xl:w-96 border-l flex-col shrink-0 min-h-0 relative overflow-hidden transition-all ${
+            className={`hidden md:flex static inset-y-0 right-0 w-80 lg:w-88 xl:w-96 border-l flex-col shrink-0 min-h-0 relative overflow-hidden transition-[width] ${
               isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#162119] border-[#25362b]'
             }`}
           >
@@ -155,7 +155,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  >
  <button
  onClick={() => setRightTab('transform')}
- className={`px-2.5 sm:px-3 py-1 rounded-md transition-all whitespace-nowrap ${
+ className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors whitespace-nowrap ${
  rightTab === 'transform'
  ? isLight
  ? 'bg-white text-emerald-950 font-bold '
@@ -167,7 +167,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={() => setRightTab('compose')}
- className={`px-2.5 sm:px-3 py-1 rounded-md transition-all whitespace-nowrap ${
+ className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors whitespace-nowrap ${
  rightTab === 'compose'
  ? isLight
  ? 'bg-white text-emerald-950 font-bold '
@@ -291,7 +291,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <div className="space-y-1.5 pt-1">
  <button
  onClick={handleUnionPart}
- className={`w-full py-2 px-2.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-all ${
+ className={`w-full py-2 px-2.5 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors ${
  isLight
  ? 'bg-emerald-800 text-white hover:bg-emerald-900'
  : 'bg-emerald-600 text-white hover:bg-emerald-500'
@@ -302,7 +302,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={handleNormalizeWinding}
- className={`w-full py-1.5 px-2.5 rounded-lg font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-all ${
+ className={`w-full py-1.5 px-2.5 rounded-lg font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-colors ${
  isLight
  ? 'bg-white border-stone-300 text-stone-800 hover:bg-stone-50'
  : 'bg-[#1b2b20] border-stone-700 text-stone-200 hover:bg-[#23382a]'
@@ -344,7 +344,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <button
  key={fac}
  onClick={() => handleScalePart(fac)}
- className={`py-1 rounded text-center text-[10px] font-semibold border transition-all ${
+ className={`py-1 rounded text-center text-[10px] font-semibold border transition-colors ${
  isLight ? 'bg-stone-50 border-stone-200 hover:bg-emerald-50' : 'bg-[#1a261e] border-[#2a3c2f] hover:bg-[#203025]'
  }`}
  >
@@ -487,7 +487,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <div className="grid grid-cols-2 gap-2 pt-1">
  <button
  onClick={handleExportPartSvg}
- className={`py-2 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+ className={`py-2 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors ${
  isLight
  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50 hover:text-emerald-900'
  : 'bg-[#18231c] border-[#25362b] text-emerald-200 hover:bg-[#202e24]'
@@ -499,7 +499,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={() => svgFileInputRef.current?.click()}
- className={`py-2 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+ className={`py-2 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors ${
  isLight
  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50 hover:text-emerald-900'
  : 'bg-[#18231c] border-[#25362b] text-emerald-200 hover:bg-[#202e24]'
@@ -570,7 +570,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
 
  {/* Large Composite Preview Frame */}
  <div
- className={`w-full aspect-square max-w-[280px] mx-auto rounded-xl border-2 flex items-center justify-center relative p-3 transition-all ${
+ className={`w-full aspect-square max-w-[280px] mx-auto rounded-xl border-2 flex items-center justify-center relative p-3 transition-colors ${
  isLight
  ? 'bg-[#fafcfb] border-emerald-200 shadow-inner'
  : 'bg-[#0b120d] border-emerald-900/60 shadow-inner'
@@ -635,7 +635,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <div className="flex rounded-xl p-1 border border-emerald-300 dark:border-emerald-800 bg-stone-100 dark:bg-[#121c15]">
  <button
  onClick={() => setInsertMode('single')}
- className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+ className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
  insertMode === 'single'
  ? isLight
  ? 'bg-white text-emerald-950 '
@@ -647,7 +647,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={() => setInsertMode('batch')}
- className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+ className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
  insertMode === 'batch'
  ? isLight
  ? 'bg-white text-emerald-950 '
@@ -680,7 +680,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <button
  key={p.id}
  onClick={() => setInsertPlacement(p.id as RadicalPlacement)}
- className={`py-2 rounded-lg text-center font-bold border transition-all ${
+ className={`py-2 rounded-lg text-center font-bold border transition-colors ${
  insertPlacement === p.id
  ? isLight
  ? 'bg-emerald-800 text-white border-emerald-800 '
@@ -701,7 +701,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <div className="space-y-2 pt-2">
  <button
  onClick={() => handleInsertToGlyph(true)}
- className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg transition-all ${
+ className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg transition-colors ${
  isLight
  ? 'bg-emerald-800 text-white hover:bg-emerald-900 active:scale-[0.99]'
  : 'bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.99]'
@@ -712,7 +712,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={() => handleInsertToGlyph(false)}
- className={`w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-all ${
+ className={`w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-colors ${
  isLight
  ? 'bg-white border-emerald-300 text-emerald-900 hover:bg-emerald-50'
  : 'bg-[#1a2920] border-emerald-800 text-emerald-300 hover:bg-[#22352a]'
@@ -768,7 +768,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  setSelectedBatchChars(matchingDbEntry.kanjiList);
  notify(`「${matchingDbEntry.name}」の部首DB全${matchingDbEntry.kanjiList.length}字を選択しました`, 'info');
  }}
- className={`px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1 border transition-all ${
+ className={`px-2.5 py-1 rounded-lg font-bold flex items-center space-x-1 border transition-colors ${
  isLight
  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
  : 'bg-[#18291e] border-emerald-700 text-emerald-200 hover:bg-[#203628]'
@@ -783,7 +783,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  onClick={() => {
  setSelectedBatchChars(categoryPresets);
  }}
- className={`px-2 py-1 rounded-lg font-semibold border transition-all ${
+ className={`px-2 py-1 rounded-lg font-semibold border transition-colors ${
  isLight
  ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
  : 'bg-[#152018] border-stone-800 text-stone-300 hover:bg-[#1a291f]'
@@ -808,7 +808,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  prev.includes(kanji) ? prev.filter((k) => k !== kanji) : [...prev, kanji]
  );
  }}
- className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-all ${
+ className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-colors ${
  isSelected
  ? 'bg-emerald-700 text-white scale-105'
  : isLight
@@ -844,7 +844,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <div className="space-y-1.5 pt-1">
  <button
  onClick={() => handleBatchInsertToGlyphs(true)}
- className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg transition-all ${
+ className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-lg transition-colors ${
  isLight
  ? 'bg-emerald-800 text-white hover:bg-emerald-900 active:scale-[0.99]'
  : 'bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.99]'
@@ -857,7 +857,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  </button>
  <button
  onClick={() => handleBatchInsertToGlyphs(false)}
- className={`w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-all ${
+ className={`w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center space-x-1.5 border transition-colors ${
  isLight
  ? 'bg-white border-emerald-300 text-emerald-900 hover:bg-emerald-50'
  : 'bg-[#1a2920] border-emerald-800 text-emerald-300 hover:bg-[#22352a]'

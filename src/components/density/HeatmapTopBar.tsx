@@ -37,7 +37,7 @@ export const HeatmapTopBar: React.FC<HeatmapTopBarProps> = React.memo(({
         <div className="flex items-center space-x-1 bg-stone-200/60 dark:bg-[#18281d] p-0.5 rounded-lg">
           <button
             onClick={() => setTolerance(2.0)}
-            className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
+            className={`px-2 py-1 rounded text-[11px] font-semibold transition-colors ${
               tolerance === 2.0
                 ? isLight
                   ? 'bg-white text-emerald-800 '
@@ -50,7 +50,7 @@ export const HeatmapTopBar: React.FC<HeatmapTopBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setTolerance(3.5)}
-            className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
+            className={`px-2 py-1 rounded text-[11px] font-semibold transition-colors ${
               tolerance === 3.5
                 ? isLight
                   ? 'bg-white text-emerald-800 '
@@ -63,7 +63,7 @@ export const HeatmapTopBar: React.FC<HeatmapTopBarProps> = React.memo(({
           </button>
           <button
             onClick={() => setTolerance(6.0)}
-            className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
+            className={`px-2 py-1 rounded text-[11px] font-semibold transition-colors ${
               tolerance === 6.0
                 ? isLight
                   ? 'bg-white text-emerald-800 '

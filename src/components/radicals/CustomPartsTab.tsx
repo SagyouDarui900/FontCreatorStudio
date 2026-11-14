@@ -69,7 +69,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
               setShowSaveInput(true);
             }}
             disabled={!currentContours || currentContours.length === 0}
-            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-all font-bold text-xs cursor-pointer ${
+            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-colors font-bold text-xs cursor-pointer ${
               !currentContours || currentContours.length === 0
                 ? 'opacity-50 cursor-not-allowed bg-stone-100 dark:bg-stone-800 text-stone-400 border-stone-200 dark:border-stone-700'
                 : isLight
@@ -87,7 +87,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
               setCreateOnlyFrame(true);
               setShowSaveInput(true);
             }}
-            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-all font-bold text-xs cursor-pointer ${
+            className={`py-2 px-2 rounded-md border flex items-center justify-center space-x-1 transition-colors font-bold text-xs cursor-pointer ${
               isLight
                 ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 shadow-xs'
                 : 'bg-[#1a261f] border-[#25362b] text-emerald-200 hover:bg-[#223127] shadow-xs'
@@ -178,7 +178,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                     showNotice(`「${part.name}」には輪郭が未登録です。「現在の文字を割当」を押してください`);
                   }
                 }}
-                className={`relative flex flex-col justify-between p-2.5 rounded-lg border group transition-all cursor-pointer ${
+                className={`relative flex flex-col justify-between p-2.5 rounded-lg border group transition-colors cursor-pointer ${
                   isLight
                     ? 'bg-white border-[#c8ded3] hover:border-emerald-700 hover:bg-[#fbfdfc] shadow-xs'
                     : 'bg-[#1a261f] border-[#25362b] hover:border-emerald-500 hover:bg-[#223127]'

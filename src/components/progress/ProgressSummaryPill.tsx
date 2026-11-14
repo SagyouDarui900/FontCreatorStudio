@@ -47,7 +47,7 @@ export const ProgressSummaryPill: React.FC<ProgressSummaryPillProps> = ({
           </span>
           <div className="w-9 sm:w-11 h-1.5 rounded-xs bg-stone-200 dark:bg-stone-800 overflow-hidden hidden md:block">
             <div
-              className="h-full bg-emerald-500 rounded-xs transition-all duration-300"
+              className="h-full bg-emerald-500 rounded-xs transition-[width] duration-300"
               style={{ width: `${progress.jouyou.percent}%` }}
             />
           </div>
@@ -62,7 +62,7 @@ export const ProgressSummaryPill: React.FC<ProgressSummaryPillProps> = ({
             </span>
             <div className="w-9 sm:w-11 h-1.5 rounded-xs bg-stone-200 dark:bg-stone-800 overflow-hidden">
               <div
-                className="h-full bg-teal-500 rounded-xs transition-all duration-300"
+                className="h-full bg-teal-500 rounded-xs transition-[width] duration-300"
                 style={{ width: `${progress.jis1.percent}%` }}
               />
             </div>

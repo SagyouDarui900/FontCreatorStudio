@@ -27,7 +27,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
 
   return (
     <div
-      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 text-xs font-medium transition-all duration-150 pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
+      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 text-xs font-medium transition-colors duration-150 pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
         isLight
           ? 'bg-white/95 border-stone-200/90 text-stone-800 '
           : 'bg-[#141e17]/95 border-emerald-800/60 text-emerald-100 '
@@ -99,7 +99,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
       <div className="flex items-center space-x-1 shrink-0">
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.78 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
             Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
               ? 'bg-amber-600 text-white '
               : isLight
@@ -112,7 +112,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         </button>
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.85 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
             Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
               ? 'bg-emerald-600 text-white '
               : isLight
@@ -125,7 +125,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         </button>
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 1.0 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
             Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
               ? 'bg-sky-600 text-white '
               : isLight
@@ -174,7 +174,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         {/* Position Reset Button */}
         <button
           onClick={handleResetTracePosition}
-          className={`px-2 py-1 rounded text-[10.5px] font-bold flex items-center space-x-1 transition-all border ${
+          className={`px-2 py-1 rounded text-[10.5px] font-bold flex items-center space-x-1 transition-colors border ${
             (traceSettings.offsetX !== 0 || traceSettings.offsetY !== 0)
               ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-600'
               : isLight

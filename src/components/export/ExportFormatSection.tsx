@@ -42,7 +42,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setFormat('ttf')}
-            className={`p-2.5 rounded-xl border text-left transition-all ${
+            className={`p-2.5 rounded-xl border text-left transition-colors ${
               format === 'ttf'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -64,7 +64,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setFormat('otf')}
-            className={`p-2.5 rounded-xl border text-left transition-all ${
+            className={`p-2.5 rounded-xl border text-left transition-colors ${
               format === 'otf'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -111,7 +111,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setSizePreset('raw')}
-            className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
+            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
               sizePreset === 'raw'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -128,7 +128,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setSizePreset('standard_jp')}
-            className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
+            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
               sizePreset === 'standard_jp'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -145,7 +145,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setSizePreset('custom')}
-            className={`p-2.5 rounded-lg border text-center transition-all min-w-0 flex flex-col items-center justify-center ${
+            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
               sizePreset === 'custom'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'

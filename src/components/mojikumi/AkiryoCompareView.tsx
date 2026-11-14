@@ -173,7 +173,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
       <div className="flex md:hidden items-center justify-center p-1 mb-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-900 text-xs">
         <button
           onClick={() => setMobileTab('all')}
-          className={`flex-1 py-1 rounded-md font-bold transition-all ${
+          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
             mobileTab === 'all'
               ? 'bg-white dark:bg-stone-800 text-emerald-800 dark:text-emerald-300 shadow-xs'
               : 'text-stone-500'
@@ -183,7 +183,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('beta')}
-          className={`flex-1 py-1 rounded-md font-bold transition-all ${
+          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
             mobileTab === 'beta'
               ? 'bg-white dark:bg-stone-800 text-emerald-800 dark:text-emerald-300 shadow-xs'
               : 'text-stone-500'
@@ -193,7 +193,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('tsume')}
-          className={`flex-1 py-1 rounded-md font-bold transition-all ${
+          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
             mobileTab === 'tsume'
               ? 'bg-white dark:bg-stone-800 text-blue-800 dark:text-blue-300 shadow-xs'
               : 'text-stone-500'
@@ -203,7 +203,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('ake')}
-          className={`flex-1 py-1 rounded-md font-bold transition-all ${
+          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
             mobileTab === 'ake'
               ? 'bg-white dark:bg-stone-800 text-purple-800 dark:text-purple-300 shadow-xs'
               : 'text-stone-500'

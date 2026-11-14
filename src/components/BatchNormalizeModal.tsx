@@ -240,14 +240,14 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] transition-opacity duration-150 ${
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
           ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
           : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col transition-colors duration-150 overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${
           isFullscreen
             ? `w-screen h-screen rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
             : `w-full max-w-3xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`

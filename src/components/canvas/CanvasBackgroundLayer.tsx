@@ -14,21 +14,24 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
   ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = 30, unitsPerEm = 1000 }) => {
     const size = gridSize || 50;
     const upm = unitsPerEm || 1000;
+    const center = upm / 2;
+    const rem = center % size;
+    const gridOffset = rem === 0 ? 0 : rem - size;
     const opacityFactor = Math.min(1, Math.max(0.08, gridOpacity / 100));
 
-    // Determine colors tailored for eye-comfort presets - subtle, non-intrusive lines
+    // Full-strength theme colors so opacityFactor directly reflects 10%..100% visibility
     const gridStroke =
       theme === 'sepia'
-        ? 'rgba(140, 103, 59, 0.45)'
+        ? 'rgb(140, 103, 59)'
         : theme === 'warm'
-        ? 'rgba(194, 65, 12, 0.4)'
+        ? 'rgb(194, 65, 12)'
         : theme === 'nord'
-        ? 'rgba(94, 129, 172, 0.45)'
+        ? 'rgb(129, 161, 193)'
         : theme === 'monochrome'
-        ? 'rgba(0, 0, 0, 0.25)'
+        ? 'rgb(24, 24, 27)'
         : isLight
-        ? 'rgba(5, 150, 105, 0.35)'
-        : 'rgba(52, 211, 153, 0.3)';
+        ? 'rgb(5, 150, 105)'
+        : 'rgb(52, 211, 153)';
 
     const dimmingFill =
       theme === 'sepia'
@@ -87,6 +90,8 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
         <defs>
           <pattern
             id="canvasGridPattern"
+            x={gridOffset}
+            y={gridOffset}
             width={size}
             height={size}
             patternUnits="userSpaceOnUse"
@@ -95,7 +100,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
               d={`M ${size} 0 L 0 0 0 ${size}`}
               fill="none"
               stroke={gridStroke}
-              strokeWidth="1"
+              strokeWidth={1.25}
             />
           </pattern>
         </defs>

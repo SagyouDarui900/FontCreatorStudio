@@ -185,6 +185,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   // Zoom & Pan Viewport State
   const {
     containerRef,
+    getContainerRectFast,
+    invalidateContainerRect,
     zoom,
     setZoom,
     zoomRef,
@@ -672,6 +674,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     screenToCanvas,
     resetView,
     containerRef,
+    canvasGroupRef,
+    getContainerRectFast,
+    invalidateContainerRect,
+    upm,
     clampPan,
     isSpacePressed,
     isPanning,
@@ -709,6 +715,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleBrushPointerDown,
     handleBrushPointerMove,
     handleBrushPointerUp,
+    resetBrushDrawing,
     brushStrokePointsRef,
     activeBrushPathRef,
     handleNodePointerDownOnCanvas,
@@ -816,6 +823,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   // Native wheel & touch gesture registration hook
   useCanvasNativeGestures({
     containerRef,
+    canvasGroupRef,
+    getContainerRectFast,
+    upm,
     isAnyModalOpenRef,
     toolModeRef,
     brushWidthRef,
@@ -827,8 +837,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setPan,
     zoomRef,
     panRef,
-    zoom,
-    pan,
     clampPan,
     showCanvasToast,
     setTouchLoupeState,
@@ -1273,6 +1281,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           canvasGroupRef={canvasGroupRef}
           pan={pan}
           zoom={zoom}
+          panRef={panRef}
+          zoomRef={zoomRef}
           upm={upm}
           theme={theme}
           isLight={isLight}

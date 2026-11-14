@@ -23,7 +23,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
         <button
           type="button"
           onClick={() => setEraserMode('stroke')}
-          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
             eraserMode === 'stroke'
               ? 'bg-rose-600 text-white shadow-xs'
               : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
@@ -35,7 +35,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
         <button
           type="button"
           onClick={() => setEraserMode('cut')}
-          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
             eraserMode === 'cut'
               ? 'bg-rose-600 text-white shadow-xs'
               : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
@@ -47,7 +47,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
         <button
           type="button"
           onClick={() => setEraserMode('node')}
-          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+          className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
             eraserMode === 'node'
               ? 'bg-rose-600 text-white shadow-xs'
               : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'

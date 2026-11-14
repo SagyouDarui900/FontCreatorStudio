@@ -49,7 +49,6 @@ export function useToolState() {
     const loaded = loadUserPenPresets();
     return loaded[0] || DEFAULT_PEN_PRESETS[0];
   });
-  const [isPenPresetsModalOpen, setIsPenPresetsModalOpen] = useState<boolean>(false);
 
   // Sticky Brush Settings: Change style and automatically restore saved parameters
   const handleChangeBrushStyle = useCallback((newStyle: BrushStyle) => {
@@ -168,8 +167,6 @@ export function useToolState() {
     setPenPresets,
     activePenPreset,
     setActivePenPreset,
-    isPenPresetsModalOpen,
-    setIsPenPresetsModalOpen,
     handleChangeBrushStyle,
     handleChangeBrushWidth,
     handleChangePressureSensitivity,

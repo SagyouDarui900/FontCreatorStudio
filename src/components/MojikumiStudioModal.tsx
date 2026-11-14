@@ -319,10 +319,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
           onClose();
         }
       }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/80 select-none"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade select-none"
     >
       <div
-        className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${themeClasses.modalBg}`}
+        className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* =========================================================================
             HEADER BAR 1: Brand & Top Quick Action Bar
@@ -383,7 +383,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={handleSaveToProject}
-              className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm transition-colors duration-150"
+              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors duration-150 cursor-pointer ${themeClasses.accentBtn}`}
             >
               <Save className="w-3.5 h-3.5" />
               <span>保存</span>
@@ -393,11 +393,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={handleExportJson}
-              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs transition-colors duration-150 flex items-center space-x-1 ${
-                isLight
-                  ? 'bg-stone-100 border-stone-200 hover:bg-stone-200 text-stone-700'
-                  : 'bg-stone-800/60 border-stone-700 hover:bg-stone-700/60 text-stone-200'
-              }`}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs transition-colors duration-150 flex items-center space-x-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
               title="文字組み設定JSONエクスポート"
             >
               <Download className="w-4 h-4" />
@@ -409,11 +405,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="文字組みスタジオを閉じる"
-              className={`min-w-[40px] min-h-[40px] p-2 rounded-lg border flex items-center justify-center transition-colors duration-150 ${
-                isLight
-                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300 hover:border-stone-400'
-                  : 'bg-stone-800/60 hover:bg-stone-700/60 text-stone-200 border-stone-700'
-              }`}
+              className={`min-w-[40px] min-h-[40px] p-2 rounded-lg border flex items-center justify-center transition-colors duration-150 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -425,9 +417,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             HEADER BAR 2: Editorial Mode Switcher & Format Controls
            ========================================================================= */}
         <div
-          className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 ${
-            isLight ? 'bg-stone-50/80 border-stone-200' : `${themeClasses.cardBg}`
-          }`}
+          className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* Mode Switcher Tabs */}
           <div className="flex items-center space-x-1 shrink-0">
@@ -445,12 +435,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
                   key={m.id}
                   type="button"
                   onClick={() => setLayoutMode(m.id as EditorialLayoutMode)}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150 flex items-center space-x-1.5 shrink-0 ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-colors duration-150 flex items-center space-x-1.5 shrink-0 cursor-pointer ${
                     isSel
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : isLight
-                      ? 'text-stone-600 hover:bg-stone-200/60'
-                      : `${themeClasses.textMuted} hover:bg-white/10`
+                      ? themeClasses.activeTool
+                      : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -466,14 +454,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={() => setIsVertical(!isVertical)}
-              className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors duration-150 flex items-center space-x-1 ${
+              className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors duration-150 flex items-center space-x-1 cursor-pointer ${
                 isVertical
-                  ? isLight
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : 'bg-emerald-950 border-emerald-800 text-emerald-300'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-700'
-                  : 'bg-stone-800/60 border-stone-700 text-stone-300'
+                  ? themeClasses.accentBadge
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
@@ -482,19 +466,15 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
 
             {/* Font Source Switcher */}
             <div
-              className={`flex items-center p-0.5 rounded-lg border text-xs ${
-                isLight ? 'bg-stone-200/60 border-stone-300' : 'bg-stone-800/60 border-stone-700'
-              }`}
+              className={`flex items-center p-0.5 rounded-lg border text-xs ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               <button
                 type="button"
                 onClick={() => setFontSource('custom')}
-                className={`px-2 py-0.5 rounded-md transition-colors duration-150 font-bold ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 font-bold cursor-pointer ${
                   fontSource === 'custom'
-                    ? isLight
-                      ? 'bg-white text-emerald-950 shadow-xs'
-                      : 'bg-emerald-700 text-white'
-                    : themeClasses.textMuted
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
                 title={
                   drawnGlyphsCount === 0
@@ -507,12 +487,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFontSource('mincho')}
-                className={`px-2 py-0.5 rounded-md transition-colors duration-150 ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 cursor-pointer ${
                   fontSource === 'mincho'
-                    ? isLight
-                      ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                      : 'bg-emerald-700 text-white'
-                    : themeClasses.textMuted
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
               >
                 明朝
@@ -520,12 +498,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setFontSource('gothic')}
-                className={`px-2 py-0.5 rounded-md transition-colors duration-150 ${
+                className={`px-2 py-0.5 rounded-md transition-colors duration-150 cursor-pointer ${
                   fontSource === 'gothic'
-                    ? isLight
-                      ? 'bg-white text-emerald-950 font-bold shadow-xs'
-                      : 'bg-emerald-700 text-white'
-                    : themeClasses.textMuted
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
               >
                 ゴシック
@@ -536,14 +512,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             <button
               type="button"
               onClick={() => setShowBodyGrid(!showBodyGrid)}
-              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-colors duration-150 ${
+              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-colors duration-150 cursor-pointer ${
                 showBodyGrid
-                  ? isLight
-                    ? 'bg-emerald-100 border-emerald-300 text-emerald-900 font-bold'
-                    : 'bg-emerald-900 border-emerald-700 text-emerald-200 font-bold'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-600'
-                  : 'bg-stone-800/60 border-stone-700 text-stone-300'
+                  ? `${themeClasses.accentBadge} font-bold`
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
               title="文字の仮想ボディマス目を表示"
             >
@@ -555,9 +527,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.max(0.7, Number((z - 0.1).toFixed(1))))}
-                className={`p-1 rounded-lg border transition-colors duration-150 ${
-                  isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-stone-800/60 border-stone-700 text-stone-300'
-                }`}
+                className={`p-1 rounded-lg border transition-colors duration-150 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 title="縮小"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -568,9 +538,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(1))))}
-                className={`p-1 rounded-lg border transition-colors duration-150 ${
-                  isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-stone-800/60 border-stone-700 text-stone-300'
-                }`}
+                className={`p-1 rounded-lg border transition-colors duration-150 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 title="拡大"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -583,17 +551,15 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             MOBILE SEGMENTED NAVIGATION (Only visible on small screens)
            ========================================================================= */}
         <div
-          className={`flex md:hidden items-center justify-around border-b py-1.5 px-2 text-xs font-bold shrink-0 ${
-            isLight ? 'bg-stone-200/60 border-stone-300' : `${themeClasses.cardBg}`
-          }`}
+          className={`flex md:hidden items-center justify-around border-b py-1.5 px-2 text-xs font-bold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             type="button"
             onClick={() => setMobileTab('preview')}
-            className={`px-3 py-1.5 rounded-lg ${
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
               mobileTab === 'preview'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-stone-500'
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             プレビュー
@@ -604,10 +570,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               setMobileTab('texts');
               setSidebarTab('text');
             }}
-            className={`px-3 py-1.5 rounded-lg ${
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
               mobileTab === 'texts'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-stone-500'
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             青空文庫選択
@@ -618,10 +584,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
               setMobileTab('settings');
               setSidebarTab('dimensions');
             }}
-            className={`px-3 py-1.5 rounded-lg ${
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
               mobileTab === 'settings'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'text-stone-500'
+                ? themeClasses.activeTool
+                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
             組版設定 (Q/H)

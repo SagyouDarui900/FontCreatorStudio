@@ -153,7 +153,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
       {/* Selected Node / Contextual Inspector Popover */}
       {selectedNode && (
         <div
-          className={`absolute bottom-6 right-6 z-20 p-3.5 rounded-2xl border shadow-xl max-w-xs animate-slide-up ${
+          className={`absolute bottom-6 right-6 z-20 p-3.5 rounded-2xl border shadow-xl max-w-xs anim-slide-up ${
             isLight ? 'bg-white/95 border-amber-300 text-stone-800' : 'bg-[#132017]/95 border-amber-600/80 text-emerald-100'
           }`}
         >
@@ -380,7 +380,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
                         : 'transparent'
                     }
                     strokeWidth={isSelected ? 6 : isHovered ? 4 : isOverloaded ? 3 : 0}
-                    className="transition-all"
+                    className="transition-[fill,stroke,opacity]"
                   />
                 </g>
               );

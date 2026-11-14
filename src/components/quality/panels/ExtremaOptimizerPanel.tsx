@@ -53,7 +53,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
 
   return (
     <div
-      className={`px-5 py-4 border-b transition-all text-xs ${
+      className={`px-5 py-4 border-b transition-colors text-xs ${
         isLight
           ? 'bg-cyan-50/70 border-cyan-200 text-stone-800'
           : 'bg-[#0e1c20] border-[#1d3840] text-cyan-100'
@@ -134,7 +134,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
                 key={idx}
                 type="button"
                 onClick={() => setExtAlignAxis(opt.val)}
-                className={`w-full text-left p-2 rounded-lg border transition-all text-xs ${
+                className={`w-full text-left p-2 rounded-lg border transition-colors text-xs ${
                   extAlignAxis === opt.val
                     ? isLight
                       ? 'bg-cyan-50 border-cyan-500 text-cyan-950 font-bold ring-1 ring-cyan-500/20'
@@ -188,7 +188,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
                 key={s.id}
                 type="button"
                 onClick={() => setExtSensitivity(s.id)}
-                className={`w-full text-left p-2 rounded-lg border transition-all text-xs ${
+                className={`w-full text-left p-2 rounded-lg border transition-colors text-xs ${
                   extSensitivity === s.id
                     ? isLight
                       ? 'bg-cyan-50 border-cyan-500 text-cyan-950 font-bold ring-1 ring-cyan-500/20'
@@ -243,7 +243,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
                   key={sc.id}
                   type="button"
                   onClick={() => setExtScope(sc.id)}
-                  className={`w-full text-left p-1.5 rounded-lg border transition-all text-xs ${
+                  className={`w-full text-left p-1.5 rounded-lg border transition-colors text-xs ${
                     extScope === sc.id
                       ? isLight
                         ? 'bg-cyan-50 border-cyan-500 text-cyan-950 font-bold ring-1 ring-cyan-500/20'
@@ -269,7 +269,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
             <button
               onClick={onRunExtremaOptimization}
               disabled={isOptimizingExtrema}
-              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-all ${
+              className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-colors ${
                 isLight
                   ? 'bg-cyan-700 text-white hover:bg-cyan-800 active:scale-98'
                   : 'bg-cyan-500 text-black hover:bg-cyan-400 active:scale-98'

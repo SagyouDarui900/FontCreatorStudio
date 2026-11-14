@@ -11,7 +11,7 @@ import {
 import { BundledFontsModal } from './BundledFontsModal';
 import { GlyphData } from '../types';
 import { contoursToSvgPath } from '../utils/path';
-import { isLightTheme } from '../utils/theme';
+import { isLightTheme, getThemeClasses } from '../utils/theme';
 import { INITIAL_STUDIO_RADICAL_DEFS } from '../utils/radicalExtractor';
 import {
   STUDIO_RADICAL_PRESETS,
@@ -48,6 +48,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   onShowToast,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   const {
     parts,
@@ -556,7 +557,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/60 select-none animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 select-none anim-fade">
       <input
         type="file"
         ref={svgFileInputRef}
@@ -573,21 +574,15 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
       />
 
       <div
-        className={`w-full h-full flex flex-col overflow-hidden transition-all ${
+        className={`w-full h-full flex flex-col overflow-hidden transition-[width,height] ${
           isFullscreen
-            ? isLight
-              ? 'fixed inset-0 z-[60] w-screen h-screen bg-[#f4f8f5] text-stone-800'
-              : 'fixed inset-0 z-[60] w-screen h-screen bg-[#121b15] text-emerald-100'
-            : isLight
-            ? 'w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-xl border border-stone-200/60 shadow-xl bg-[#f4f8f5] text-stone-800'
-            : 'w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-xl border border-stone-800/60 shadow-xl bg-[#121b15] text-emerald-100'
+            ? `fixed inset-0 z-[60] w-screen h-screen ${themeClasses.modalBg}`
+            : `w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-2xl border shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`
         }`}
       >
         {/* MODAL TOP HEADER */}
         <div
-          className={`px-3 sm:px-4 py-2 border-b flex items-center justify-between shrink-0 gap-2 ${
-            isLight ? 'bg-white border-stone-200/60' : 'bg-[#18241c] border-stone-800/60'
-          }`}
+          className={`px-3 sm:px-4 py-2 border-b flex items-center justify-between shrink-0 gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0">
             <div
@@ -615,35 +610,27 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
           <div className="hidden md:flex items-center space-x-1.5 shrink-0">
             <button
               onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isLeftSidebarOpen
-                  ? isLight
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
-                    : 'bg-[#1e2d22] border-emerald-700 text-emerald-200 shadow-2xs'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                  : 'bg-[#18231c] border-[#25362b] text-stone-400 hover:bg-[#202e25]'
+                  ? `${themeClasses.activeTool} shadow-2xs`
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isLeftSidebarOpen ? 'ライブラリを収納' : 'ライブラリを展開'}
             >
-              <Shapes className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <Shapes className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">ライブラリ</span>
             </button>
 
             <button
               onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 isRightSidebarOpen
-                  ? isLight
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs'
-                    : 'bg-[#1e2d22] border-emerald-700 text-emerald-200 shadow-2xs'
-                  : isLight
-                  ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-50'
-                  : 'bg-[#18231c] border-[#25362b] text-stone-400 hover:bg-[#202e25]'
+                  ? `${themeClasses.activeTool} shadow-2xs`
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isRightSidebarOpen ? '詳細パネルを収納' : '詳細パネルを展開'}
             >
-              <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <Sliders className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">詳細・変形</span>
             </button>
           </div>
@@ -651,11 +638,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
           <div className="flex items-center space-x-1.5 shrink-0">
             <button
               onClick={handleExportLibraryJson}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-all cursor-pointer ${
-                isLight
-                  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50 hover:text-emerald-900'
-                  : 'bg-[#1c2920] border-[#25362b] text-emerald-200 hover:bg-[#25362b]'
-              }`}
+              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               title="全パーツライブラリをJSONセーブデータとして書き出し"
             >
               <Download className="w-3.5 h-3.5" />
@@ -663,11 +646,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             </button>
             <button
               onClick={() => jsonFileInputRef.current?.click()}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-all cursor-pointer ${
-                isLight
-                  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50 hover:text-emerald-900'
-                  : 'bg-[#1c2920] border-[#25362b] text-emerald-200 hover:bg-[#25362b]'
-              }`}
+              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               title="JSONセーブデータからパーツライブラリを読み込み"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -676,12 +655,10 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer ${
+              className={`p-1.5 px-2 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : isLight
-                  ? 'bg-white border-[#d8e6df] text-stone-700 hover:bg-emerald-50 hover:text-emerald-900'
-                  : 'bg-[#1c2920] border-[#25362b] text-emerald-200 hover:bg-[#25362b]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す' : '工房を全画面で広々と使う'}
             >

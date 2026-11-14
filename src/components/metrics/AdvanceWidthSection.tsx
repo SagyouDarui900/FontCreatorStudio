@@ -47,7 +47,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
     >
       <div
         onClick={onToggle}
-        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors hover:${themeClasses.activeToolHover}`}
+        className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${themeClasses.activeToolHover}`}
       >
         <div className="flex flex-wrap items-center gap-1.5 min-w-0 pr-1">
           <span className={`text-xs font-bold uppercase tracking-wider whitespace-nowrap ${themeClasses.textPrimary}`}>
@@ -82,7 +82,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onStepAdvance(-10)}
-                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="10px 減らす"
               >
                 -
@@ -96,17 +96,17 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                     onChangeAdvanceWidth(Number.isFinite(value) ? Math.max(0, Math.round(value)) : upm);
                   }}
                   onBlur={onCommitHistory}
-                  className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} focus:${themeClasses.accentBorder}`}
+                  className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   step={10}
                 />
-                <span className="absolute right-2 text-[10px] font-mono text-stone-400 pointer-events-none font-bold">
+                <span className={`absolute right-2 text-[10px] font-mono pointer-events-none font-bold ${themeClasses.textMuted}`}>
                   px
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onStepAdvance(10)}
-                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="10px 増やす"
               >
                 +
@@ -120,7 +120,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   key={step}
                   type="button"
                   onClick={() => onStepAdvance(step)}
-                  className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                  className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-colors active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
                   {step > 0 ? `+${step}` : `${step}`}
                 </button>
@@ -140,10 +140,10 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   key={p.val}
                   type="button"
                   onClick={() => onSetAdvancePreset(p.val)}
-                  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-colors cursor-pointer ${
                     advanceWidth === p.val
                       ? `${themeClasses.activeTool} border`
-                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   {p.label}
@@ -170,7 +170,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
               <button
                 type="button"
                 onClick={() => onStepLsb(-5)}
-                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="5px 減らす"
               >
                 -
@@ -183,17 +183,17 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                     onChangeLsb(Number(e.target.value) || 0);
                   }}
                   onBlur={onCommitHistory}
-                  className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} focus:${themeClasses.accentBorder}`}
+                  className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   step={5}
                 />
-                <span className="absolute right-2 text-[10px] font-mono text-stone-400 pointer-events-none font-bold">
+                <span className={`absolute right-2 text-[10px] font-mono pointer-events-none font-bold ${themeClasses.textMuted}`}>
                   px
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onStepLsb(5)}
-                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-all active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                className={`w-9 h-9 rounded-lg border text-sm font-bold flex items-center justify-center transition-colors active:scale-95 cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="5px 増やす"
               >
                 +
@@ -207,7 +207,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   key={step}
                   type="button"
                   onClick={() => onStepLsb(step)}
-                  className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                  className={`py-1 rounded-md border text-[11px] font-mono tabular-nums font-bold text-center transition-colors active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
                   {step > 0 ? `+${step}` : `${step}`}
                 </button>
@@ -226,10 +226,10 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   key={p.val}
                   type="button"
                   onClick={() => onSetLsbPreset(p.val)}
-                  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-md border text-[10.5px] font-bold transition-colors cursor-pointer ${
                     lsb === p.val
                       ? `${themeClasses.activeTool} border`
-                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`
+                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   {p.label}
@@ -252,16 +252,14 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                 className={`p-2.5 rounded-lg border space-y-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center justify-between text-xs font-bold">
-                  <span className={isLight ? 'text-stone-700' : 'text-emerald-300'}>余白バランス</span>
+                  <span className={themeClasses.textPrimary}>余白バランス</span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-bold tabular-nums ${
+                    className={`text-[10px] px-2 py-0.5 rounded font-bold tabular-nums border ${
                       isBalanced
-                        ? isLight
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                        ? themeClasses.accentBadge
                         : isLeftLeaning
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-300'
-                        : 'bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300'
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                        : 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800'
                     }`}
                   >
                     {isBalanced ? '✓ 左右均等' : isLeftLeaning ? `左寄り (${Math.abs(Math.round(diff / 2))}px)` : `右寄り (${Math.round(diff / 2)}px)`}
@@ -270,11 +268,11 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
 
                 <div className="grid grid-cols-2 gap-1.5 text-xs font-mono">
                   <div className={`p-2 rounded-md border ${themeClasses.cardBg} ${themeClasses.border}`}>
-                    <div className="text-stone-500 text-[10px]">実測 LSB (左余白)</div>
+                    <div className={`text-[10px] ${themeClasses.textMuted}`}>実測 LSB (左余白)</div>
                     <div className={`font-bold text-sm ${themeClasses.accentText}`}>{actualLsb} px</div>
                   </div>
                   <div className={`p-2 rounded-md border ${themeClasses.cardBg} ${themeClasses.border}`}>
-                    <div className="text-stone-500 text-[10px]">実測 RSB (右余白)</div>
+                    <div className={`text-[10px] ${themeClasses.textMuted}`}>実測 RSB (右余白)</div>
                     <div className={`font-bold text-sm ${themeClasses.accentText}`}>{actualRsb} px</div>
                   </div>
                 </div>
@@ -283,7 +281,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                 <button
                   type="button"
                   onClick={onCenterWithinAdvance}
-                  className={`w-full min-h-[38px] py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 border transition-all active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:${themeClasses.activeToolHover}`}
+                  className={`w-full min-h-[38px] py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 border transition-colors active:scale-95 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                   title="送り幅の中で文字を左右中央にセンタリングして余白を均等化"
                 >
                   <MoveHorizontal className="w-3.5 h-3.5" />

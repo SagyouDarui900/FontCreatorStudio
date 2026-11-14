@@ -16,6 +16,7 @@ interface UseProjectStorageOptions {
 
 export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   const isHydratedRef = useRef(false);
+  const lastHydratedUpdatedAtRef = useRef<number | null>(null);
   const [isStorageLoading, setIsStorageLoading] = useState(true);
 
   // Initialize with a clean default project while IndexedDB is read
@@ -64,6 +65,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           const validatedDb = validateStoredFontProject(dbData.project);
           if (validatedDb && !isCancelled) {
             projectRef.current = validatedDb;
+            lastHydratedUpdatedAtRef.current = validatedDb.updatedAt ?? null;
             setProject(validatedDb);
             isHydratedRef.current = true;
             setIsStorageLoading(false);
@@ -79,6 +81,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
             const validatedLocal = validateStoredFontProject(parsed);
             if (validatedLocal && !isCancelled) {
               projectRef.current = validatedLocal;
+              lastHydratedUpdatedAtRef.current = validatedLocal.updatedAt ?? null;
               setProject(validatedLocal);
               isHydratedRef.current = true;
               setIsStorageLoading(false);
@@ -95,6 +98,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
         if (!isCancelled) {
           const defaultProject = createDefaultProject();
           projectRef.current = defaultProject;
+          lastHydratedUpdatedAtRef.current = defaultProject.updatedAt ?? null;
           setProject(defaultProject);
           isHydratedRef.current = true;
           setIsStorageLoading(false);
@@ -113,13 +117,17 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     return () => {
       isCancelled = true;
     };
-  }, [onShowToast]);
+  }, []);
 
   // Auto-save effect: ONLY runs after hydration is complete to prevent overwriting IndexedDB with stale/default data
   useEffect(() => {
-    if (!isHydratedRef.current) {
+    if (isStorageLoading || !isHydratedRef.current) {
       return;
     }
+    if (lastHydratedUpdatedAtRef.current !== null && project.updatedAt === lastHydratedUpdatedAtRef.current) {
+      return;
+    }
+    lastHydratedUpdatedAtRef.current = null;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -155,7 +163,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [project.updatedAt, onShowToast, saveProjectToIndexedDbWhenIdle]);
+  }, [isStorageLoading, project.updatedAt, onShowToast, saveProjectToIndexedDbWhenIdle]);
 
   // Persist the recovery copy before leaving (guarded against saving pre-hydration)
   useEffect(() => {
