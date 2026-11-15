@@ -29,6 +29,7 @@ export interface UseCanvasNativeGesturesProps {
   twoFingerCooldownUntilRef: React.MutableRefObject<number>;
   isPenDrawingRef: React.MutableRefObject<boolean>;
   lastPenActiveTimeRef: React.MutableRefObject<number>;
+  onWindowPointerEndRef?: React.RefObject<(() => void) | undefined>;
 }
 
 export function useCanvasNativeGestures({
@@ -58,6 +59,7 @@ export function useCanvasNativeGestures({
   twoFingerCooldownUntilRef,
   isPenDrawingRef,
   lastPenActiveTimeRef,
+  onWindowPointerEndRef,
 }: UseCanvasNativeGesturesProps) {
   useEffect(() => {
     const el = containerRef.current;
@@ -239,6 +241,7 @@ export function useCanvasNativeGestures({
 
     // Window level safety release: if finger, mouse, or pen is lifted outside canvas window or interrupted
     const handleWindowPointerUpOrCancel = (e: PointerEvent) => {
+      const wasTwoFinger = isTwoFingerGestureRef.current;
       setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
       if (isErasingRef.current) {
         resetEraserVisuals();
@@ -247,7 +250,7 @@ export function useCanvasNativeGestures({
         touchPointersRef.current.delete(e.pointerId);
         pointerTypesRef.current.delete(e.pointerId);
         if (touchPointersRef.current.size === 0) {
-          if (isTwoFingerGestureRef.current) {
+          if (wasTwoFinger) {
             twoFingerCooldownUntilRef.current = Date.now() + 150;
             setSvgGesturing(false);
             setZoom(zoomRef.current);
@@ -258,6 +261,9 @@ export function useCanvasNativeGestures({
       } else if (e.pointerType === 'pen') {
         isPenDrawingRef.current = false;
         lastPenActiveTimeRef.current = Date.now();
+      }
+      if (!wasTwoFinger) {
+        onWindowPointerEndRef?.current?.();
       }
     };
 
@@ -304,5 +310,6 @@ export function useCanvasNativeGestures({
     twoFingerCooldownUntilRef,
     isPenDrawingRef,
     lastPenActiveTimeRef,
+    onWindowPointerEndRef,
   ]);
 }

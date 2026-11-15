@@ -57,7 +57,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
           }`}
         >
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>
             <span>過密 (&lt;14px)</span>
           </div>
           <div className="flex items-center gap-1.5">

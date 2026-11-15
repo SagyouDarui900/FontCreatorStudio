@@ -31,10 +31,10 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
 
   return (
     <div
-      className={`sm:hidden absolute bottom-14 left-2 right-2 z-30 flex items-center justify-between px-3 py-1.5 rounded-full border shadow-xl whitespace-nowrap ${
+      className={`sm:hidden absolute bottom-2 left-2 right-2 z-30 flex items-center justify-between px-3 py-1.5 rounded-full border shadow-md whitespace-nowrap ${
         isLight
-          ? 'bg-white border-emerald-300/80 text-stone-800'
-          : 'bg-[#121c15] border-emerald-700/60 text-emerald-100'
+          ? 'bg-white border-emerald-300 text-stone-800'
+          : 'bg-[#121c15] border-emerald-700 text-emerald-100'
       }`}
     >
       <div className="flex items-center space-x-1 shrink-0">
@@ -46,7 +46,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
         {selectedContourIds.length >= 2 && (
           <button
             onClick={handleMergeSelectedContours}
-            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold active:scale-95 transition-transform flex items-center gap-1"
+            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold transition-colors flex items-center gap-1"
             title="選択したパスを合体"
           >
             <Layers className="w-3.5 h-3.5" />
@@ -55,7 +55,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
         )}
         <button
           onClick={() => setShowMobilePartSheet(true)}
-          className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold active:scale-95 transition-transform"
+          className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold transition-colors"
         >
           変形
         </button>

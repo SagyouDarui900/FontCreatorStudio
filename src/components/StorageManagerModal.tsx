@@ -282,7 +282,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </span>
  )}
  {breakdown.status === 'critical' && (
- <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 animate-pulse">
+ <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
  <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
  容量上限リスク (85%超過)
  </span>

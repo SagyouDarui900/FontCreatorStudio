@@ -71,4 +71,26 @@ describe('useUndoRedo utilities and glyph cloning', () => {
     expect(cloned.contours).not.toBe(original.contours);
     expect(cloned.contours[0].nodes[0].handleIn).not.toBe(original.contours[0].nodes[0].handleIn);
   });
+
+  it('treats metric changes as distinct and null/undefined handles as equal for single-commit deduplication', () => {
+    const a: GlyphData = {
+      unicode: 65,
+      char: 'A',
+      name: 'A',
+      advanceWidth: 1000,
+      lsb: 50,
+      contours: [
+        {
+          id: 'c1',
+          closed: true,
+          nodes: [{ id: 'n1', x: 100, y: 100, type: 'corner', handleIn: undefined, handleOut: undefined }],
+        },
+      ],
+    };
+
+    const cloned = cloneGlyph(a);
+    expect(areGlyphsEqual(a, cloned)).toBe(true);
+    expect(areGlyphsEqual(a, { ...cloned, advanceWidth: 920 })).toBe(false);
+    expect(areGlyphsEqual(a, { ...cloned, lsb: 80 })).toBe(false);
+  });
 });

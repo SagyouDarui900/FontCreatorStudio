@@ -31,7 +31,7 @@ interface UseShapeCreationOptions {
   snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   gridSettings: GridSettings;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   setActiveSnapGuides: (guides: SnapGuideLine[]) => void;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
@@ -80,6 +80,7 @@ export function useShapeCreation({
 
   const [shapeStartPoint, setShapeStartPoint] = useState<Point | null>(null);
   const [shapeCurrentPoint, setShapeCurrentPoint] = useState<Point | null>(null);
+  const latestShapePointRef = useRef<Point | null>(null);
   const shapeRafRef = useRef<number | null>(null);
   const [isShiftLockRatio, setIsShiftLockRatio] = useState<boolean>(false);
   const [isAltFromCenter, setIsAltFromCenter] = useState<boolean>(false);
@@ -195,6 +196,7 @@ export function useShapeCreation({
 
   const handleShapePointerDown = useCallback((pos: Point, e: React.PointerEvent) => {
     if (!isShapeTool) return false;
+    latestShapePointRef.current = pos;
     setShapeStartPoint(pos);
     setShapeCurrentPoint(pos);
     setIsShiftLockRatio(e.shiftKey);
@@ -223,10 +225,11 @@ export function useShapeCreation({
       } else {
         setActiveSnapGuides([]);
       }
+      latestShapePointRef.current = snapPos;
       if (shapeRafRef.current == null) {
         shapeRafRef.current = requestAnimationFrame(() => {
           shapeRafRef.current = null;
-          setShapeCurrentPoint(snapPos);
+          setShapeCurrentPoint(latestShapePointRef.current || snapPos);
         });
       }
       return true;
@@ -236,15 +239,16 @@ export function useShapeCreation({
 
   const handleShapePointerUp = useCallback(
     (e: React.PointerEvent) => {
-      if (!isShapeTool || !shapeStartPoint || !shapeCurrentPoint) return false;
+      const endPoint = latestShapePointRef.current || shapeCurrentPoint;
+      if (!isShapeTool || !shapeStartPoint || !endPoint) return false;
 
       if (shapeRafRef.current != null) {
         cancelAnimationFrame(shapeRafRef.current);
         shapeRafRef.current = null;
       }
       const dist = Math.hypot(
-        shapeCurrentPoint.x - shapeStartPoint.x,
-        shapeCurrentPoint.y - shapeStartPoint.y
+        endPoint.x - shapeStartPoint.x,
+        endPoint.y - shapeStartPoint.y
       );
       const p1 =
         dist < 10
@@ -253,7 +257,7 @@ export function useShapeCreation({
       const p2 =
         dist < 10
           ? { x: shapeStartPoint.x + 90, y: shapeStartPoint.y + 90 }
-          : shapeCurrentPoint;
+          : endPoint;
 
       const newContours = getShapeContoursFromPoints(toolMode, p1, p2, {
         shiftKey: e.shiftKey,
@@ -261,15 +265,17 @@ export function useShapeCreation({
       });
       const currentContours = contoursRef.current || [];
       const nextContours = [...currentContours, ...newContours];
+      onCommitHistory?.();
       contoursRef.current = nextContours;
-      onChangeContours(nextContours);
+      onChangeContours(nextContours, { skipHistory: true });
       setSelectedContourIds([]);
       setSelectedContourId(null);
+      latestShapePointRef.current = null;
       setShapeStartPoint(null);
       setShapeCurrentPoint(null);
       setIsShiftLockRatio(false);
       setIsAltFromCenter(false);
-      onCommitHistory?.();
+      setActiveSnapGuides([]);
       return true;
     },
     [
@@ -278,6 +284,7 @@ export function useShapeCreation({
       isShapeTool,
       onChangeContours,
       onCommitHistory,
+      setActiveSnapGuides,
       setSelectedContourId,
       setSelectedContourIds,
       shapeCurrentPoint,
@@ -293,6 +300,7 @@ export function useShapeCreation({
   }, [getShapeContoursFromPoints, isShapeTool, shapeCurrentPoint, shapeStartPoint, toolMode]);
 
   const reset = useCallback(() => {
+    latestShapePointRef.current = null;
     setShapeStartPoint(null);
     setShapeCurrentPoint(null);
     setIsShiftLockRatio(false);

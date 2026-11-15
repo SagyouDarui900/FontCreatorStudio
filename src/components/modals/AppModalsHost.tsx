@@ -159,7 +159,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           <div
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[85vh] flex flex-col anim-slide-up pb-[max(env(safe-area-inset-bottom),20px)] ${themeClasses.modalBg} ${themeClasses.border}`}
+            className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[85dvh] flex flex-col anim-slide-up pb-[calc(1rem+env(safe-area-inset-bottom,0px))] ${themeClasses.modalBg} ${themeClasses.border}`}
           >
             <div className={`flex items-center justify-between pb-2.5 border-b mb-3 shrink-0 ${themeClasses.border}`}>
               <div className="flex items-center space-x-2">
@@ -189,7 +189,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
                       showToast(`テーマを「${p.name}」に変更しました`, 'info');
                       closeModal();
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer active:scale-[0.98] ${
+                    className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer ${
                       isActive
                         ? `${themeClasses.activeTool} border-transparent`
                         : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`

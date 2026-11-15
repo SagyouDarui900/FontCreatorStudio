@@ -34,7 +34,7 @@ export interface UseTransformSessionOptions {
   contours: PathContour[];
   selectedContourIds: string[];
   screenToCanvas: (clientX: number, clientY: number) => Point;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   gridSettings: GridSettings;
   snapMetrics: SnapMetrics;
@@ -63,6 +63,7 @@ export function useTransformSession({
   const [rotateDisplayAngle, setRotateDisplayAngle] = useState<number | null>(null);
   const pendingTransformContoursRef = useRef<PathContour[] | null>(null);
   const transformRafRef = useRef<number | null>(null);
+  const hasCommittedTransformHistoryRef = useRef<boolean>(false);
 
   useEffect(() => {
     return () => {
@@ -87,6 +88,14 @@ export function useTransformSession({
       if (targetIds.length === 0) return;
       const targetContours = contours.filter((c) => targetIds.includes(c.id));
       if (targetContours.length === 0) return;
+
+      try {
+        const el = e.currentTarget as Element;
+        (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
+      } catch {
+        // Ignored
+      }
+      hasCommittedTransformHistoryRef.current = false;
 
       const bbox = getContoursBoundingBox(targetContours);
       const pos = screenToCanvas(e.clientX, e.clientY);
@@ -163,7 +172,11 @@ export function useTransformSession({
           transformRafRef.current = requestAnimationFrame(() => {
             transformRafRef.current = null;
             if (pendingTransformContoursRef.current) {
-              onChangeContours(pendingTransformContoursRef.current);
+              if (!hasCommittedTransformHistoryRef.current) {
+                onCommitHistory?.();
+                hasCommittedTransformHistoryRef.current = true;
+              }
+              onChangeContours(pendingTransformContoursRef.current, { skipHistory: true });
             }
           });
         }
@@ -216,7 +229,11 @@ export function useTransformSession({
           transformRafRef.current = requestAnimationFrame(() => {
             transformRafRef.current = null;
             if (pendingTransformContoursRef.current) {
-              onChangeContours(pendingTransformContoursRef.current);
+              if (!hasCommittedTransformHistoryRef.current) {
+                onCommitHistory?.();
+                hasCommittedTransformHistoryRef.current = true;
+              }
+              onChangeContours(pendingTransformContoursRef.current, { skipHistory: true });
             }
           });
         }
@@ -388,7 +405,11 @@ export function useTransformSession({
         transformRafRef.current = requestAnimationFrame(() => {
           transformRafRef.current = null;
           if (pendingTransformContoursRef.current) {
-            onChangeContours(pendingTransformContoursRef.current);
+            if (!hasCommittedTransformHistoryRef.current) {
+              onCommitHistory?.();
+              hasCommittedTransformHistoryRef.current = true;
+            }
+            onChangeContours(pendingTransformContoursRef.current, { skipHistory: true });
           }
         });
       }
@@ -404,6 +425,7 @@ export function useTransformSession({
       customGuidelines,
       setActiveSnapGuides,
       onChangeContours,
+      onCommitHistory,
     ]
   );
 
@@ -414,14 +436,19 @@ export function useTransformSession({
       transformRafRef.current = null;
     }
     if (pendingTransformContoursRef.current) {
-      onChangeContours(pendingTransformContoursRef.current);
+      if (!hasCommittedTransformHistoryRef.current) {
+        onCommitHistory?.();
+        hasCommittedTransformHistoryRef.current = true;
+      }
+      onChangeContours(pendingTransformContoursRef.current, { skipHistory: true });
       pendingTransformContoursRef.current = null;
     }
+    hasCommittedTransformHistoryRef.current = false;
     setTransformSession(null);
     setRotateDisplayAngle(null);
-    onCommitHistory?.();
+    setActiveSnapGuides([]);
     return true;
-  }, [transformSession, onChangeContours, onCommitHistory]);
+  }, [transformSession, onChangeContours, onCommitHistory, setActiveSnapGuides]);
 
   const cancelTransformSession = useCallback(() => {
     if (transformRafRef.current != null) {
@@ -429,6 +456,7 @@ export function useTransformSession({
       transformRafRef.current = null;
     }
     pendingTransformContoursRef.current = null;
+    hasCommittedTransformHistoryRef.current = false;
     setTransformSession(null);
     setRotateDisplayAngle(null);
   }, []);

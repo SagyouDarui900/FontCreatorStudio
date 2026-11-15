@@ -18,7 +18,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
     <nav
       role="tablist"
       aria-label="モバイル主要ナビゲーション"
-      className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around h-14 pb-[env(safe-area-inset-bottom,0px)] shadow-lg ${themeClasses.toolbarBg} ${themeClasses.border}`}
+      className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around h-[calc(3.5rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] ${themeClasses.toolbarBg} ${themeClasses.border}`}
     >
       <button
         role="tab"

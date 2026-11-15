@@ -43,7 +43,7 @@ export interface UseBrushDrawingOptions {
   customGuidelines?: CustomGuideline[];
   screenToCanvas: (clientX: number, clientY: number) => Point;
   contoursRef: React.MutableRefObject<PathContour[]>;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   setIsStylusActive?: (active: boolean) => void;
   isStylusActive?: boolean;
@@ -493,14 +493,14 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       const finalizedContour = getProcessedBrushContour(pts, true);
       const currentContours = contoursRef.current || [];
       const nextContours = [...currentContours, finalizedContour];
+      onCommitHistory?.();
       contoursRef.current = nextContours;
-      onChangeContours(nextContours);
+      onChangeContours(nextContours, { skipHistory: true });
       lastBrushPointRef.current = {
         x: pts[pts.length - 1].x,
         y: pts[pts.length - 1].y,
         time: Date.now(),
       };
-      onCommitHistory?.();
     }
     strokeBrushConfigRef.current = null;
     return true;

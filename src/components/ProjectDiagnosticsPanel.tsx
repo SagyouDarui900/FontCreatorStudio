@@ -22,7 +22,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
-import { contoursToSvgPath } from '../utils/path';
+import { GlyphPreviewSvg } from './GlyphPreviewSvg';
 import { copyTextToClipboard } from '../utils/clipboard';
 import {
   ProjectDiagnosticsReport,
@@ -277,25 +277,15 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
     const hasContours = glyph && glyph.contours && glyph.contours.length > 0;
 
     if (hasContours) {
-      const pathData = contoursToSvgPath(glyph.contours);
       const unitsPerEm = project.metadata.unitsPerEm || 1000;
-      const ascender = project.metadata.ascender || 800;
-      const descender = project.metadata.descender || -200;
-      const totalHeight = ascender - descender;
 
       return (
-        <svg
-          viewBox={`0 ${-ascender} ${unitsPerEm} ${totalHeight}`}
-          className="w-full h-full"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <path
-            d={pathData}
-            fill={isLight ? '#1c1917' : '#e2e8f0'}
-            transform="scale(1, -1)"
-            style={{ transformOrigin: '0 0' }}
-          />
-        </svg>
+        <GlyphPreviewSvg
+          contours={glyph.contours}
+          unitsPerEm={unitsPerEm}
+          fill={isLight ? '#1c1917' : '#e2e8f0'}
+          className="w-full h-full p-0.5"
+        />
       );
     }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeTraceCharMetrics } from './traceCharMetrics';
 
 describe('computeTraceCharMetrics', () => {
-  it('renders Japanese kana at full UPM EM size without double-shrinking', () => {
+  it('renders Japanese kana cleanly inside the 78% kana guide frame with deterministic alphabetic EM centering', () => {
     const res = computeTraceCharMetrics({
       charToRender: 'あ',
       unitsPerEm: 1000,
@@ -10,24 +10,43 @@ describe('computeTraceCharMetrics', () => {
     });
     expect(res.isKana).toBe(true);
     expect(res.isJapanese).toBe(true);
-    expect(res.effectiveFontSize).toBe(1000);
-    expect(res.effectiveY).toBe(500);
-    expect(res.dominantBaseline).toBe('central');
+    expect(res.effectiveFontSize).toBe(940);
+    expect(res.effectiveY).toBe(Math.round(500 + 940 * 0.38));
+    expect(res.dominantBaseline).toBe('alphabetic');
     expect(res.anchorX).toBe(500);
     expect(res.charBoxSize).toBe(780);
   });
 
-  it('renders Japanese kanji and extended kana/punctuation at full UPM EM size', () => {
-    for (const ch of ['漢', '永', 'っ', 'ゔ', '・', 'ー', '。', '、', '「', '〜']) {
+  it('renders Japanese kanji scaled inside the 85% kanji guide frame and EM bounds without overflowing', () => {
+    for (const ch of ['漢', '永', '龍', '鬱', '日']) {
+      const res = computeTraceCharMetrics({
+        charToRender: ch,
+        unitsPerEm: 1000,
+        fontSize: 1000,
+      });
+      expect(res.isKanji).toBe(true);
+      expect(res.isJapanese).toBe(true);
+      expect(res.effectiveFontSize).toBe(880);
+      expect(res.effectiveY).toBe(Math.round(500 + 880 * 0.38));
+      expect(res.dominantBaseline).toBe('alphabetic');
+      expect(res.charBoxSize).toBe(850);
+      // CJK ideographic EM box top (effectiveY - 0.88*fs) and bottom (effectiveY + 0.12*fs) stay well inside [0, 1000]
+      expect(res.effectiveY - res.effectiveFontSize * 0.88).toBeGreaterThan(40);
+      expect(res.effectiveY + res.effectiveFontSize * 0.12).toBeLessThan(960);
+    }
+  });
+
+  it('renders extended kana and Japanese punctuation inside EM bounds', () => {
+    for (const ch of ['っ', 'ゔ', '・', 'ー', '。', '、', '「', '〜']) {
       const res = computeTraceCharMetrics({
         charToRender: ch,
         unitsPerEm: 1000,
         fontSize: 1000,
       });
       expect(res.isJapanese).toBe(true);
-      expect(res.effectiveFontSize).toBe(1000);
-      expect(res.effectiveY).toBe(500);
-      expect(res.dominantBaseline).toBe('central');
+      expect(res.effectiveFontSize).toBe(940);
+      expect(res.effectiveY).toBe(Math.round(500 + 940 * 0.38));
+      expect(res.dominantBaseline).toBe('alphabetic');
     }
   });
 
@@ -67,8 +86,8 @@ describe('computeTraceCharMetrics', () => {
       unitsPerEm: 1200,
       fontSize: 1000,
     });
-    expect(res.effectiveFontSize).toBe(1200);
-    expect(res.effectiveY).toBe(600);
+    expect(res.effectiveFontSize).toBe(Math.round(1200 * 0.88));
+    expect(res.effectiveY).toBe(Math.round(600 + res.effectiveFontSize * 0.38));
     expect(res.anchorX).toBe(600);
   });
 });

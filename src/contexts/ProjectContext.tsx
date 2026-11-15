@@ -31,8 +31,8 @@ export interface ProjectContextType {
   handleSelectPrevUncompletedGlyph: () => void;
   handleSelectNextUncompletedGlyph: () => void;
   handleUpdateContours: (newContours: PathContour[], options?: { skipHistory?: boolean }) => void;
-  handleUpdateAdvanceWidth: (val: number) => void;
-  handleUpdateLsb: (val: number) => void;
+  handleUpdateAdvanceWidth: (val: number, options?: { skipHistory?: boolean }) => void;
+  handleUpdateLsb: (val: number, options?: { skipHistory?: boolean }) => void;
   handleToggleLockGlyph: () => void;
   isGlyphLocked: boolean;
   undoStack: GlyphData[];
@@ -240,9 +240,11 @@ export function ProjectProvider({
   );
 
   const handleUpdateAdvanceWidth = useCallback(
-    (val: number) => {
+    (val: number, options?: { skipHistory?: boolean }) => {
       if (checkIsLockedAndNotify()) return;
-      commitHistory();
+      if (!options?.skipHistory) {
+        commitHistory();
+      }
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
           unicode: selectedUnicode,
@@ -253,6 +255,7 @@ export function ProjectProvider({
           contours: [],
           modified: false,
         };
+        if (existing.advanceWidth === val) return prev;
         return {
           ...prev,
           glyphs: {
@@ -271,9 +274,11 @@ export function ProjectProvider({
   );
 
   const handleUpdateLsb = useCallback(
-    (val: number) => {
+    (val: number, options?: { skipHistory?: boolean }) => {
       if (checkIsLockedAndNotify()) return;
-      commitHistory();
+      if (!options?.skipHistory) {
+        commitHistory();
+      }
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
           unicode: selectedUnicode,
@@ -284,6 +289,7 @@ export function ProjectProvider({
           contours: [],
           modified: false,
         };
+        if (existing.lsb === val) return prev;
         return {
           ...prev,
           glyphs: {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Point } from '../../../types';
-import { clampPanToViewport } from './viewportMath';
+import { clampPanToViewport, MIN_CANVAS_ZOOM } from './viewportMath';
 
 interface UseCanvasViewportOptions {
   upm: number;
@@ -96,7 +96,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
 
       if (mode === 'width') {
         const margin = cWidth < 640 ? 12 : 24;
-        const widthZoom = Math.max(0.35, Math.min(3.5, (cWidth - margin) / upm));
+        const widthZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, (cWidth - margin) / upm));
         const nextPan = {
           x: Math.round((cWidth - upm * widthZoom) / 2),
           y: Math.round(Math.max(16, (cHeight - upm * widthZoom) / 2)),
@@ -111,10 +111,10 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       // Default 'fit': comfortable, optimal margin (12px on mobile, 28px on desktop/iPad)
       const margin = cWidth < 640 ? 12 : 28;
       const idealZoom = Math.min(
-        Math.max(0.1, (cWidth - margin) / upm),
-        Math.max(0.1, (cHeight - margin) / upm)
+        Math.max(MIN_CANVAS_ZOOM, (cWidth - margin) / upm),
+        Math.max(MIN_CANVAS_ZOOM, (cHeight - margin) / upm)
       );
-      const clampedZoom = Math.max(0.35, Math.min(3.5, idealZoom));
+      const clampedZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, idealZoom));
       const nextPan = {
         x: Math.round((cWidth - upm * clampedZoom) / 2),
         y: Math.round((cHeight - upm * clampedZoom) / 2),
@@ -135,7 +135,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const prevZoom = zoomRef.current;
-      const nextZoom = Math.max(0.35, Math.min(5.0, prevZoom * factor));
+      const nextZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(5.0, prevZoom * factor));
       const scale = nextZoom / prevZoom;
       const prevPan = panRef.current;
       const nextPan = clampPan(

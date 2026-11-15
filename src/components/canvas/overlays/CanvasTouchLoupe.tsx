@@ -39,7 +39,7 @@ export const CanvasTouchLoupe: React.FC<CanvasTouchLoupeProps> = React.memo(
           height: 120,
           pointerEvents: 'none',
         }}
-        className="z-50 rounded-full border-2 border-emerald-500 shadow-2xl bg-stone-900/95 overflow-hidden flex flex-col items-center justify-center select-none ring-4 ring-emerald-500/20"
+        className="z-50 rounded-full border-2 border-emerald-500 shadow-md bg-stone-900 overflow-hidden flex flex-col items-center justify-center select-none"
       >
         <svg
           width="120"

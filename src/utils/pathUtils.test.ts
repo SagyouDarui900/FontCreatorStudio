@@ -10,6 +10,7 @@ import {
   simplifyContour,
   generateFastStrokeSvgPath,
   groupContoursForRendering,
+  getSafeGlyphViewBox,
 } from './pathUtils';
 import { PathContour } from '../types';
 
@@ -186,6 +187,19 @@ describe('pathUtils - Vector Path and Geometry Engine', () => {
       expect(res1).toBe(res2); // Exactly identical object reference from WeakMap cache
       expect(res1.length).toBe(1);
       expect(res1[0].fillRule).toBe('nonzero');
+    });
+  });
+
+  describe('getSafeGlyphViewBox', () => {
+    it('returns standard 0 0 upm upm viewBox when contours fit within EM square', () => {
+      const rect = createRectContour(100, 100, 900, 900);
+      expect(getSafeGlyphViewBox([rect], 1000)).toBe('0 0 1000 1000');
+      expect(getSafeGlyphViewBox([], 1000)).toBe('0 0 1000 1000');
+    });
+
+    it('expands viewBox cleanly when glyph contours extend outside 0..unitsPerEm', () => {
+      const overflowing = createRectContour(-50, -80, 1040, 1020);
+      expect(getSafeGlyphViewBox([overflowing], 1000, 20)).toBe('-70 -100 1130 1140');
     });
   });
 });

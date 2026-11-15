@@ -21,13 +21,21 @@ export interface TraceCharMetrics {
 /**
  * Compute authentic EM-square metrics for the trace underdrawing character.
  *
- * OpenType fonts (such as Noto Sans JP / Noto Serif JP) already bake Japanese
- * body scaling (~85% for Kanji, ~78% for Kana, plus optical offsets for small kana
- * and Japanese punctuation) inside their 1.0x EM square. Shrinking `fontSize` by
- * 0.78/0.85 again causes double-shrinking (~60% Kana / ~73% Kanji) and pulls
- * punctuation inward.
+ * Bundled & fallback Japanese OpenType fonts (Noto Sans JP, Noto Serif JP,
+ * Zen Maru Gothic, Kaisei Tokumin, system CJK fonts) render Kanji ink at
+ * ~90-96% of `fontSize` and have `hhea` ascender/descender (+1160/-288)
+ * that differ from the CJK ideographic EM box (+880/-120, center at +380
+ * above the alphabetic baseline).
  *
- * For Latin/ASCII characters, every glyph must share the exact same alphabetic
+ * Using `dominantBaseline="central"` shifts Kanji vertically depending on
+ * browser `hhea` metrics and at 1.0x UPM overflows the 85% `漢字枠` and EM edges.
+ * Anchoring Japanese characters via `dominantBaseline="alphabetic"` at
+ * `half + effectiveFontSize * 0.38` centers the CJK ideographic EM box
+ * deterministically across all browsers, while 0.88x (Kanji) and 0.94x
+ * (Kana/JP punctuation) keep strokes cleanly inside `漢字枠 (85%)` / `かな枠 (78%)`
+ * and well within the `0..upm` canvas.
+ *
+ * For Latin/ASCII characters, every glyph shares the exact same alphabetic
  * baseline (`upm * 0.8`) and scale (`upm * 0.80`) so descenders (`g, j, p, q, y`)
  * and accented letters never jump above the baseline.
  */
@@ -66,14 +74,16 @@ export function computeTraceCharMetrics({
   const charBoxY = half - charBoxSize / 2;
 
   if (isJapanese) {
+    const japaneseScale = isKanji ? 0.88 : 0.94;
+    const effectiveFontSize = Math.round(upm * japaneseScale * userFontScale);
     return {
       isKana,
       isKanji,
       isJapanese,
       anchorX,
-      effectiveFontSize: Math.round(upm * userFontScale),
-      effectiveY: half,
-      dominantBaseline: 'central',
+      effectiveFontSize,
+      effectiveY: Math.round(half + effectiveFontSize * 0.38),
+      dominantBaseline: 'alphabetic',
       charBoxSize,
       charBoxX,
       charBoxY,

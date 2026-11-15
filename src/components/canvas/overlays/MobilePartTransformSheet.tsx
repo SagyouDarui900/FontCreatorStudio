@@ -53,7 +53,7 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
       <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
         <div className="fixed inset-0" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[75vh] overflow-y-auto anim-slide-up ${
+          className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[80dvh] overflow-y-auto anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
         >
@@ -81,7 +81,7 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                     handleMergeSelectedContours();
                     onClose();
                   }}
-                  className="w-full p-2.5 rounded-lg border flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 font-bold transition-colors active:scale-98"
+                  className="w-full p-2.5 rounded-lg border flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 font-bold transition-colors"
                 >
                   <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>

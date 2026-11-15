@@ -1,5 +1,6 @@
 import React from 'react';
 import { FontProject, GlyphData } from '../../types';
+import { getSafeGlyphViewBox } from '../../utils/path';
 import { TargetScope } from './types';
 
 export interface BatchPreviewSectionProps {
@@ -52,7 +53,7 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
 
         {/* SVG Stage */}
         <div className="relative w-44 h-44 border rounded bg-white overflow-hidden shadow-inner flex items-center justify-center">
-          <svg viewBox={`0 0 ${upm} ${upm}`} className="absolute inset-0 w-full h-full pointer-events-none">
+          <svg viewBox={getSafeGlyphViewBox(previewGlyph?.contours, upm)} className="absolute inset-0 w-full h-full pointer-events-none">
             {/* EM Box Boundary */}
             <rect x="0" y="0" width={upm} height={upm} fill="#fafafa" stroke="#e0e0e0" strokeWidth={upm * 0.006} />
             {/* Baseline */}

@@ -21,6 +21,7 @@ import {
   adjustContoursWeight,
   contoursToSvgPath,
   getContoursBoundingBox,
+  getSafeGlyphViewBox,
   interpolateContours,
   groupContoursForRendering,
 } from '../utils/path';
@@ -578,7 +579,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <div
                   className={`w-full h-48 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
-                  <svg viewBox="0 0 1000 1000" className="w-44 h-44">
+                  <svg
+                    viewBox={getSafeGlyphViewBox(
+                      [...previewOriginalContours, ...previewModifiedContours],
+                      1000
+                    )}
+                    className="w-44 h-44"
+                  >
                     {/* Baseline & Center Guides */}
                     <line x1={0} y1={500} x2={1000} y2={500} stroke="#10b981" strokeDasharray="4 4" opacity={0.25} />
                     <line x1={500} y1={0} x2={500} y2={1000} stroke="#10b981" strokeDasharray="4 4" opacity={0.25} />
@@ -711,7 +718,17 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <div
                   className={`w-full h-52 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
-                  <svg viewBox="0 0 1000 1000" className="w-48 h-48">
+                  <svg
+                    viewBox={getSafeGlyphViewBox(
+                      [
+                        ...(glyphA?.contours || []),
+                        ...(glyphB?.contours || []),
+                        ...masterInterpContours,
+                      ],
+                      1000
+                    )}
+                    className="w-48 h-48"
+                  >
                     {/* Master A Ghost */}
                     {glyphA?.contours && (
                       <path

@@ -19,6 +19,7 @@ export interface NodeDragSession {
   startPos: Point;
   initialNode: BezierNode;
   initialContour: PathContour;
+  hasCommittedHistory?: boolean;
 }
 
 export interface UseNodeEditingOptions {
@@ -154,6 +155,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   const nodeDragRafRef = useRef<number | null>(null);
   const pendingContoursRef = useRef<PathContour[] | null>(null);
   const nodeDragSessionRef = useRef<NodeDragSession | null>(null);
+  const hasCommittedDragHistoryRef = useRef<boolean>(false);
 
   // External contour selection listener (e.g. from radical insertion)
   useEffect(() => {
@@ -206,7 +208,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     ) => {
       e.stopPropagation();
       try {
-        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+        const el = e.currentTarget as Element;
+        (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
       } catch {
         // Ignored
       }
@@ -241,6 +244,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         return;
       }
       setSelectedHandleType(handleType);
+      hasCommittedDragHistoryRef.current = false;
       nodeDragSessionRef.current = {
         contourId: contour.id,
         nodeId: node.id,
@@ -248,6 +252,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         startPos: canvasPos,
         initialNode: { ...node },
         initialContour: { ...contour },
+        hasCommittedHistory: false,
       };
     },
     [screenToCanvas, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
@@ -276,6 +281,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             } else {
               setSelectedHandleType('handleOut');
+              hasCommittedDragHistoryRef.current = false;
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
@@ -283,6 +289,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                hasCommittedHistory: false,
               };
             }
             foundNode = true;
@@ -299,6 +306,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             } else {
               setSelectedHandleType('handleIn');
+              hasCommittedDragHistoryRef.current = false;
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
@@ -306,6 +314,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                hasCommittedHistory: false,
               };
             }
             foundNode = true;
@@ -337,6 +346,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             } else {
               setSelectedHandleType('node');
+              hasCommittedDragHistoryRef.current = false;
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
@@ -344,6 +354,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                hasCommittedHistory: false,
               };
             }
             foundNode = true;
@@ -382,13 +393,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
       if (insertResult) {
         const newContours = contours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
-        onChangeContours(newContours);
+        onCommitHistory?.();
+        onChangeContours(newContours, { skipHistory: true });
         setSelectedContourId(contour.id);
         setSelectedContourIds([contour.id]);
         setSelectedNodeId(insertResult.newNodeId);
         setSelectedHandleType('node');
         const insertedNode = insertResult.updatedContour.nodes.find((n) => n.id === insertResult.newNodeId);
         if (insertedNode) {
+          hasCommittedDragHistoryRef.current = true;
           nodeDragSessionRef.current = {
             contourId: contour.id,
             nodeId: insertResult.newNodeId,
@@ -396,14 +409,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
             startPos: clickPos,
             initialNode: { ...insertedNode },
             initialContour: { ...insertResult.updatedContour },
+            hasCommittedHistory: true,
           };
           try {
-            (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+            const el = e.currentTarget as Element;
+            (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
           } catch {
             // Ignored
           }
         }
-        onCommitHistory?.();
         showCanvasToast('頂点を追加しました', 'ドラッグして位置を調整できます');
         return true;
       }
@@ -581,7 +595,14 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         nodeDragRafRef.current = requestAnimationFrame(() => {
           nodeDragRafRef.current = null;
           if (pendingContoursRef.current) {
-            onChangeContours(pendingContoursRef.current);
+            if (!hasCommittedDragHistoryRef.current && !nodeDragSessionRef.current?.hasCommittedHistory) {
+              onCommitHistory?.();
+              hasCommittedDragHistoryRef.current = true;
+              if (nodeDragSessionRef.current) {
+                nodeDragSessionRef.current.hasCommittedHistory = true;
+              }
+            }
+            onChangeContours(pendingContoursRef.current, { skipHistory: true });
           }
         });
       }
@@ -601,6 +622,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       customGuidelines,
       contoursRef,
       onChangeContours,
+      onCommitHistory,
       setActiveSnapGuides,
     ]
   );
@@ -612,21 +634,23 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         cancelAnimationFrame(nodeDragRafRef.current);
         nodeDragRafRef.current = null;
       }
-      let didChange = false;
       if (pendingContoursRef.current) {
-        onChangeContours(pendingContoursRef.current);
+        if (!hasCommittedDragHistoryRef.current && !nodeDragSessionRef.current?.hasCommittedHistory) {
+          onCommitHistory?.();
+          hasCommittedDragHistoryRef.current = true;
+        }
+        onChangeContours(pendingContoursRef.current, { skipHistory: true });
         pendingContoursRef.current = null;
-        didChange = true;
       }
+      hasCommittedDragHistoryRef.current = false;
       nodeDragSessionRef.current = null;
       setSelectedHandleType(null);
-      if (didChange) {
-        onCommitHistory?.();
-      }
+      setActiveSnapGuides?.([]);
       return true;
     }
+    hasCommittedDragHistoryRef.current = false;
     return false;
-  }, [toolMode, selectedHandleType, onChangeContours, onCommitHistory]);
+  }, [toolMode, selectedHandleType, onChangeContours, onCommitHistory, setActiveSnapGuides]);
 
   // Toggle smooth / corner node type (supports 'C' key toggle on selection or direct click)
   const handleToggleNodeType = useCallback(

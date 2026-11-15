@@ -57,6 +57,12 @@ export function useTraceTransform({
   const handlePointerDownTraceImage = useCallback(
     (e: React.PointerEvent) => {
       e.stopPropagation();
+      try {
+        const el = e.currentTarget as Element;
+        (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
+      } catch {
+        // Ignored
+      }
       setIsDraggingTrace(true);
       traceDragStartRef.current = {
         clientX: e.clientX,
@@ -71,6 +77,12 @@ export function useTraceTransform({
   const handlePointerDownTraceResize = useCallback(
     (e: React.PointerEvent, _handle: TraceResizeHandle) => {
       e.stopPropagation();
+      try {
+        const el = e.currentTarget as Element;
+        (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
+      } catch {
+        // Ignored
+      }
       setIsResizingTrace(true);
       const rect = containerRef.current?.getBoundingClientRect();
       const currentZoom = zoom;
@@ -108,7 +120,8 @@ export function useTraceTransform({
     if (!onChangeTraceSettings) return;
     const isKana = /[ぁ-んァ-ヶー]/.test(traceSettings.text || activeChar || '');
     const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(traceSettings.text || activeChar || '');
-    const defaultScale = isKana ? 0.78 : isKanji ? 0.85 : 1.0;
+    const defaultScale =
+      traceSettings.type === 'image' ? (isKana ? 0.78 : isKanji ? 0.85 : 1.0) : 1.0;
     onChangeTraceSettings((prev) => ({
       ...prev,
       offsetX: 0,
@@ -117,7 +130,7 @@ export function useTraceTransform({
       rotation: 0,
     }));
     showCanvasToast(`下絵の位置とサイズ(${Math.round(defaultScale * 100)}%)をリセットしました`);
-  }, [onChangeTraceSettings, showCanvasToast, traceSettings.text, activeChar]);
+  }, [onChangeTraceSettings, showCanvasToast, traceSettings.type, traceSettings.text, activeChar]);
 
   const handleTracePointerMove = useCallback(
     (e: React.PointerEvent): boolean => {

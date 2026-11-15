@@ -24,6 +24,7 @@ export interface UseToolModeCleanupOptions {
   resetBrushDrawing: () => void;
   finalizeBrushDrawing?: () => boolean;
   setActivePenContour: (val: any) => void;
+  setPenMousePos?: (pos: Point | null) => void;
   setShapeStartPoint: (pt: Point | null) => void;
   setShapeCurrentPoint: (pt: Point | null) => void;
   setTransformSession: (val: any) => void;
@@ -43,6 +44,9 @@ export interface UseToolModeCleanupOptions {
   drawingReticleRef: React.RefObject<SVGGElement | null>;
   isErasingRef: React.MutableRefObject<boolean>;
   activeDrawingPointerIdRef?: React.MutableRefObject<number | null>;
+  handleNodeDragEnd?: () => boolean | void;
+  handleTransformPointerUp?: () => boolean;
+  handleEraserPointerUp?: (e?: any) => boolean | void;
 }
 
 export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
@@ -61,6 +65,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     resetBrushDrawing,
     finalizeBrushDrawing,
     setActivePenContour,
+    setPenMousePos,
     setShapeStartPoint,
     setShapeCurrentPoint,
     setTransformSession,
@@ -80,6 +85,9 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     drawingReticleRef,
     isErasingRef,
     activeDrawingPointerIdRef,
+    handleNodeDragEnd,
+    handleTransformPointerUp,
+    handleEraserPointerUp,
   } = options;
 
   // 1. Tool Switch Cleanup: Clean uncommitted work when switching away from a tool
@@ -87,39 +95,60 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     if (activeDrawingPointerIdRef) {
       activeDrawingPointerIdRef.current = null;
     }
+    handleNodeDragEnd?.();
     if (toolMode !== 'select' && toolMode !== 'node') {
       setShowMobilePartSheet(false);
       setMarqueeSelection(null);
+      setSelectedNodeId(null);
+      setSelectedHandleType(null);
     }
     if (!isShapeToolMode(toolMode)) {
       resetShapeCreation();
     }
     if (toolMode !== 'eraser') {
       resetEraserVisuals();
+      isErasingRef.current = false;
     }
     if (toolMode !== 'brush') {
       finalizeBrushDrawing?.();
       resetBrushDrawing();
     }
+    if (toolMode !== 'pen') {
+      setPenMousePos?.(null);
+    }
     if (toolMode !== 'ruler' || gridSettingsShowRulers === false) {
       setRulerMeasurement(null);
     }
     cancelTransformSession();
+    setDraggingMetric(null);
+    setDraggingGuidelineId(null);
+    setIsPanning(false);
+    resetTraceDragState();
     setActiveSnapGuides([]);
     setTouchLoupeState((prev: TouchLoupeState) => (prev.visible ? { ...prev, visible: false } : prev));
   }, [
     toolMode,
     gridSettingsShowRulers,
+    activeDrawingPointerIdRef,
+    handleNodeDragEnd,
     resetShapeCreation,
     resetEraserVisuals,
+    isErasingRef,
     finalizeBrushDrawing,
     resetBrushDrawing,
+    setPenMousePos,
     cancelTransformSession,
+    setDraggingMetric,
+    setDraggingGuidelineId,
+    setIsPanning,
+    resetTraceDragState,
     setActiveSnapGuides,
     setTouchLoupeState,
     setShowMobilePartSheet,
     setRulerMeasurement,
     setMarqueeSelection,
+    setSelectedNodeId,
+    setSelectedHandleType,
   ]);
 
   // 2. Switching glyphs hygiene: Clear all transient canvas interactions across glyphs
@@ -129,7 +158,10 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     }
     resetBrushDrawing();
     resetEraserVisuals();
+    isErasingRef.current = false;
+    isPenDrawingRef.current = false;
     setActivePenContour(null);
+    setPenMousePos?.(null);
     setShapeStartPoint(null);
     setShapeCurrentPoint(null);
     setMarqueeSelection(null);
@@ -139,6 +171,12 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     setSelectedHandleType(null);
     setDraggingMetric(null);
     setDraggingGuidelineId(null);
+    setIsPanning(false);
+    resetTraceDragState();
+    setRulerMeasurement(null);
+    setActiveSnapGuides([]);
+    setTouchLoupeState({ visible: false, screenX: 0, screenY: 0, canvasPos: null });
+    nodeDragSessionRef.current = null;
     if (activeBrushPathRef.current) {
       activeBrushPathRef.current.setAttribute('d', '');
     }
@@ -148,9 +186,17 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     selectedUnicode,
     resetBrushDrawing,
     resetEraserVisuals,
+    isErasingRef,
+    isPenDrawingRef,
     setActivePenContour,
+    setPenMousePos,
     setDraggingGuidelineId,
     setDraggingMetric,
+    setIsPanning,
+    resetTraceDragState,
+    setRulerMeasurement,
+    setActiveSnapGuides,
+    setTouchLoupeState,
     setSelectedContourIds,
     setSelectedHandleType,
     setSelectedNodeId,
@@ -158,6 +204,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     setShapeStartPoint,
     setTransformSession,
     setMarqueeSelection,
+    nodeDragSessionRef,
     activeBrushPathRef,
     activeBrushSvgDRef,
     pendingTransformContoursRef,
@@ -174,18 +221,28 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     }
     finalizeBrushDrawing?.();
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
-    if (isErasingRef.current) resetEraserVisuals();
+    if (isErasingRef.current) {
+      handleEraserPointerUp?.();
+      resetEraserVisuals();
+    }
+    handleTransformPointerUp?.();
+    handleNodeDragEnd?.();
     isPenDrawingRef.current = false;
     setIsPanning(false);
     resetTraceDragState();
     setDraggingMetric(null);
     setDraggingGuidelineId(null);
     setMarqueeSelection(null);
+    setActiveSnapGuides([]);
+    setTouchLoupeState((prev: TouchLoupeState) => (prev.visible ? { ...prev, visible: false } : prev));
     nodeDragSessionRef.current = null;
   }, [
     finalizeBrushDrawing,
     isErasingRef,
+    handleEraserPointerUp,
     resetEraserVisuals,
+    handleTransformPointerUp,
+    handleNodeDragEnd,
     isPenDrawingRef,
     isTwoFingerGestureRef,
     setIsPanning,
@@ -194,6 +251,8 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     setDraggingGuidelineId,
     nodeDragSessionRef,
     setMarqueeSelection,
+    setActiveSnapGuides,
+    setTouchLoupeState,
     drawingReticleRef,
     activeDrawingPointerIdRef,
   ]);

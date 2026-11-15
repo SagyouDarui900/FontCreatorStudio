@@ -57,7 +57,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  onClick={() => onClose()}
  />
  <div
- className={`relative z-10 w-full rounded-t-2xl p-4 pb-[max(env(safe-area-inset-bottom),24px)] border-t shadow-2xl max-h-[75vh] flex flex-col anim-slide-up ${themeClasses.cardBg}`}
+ className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[82dvh] flex flex-col anim-slide-up ${themeClasses.cardBg}`}
  >
  <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800 mb-2 shrink-0">
  <span className="font-bold text-sm text-emerald-800 dark:text-emerald-300">手書きペンの種類 (全{PEN_PRESETS.length}種)</span>
@@ -117,7 +117,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  </button>
  )}
 
- <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 pb-20">
+ <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 pb-2">
  {/* Custom User Pens in Mobile Sheet */}
  {customPresets.length > 0 && (
  <div className="mb-2.5 pb-2 border-b border-stone-200/80 dark:border-[#223025]">

@@ -73,8 +73,8 @@ export interface UseCanvasPointerDispatcherOptions {
   // Metrics
   lsb: number;
   advanceWidth: number;
-  onChangeLsb: (val: number) => void;
-  onChangeAdvanceWidth: (val: number) => void;
+  onChangeLsb: (val: number, options?: { skipHistory?: boolean }) => void;
+  onChangeAdvanceWidth: (val: number, options?: { skipHistory?: boolean }) => void;
   draggingMetric: 'lsb' | 'rsb' | null;
   setDraggingMetric: React.Dispatch<React.SetStateAction<'lsb' | 'rsb' | null>>;
 
@@ -145,7 +145,7 @@ export interface UseCanvasPointerDispatcherOptions {
   setHoverCanvasPos: (pos: Point | null) => void;
 
   // History & Toasts
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -351,6 +351,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     advanceWidth,
     onChangeLsb,
     onChangeAdvanceWidth,
+    onCommitHistory,
     draggingMetric,
     setDraggingMetric,
     lockGuidelines,
@@ -386,21 +387,31 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
-    try {
-      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-    } catch {
-      // Ignored
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) {
+      return;
     }
+
+    // Cooldown & active-pen guards for touch before capturing or tracking
+    if (e.pointerType === 'touch' && twoFingerCooldownUntilRef.current > Date.now()) {
+      return;
+    }
+    if (e.pointerType === 'touch' && (isPenDrawingRef.current || Date.now() - lastPenActiveTimeRef.current < 200)) {
+      return;
+    }
+
     if (touchPointersRef.current.size === 0) {
       invalidateContainerRect?.();
     }
-    pointerTypesRef.current.set(e.pointerId, e.pointerType);
-    touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     // Spacebar or Middle Mouse or Hand tool = Pan canvas
     if (toolMode === 'hand' || e.button === 1 || isSpacePressed) {
       if (e.button === 1 && e.cancelable) {
         e.preventDefault();
+      }
+      try {
+        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+      } catch {
+        // Ignored
       }
       setIsPanning(true);
       const curPan = panRef.current as { x: number; y: number };
@@ -410,6 +421,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     if (e.pointerType === 'mouse' && e.button !== 0) {
       return;
+    }
+
+    pointerTypesRef.current.set(e.pointerId, e.pointerType);
+    if (e.pointerType === 'touch') {
+      touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
 
     // Stylus / Apple Pencil detection
@@ -426,11 +442,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       if (e.pressure && e.pressure > 0) {
         lastPressureValRef.current = Math.round(e.pressure * 100);
       }
-    }
-
-    // Cooldown check for touch
-    if (e.pointerType === 'touch' && twoFingerCooldownUntilRef.current > Date.now()) {
-      return;
     }
 
     // Track multi-touch tap gestures
@@ -458,14 +469,18 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         if (Math.abs(posCheck.x - lsb) <= hitThreshold || Math.abs(posCheck.x - advanceWidth) <= hitThreshold) {
           // Allow guideline adjustment
         } else {
+          touchPointersRef.current.delete(e.pointerId);
+          pointerTypesRef.current.delete(e.pointerId);
           showCanvasToast('パームリジェクション', 'ペン先以外の接触を自動ブロック中');
           return;
         }
       }
     }
 
-    if (e.pointerType === 'touch' && (isPenDrawingRef.current || Date.now() - lastPenActiveTimeRef.current < 200)) {
-      return;
+    try {
+      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      // Ignored
     }
 
     // Multi-touch gesture (Pinch zoom & 2-Finger Pan)
@@ -477,6 +492,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       activeTwoFingerIdsRef.current = [fingerTouches[0][0], fingerTouches[1][0]];
       activeDrawingPointerIdRef.current = null;
 
+      setTouchLoupeState((prev: any) => (prev.visible ? { ...prev, visible: false } : prev));
       resetBrushDrawing?.();
       brushStrokePointsRef.current = [];
       if (activeBrushPathRef.current) {
@@ -749,6 +765,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // NODE TOOL / SELECT TOOL
     if (toolMode === 'node' || toolMode === 'select') {
+      if (nodeDragSessionRef.current) {
+        return;
+      }
       if (handleNodePointerDownOnCanvas(pos, e)) {
         return;
       }
@@ -777,6 +796,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     gridSettings,
     penMode,
     isShapeTool,
+    selectedContourIds,
+    selectedNodeId,
+    nodeDragSessionRef,
     setIsPanning,
     panRef,
     panStartRef,
@@ -818,7 +840,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   ]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
-    touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (e.pointerType === 'touch' && touchPointersRef.current.has(e.pointerId)) {
+      touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
 
     // Isolate active drawing pointer from secondary pointer movements
     if (activeDrawingPointerIdRef.current !== null && e.pointerId !== activeDrawingPointerIdRef.current && !isTwoFingerGestureRef.current) {
@@ -925,10 +949,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Spacebar / Hand Pan
     if (isPanning) {
-      const newPan = {
+      const rawPan = {
         x: e.clientX - panStartRef.current.x,
         y: e.clientY - panStartRef.current.y,
       };
+      const newPan = clampPan ? clampPan(rawPan, zoomRef.current) : rawPan;
       (panRef.current as { x: number; y: number }) = newPan;
       if (canvasGroupRef?.current) {
         pendingPinchUpdateRef.current = { zoom: zoomRef.current, pan: newPan };
@@ -1159,6 +1184,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setPan,
     zoomRef,
     setZoom,
+    clampPan,
     containerRef,
     canvasGroupRef,
     getContainerRectFast,
@@ -1265,13 +1291,16 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Reset dragging states and commit pan if we were dragging with Hand/Space
     if (isPanning) {
-      setPan(panRef.current as { x: number; y: number });
+      const finalPan = clampPan
+        ? clampPan(panRef.current as { x: number; y: number }, zoomRef.current)
+        : (panRef.current as { x: number; y: number });
+      (panRef.current as { x: number; y: number }) = finalPan;
+      setPan(finalPan);
     }
     setIsPanning(false);
     resetTraceDragState();
     handleMetricsPointerUp();
     handleGuidelinePointerUp();
-    nodeDragSessionRef.current = null;
 
     // Resolve Marquee Selection on release
     if (marqueeSelection) {
@@ -1417,13 +1446,28 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   }, [
     setTouchLoupeState,
     setLiveStylusPressure,
+    setSvgGesturing,
+    setZoom,
+    setPan,
+    zoomRef,
+    panRef,
+    clampPan,
+    isPanning,
     onUndo,
     onRedo,
     setIsPanning,
     resetTraceDragState,
     handleMetricsPointerUp,
     handleGuidelinePointerUp,
-    nodeDragSessionRef,
+    marqueeSelection,
+    setMarqueeSelection,
+    contours,
+    selectedNodeIds,
+    setSelectedNodeIds,
+    selectedContourIds,
+    setSelectedContourIds,
+    setSelectedContourId,
+    showCanvasToast,
     toolMode,
     handleRulerPointerUp,
     dispatchTransformUp,

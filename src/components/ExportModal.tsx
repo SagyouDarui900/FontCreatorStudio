@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Download,
   Share2,
-  CheckCircle2,
   AlertCircle,
-  Sparkles,
   Smartphone,
   Maximize2,
   Minimize2,
   ShieldCheck,
   RotateCcw,
 } from 'lucide-react';
-import { FontProject, GlyphData } from '../types';
+import { FontProject } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   FontPreviewSection,
@@ -59,8 +57,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [copiedCss, setCopiedCss] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Dynamic preview font URL for live preview
-  const [previewFontUrl, setPreviewFontUrl] = useState<string | null>(null);
+  // Dynamic preview font cleanup refs & live preview state
+  const previewFontUrlRef = useRef<string | null>(null);
+  const activeFontFaceRef = useRef<FontFace | null>(null);
   const [previewFontFamily, setPreviewFontFamily] = useState<string>('ExportPreviewFont');
   const [previewText, setPreviewText] = useState<string>('あいう 色は匂へど 漢字 123 ABC');
   const [previewFontSize, setPreviewFontSize] = useState<number>(28);
@@ -100,35 +99,62 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     balanceSideBearings,
   };
 
+  const cleanupPreviewFont = useCallback(() => {
+    if (previewFontUrlRef.current) {
+      URL.revokeObjectURL(previewFontUrlRef.current);
+      previewFontUrlRef.current = null;
+    }
+    if (activeFontFaceRef.current) {
+      try {
+        document.fonts.delete(activeFontFaceRef.current);
+      } catch {
+        // Ignored on environments without FontFaceSet.delete
+      }
+      activeFontFaceRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupPreviewFont();
+    };
+  }, [cleanupPreviewFont]);
+
   // Compile in-memory preview font for the interactive canvas simulator
   useEffect(() => {
     if (!isOpen) {
-      if (previewFontUrl) {
-        URL.revokeObjectURL(previewFontUrl);
-        setPreviewFontUrl(null);
-      }
+      cleanupPreviewFont();
       return;
     }
 
     let isMounted = true;
     const generatePreviewFont = async () => {
+      let createdUrl: string | null = null;
       try {
         const { blobUrl } = compileFont(project, compileOptions);
-        if (!isMounted) return;
+        createdUrl = blobUrl;
+        if (!isMounted) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
 
         const uniqueFamilyName = `PreviewFont_${Date.now()}`;
-
         const fontFace = new FontFace(uniqueFamilyName, `url(${blobUrl})`);
         await fontFace.load();
-        document.fonts.add(fontFace);
-
-        if (previewFontUrl) {
-          URL.revokeObjectURL(previewFontUrl);
+        if (!isMounted) {
+          URL.revokeObjectURL(blobUrl);
+          return;
         }
-        setPreviewFontUrl(blobUrl);
+
+        cleanupPreviewFont();
+        document.fonts.add(fontFace);
+        previewFontUrlRef.current = blobUrl;
+        activeFontFaceRef.current = fontFace;
         setPreviewFontFamily(uniqueFamilyName);
-      } catch (err) {
-        // Fallback silently if preview compilation fails during typing
+      } catch {
+        if (createdUrl && createdUrl !== previewFontUrlRef.current) {
+          URL.revokeObjectURL(createdUrl);
+        }
       }
     };
 
@@ -137,7 +163,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, project, format, effectiveScale, mergeOverlaps, balanceSideBearings]);
+  }, [isOpen, project, format, effectiveScale, mergeOverlaps, balanceSideBearings, cleanupPreviewFont]);
 
   if (!isOpen) return null;
 
@@ -145,6 +171,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const validation: FontValidationResult = validateFontProject(project);
 
   const handleExport = async (action: 'download' | 'share') => {
+    if (!validation.valid) {
+      onShowToast?.(validation.errors[0] || 'フォントデータにエラーがあるため書き出しできません', 'error');
+      return;
+    }
     setIsExporting(true);
     try {
       if (action === 'share') {
@@ -158,7 +188,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           onShowToast(`.${format.toUpperCase()} フォントファイルをダウンロードしました！`, 'success');
         }
       }
-    } catch (err) {
+    } catch {
       if (onShowToast) {
         onShowToast('フォントの書き出しに失敗しました。パス構成をご確認ください。', 'error');
       }
@@ -275,6 +305,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 text-xs">
+          {!validation.valid && (
+            <div
+              className={`p-3 rounded border flex items-start space-x-2 ${
+                isLight
+                  ? 'bg-red-50 border-red-200 text-red-900'
+                  : 'bg-red-950/40 border-red-800 text-red-200'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
+                <div className="font-bold">書き出し前の検証でエラーが検出されました</div>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {validation.errors.slice(0, 3).map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           <ExportFormatSection
             isLight={isLight}
             format={format}
@@ -397,7 +447,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {isAppleTouch ? (
               <button
                 onClick={() => handleExport('share')}
-                disabled={isExporting}
+                disabled={isExporting || !validation.valid}
                 className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-[transform,background-color] active:scale-95 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <Share2 className="w-4 h-4 shrink-0" />
@@ -406,7 +456,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             ) : (
               <button
                 onClick={() => handleExport('download')}
-                disabled={isExporting}
+                disabled={isExporting || !validation.valid}
                 className="px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-[transform,background-color] active:scale-95 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Download className="w-4 h-4 shrink-0" />

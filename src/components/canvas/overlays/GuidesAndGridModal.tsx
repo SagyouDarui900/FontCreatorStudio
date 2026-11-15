@@ -70,12 +70,11 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
     <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/75 anim-fade">
       <div className="fixed inset-0" onClick={onClose} />
       <div
-        className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 pb-28 sm:pb-5 border-t sm:border shadow-2xl max-h-[85vh] overflow-y-auto ${
+        className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-5 border-t sm:border shadow-2xl max-h-[85dvh] overflow-y-auto ${
           isLight
             ? 'bg-white border-[#c8ded3] text-stone-800'
             : 'bg-[#151f19] border-[#25362b] text-emerald-100'
         }`}
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 20px)' }}
       >
         <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 mb-3">
           <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">

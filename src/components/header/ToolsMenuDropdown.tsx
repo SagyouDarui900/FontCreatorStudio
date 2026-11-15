@@ -137,10 +137,10 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             style={{
-              maxHeight: 'calc(100vh - 50px)',
-              paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 24px)',
+              maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px))',
+              paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
             }}
-            className={`fixed right-1 sm:right-3 top-[42px] sm:top-[44px] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 shadow-xl anim-pop ${themeClasses.modalBg}`}
+            className={`fixed right-1 sm:right-3 top-[calc(2.65rem+env(safe-area-inset-top,0px))] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 shadow-xl anim-pop ${themeClasses.modalBg}`}
           >
             {/* Menu Header */}
             <div className={`flex items-center justify-between px-0.5 pb-2 border-b ${themeClasses.border}`}>
@@ -230,7 +230,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform text-xs font-bold ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${themeClasses.accentBadge}`}>
                       <Grid className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -250,7 +250,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={toolItemClass}
                 >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                     <Shapes className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -270,7 +270,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Sliders className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -290,7 +290,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={toolItemClass}
                 >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -309,7 +309,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={`${toolItemClass} col-span-1 sm:col-span-2`}
                 >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                     <FileCode className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -337,7 +337,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Wand2 className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -357,7 +357,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={toolItemClass}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0 mt-0.5">
                     <Sliders className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -377,7 +377,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Sliders className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -398,7 +398,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <ArrowLeftRight className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -419,7 +419,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -440,7 +440,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Eye className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -461,7 +461,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <FileCode className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -482,7 +482,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Type className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -503,7 +503,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     }}
                     className={toolItemClass}
                   >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform ${themeClasses.accentBadge}`}>
+                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
                       <Grid className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -523,7 +523,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={toolItemClass}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Award className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -542,7 +542,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={toolItemClass}
                 >
-                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Layers className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">

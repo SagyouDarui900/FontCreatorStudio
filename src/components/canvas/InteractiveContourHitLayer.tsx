@@ -10,7 +10,7 @@ export interface InteractiveContourHitLayerProps {
   zoom: number;
   toolMode: ToolMode;
   screenToCanvas: (clientX: number, clientY: number) => Point;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   setSelectedContourId: (id: string | null) => void;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedNodeId: (id: string | null) => void;
@@ -71,7 +71,8 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                 const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
                 if (insertResult) {
                   const newContours = contours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
-                  onChangeContours(newContours);
+                  onCommitHistory?.();
+                  onChangeContours(newContours, { skipHistory: true });
                   setSelectedContourId(contour.id);
                   setSelectedContourIds([contour.id]);
                   setSelectedNodeId(insertResult.newNodeId);
@@ -85,14 +86,15 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                       startPos: clickPos,
                       initialNode: { ...insertedNode },
                       initialContour: { ...insertResult.updatedContour },
+                      hasCommittedHistory: true,
                     };
                     try {
-                      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+                      const el = e.currentTarget as Element;
+                      (el.closest?.('svg') || el).setPointerCapture?.(e.pointerId);
                     } catch {
                       // Ignored
                     }
                   }
-                  onCommitHistory?.();
                   showCanvasToast('頂点を追加しました', 'ドラッグして位置を調整できます');
                   return;
                 }

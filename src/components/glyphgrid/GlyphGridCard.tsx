@@ -2,7 +2,7 @@ import React, { memo, useMemo } from 'react';
 import { Lock, MoreHorizontal } from 'lucide-react';
 import { GlyphData } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
-import { groupContoursForRendering } from '../../utils/path';
+import { groupContoursForRendering, getSafeGlyphViewBox } from '../../utils/path';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { GridDensity, ContextMenuItem } from './types';
@@ -37,6 +37,11 @@ export const GlyphGridCard = memo(
       if (!hasContours || !glyphData?.contours) return [];
       return groupContoursForRendering(glyphData.contours);
     }, [hasContours, glyphData?.contours]);
+
+    const safeViewBox = useMemo(
+      () => getSafeGlyphViewBox(glyphData?.contours, unitsPerEm),
+      [glyphData?.contours, unitsPerEm]
+    );
 
     const pair = KANA_PAIRS[item.char];
     const dakutenInfo = DAKUTEN_MAPPINGS[item.char];
@@ -125,7 +130,7 @@ export const GlyphGridCard = memo(
         <div className="flex-1 flex items-center justify-center w-full min-h-0 min-w-0 overflow-hidden relative z-10 p-0.5 pointer-events-none">
           {hasContours && renderGroups.length > 0 ? (
             <svg
-              viewBox={`0 0 ${unitsPerEm} ${unitsPerEm}`}
+              viewBox={safeViewBox}
               preserveAspectRatio="xMidYMid meet"
               className="w-full h-full max-w-[88%] max-h-[88%] object-contain"
             >

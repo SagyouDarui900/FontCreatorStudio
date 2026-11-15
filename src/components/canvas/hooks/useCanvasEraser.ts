@@ -171,8 +171,8 @@ export function useCanvasEraser({
       if (!isErasingRef.current) return false;
 
       try {
-        if (e) {
-          (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+        if (e && (e.currentTarget as Element).hasPointerCapture?.(e.pointerId)) {
+          (e.currentTarget as Element).releasePointerCapture(e.pointerId);
         }
       } catch {}
 
@@ -196,7 +196,7 @@ export function useCanvasEraser({
         if (updated !== currentContours) {
           onCommitHistory?.();
           contoursRef.current = updated;
-          onChangeContours(updated);
+          onChangeContours(updated, { skipHistory: true });
           showCanvasToast('パスを削り・分割しました');
         }
       } else if (erasedAnyInSessionRef.current) {

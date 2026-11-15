@@ -7,7 +7,7 @@ interface UsePenToolOptions {
   contours: PathContour[];
   autoResolveBrushOverlap: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   showCanvasToast: (message: string, subText?: string) => void;
   setSelectedContourId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -144,13 +144,13 @@ export function usePenTool({
               }
             }
 
-            onChangeContours([...contours, ...resultContours]);
+            onCommitHistory?.();
+            onChangeContours([...contours, ...resultContours], { skipHistory: true });
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
             setPenMousePos(null);
             setSelectedNodeId(null);
-            onCommitHistory?.();
             showCanvasToast(
               `太さ ${targetWidth}px の線として確定しました`,
               `${resultContours.length} 個の輪郭 (端点: ${penCapStyle === 'round' ? '丸' : penCapStyle === 'butt' ? '平' : '角'})`
@@ -171,13 +171,13 @@ export function usePenTool({
         try {
           const selfMerged = unionContours([finalized], 1.2, true);
           if (selfMerged && selfMerged.length > 0) {
-            onChangeContours([...contours, ...selfMerged]);
+            onCommitHistory?.();
+            onChangeContours([...contours, ...selfMerged], { skipHistory: true });
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
             setPenMousePos(null);
             setSelectedNodeId(null);
-            onCommitHistory?.();
             showCanvasToast(
               selfMerged.length > 1
                 ? '交差を自動結合し、輪郭を確定しました'
@@ -191,13 +191,13 @@ export function usePenTool({
         }
       }
 
-      onChangeContours([...contours, finalized]);
+      onCommitHistory?.();
+      onChangeContours([...contours, finalized], { skipHistory: true });
       setSelectedContourId(null);
       setSelectedContourIds([]);
       setActivePenContour(null);
       setPenMousePos(null);
       setSelectedNodeId(null);
-      onCommitHistory?.();
       showCanvasToast(
         closed ? '閉じた輪郭として確定しました' : `開いた線 (太さ: ${targetWidth}px) として確定しました`,
         `${finalized.nodes.length} 頂点`

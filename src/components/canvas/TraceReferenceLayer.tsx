@@ -117,14 +117,21 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
             traceSettings.imageSrc;
           if (!currentImageSrc) return null;
 
-          const filterStyle: React.CSSProperties = {
-            filter: `
-              contrast(${traceSettings.contrast || 1})
-              brightness(${traceSettings.brightness || 1})
-              ${traceSettings.grayscale ? 'grayscale(100%)' : ''}
-              ${traceSettings.invert ? 'invert(100%)' : ''}
-            `.trim(),
-          };
+          const contrast = traceSettings.contrast ?? 1;
+          const brightness = traceSettings.brightness ?? 1;
+          const hasFilter = contrast !== 1 || brightness !== 1 || Boolean(traceSettings.grayscale) || Boolean(traceSettings.invert);
+          const filterStyle: React.CSSProperties | undefined = hasFilter
+            ? {
+                filter: [
+                  contrast !== 1 ? `contrast(${contrast})` : '',
+                  brightness !== 1 ? `brightness(${brightness})` : '',
+                  traceSettings.grayscale ? 'grayscale(100%)' : '',
+                  traceSettings.invert ? 'invert(100%)' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' '),
+              }
+            : undefined;
 
           return (
             <g

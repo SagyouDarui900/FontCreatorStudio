@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <div className="flex items-center gap-1 sm:gap-1.5 shrink min-w-0">
         <button
           onClick={onToggleGridDrawer}
-          className={`h-7 px-2 rounded-md transition-colors inline-flex items-center gap-1 text-xs font-bold shrink-0 border cursor-pointer ${
+          className={`hidden sm:inline-flex h-7 px-2 rounded-md transition-colors items-center gap-1 text-xs font-bold shrink-0 border cursor-pointer ${
             showGridDrawer
               ? themeClasses.activeTool
               : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -152,7 +152,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           title="文字一覧（コード表）の表示/非表示"
         >
           <Grid className="w-3.5 h-3.5 shrink-0" />
-          <span className="hidden sm:inline leading-none">文字一覧</span>
+          <span className="leading-none">文字一覧</span>
         </button>
 
         <div className={`h-4 w-[1px] hidden sm:block ${themeClasses.border}`} />
@@ -160,7 +160,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {/* Brand & Project Info (Single-line compact CAD header) */}
         <div className="flex items-center gap-1.5 shrink min-w-0">
           <span
-            className="text-xs font-bold tracking-tight truncate max-w-[70px] xs:max-w-[110px] sm:max-w-[140px] md:max-w-[170px] whitespace-nowrap"
+            className="text-xs font-bold tracking-tight truncate max-w-[100px] xs:max-w-[130px] sm:max-w-[140px] md:max-w-[170px] whitespace-nowrap"
             title={project.metadata.familyName || 'FontCreator'}
           >
             {project.metadata.familyName && project.metadata.familyName !== 'OTEdit-Style Font' && project.metadata.familyName !== '新規フォント'
@@ -275,12 +275,14 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
       {/* Right: Clean Tools Dropdown & Theme & Settings & TTF Export */}
       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-        {/* JIS / 常用漢字 進捗メーター */}
-        <ProgressSummaryPill
-          project={project}
-          theme={theme}
-          onOpenDashboard={() => openModal('jisProgress')}
-        />
+        {/* JIS / 常用漢字 進捗メーター (Desktop & Tablet) */}
+        <div className="hidden sm:flex items-center">
+          <ProgressSummaryPill
+            project={project}
+            theme={theme}
+            onOpenDashboard={() => openModal('jisProgress')}
+          />
+        </div>
 
         {/* Metrics Panel toggle (Desktop & Tablet) */}
         {onToggleMetricsDrawer && (

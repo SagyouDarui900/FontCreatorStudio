@@ -157,8 +157,8 @@ export async function loadFontFromFile(
       font.names.version?.en ||
       '1.000',
     unitsPerEm: 1000,
-    ascender: Math.round(((font.ascender || 800) / (font.unitsPerEm || 1000)) * 1000),
-    descender: Math.round(((font.descender || -200) / (font.unitsPerEm || 1000)) * 1000),
+    ascender: SCREEN_BASELINE_Y,
+    descender: SCREEN_BASELINE_Y - 1000,
   };
 
   const glyphs: Record<number, GlyphData> = {};

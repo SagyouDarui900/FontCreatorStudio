@@ -19,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
   const isLight = isLightTheme(theme);
 
   return (
-    <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none pb-[max(env(safe-area-inset-bottom),0px)]">
+    <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none">
       {toasts.map((toast) => {
         const isSuccess = toast.type === 'success' || !toast.type;
         const isError = toast.type === 'error';
@@ -28,22 +28,22 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full sm:rounded-xl border shadow-md sm:shadow-lg text-[11px] sm:text-xs font-medium max-w-full ${
+            className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full sm:rounded-xl border shadow-md text-[11px] sm:text-xs font-medium max-w-full ${
               isLight
                 ? isError
-                  ? 'bg-rose-50/95 border-rose-200 text-rose-900'
+                  ? 'bg-rose-50 border-rose-200 text-rose-900'
                   : isWarning
-                  ? 'bg-amber-50/95 border-amber-200 text-amber-900'
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
                   : isSuccess
-                  ? 'bg-emerald-50/95 border-emerald-300 text-emerald-950'
-                  : 'bg-white/95 border-stone-200 text-stone-900'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                  : 'bg-white border-stone-200 text-stone-900'
                 : isError
-                ? 'bg-rose-950/90 border-rose-800 text-rose-200'
+                ? 'bg-rose-950 border-rose-800 text-rose-200'
                 : isWarning
-                ? 'bg-amber-950/90 border-amber-800 text-amber-200'
+                ? 'bg-amber-950 border-amber-800 text-amber-200'
                 : isSuccess
-                ? 'bg-[#122319]/95 border-emerald-700 text-emerald-100'
-                : 'bg-[#18231c]/95 border-[#2d4034] text-stone-200'
+                ? 'bg-[#122319] border-emerald-700 text-emerald-100'
+                : 'bg-[#18231c] border-[#2d4034] text-stone-200'
             }`}
           >
             {isError ? (

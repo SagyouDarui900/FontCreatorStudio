@@ -43,10 +43,9 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
       <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
         <div className="fixed inset-0" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[82vh] overflow-y-auto anim-slide-up ${
+          className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[82dvh] overflow-y-auto anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 80px)' }}
         >
           <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 mb-3">
             <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">

@@ -318,8 +318,11 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
       return;
     }
     const rect = el.getBoundingClientRect();
-    const fitZoom = Math.min((rect.width - 60) / 1000, (rect.height - 60) / 1000);
-    const clampedZoom = Math.max(0.2, Math.min(1.5, Number(fitZoom.toFixed(2))));
+    const fitZoom = Math.min(
+      Math.max(0.1, (rect.width - 32) / 1000),
+      Math.max(0.1, (rect.height - 32) / 1000)
+    );
+    const clampedZoom = Math.max(0.1, Math.min(1.5, Number(fitZoom.toFixed(2))));
     setZoom(clampedZoom);
     setPan({
       x: (rect.width - 1000 * clampedZoom) / 2,

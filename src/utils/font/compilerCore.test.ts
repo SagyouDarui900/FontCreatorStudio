@@ -169,4 +169,53 @@ describe('Font Project Validation & Compilation', () => {
       compileFont(project, { skipBlobUrl: true });
     }).not.toThrow();
   });
+
+  it('compiles a glyph with empty contours without throwing', () => {
+    const project = createMockProject({
+      glyphs: {
+        12354: {
+          char: 'あ',
+          name: 'uni3042',
+          unicode: 12354,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+        },
+      },
+    });
+
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.buffer).toBeInstanceOf(ArrayBuffer);
+    expect(compiled.buffer.byteLength).toBeGreaterThan(256);
+    expect(compiled.font.charToGlyphIndex('あ')).toBeGreaterThan(0);
+  });
+
+  it('reports validation errors for NaN node coordinates without throwing', () => {
+    const project = createMockProject({
+      glyphs: {
+        68: {
+          char: 'D',
+          name: 'D',
+          unicode: 68,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [
+            {
+              id: 'c_bad',
+              closed: true,
+              nodes: [
+                { id: 'n1', x: NaN, y: 100, type: 'corner' },
+                { id: 'n2', x: 300, y: 100, type: 'corner' },
+                { id: 'n3', x: 300, y: 300, type: 'corner' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.length).toBeGreaterThan(0);
+  });
 });

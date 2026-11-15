@@ -17,8 +17,8 @@ export interface GlyphCanvasProps {
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   advanceWidth: number;
   lsb: number;
-  onChangeAdvanceWidth: (w: number) => void;
-  onChangeLsb: (lsb: number) => void;
+  onChangeAdvanceWidth: (w: number, options?: { skipHistory?: boolean }) => void;
+  onChangeLsb: (lsb: number, options?: { skipHistory?: boolean }) => void;
   toolMode: ToolMode;
   onSetToolMode?: (mode: ToolMode) => void;
   brushWidth: number;

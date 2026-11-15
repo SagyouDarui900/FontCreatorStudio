@@ -368,7 +368,7 @@ function AppMain({
   });
 
   return (
-    <div className={`h-full w-full max-h-full max-w-full flex flex-col font-sans select-none overflow-hidden pb-14 sm:pb-0 ${themeClasses.appBg} ${themeClasses.textPrimary}`}>
+    <div className={`h-full w-full max-h-full max-w-full flex flex-col font-sans select-none overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0 ${themeClasses.appBg} ${themeClasses.textPrimary}`}>
       {/* Top Main Navigation Header */}
       <Header
         project={project}
@@ -551,7 +551,7 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-14 sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw] border-l flex flex-col min-h-0'
+                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw] border-l flex flex-col min-h-0'
                 : 'w-64 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
@@ -588,7 +588,7 @@ function AppMain({
         {/* BackDrop for Right Drawer when in overlay mode */}
         {showMetricsDrawer && isMetricsOverlay && (
           <div
-            className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-14 sm:bottom-0 bg-black/40 z-30"
+            className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 bg-black/40 z-30"
             onClick={handleCloseMetricsDrawer}
           />
         )}

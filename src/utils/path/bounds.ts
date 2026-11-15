@@ -112,6 +112,33 @@ export function getContourBoundingBox(contour: PathContour) {
 }
 
 /**
+ * Compute an SVG viewBox string that covers `[0, 0, unitsPerEm, unitsPerEm]` and
+ * dynamically expands if any glyph contours extend beyond the EM box boundaries.
+ */
+export function getSafeGlyphViewBox(
+  contours: PathContour[] | undefined | null,
+  unitsPerEm: number = 1000,
+  padding: number = 24
+): string {
+  const upm = unitsPerEm > 0 ? unitsPerEm : 1000;
+  if (!contours || contours.length === 0) {
+    return `0 0 ${upm} ${upm}`;
+  }
+  const bbox = getContoursBoundingBox(contours);
+  if (bbox.width <= 0 && bbox.height <= 0) {
+    return `0 0 ${upm} ${upm}`;
+  }
+  if (bbox.minX >= 0 && bbox.minY >= 0 && bbox.maxX <= upm && bbox.maxY <= upm) {
+    return `0 0 ${upm} ${upm}`;
+  }
+  const minX = Math.floor(Math.min(0, bbox.minX - padding));
+  const minY = Math.floor(Math.min(0, bbox.minY - padding));
+  const maxX = Math.ceil(Math.max(upm, bbox.maxX + padding));
+  const maxY = Math.ceil(Math.max(upm, bbox.maxY + padding));
+  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+}
+
+/**
  * Smooth and re-align transformed contours to eliminate jaggedness and handle kinks
  */
 

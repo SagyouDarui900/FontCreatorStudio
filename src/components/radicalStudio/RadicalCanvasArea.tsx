@@ -24,6 +24,7 @@ import {
   groupContoursForRendering,
 } from '../../utils/path';
 import { SCREEN_BASELINE_Y } from '../../utils/font';
+import { computeTraceCharMetrics } from '../canvas/traceCharMetrics';
 
 export interface RadicalCanvasAreaProps {
   canvasContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -195,6 +196,15 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
     }
     return null;
   }, [showWatermark, watermarkChar, project.glyphs]);
+
+  const watermarkMetrics = useMemo(() => {
+    if (!showWatermark || !watermarkChar) return null;
+    return computeTraceCharMetrics({
+      charToRender: watermarkChar,
+      unitsPerEm: 1000,
+      fontSize: 1000,
+    });
+  }, [showWatermark, watermarkChar]);
 
   return (
      <div ref={canvasContainerRef} className="flex-1 min-h-0 relative overflow-hidden bg-[#eaf2ec] dark:bg-[#0c130e]">
@@ -700,22 +710,22 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
                 pointerEvents="none"
               />
             ))
-          ) : (
+          ) : watermarkMetrics ? (
             <text
-              x={500}
-              y={500}
+              x={watermarkMetrics.anchorX}
+              y={watermarkMetrics.effectiveY}
               textAnchor="middle"
-              dominantBaseline="central"
+              dominantBaseline={watermarkMetrics.dominantBaseline}
               fill={isLight ? '#10b981' : '#34d399'}
               fillOpacity={watermarkOpacity}
-              fontSize={1000}
+              fontSize={watermarkMetrics.effectiveFontSize}
               fontWeight="normal"
               pointerEvents="none"
               style={{ fontFamily: "'Noto Sans JP', sans-serif" }}
             >
               {watermarkChar}
             </text>
-          )}
+          ) : null}
  </g>
  )}
 

@@ -20,7 +20,7 @@ import {
 import { PathContour } from '../types';
 import { parseSvgStringToContours } from '../utils/svgParser';
 import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
-import { contoursToSvgPath } from '../utils/path';
+import { contoursToSvgPath, getSafeGlyphViewBox } from '../utils/path';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 
 interface SvgVectorizerModalProps {
@@ -459,7 +459,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   )}
 
                   {/* Generated Vector Contours */}
-                  <svg viewBox="0 0 1000 1000" className="w-full h-full z-10">
+                  <svg viewBox={getSafeGlyphViewBox(vectorContours, 1000)} className="w-full h-full z-10">
                     <path
                       d={contoursToSvgPath(vectorContours)}
                       fill={isLight ? '#064e3b' : '#34d399'}

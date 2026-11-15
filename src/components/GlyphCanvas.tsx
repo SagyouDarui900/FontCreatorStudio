@@ -13,11 +13,7 @@ import {
   Point,
   BrushStyle,
   SnapGuideLine,
-  CustomPart,
 } from '../types';
-import { generateId } from '../utils/path';
-import { convertContourToQuadratic, convertContourToCubic } from '../utils/bezierConversion';
-import { loadCustomParts, saveCustomParts } from '../utils/customPartsStorage';
 import {
   isLightTheme,
   getThemeClasses,
@@ -523,6 +519,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const {
     handleDrawRulerAsStroke,
     handleClearAllContours,
+    handleNudgeSelection,
+    handleConvertToQuadraticSelected,
+    handleConvertToCubicSelected,
+    handleRegisterSelectedAsCustomPart,
+    handleSelectAllNodes,
   } = useCanvasContourActions({
     contours,
     contoursRef,
@@ -542,9 +543,14 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedContourIds,
     setSelectedContourId,
     setSelectedNodeId,
+    setSelectedNodeIds,
     setSelectedHandleType,
     setTouchLoupeState,
     setEraserMode,
+    selectedContourIds,
+    activeChar,
+    handleNudgeSelectedNode,
+    onSetToolMode,
     isGlyphLocked,
   });
   const handleClearAll = handleClearAllContours;
@@ -799,6 +805,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     resetBrushDrawing,
     finalizeBrushDrawing,
     setActivePenContour,
+    setPenMousePos,
     setShapeStartPoint,
     setShapeCurrentPoint,
     setTransformSession,
@@ -818,7 +825,13 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     drawingReticleRef,
     isErasingRef,
     activeDrawingPointerIdRef,
+    handleNodeDragEnd,
+    handleTransformPointerUp,
+    handleEraserPointerUp,
   });
+
+  const handleWindowPointerEndRef = useRef<(() => void) | undefined>(undefined);
+  handleWindowPointerEndRef.current = handleLostPointerCapture;
 
   // Native wheel & touch gesture registration hook
   useCanvasNativeGestures({
@@ -848,6 +861,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     twoFingerCooldownUntilRef,
     isPenDrawingRef,
     lastPenActiveTimeRef,
+    onWindowPointerEndRef: handleWindowPointerEndRef,
   });
 
   // Transform operations for active selection
@@ -899,44 +913,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   handleDeleteSelectedRef.current = handleDeleteSelected;
 
-  const handleNudgeSelection = useCallback(
-    (dx: number, dy: number) => {
-      if (isGlyphLocked) {
-        showCanvasToast('この文字は編集ロックされています', '解除してから移動してください');
-        return;
-      }
-      const handled = handleNudgeSelectedNode(dx, dy);
-      if (!handled && selectedContourIds.length > 0) {
-        const updated = contours.map((c) => {
-          if (!selectedContourIds.includes(c.id)) return c;
-          return {
-            ...c,
-            nodes: c.nodes.map((n) => ({
-              ...n,
-              x: Math.round((n.x + dx) * 10) / 10,
-              y: Math.round((n.y + dy) * 10) / 10,
-              handleIn: n.handleIn
-                ? {
-                    x: Math.round((n.handleIn.x + dx) * 10) / 10,
-                    y: Math.round((n.handleIn.y + dy) * 10) / 10,
-                  }
-                : undefined,
-              handleOut: n.handleOut
-                ? {
-                    x: Math.round((n.handleOut.x + dx) * 10) / 10,
-                    y: Math.round((n.handleOut.y + dy) * 10) / 10,
-                  }
-                : undefined,
-            })),
-          };
-        });
-        onChangeContours(updated);
-        onCommitHistory?.();
-      }
-    },
-    [isGlyphLocked, showCanvasToast, handleNudgeSelectedNode, contours, selectedContourIds, onChangeContours, onCommitHistory]
-  );
-
   // Canvas keyboard shortcuts & spacebar pan navigation
   useCanvasShortcuts({
     isAnyModalOpen,
@@ -985,83 +961,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   // Canvas right-click context menu state
   const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number } | null>(null);
-
-  const handleConvertToQuadraticSelected = useCallback(() => {
-    if (isGlyphLocked) {
-      showCanvasToast('この文字は編集ロックされています', '解除してから変換してください');
-      return;
-    }
-    if (selectedContourIds.length === 0) return;
-    onCommitHistory?.();
-    const updated = contours.map((c) => {
-      if (selectedContourIds.includes(c.id)) {
-        return convertContourToQuadratic(c, 1.0);
-      }
-      return c;
-    });
-    onChangeContours(updated);
-    showCanvasToast('2次ベジェ化 (TTEdit互換) 完了', '選択輪郭をTrueType規格の2次ベジェ曲線に変換しました');
-  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
-
-  const handleConvertToCubicSelected = useCallback(() => {
-    if (isGlyphLocked) {
-      showCanvasToast('この文字は編集ロックされています', '解除してから変換してください');
-      return;
-    }
-    if (selectedContourIds.length === 0) return;
-    onCommitHistory?.();
-    const updated = contours.map((c) => {
-      if (selectedContourIds.includes(c.id)) {
-        return convertContourToCubic(c, 1.5);
-      }
-      return c;
-    });
-    onChangeContours(updated);
-    showCanvasToast('3次ベジェ化 (OTEdit互換) 完了', '選択輪郭をOpenType規格の3次ベジェ曲線に統合しました');
-  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
-
-  const handleRegisterSelectedAsCustomPart = useCallback(async () => {
-    const selected = contours.filter((c) => selectedContourIds.includes(c.id));
-    if (selected.length === 0) return;
-    const partName = `${activeChar || '字形'}パーツ`;
-    const newPart: CustomPart = {
-      id: generateId(),
-      name: partName,
-      category: 'other',
-      description: `文字「${activeChar || ''}」から保存されたパーツ`,
-      contours: selected.map((c) => ({
-        ...c,
-        id: generateId(),
-        nodes: c.nodes.map((n) => ({
-          ...n,
-          id: generateId(),
-          handleIn: n.handleIn ? { ...n.handleIn } : null,
-          handleOut: n.handleOut ? { ...n.handleOut } : null,
-        })),
-      })),
-      createdAt: Date.now(),
-    };
-    try {
-      const existing = await loadCustomParts();
-      await saveCustomParts([newPart, ...(existing || [])]);
-      window.dispatchEvent(new CustomEvent('font_custom_parts_updated'));
-      showCanvasToast('マイ部首パーツに登録しました', `「${partName}」を部首パレットに追加しました`);
-    } catch {
-      showCanvasToast('登録に失敗しました', 'ストレージエラー');
-    }
-  }, [contours, selectedContourIds, activeChar, showCanvasToast]);
-
-  const handleSelectAllNodes = useCallback(() => {
-    if (contours.length === 0) return;
-    const allNodeIds: string[] = [];
-    contours.forEach((c) => {
-      c.nodes.forEach((n) => allNodeIds.push(n.id));
-    });
-    setSelectedContourIds(contours.map((c) => c.id));
-    setSelectedNodeIds(allNodeIds);
-    onSetToolMode?.('node');
-    showCanvasToast('ノード全選択', `${allNodeIds.length}個のノードを選択しました`);
-  }, [contours, setSelectedContourIds, setSelectedNodeIds, onSetToolMode, showCanvasToast]);
 
   return (
     <div className={`w-full h-full flex flex-col min-h-0 relative overflow-hidden select-none ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>

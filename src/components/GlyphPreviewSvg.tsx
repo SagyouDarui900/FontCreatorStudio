@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { PathContour } from '../types';
-import { groupContoursForRendering } from '../utils/path';
+import { groupContoursForRendering, getSafeGlyphViewBox } from '../utils/path';
 
 export interface GlyphPreviewSvgProps {
   contours: PathContour[] | undefined | null;
@@ -33,11 +33,13 @@ export const GlyphPreviewSvg: React.FC<GlyphPreviewSvgProps> = ({
     return groupContoursForRendering(contours);
   }, [contours]);
 
+  const safeViewBox = useMemo(() => getSafeGlyphViewBox(contours, unitsPerEm), [contours, unitsPerEm]);
+
   if (!groups || groups.length === 0) return null;
 
   return (
     <svg
-      viewBox={`0 0 ${unitsPerEm} ${unitsPerEm}`}
+      viewBox={safeViewBox}
       preserveAspectRatio="xMidYMid meet"
       className={className}
       style={style}

@@ -89,7 +89,7 @@ export interface CanvasSvgStageProps {
   contours: PathContour[];
   isOutlineMode: boolean;
   selectedContourIds: string[];
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   setSelectedContourId: (id: string | null) => void;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   selectedContourId: string | null;

@@ -34,7 +34,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  onClick={() => onClose()}
  />
  <div
- className={`relative z-10 w-full rounded-t-3xl p-4 border-t shadow-2xl max-h-[82vh] flex flex-col anim-slide-up pb-[max(env(safe-area-inset-bottom),20px)] ${themeClasses.cardBg}`}
+ className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[82dvh] flex flex-col anim-slide-up pb-[calc(1rem+env(safe-area-inset-bottom,0px))] ${themeClasses.cardBg}`}
  >
  {/* Header */}
  <div className="flex items-center justify-between pb-2.5 border-b border-stone-200 dark:border-stone-800 mb-2.5 shrink-0">
@@ -52,7 +52,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  </div>
 
  {/* Scrollable Shape Grid with Categorized Headers and Bottom Padding (pb-24) */}
- <div className="overflow-y-auto pr-1 flex-1 min-h-0 space-y-4 pb-24">
+ <div className="overflow-y-auto pr-1 flex-1 min-h-0 space-y-4 pb-2">
  {/* Category 1 */}
  <div>
  <div className="text-[11px] font-bold text-stone-500 dark:text-emerald-400/90 mb-1.5 px-1">
