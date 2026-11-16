@@ -49,6 +49,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   onOpenGridFittingModal,
   onOpenStorageManagerModal,
   onOpenExportModal,
+  onRegisterRequestNewProject,
   onToggleRadicals,
   showRadicals,
   onToggleGridDrawer,
@@ -99,6 +100,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     onShowToast,
     onOpenExportModal,
   });
+
+  // 2-2: let App trigger the new-project confirmation dialog owned here.
+  // The dialog is rendered by Header, while the button that requests it
+  // lives in ExportModal (via AppModalsHost and App).
+  useEffect(() => {
+    onRegisterRequestNewProject?.(() => setIsConfirmingNew(true));
+  }, [onRegisterRequestNewProject]);
 
   useEffect(() => {
     if (!showToolsMenu && !showThemeMenu) return;

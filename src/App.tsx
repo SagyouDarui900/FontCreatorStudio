@@ -226,6 +226,7 @@ function AppMain({
     setIsPixelStudioOpen,
     setIsMojikumiStudioOpen,
     setIsPenPresetsModalOpen,
+    closeModal,
     isAnyModalOpen,
   } = useModalContext();
 
@@ -332,6 +333,20 @@ function AppMain({
   const handleOpenStorageManagerModal = useCallback(() => setIsStorageManagerOpen(true), [setIsStorageManagerOpen]);
   const handleOpenShortcutsModal = useCallback(() => setIsShortcutsModalOpen(true), [setIsShortcutsModalOpen]);
   const handleOpenExportModal = useCallback(() => setIsExportModalOpen(true), [setIsExportModalOpen]);
+
+  // 2-2: ExportModal's new-project button. The confirmation dialog lives in
+  // Header (useProjectFileIO), so Header registers its opener in this ref.
+  // Close the export modal first: it and the confirmation dialog both use
+  // z-60, and the export modal is later in the DOM, so the dialog would
+  // otherwise be hidden behind it.
+  const requestNewProjectRef = useRef<(() => void) | null>(null);
+  const registerRequestNewProject = useCallback((request: () => void) => {
+    requestNewProjectRef.current = request;
+  }, []);
+  const handleRequestNewProject = useCallback(() => {
+    closeModal();
+    requestNewProjectRef.current?.();
+  }, [closeModal]);
   const handleOpenRadicalStudioFromDrawer = useCallback(() => {
     setShowMetricsDrawer(false);
     if (viewportWidth < 640) {
@@ -407,6 +422,7 @@ function AppMain({
         onOpenStorageManagerModal={handleOpenStorageManagerModal}
         onOpenShortcutsModal={handleOpenShortcutsModal}
         onOpenExportModal={handleOpenExportModal}
+        onRegisterRequestNewProject={registerRequestNewProject}
         onOpenOpenTypeFeaturesModal={() => setIsOpenTypeFeaturesModalOpen(true)}
         onOpenGridFittingModal={() => setIsGridFittingModalOpen(true)}
         onOpenMojikumiStudio={() => setIsMojikumiStudioOpen(true)}
@@ -647,6 +663,7 @@ function AppMain({
         setPenPresets={setPenPresets}
         onApplyPenPreset={handleApplyPenPreset}
         onChangePressureCurve={handleChangePressureCurve}
+        onRequestNewProject={handleRequestNewProject}
       />
 
       {/* Floating Toast Notification System */}

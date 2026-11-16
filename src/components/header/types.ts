@@ -26,6 +26,11 @@ export interface HeaderProps {
   onOpenGridFittingModal?: () => void;
   onOpenStorageManagerModal?: () => void;
   onOpenExportModal?: () => void;
+  // App passes ExportModal's new-project request through this registration:
+  // Header owns the new-project confirmation dialog (useProjectFileIO), so
+  // it registers a function that opens the dialog. App calls it after
+  // closing the export modal.
+  onRegisterRequestNewProject?: (requestNewProject: () => void) => void;
   onToggleRadicals: () => void;
   showRadicals: boolean;
   onToggleGridDrawer: () => void;
