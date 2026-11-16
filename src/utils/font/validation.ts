@@ -30,10 +30,13 @@ export function validateFontProject(project: FontProject): FontValidationResult 
       let glyphNodeCount = 0;
       for (let ci = 0; ci < g.contours.length; ci++) {
         const c = g.contours[ci];
-        if (!c.nodes || c.nodes.length === 0) continue;
+        if (!c.nodes || c.nodes.length === 0) {
+          errors.push(`文字「${label}」に頂点が無い空の輪郭があります。`);
+          continue;
+        }
         glyphNodeCount += c.nodes.length;
         if (c.nodes.length === 1) {
-          warnings.push(`文字「${label}」に頂点が1つだけの孤立輪郭があります（自動除外されます）。`);
+          errors.push(`文字「${label}」に頂点が1つだけの孤立輪郭があります。`);
         }
         for (const n of c.nodes) {
           if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) {
