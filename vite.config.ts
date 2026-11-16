@@ -14,7 +14,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['apple-touch-icon.png', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          id: '/FontCreator/',
+          id: './',
           name: 'FontCreator',
           short_name: 'FontCreator',
           description: 'ブラウザ上で手書き・デザインフォントの作成、パス輪郭の単純化、サイドベアリング自動設定、TTF出力ができるフォント開発スタジオ。',
@@ -47,6 +47,12 @@ export default defineConfig(() => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,json}'],
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10 MB limit for precaching main bundles & datasets
+          // Google Fonts の CSS は precache に追加しない。2026-11-17 時点の
+          // css2 応答は約 1.2 MB で、参照する woff2 は 744 件ある。合計は
+          // maximumFileSizeToCacheInBytes (10 MB) を超え、URL は UA 依存で
+          // ビルド時に列挙できない。オンライン時に取得したフォントは下の
+          // CacheFirst の runtimeCaching で保持され、次回以降のオフラインで使える。
+          // 初回オフラインで下絵フォントが使えない点は OfflineIndicator で表示する。
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
