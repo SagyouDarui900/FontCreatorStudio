@@ -89,13 +89,13 @@ export function useAppShortcuts({
         return;
       }
 
-      if ((e.key === 'ArrowLeft' && e.altKey) || (e.key === '[' && !ctrlOrCmd && !e.altKey && !e.shiftKey)) {
+      if (e.key === 'ArrowLeft' && e.altKey) {
         e.preventDefault();
         handleSelectPrevGlyph();
         return;
       }
 
-      if ((e.key === 'ArrowRight' && e.altKey) || (e.key === ']' && !ctrlOrCmd && !e.altKey && !e.shiftKey)) {
+      if (e.key === 'ArrowRight' && e.altKey) {
         e.preventDefault();
         handleSelectNextGlyph();
         return;
