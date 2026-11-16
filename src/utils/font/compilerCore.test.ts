@@ -128,7 +128,7 @@ describe('Font Project Validation & Compilation', () => {
     expect(compiled.buffer.byteLength).toBeGreaterThan(512);
   });
 
-  it('sanitizes NaN and 0 values safely without throwing', () => {
+  it('throws a validation error for NaN node coordinates instead of compiling', () => {
     const invalidContour: PathContour = {
       id: 'c_nan',
       closed: true,
@@ -167,7 +167,7 @@ describe('Font Project Validation & Compilation', () => {
 
     expect(() => {
       compileFont(project, { skipBlobUrl: true });
-    }).not.toThrow();
+    }).toThrow(/フォントの検証に失敗しました/);
   });
 
   it('compiles a glyph with empty contours without throwing', () => {
