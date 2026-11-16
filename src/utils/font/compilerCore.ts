@@ -65,10 +65,12 @@ export function compileFont(
   buffer: ArrayBuffer;
   blobUrl: string;
 } {
-  // Run project validation check prior to compilation
+  // Run project validation check prior to compilation.
+  // Validation errors stop compilation: an invalid outline must not be
+  // exported as if it were a valid font.
   const validation = validateFontProject(project);
   if (!validation.valid && validation.errors.length > 0) {
-    console.warn('Font project validation issues before compilation:', validation.errors);
+    throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
   }
 
   const glyphsList: opentype.Glyph[] = [];
@@ -700,7 +702,11 @@ export function compileFont(
           { name: 'subtable_0', type: 'TABLE', value: subtable },
         ]);
       } catch (kernErr) {
-        console.warn('Failed to build binary kern table, kerning kept in font.kerningPairs:', kernErr);
+        // A missing binary kern table must not be treated as success:
+        // the in-memory kerningPairs fallback does not reach the file.
+        throw new Error(
+          `カーニングテーブルの生成に失敗しました: ${kernErr instanceof Error ? kernErr.message : '不明なエラー'}`
+        );
       }
     }
   }
@@ -716,6 +722,20 @@ export function compileFont(
       addSingle?: (feature: string, substitution: { sub: number; by: number }, script: string) => void;
     };
   }).substitution;
+
+  // Configured substitutions that would be lost if the GSUB API is unavailable.
+  const hasConfiguredSubstitutions =
+    vertSubstPairs.length > 0 ||
+    (openTypeFeaturesEnabled &&
+      ((featureConfig?.verticalWriting?.substitutions || []).some((sub) => sub.enabled) ||
+        (featureConfig?.ligatures || []).some(
+          (ligature) => ligature.enabled && ligature.inputChars.length >= 2
+        )));
+  if (!substitutionApi && hasConfiguredSubstitutions) {
+    throw new Error(
+      'OpenType GSUB テーブルの生成に失敗しました: substitution API が利用できません'
+    );
+  }
 
   if (substitutionApi) {
     try {
@@ -813,7 +833,11 @@ export function compileFont(
         }
       }
     } catch (gsubErr) {
-      console.warn('Failed to generate OpenType GSUB tables:', gsubErr);
+      // A missing GSUB table must not be treated as success: vertical
+      // writing substitutions and ligatures would silently disappear.
+      throw new Error(
+        `OpenType GSUB テーブルの生成に失敗しました: ${gsubErr instanceof Error ? gsubErr.message : '不明なエラー'}`
+      );
     }
   }
 
