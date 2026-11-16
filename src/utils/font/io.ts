@@ -4,6 +4,7 @@ import { compileFont, CompileFontOptions } from './compilerCore';
 import { validateFontProject } from './validation';
 import { openTypePathToContours } from './paths';
 import { SCREEN_BASELINE_Y } from './constants';
+import { isIOSDevice } from '../platform';
 
 /**
  * Throw when the project fails validation, so callers never receive a
@@ -34,11 +35,9 @@ export async function shareOrDownloadFont(
   const mimeType = format === 'otf' ? 'font/otf' : 'font/ttf';
   const blob = new Blob([buffer], { type: mimeType });
 
-  // Check for iPad / iPhone / Safari touch device
-  const isAppleDevice =
-    typeof navigator !== 'undefined' &&
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+  // Check for iPad / iPhone / Safari touch device (isIOSDevice covers
+  // iPadOS 13+ Safari with a Macintosh user agent; see src/utils/platform.ts)
+  const isAppleDevice = isIOSDevice();
 
   if (isAppleDevice && typeof navigator.share === 'function') {
     try {

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { FontProject } from '../../types';
-import { createDefaultProject, loadFontFromFile, validateStoredFontProject } from '../../utils/font';
+import { createDefaultProject } from '../../utils/font/projectDefaults';
+import { validateStoredFontProject } from '../../utils/font/validation';
 import { exportProjectJsonFile } from '../../utils/storageManager';
 
 interface UseProjectFileIOProps {
@@ -77,6 +78,7 @@ export function useProjectFileIO({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      const { loadFontFromFile } = await import('../../utils/font/io');
       const { metadata, glyphs } = await loadFontFromFile(file);
       setProject((prev) => ({
         ...prev,

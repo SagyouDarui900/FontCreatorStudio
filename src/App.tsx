@@ -13,7 +13,7 @@ import {
   ThemeClasses,
   ToolbarPosition,
 } from './types';
-import { createDefaultProject } from './utils/font';
+import { createDefaultProject } from './utils/font/projectDefaults';
 import { DEFAULT_SAMPLE_GLYPHS } from './data/defaultSampleGlyphs';
 import { loadUserPenPresets, loadStickyBrushConfigs, saveStickyBrushConfig, DEFAULT_PRESSURE_CURVES, DEFAULT_PEN_PRESETS } from './utils/presetData';
 import { Header } from './components/Header';

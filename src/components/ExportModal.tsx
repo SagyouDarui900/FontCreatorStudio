@@ -26,6 +26,7 @@ import {
   CompileFontOptions,
 } from '../utils/font';
 import { copyTextToClipboard } from '../utils/clipboard';
+import { isIOSDevice, isIPadOS } from '../utils/platform';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -337,12 +338,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   // Detect iOS / iPadOS for specialized touch share workflow
-  const isIPad =
-    typeof navigator !== 'undefined' &&
-    (/iPad/.test(navigator.userAgent) ||
-      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
-  const isAppleTouch =
-    isIPad || (typeof navigator !== 'undefined' && /iPhone|iPod/.test(navigator.userAgent));
+  // (isIPadOS covers iPadOS 13+ Safari with a Macintosh user agent;
+  // see src/utils/platform.ts)
+  const isIPad = isIPadOS();
+  const isAppleTouch = isIOSDevice();
 
   const primaryActionLabel = isAppleTouch
     ? isIPad

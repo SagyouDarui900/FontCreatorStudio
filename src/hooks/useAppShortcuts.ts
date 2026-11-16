@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isMacDevice } from '../utils/platform';
 import { GlyphData, PathContour, ToolMode } from '../types';
 
 export interface UseAppShortcutsOptions {
@@ -45,10 +46,11 @@ export function useAppShortcuts({
       if (isInput) return;
       if (isAnyModalOpen) return;
 
-      const uaPlatform = (navigator as { userAgentData?: { platform?: string } })?.userAgentData?.platform;
-      const isMac =
-        typeof navigator !== 'undefined' &&
-        (uaPlatform === 'macOS' || /mac|iphone|ipad|ipod/i.test(navigator.userAgent || ''));
+      // iPadOS 13+ Safari reports a Macintosh user agent, which /mac/
+      // already matches, so an iPad is treated as a Mac here and the Cmd
+      // key of an external keyboard is the modifier key (see
+      // src/utils/platform.ts).
+      const isMac = isMacDevice();
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
       if (ctrlOrCmd && e.key.toLowerCase() === 'z') {

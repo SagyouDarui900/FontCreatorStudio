@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FontProject } from '../types';
-import { createDefaultProject, validateStoredFontProject } from '../utils/font';
+import { createDefaultProject } from '../utils/font/projectDefaults';
+import { validateStoredFontProject } from '../utils/font/validation';
 import {
   setLastAutoSaveTimestamp,
   LOCAL_STORAGE_PROJECT_KEY,

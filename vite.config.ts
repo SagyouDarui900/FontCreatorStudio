@@ -90,6 +90,24 @@ export default defineConfig(() => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          // vendor を別チャンクに分け、アプリ本体の更新で vendor キャッシュが
+          // 無効化されないようにする。合計バイト数は変わらない。
+          // opentype.js は遅延チャンク側にだけ残るため、ここでは分けない。
+          manualChunks(id) {
+            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/scheduler')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/paper')) {
+              return 'vendor-paper';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

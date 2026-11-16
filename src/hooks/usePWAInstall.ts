@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isIOSDevice } from '../utils/platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -18,10 +19,9 @@ export function usePWAInstall() {
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsInstalled(isStandalone);
 
-    // Detect iOS devices
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(isIOSDevice);
+    // Detect iOS devices (including iPadOS 13+ Safari, which reports a
+    // Macintosh user agent; see src/utils/platform.ts)
+    setIsIOS(isIOSDevice());
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
