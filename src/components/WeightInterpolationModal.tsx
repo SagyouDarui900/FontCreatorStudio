@@ -1,26 +1,26 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Sliders,
   Sparkles,
   Layers,
-  Download,
   Copy,
   CheckCircle2,
-  ArrowRight,
   Eye,
-  RefreshCw,
   FolderArchive,
   Maximize2,
   Minimize2,
+  Minus,
+  Plus,
+  Type,
+  ArrowRight,
 } from 'lucide-react';
 import JSZip from 'jszip';
-import { FontProject, GlyphData, PathContour } from '../types';
+import { FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   adjustContoursWeight,
   contoursToSvgPath,
-  getContoursBoundingBox,
   getSafeGlyphViewBox,
   interpolateContours,
   groupContoursForRendering,
@@ -84,9 +84,16 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   const [showOriginalOverlay, setShowOriginalOverlay] = useState<boolean>(true);
   const [previewSampleText, setPreviewSampleText] = useState<string>('永青木あいうABC123');
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
+  const [previewUnicode, setPreviewUnicode] = useState<number>(selectedUnicode);
 
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPreviewUnicode(selectedUnicode);
+    }
+  }, [isOpen, selectedUnicode]);
 
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
@@ -117,10 +124,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   );
   const [interpFactor, setInterpFactor] = useState<number>(0.5); // 0.0 to 1.0
 
-  // Current active glyph
+  // Current active preview glyph
   const currentGlyph = useMemo(() => {
-    return project.glyphs[selectedUnicode] || Object.values(project.glyphs)[0] || null;
-  }, [project.glyphs, selectedUnicode]);
+    return project.glyphs[previewUnicode] || project.glyphs[selectedUnicode] || Object.values(project.glyphs)[0] || null;
+  }, [project.glyphs, previewUnicode, selectedUnicode]);
 
   // Target glyphs for batch application
   const targetGlyphs = useMemo(() => {
@@ -146,6 +153,27 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     return list;
   }, [project.glyphs, scope, selectedUnicode]);
 
+  // Quick glyph switcher candidates
+  const quickGlyphs = useMemo(() => {
+    const all = Object.values(project.glyphs || {}) as GlyphData[];
+    const withContours = all.filter((g) => g.contours && g.contours.length > 0);
+    const result: GlyphData[] = [];
+    const seen = new Set<string>();
+
+    if (currentGlyph && currentGlyph.contours?.length) {
+      result.push(currentGlyph);
+      seen.add(currentGlyph.char);
+    }
+    for (const g of withContours) {
+      if (result.length >= 8) break;
+      if (!seen.has(g.char)) {
+        result.push(g);
+        seen.add(g.char);
+      }
+    }
+    return result;
+  }, [project.glyphs, currentGlyph]);
+
   // Handle Preset Change
   const handlePresetSelect = (preset: WeightPreset) => {
     setSelectedPreset(preset.key);
@@ -162,6 +190,25 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     if (weightDelta === 0) return previewOriginalContours;
     return adjustContoursWeight(previewOriginalContours, weightDelta);
   }, [previewOriginalContours, weightDelta]);
+
+  // Live Sample Text Render Paths
+  const sampleTextGlyphPaths = useMemo(() => {
+    const chars = Array.from(previewSampleText);
+    return chars.map((ch) => {
+      const u = ch.codePointAt(0);
+      if (!u) return { char: ch, d: '', hasGlyph: false };
+      const g = project.glyphs[u];
+      if (!g || !g.contours || g.contours.length === 0) {
+        return { char: ch, d: '', hasGlyph: false };
+      }
+      const adjusted = weightDelta === 0 ? g.contours : adjustContoursWeight(g.contours, weightDelta);
+      return {
+        char: ch,
+        d: contoursToSvgPath(adjusted),
+        hasGlyph: true,
+      };
+    });
+  }, [previewSampleText, project.glyphs, weightDelta]);
 
   // Master interpolation contours
   const glyphA = project.glyphs[masterAUnicode];
@@ -359,87 +406,90 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      role="dialog"
+      aria-modal="true"
+      aria-label="複数ウェイト自動補間 & ファミリー生成"
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 anim-fade'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
       onClick={onClose}
     >
       <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? 'w-screen h-screen rounded-none border-none shadow-none'
-            : `w-full max-w-4xl xl:max-w-5xl rounded-2xl shadow-2xl max-h-[92vh] border ${themeClasses.border}`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header Bar */}
         <div
-          className={`px-5 py-4 flex items-center justify-between border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <Sliders className="w-4 h-4" />
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+            <div className={`p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
+              <Sliders className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold flex items-center gap-2">
-                <span>複数ウェイト自動補間 & ファミリー生成</span>
-                {isFullscreen ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium">
-                    全画面モード
-                  </span>
-                ) : (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-normal ${themeClasses.accentBadge}`}>
-                    Vector Interpolation
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
+                <span className="truncate">ウェイト補間 & ファミリー生成</span>
+                {isFullscreen && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                    全画面
                   </span>
                 )}
               </h2>
-              <p className={`text-xs ${themeClasses.textMuted}`}>
-                線の太さ（ウェイト）の一括増減・ファミリー展開・2マスター間幾何補間
+              <p className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                線の太さの一括増減・ウェイトファミリー展開・2マスター間モーフィング補間
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5">
+
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? themeClasses.accentBadge
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
               {isFullscreen ? (
                 <>
                   <Minimize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">通常</span>
+                  <span>通常</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">全画面</span>
+                  <span>全画面</span>
                 </>
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b px-3 sm:px-5 pt-2 shrink-0 gap-4 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`flex border-b px-3 sm:px-5 pt-1.5 gap-2 text-xs font-bold shrink-0 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
+            type="button"
             onClick={() => setActiveTab('family')}
-            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-2.5 px-2 border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'family'
                 ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
                 : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
@@ -449,8 +499,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             <span>ウェイトファミリー展開 (自動太さ補正)</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('master')}
-            className={`pb-2.5 text-xs font-bold border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-2.5 px-2 border-b-2 shrink-0 flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'master'
                 ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
                 : `border-transparent ${themeClasses.textMuted} hover:opacity-80`
@@ -462,47 +513,238 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
           {activeTab === 'family' ? (
-            <>
-              {/* Top: Presets Bar */}
-              <div>
-                <label className="text-xs font-bold block mb-2 opacity-90">
-                  ウェイトプリセットを選択
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {WEIGHT_PRESETS.map((p) => {
-                    const isSelected = weightDelta === p.delta;
-                    return (
-                      <button
-                        key={p.key}
-                        onClick={() => handlePresetSelect(p)}
-                        className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
-                          isSelected
-                            ? `${themeClasses.accentBadge} ring-1 ring-emerald-500/30`
-                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
-                        }`}
-                      >
-                        <div className="text-xs font-bold">{p.label}</div>
-                        <div className="text-[10px] opacity-70 font-mono mt-0.5">{p.sub}</div>
-                      </button>
-                    );
-                  })}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Left Column: Dedicated Visual Stage & Live Text String Preview (5 cols) */}
+              <div className="lg:col-span-5 sticky lg:top-0 space-y-3">
+                {/* Single Glyph Vector Preview Stage */}
+                <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                  <div className="flex items-center justify-between pb-1 border-b">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                      <span>単文字ベクタープレビュー</span>
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border ${themeClasses.accentBadge}`}>
+                      「{currentGlyph?.char || 'あ'}」
+                    </span>
+                  </div>
+
+                  {/* Quick Glyph Selection Chips */}
+                  {quickGlyphs.length > 1 && (
+                    <div className="flex items-center justify-between text-[11px] gap-2">
+                      <span className={`text-[10px] font-medium shrink-0 ${themeClasses.textMuted}`}>
+                        確認文字:
+                      </span>
+                      <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5">
+                        {quickGlyphs.map((g) => (
+                          <button
+                            key={g.unicode}
+                            type="button"
+                            onClick={() => setPreviewUnicode(g.unicode)}
+                            className={`w-6 h-6 rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
+                              currentGlyph?.unicode === g.unicode
+                                ? themeClasses.accentBtn
+                                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
+                            }`}
+                          >
+                            {g.char}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SVG Stage */}
+                  <div
+                    className={`relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl border flex items-center justify-center overflow-hidden shadow-none ${
+                      isLight ? 'bg-stone-50' : 'bg-black/30'
+                    } ${themeClasses.border}`}
+                  >
+                    <svg
+                      viewBox={getSafeGlyphViewBox(
+                        [...previewOriginalContours, ...previewModifiedContours],
+                        1000
+                      )}
+                      className="w-full h-full p-2 pointer-events-none"
+                    >
+                      {/* Guides */}
+                      <rect x={0} y={0} width={1000} height={1000} fill="none" stroke="#94a3b8" strokeDasharray="6 6" strokeWidth={5} opacity={0.3} />
+                      <line x1={0} y1={500} x2={1000} y2={500} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
+                      <line x1={500} y1={0} x2={500} y2={1000} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
+                      <line x1={0} y1={800} x2={1000} y2={800} stroke="#f87171" strokeDasharray="8 8" strokeWidth={4} opacity={0.45} />
+
+                      {/* Original Shape (Ghost Outline) */}
+                      {showOriginalOverlay && previewOriginalContours.length > 0 && (
+                        <path
+                          d={contoursToSvgPath(previewOriginalContours)}
+                          fill="none"
+                          stroke={isLight ? '#94a3b8' : '#64748b'}
+                          strokeWidth={2}
+                          strokeDasharray="5 4"
+                          opacity={0.8}
+                        />
+                      )}
+
+                      {/* New Weight Result */}
+                      {previewModifiedContours.length > 0 &&
+                        groupContoursForRendering(previewModifiedContours).map((group) => (
+                          <path
+                            key={group.id}
+                            d={group.d}
+                            fill={isLight ? '#0f172a' : '#ecfdf5'}
+                            fillRule={group.fillRule}
+                            stroke={isLight ? '#059669' : '#34d399'}
+                            strokeWidth={1}
+                          />
+                        ))}
+                    </svg>
+
+                    {/* Floating Legend */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 text-[9px] font-mono pointer-events-none">
+                      {showOriginalOverlay && (
+                        <span className="px-1.5 py-0.5 rounded bg-slate-500/15 text-slate-600 dark:text-slate-300 font-bold border border-slate-500/30">
+                          - - 元形状
+                        </span>
+                      )}
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/30">
+                        ■ {weightDelta > 0 ? `+${weightDelta}px` : `${weightDelta}px`}
+                      </span>
+                    </div>
+
+                    <div className="absolute bottom-2 right-2 text-[10px] font-mono opacity-70">
+                      頂点: {previewModifiedContours.reduce((acc, c) => acc + (c.nodes?.length || 0), 0)}点
+                    </div>
+                  </div>
+
+                  {/* Ghost Overlay Toggle */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showOriginalOverlay}
+                        onChange={(e) => setShowOriginalOverlay(e.target.checked)}
+                        className="rounded accent-emerald-600 w-4 h-4"
+                      />
+                      <span className="text-[11px] font-medium opacity-85">元形状（点線）を重ねて比較</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Live Sample Text Preview Bar */}
+                <div className={`p-3.5 rounded-2xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                      <span>文章プレビュー (ライブレンダリング)</span>
+                    </span>
+                    <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                      文字をクリックで直接編集
+                    </span>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={previewSampleText}
+                    onChange={(e) => setPreviewSampleText(e.target.value)}
+                    placeholder="サンプル文字列を入力..."
+                    className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-medium outline-hidden ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+                  />
+
+                  {/* Rendered Sample Strips */}
+                  <div className={`p-2.5 rounded-xl border flex items-center gap-1 overflow-x-auto min-h-[58px] ${
+                    isLight ? 'bg-white' : 'bg-black/40'
+                  } ${themeClasses.border}`}>
+                    {sampleTextGlyphPaths.map((item, idx) => (
+                      <div key={idx} className="shrink-0 flex flex-col items-center">
+                        {item.hasGlyph ? (
+                          <svg viewBox="0 0 1000 1000" className="w-9 h-9">
+                            <path d={item.d} fill="currentColor" fillRule="nonzero" />
+                          </svg>
+                        ) : (
+                          <div className={`w-9 h-9 flex items-center justify-center font-bold text-sm border border-dashed rounded ${themeClasses.border} opacity-40`}>
+                            {item.char}
+                          </div>
+                        )}
+                        <span className={`text-[8px] font-mono opacity-50`}>{item.char}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Slider & Scope Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Weight Delta Slider */}
-                <div
-                  className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold">太さオフセット（微調整）</label>
-                    <span className={`text-xs font-mono font-bold ${themeClasses.accentText}`}>
-                      {weightDelta > 0 ? `+${weightDelta}` : weightDelta} px
-                    </span>
+              {/* Right Column: Weight Controls, Presets & Scope (7 cols) */}
+              <div className="lg:col-span-7 space-y-4">
+                {/* 1. Presets Bar */}
+                <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold block opacity-90">
+                      ① ウェイトプリセットを選択
+                    </label>
                   </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {WEIGHT_PRESETS.map((p) => {
+                      const isSelected = weightDelta === p.delta;
+                      return (
+                        <button
+                          key={p.key}
+                          type="button"
+                          onClick={() => handlePresetSelect(p)}
+                          className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? themeClasses.activeTool
+                              : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                          }`}
+                        >
+                          <div className="text-xs font-bold truncate w-full">{p.label}</div>
+                          <div className="flex items-center justify-between mt-1 pt-1 border-t border-current/10 w-full">
+                            <span className="text-[10px] opacity-75 font-mono">{p.sub}</span>
+                            <div
+                              className="h-1.5 rounded-full bg-current opacity-70"
+                              style={{ width: `${Math.max(8, Math.min(32, 14 + p.delta * 0.15))}px` }}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Weight Delta Slider */}
+                <div className={`p-4 rounded-2xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-bold flex items-center gap-1.5">
+                      <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                      <span>② 太さオフセット（微調整）</span>
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPreset('custom');
+                          setWeightDelta(Math.max(-60, weightDelta - 5));
+                        }}
+                        className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border min-w-[64px] text-center ${themeClasses.accentBadge}`}>
+                        {weightDelta > 0 ? `+${weightDelta}` : weightDelta} px
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPreset('custom');
+                          setWeightDelta(Math.min(150, weightDelta + 5));
+                        }}
+                        className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
                   <input
                     type="range"
                     min={-60}
@@ -515,21 +757,38 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     }}
                     className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
                   />
-                  <div className={`flex justify-between text-[10px] font-mono mt-1 ${themeClasses.textMuted}`}>
+
+                  <div className={`flex justify-between text-[10px] font-mono ${themeClasses.textMuted}`}>
                     <span>細字化 (-60px)</span>
-                    <span>標準 (0px)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPreset('regular');
+                        setWeightDelta(0);
+                      }}
+                      className="hover:underline cursor-pointer"
+                    >
+                      標準 (0px リセット)
+                    </button>
                     <span>極太化 (+150px)</span>
                   </div>
                 </div>
 
-                {/* Scope Selection */}
-                <div
-                  className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-                >
-                  <label className="text-xs font-bold block mb-2">適用対象（スコープ）</label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                {/* 3. Scope Selection */}
+                <div className={`p-4 rounded-2xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold flex items-center gap-1.5">
+                      <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                      <span>③ 適用対象（スコープ）</span>
+                    </label>
+                    <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
+                      対象: {targetGlyphs.length} 文字
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
                     {[
-                      { id: 'all', label: `全文字 (${targetGlyphs.length})` },
+                      { id: 'all', label: '全文字一括' },
                       { id: 'kanji', label: '漢字のみ' },
                       { id: 'kana', label: 'かなのみ' },
                       { id: 'latin', label: '英数のみ' },
@@ -537,15 +796,16 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     ].map((s) => (
                       <button
                         key={s.id}
+                        type="button"
                         onClick={() => {
                           if (isWeightScope(s.id)) {
                             setScope(s.id);
                           }
                         }}
-                        className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                        className={`p-2 rounded-xl border text-center text-xs font-bold transition-colors cursor-pointer ${
                           scope === s.id
-                            ? themeClasses.accentBtn
-                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
+                            ? themeClasses.activeTool
+                            : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         {s.label}
@@ -554,91 +814,27 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   </div>
                 </div>
               </div>
-
-              {/* Vector Preview Section */}
-              <div
-                className={`p-4 rounded-xl border space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold flex items-center gap-1.5">
-                    <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-                    <span>単文字ベクタープレビュー（{currentGlyph?.char || ''}）</span>
-                  </span>
-                  <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={showOriginalOverlay}
-                      onChange={(e) => setShowOriginalOverlay(e.target.checked)}
-                      className="rounded accent-emerald-600"
-                    />
-                    <span className="opacity-80">元形状（グレー線）を重ねて比較</span>
-                  </label>
-                </div>
-
-                {/* SVG Canvas Preview */}
-                <div
-                  className={`w-full h-48 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
-                >
-                  <svg
-                    viewBox={getSafeGlyphViewBox(
-                      [...previewOriginalContours, ...previewModifiedContours],
-                      1000
-                    )}
-                    className="w-44 h-44"
-                  >
-                    {/* Baseline & Center Guides */}
-                    <line x1={0} y1={500} x2={1000} y2={500} stroke="#10b981" strokeDasharray="4 4" opacity={0.25} />
-                    <line x1={500} y1={0} x2={500} y2={1000} stroke="#10b981" strokeDasharray="4 4" opacity={0.25} />
-                    <line x1={0} y1={800} x2={1000} y2={800} stroke="#dc2626" strokeDasharray="4 4" opacity={0.25} />
-
-                    {/* Original Shape (Ghost) */}
-                    {showOriginalOverlay && previewOriginalContours.length > 0 && (
-                      <path
-                        d={contoursToSvgPath(previewOriginalContours)}
-                        fill="none"
-                        stroke={isLight ? '#94a3b8' : '#475569'}
-                        strokeWidth={2}
-                        strokeDasharray="4 3"
-                      />
-                    )}
-
-                    {/* New Weight Result */}
-                    {previewModifiedContours.length > 0 &&
-                      groupContoursForRendering(previewModifiedContours).map((group) => (
-                        <path
-                          key={group.id}
-                          d={group.d}
-                          fill={isLight ? '#1e293b' : '#ecfdf5'}
-                          fillRule={group.fillRule}
-                          stroke={isLight ? '#065f46' : '#34d399'}
-                          strokeWidth={1}
-                        />
-                      ))}
-                  </svg>
-
-                  <div className="absolute bottom-2 left-3 text-[11px] font-mono opacity-70">
-                    頂点数: {previewModifiedContours.reduce((acc, c) => acc + (c.nodes?.length || 0), 0)}点
-                  </div>
-                </div>
-              </div>
-            </>
+            </div>
           ) : (
             /* Master Interpolation Tab */
-            <div className="space-y-5">
-              <div
-                className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-              >
-                <div className="text-xs font-bold mb-3">補間マスターグリフの選択</div>
+            <div className="max-w-3xl mx-auto space-y-5">
+              {/* Top: 2 Master Glyphs Selector Card */}
+              <div className={`p-4 rounded-2xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className="text-xs font-bold flex items-center gap-1.5">
+                  <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                  <span>補間マスターグリフの選択</span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Master A */}
-                  <div>
-                    <label className="text-[11px] font-semibold block mb-1 opacity-80">
+                  <div className={`p-3 rounded-xl border space-y-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+                    <label className="text-xs font-bold block text-sky-600 dark:text-sky-400">
                       マスター A (始点 0%)
                     </label>
                     <select
                       value={masterAUnicode}
                       onChange={(e) => setMasterAUnicode(Number(e.target.value))}
-                      className={`w-full p-2 rounded-lg border text-xs ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                      className={`w-full p-2 rounded-lg border text-xs font-bold outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
                       {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
@@ -649,14 +845,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   </div>
 
                   {/* Master B */}
-                  <div>
-                    <label className="text-[11px] font-semibold block mb-1 opacity-80">
+                  <div className={`p-3 rounded-xl border space-y-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+                    <label className="text-xs font-bold block text-rose-600 dark:text-rose-400">
                       マスター B (終点 100%)
                     </label>
                     <select
                       value={masterBUnicode}
                       onChange={(e) => setMasterBUnicode(Number(e.target.value))}
-                      className={`w-full p-2 rounded-lg border text-xs ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                      className={`w-full p-2 rounded-lg border text-xs font-bold outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
                       {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
@@ -669,15 +865,17 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               </div>
 
               {/* Interpolation Factor Slider */}
-              <div
-                className={`p-4 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold">補間ブレンド比率 (t)</label>
-                  <span className={`text-xs font-mono font-bold ${themeClasses.accentText}`}>
+              <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold flex items-center gap-1.5">
+                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                    <span>補間ブレンド比率 (t)</span>
+                  </label>
+                  <span className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
                     {Math.round(interpFactor * 100)}%
                   </span>
                 </div>
+
                 <input
                   type="range"
                   min={0}
@@ -689,15 +887,16 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 />
 
                 {/* Quick Step Buttons */}
-                <div className="flex justify-between gap-1.5 mt-2">
+                <div className="flex justify-between gap-1.5 pt-1">
                   {[0, 0.25, 0.5, 0.75, 1.0].map((step) => (
                     <button
                       key={step}
+                      type="button"
                       onClick={() => setInterpFactor(step)}
-                      className={`flex-1 py-1 text-[11px] rounded border font-mono transition-colors cursor-pointer ${
+                      className={`flex-1 py-1.5 text-xs rounded-xl border font-mono transition-colors cursor-pointer ${
                         Math.abs(interpFactor - step) < 0.02
-                          ? `${themeClasses.accentBtn} font-bold`
-                          : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
+                          ? `${themeClasses.activeTool} font-bold`
+                          : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                       }`}
                     >
                       {Math.round(step * 100)}%
@@ -706,17 +905,24 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 </div>
               </div>
 
-              {/* Master Morphing Preview */}
-              <div
-                className={`p-4 rounded-xl border space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-              >
-                <div className="text-xs font-bold flex items-center gap-1.5">
-                  <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-                  <span>モーフィング補間プレビュー</span>
+              {/* Master Morphing Preview Stage */}
+              <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className="text-xs font-bold flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+                    <span>モーフィング補間プレビュー</span>
+                  </span>
+                  <div className="flex gap-2 text-[10px] font-mono">
+                    <span className="text-sky-600 font-bold">■ Master A ({glyphA?.char || 'A'})</span>
+                    <span className="text-rose-600 font-bold">■ Master B ({glyphB?.char || 'B'})</span>
+                    <span className={`${themeClasses.accentText} font-bold`}>■ 補間結果</span>
+                  </div>
                 </div>
 
                 <div
-                  className={`w-full h-52 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
+                  className={`w-full aspect-square max-w-[320px] mx-auto rounded-2xl border flex items-center justify-center relative overflow-hidden shadow-none ${
+                    isLight ? 'bg-stone-50' : 'bg-black/30'
+                  } ${themeClasses.border}`}
                 >
                   <svg
                     viewBox={getSafeGlyphViewBox(
@@ -727,7 +933,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       ],
                       1000
                     )}
-                    className="w-48 h-48"
+                    className="w-full h-full p-3 pointer-events-none"
                   >
                     {/* Master A Ghost */}
                     {glyphA?.contours && (
@@ -737,7 +943,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         stroke="#0284c7"
                         strokeWidth={1.5}
                         strokeDasharray="4 4"
-                        opacity={0.4}
+                        opacity={0.45}
                       />
                     )}
                     {/* Master B Ghost */}
@@ -748,7 +954,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         stroke="#f43f5e"
                         strokeWidth={1.5}
                         strokeDasharray="4 4"
-                        opacity={0.4}
+                        opacity={0.45}
                       />
                     )}
                     {/* Interpolated Result */}
@@ -757,19 +963,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         <path
                           key={group.id}
                           d={group.d}
-                          fill={isLight ? '#1e293b' : '#ecfdf5'}
+                          fill={isLight ? '#0f172a' : '#ecfdf5'}
                           fillRule={group.fillRule}
-                          stroke={isLight ? '#065f46' : '#34d399'}
+                          stroke={isLight ? '#059669' : '#34d399'}
                           strokeWidth={1}
                         />
                       ))}
                   </svg>
-
-                  <div className="absolute top-2 left-3 flex gap-2 text-[10px] font-mono">
-                    <span className="text-sky-600">■ Master A ({glyphA?.char || 'A'})</span>
-                    <span className="text-rose-600">■ Master B ({glyphB?.char || 'B'})</span>
-                    <span className={`${themeClasses.accentText} font-bold`}>■ 補間結果</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -778,49 +978,55 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
         {/* Footer Actions */}
         <div
-          className={`p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`p-3.5 sm:p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           {activeTab === 'family' ? (
             <>
               <button
+                type="button"
                 onClick={handleBatchExportWeightFamilyZip}
                 disabled={isExportingZip}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors border cursor-pointer ${themeClasses.accentBadge} hover:opacity-90 disabled:opacity-50`}
               >
-                <FolderArchive className="w-4 h-4" />
+                <FolderArchive className="w-4 h-4 shrink-0" />
                 <span>全5ウェイト一括ZIP出力</span>
               </button>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={handleCreateNewWeightProject}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>新規ウェイトプロジェクト作成</span>
+                  <Copy className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">新規ウェイトプロジェクト作成</span>
+                  <span className="sm:hidden">新規複製</span>
                 </button>
                 <button
+                  type="button"
                   onClick={handleApplyToProject}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+                  className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
                 >
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>現在のプロジェクトに適用</span>
                 </button>
               </div>
             </>
           ) : (
-            <div className="w-full flex justify-end gap-2">
+            <div className="w-full flex items-center justify-between gap-2">
               <button
+                type="button"
                 onClick={onClose}
-                className={`px-4 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 キャンセル
               </button>
               <button
+                type="button"
                 onClick={handleApplyMasterInterp}
-                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+                className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>補間結果を「{currentGlyph?.char || ''}」に適用</span>
               </button>
             </div>

@@ -71,13 +71,18 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-4 md:p-6 bg-black/75 anim-fade">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="グリッド整列 & ヒンティング工房"
+      className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
+    >
       <div
-        className={`w-full max-w-6xl h-[98vh] sm:h-[94vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl sm:max-h-[94vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar */}
         <div
-          className={`flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-6 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <div
@@ -88,11 +93,8 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <h2 className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
-                  グリッド整列 & ヒンティング工房
+                  グリッド整列 & ヒンティング
                 </h2>
-                <span className="hidden md:inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 border border-amber-500/30">
-                  Grid-Fitting Engine v2.0
-                </span>
               </div>
               <p className={`hidden sm:block text-xs mt-0.5 ${themeClasses.textMuted}`}>
                 9px〜24pxの小サイズ表示で文字線がボケたりかすれないよう、ステム・境界座標をピクセル格子に整数整列します

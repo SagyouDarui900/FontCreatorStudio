@@ -172,24 +172,27 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      role="dialog"
+      aria-modal="true"
+      aria-label="グリフ重ね合わせ比較"
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 anim-fade'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
       onClick={onClose}
     >
       <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? 'w-screen h-screen rounded-none border-none shadow-none'
-            : `w-full max-w-2xl xl:max-w-3xl rounded-2xl shadow-2xl max-h-[90vh] border ${themeClasses.border}`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl xl:max-w-3xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className={`px-4 py-3 flex items-center justify-between border-b shrink-0 ${themeClasses.headerBg}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">

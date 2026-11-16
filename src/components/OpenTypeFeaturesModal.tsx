@@ -109,13 +109,18 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/75 anim-fade">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="縦書き・合字スタジオ"
+      className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
+    >
       <div
-        className={`w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] flex flex-col overflow-hidden transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar */}
         <div
-          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-b shrink-0 gap-3 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
             <div

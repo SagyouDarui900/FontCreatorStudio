@@ -292,24 +292,27 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  };
 
  return (
- <div
- className={`fixed inset-0 z-[60] ${
- isFullscreen
- ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
- : 'flex items-center justify-center p-4 bg-black/75 anim-fade'
- }`}
- >
- <div
- className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
- isFullscreen
- ? 'w-screen h-screen rounded-none border-none shadow-none'
- : `w-full max-w-4xl xl:max-w-5xl max-h-[92vh] rounded-2xl border ${themeClasses.border} shadow-2xl`
- }`}
- >
- {/* Modal Header */}
- <div
- className={`flex items-center justify-between px-5 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
- >
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-label="カーニング & サイドベアリング調整スタジオ"
+    className={`fixed inset-0 z-[60] anim-fade ${
+      isFullscreen
+        ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+        : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
+    }`}
+  >
+    <div
+      className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
+        isFullscreen
+          ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+          : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+      }`}
+    >
+      {/* Modal Header */}
+      <div
+        className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+      >
  <div className="flex items-center gap-2.5">
  <div className={`p-1.5 rounded-lg ${themeClasses.accentBtn}`}>
  <MoveHorizontal className="w-5 h-5" />
@@ -317,13 +320,9 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <div>
  <h2 className="text-base font-bold flex items-center gap-2">
  <span>カーニング & サイドベアリング調整スタジオ</span>
- {isFullscreen ? (
+ {isFullscreen && (
  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${themeClasses.accentBtn}`}>
  全画面モード
- </span>
- ) : (
- <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${themeClasses.accentBadge}`}>
- 組版最適化
  </span>
  )}
  </h2>

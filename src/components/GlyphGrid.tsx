@@ -14,7 +14,7 @@ import {
   GlyphGridToolbar,
   GlyphGridPagination,
   useGlyphGridFilter,
-} from './glyphgrid';
+} from './glyphgrid/index';
 
 export type { GlyphGridProps };
 

@@ -21,7 +21,7 @@ import {
   NewProjectModal,
   ThemeMenuDropdown,
   ToolsMenuDropdown,
-} from './header';
+} from './header/index';
 
 export type { HeaderProps };
 

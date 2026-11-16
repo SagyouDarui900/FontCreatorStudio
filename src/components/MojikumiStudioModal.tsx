@@ -58,19 +58,22 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="日本語組版・文字組みスタジオ"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade select-none"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade select-none"
     >
       <div
-        className={`w-full max-w-[1540px] h-[96vh] sm:h-[94vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-[1540px] sm:max-h-[94vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* HEADER BAR 1: Brand & Top Quick Action Bar */}
         <header
-          className={`px-4 sm:px-6 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-6 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
             <div

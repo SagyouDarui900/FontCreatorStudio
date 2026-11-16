@@ -53,8 +53,18 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   const [weightDelta, setWeightDelta] = useState<number>(0);
   const [normalizeWinding, setNormalizeWinding] = useState<boolean>(true);
 
+  // Allow previewing specific glyph
+  const [previewUnicode, setPreviewUnicode] = useState<number>(selectedUnicode);
+
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Synchronize preview glyph when modal opens or selectedUnicode changes
+  useEffect(() => {
+    if (isOpen) {
+      setPreviewUnicode(selectedUnicode);
+    }
+  }, [isOpen, selectedUnicode]);
 
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
@@ -140,12 +150,15 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
   // Preview sample glyph
   const previewGlyph = useMemo(() => {
+    if (project.glyphs[previewUnicode]?.contours?.length) {
+      return project.glyphs[previewUnicode];
+    }
     if (targetGlyphs.length === 0) {
       return project.glyphs[selectedUnicode] || (Object.values(project.glyphs) as GlyphData[])[0] || null;
     }
-    const currentInTarget = targetGlyphs.find((g) => g.unicode === selectedUnicode);
+    const currentInTarget = targetGlyphs.find((g) => g.unicode === previewUnicode);
     return currentInTarget || targetGlyphs[0];
-  }, [targetGlyphs, project.glyphs, selectedUnicode]);
+  }, [targetGlyphs, project.glyphs, previewUnicode, selectedUnicode]);
 
   // Normalized preview contours
   const normalizedPreviewContours = useMemo(() => {
@@ -228,7 +241,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     }));
 
     if (onShowToast) {
-      onShowToast(`${count}文字のサイズと輪郭を最適化しました`, 'success');
+      onShowToast(`${count}文字のサイズ・太さ・品質を一括正規化しました`, 'success');
     }
     onClose();
   };
@@ -240,154 +253,161 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="フォントサイズ・太さ・品質一括調整"
       className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? `w-screen h-screen rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full max-w-3xl xl:max-w-4xl border rounded-2xl shadow-2xl max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
-        {/* Header */}
+        {/* Header Bar */}
         <div
-          className={`p-3 sm:p-4 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
-            <div
-              className={`p-1.5 rounded-lg shrink-0 ${themeClasses.accentBadge}`}
-            >
-              <Sparkles className="w-4 h-4" />
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+            <div className={`p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2
-                className={`text-xs sm:text-sm font-bold tracking-wide flex items-center gap-2 ${themeClasses.textPrimary}`}
-              >
-                <span className="truncate">フォントサイズ・品質一括調整</span>
+              <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
+                <span className="truncate">サイズ・太さ・品質の一括統一</span>
                 {isFullscreen && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-medium shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面
                   </span>
                 )}
               </h2>
-              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
-                文字サイズ・余白・頂点数の一括自動調整
+              <p className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                全文字の字面枠・線の太さ・送り幅・ベジェ頂点数を均一に自動調整
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5">
+
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors duration-150 ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? themeClasses.accentBadge
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
               {isFullscreen ? (
                 <>
                   <Minimize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">通常</span>
+                  <span>通常</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">全画面</span>
+                  <span>全画面</span>
                 </>
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors duration-150 ${themeClasses.border} ${themeClasses.textMuted} hover:opacity-80`}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 text-xs">
-          <BatchPreviewSection
-            isLight={isLight}
-            project={project}
-            previewGlyph={previewGlyph}
-            origSvg={origSvg}
-            normSvg={normSvg}
-            origBbox={origBbox}
-            normBbox={normBbox}
-            targetWidth={targetWidth}
-            targetHeight={targetHeight}
-            scope={scope}
-            setScope={setScope}
-            targetGlyphsCount={targetGlyphs.length}
-          />
+        {/* Content: Balanced 2-Column CAD Studio Layout on lg+ */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* Left: Dedicated Visual Stage (5 cols) */}
+            <div className="lg:col-span-5 sticky lg:top-0 space-y-3">
+              <BatchPreviewSection
+                isLight={isLight}
+                themeClasses={themeClasses}
+                project={project}
+                previewGlyph={previewGlyph}
+                origSvg={origSvg}
+                normSvg={normSvg}
+                origBbox={origBbox}
+                normBbox={normBbox}
+                targetWidth={targetWidth}
+                targetHeight={targetHeight}
+                scope={scope}
+                setScope={setScope}
+                targetGlyphsCount={targetGlyphs.length}
+                targetGlyphs={targetGlyphs}
+                onSelectPreviewGlyph={(g) => setPreviewUnicode(g.unicode)}
+              />
+            </div>
 
-          <BatchOptionsSection
-            isLight={isLight}
-            sizePreset={sizePreset}
-            setSizePreset={setSizePreset}
-            handlePresetChange={handlePresetChange}
-            targetWidth={targetWidth}
-            setTargetWidth={setTargetWidth}
-            targetHeight={targetHeight}
-            setTargetHeight={setTargetHeight}
-            weightDelta={weightDelta}
-            setWeightDelta={setWeightDelta}
-            alignH={alignH}
-            setAlignH={setAlignH}
-            alignV={alignV}
-            setAlignV={setAlignV}
-            unifyAdvance={unifyAdvance}
-            setUnifyAdvance={setUnifyAdvance}
-            advanceWidth={advanceWidth}
-            setAdvanceWidth={setAdvanceWidth}
-            optimizePoints={optimizePoints}
-            setOptimizePoints={setOptimizePoints}
-            normalizeWinding={normalizeWinding}
-            setNormalizeWinding={setNormalizeWinding}
-          />
+            {/* Right: Normalization Controls & Sizing (7 cols) */}
+            <div className="lg:col-span-7 space-y-4">
+              <BatchOptionsSection
+                isLight={isLight}
+                themeClasses={themeClasses}
+                scope={scope}
+                setScope={setScope}
+                targetGlyphsCount={targetGlyphs.length}
+                previewChar={previewGlyph?.char || 'あ'}
+                sizePreset={sizePreset}
+                setSizePreset={setSizePreset}
+                handlePresetChange={handlePresetChange}
+                targetWidth={targetWidth}
+                setTargetWidth={setTargetWidth}
+                targetHeight={targetHeight}
+                setTargetHeight={setTargetHeight}
+                weightDelta={weightDelta}
+                setWeightDelta={setWeightDelta}
+                alignH={alignH}
+                setAlignH={setAlignH}
+                alignV={alignV}
+                setAlignV={setAlignV}
+                unifyAdvance={unifyAdvance}
+                setUnifyAdvance={setUnifyAdvance}
+                advanceWidth={advanceWidth}
+                setAdvanceWidth={setAdvanceWidth}
+                optimizePoints={optimizePoints}
+                setOptimizePoints={setOptimizePoints}
+                normalizeWinding={normalizeWinding}
+                setNormalizeWinding={setNormalizeWinding}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer Action Bar */}
         <div
-          className={`p-3 sm:p-4 border-t flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3.5 sm:p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2">
             <button
+              type="button"
               onClick={onClose}
-              className={`px-3 py-1.5 rounded-lg border text-xs transition-colors duration-150 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               キャンセル
             </button>
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-colors duration-150 hidden sm:flex ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} hover:opacity-85`}
-              title={isFullscreen ? '通常表示に戻す (F / Esc)' : '全画面表示モード (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span>通常サイズに戻す</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>全画面表示</span>
-                </>
-              )}
-            </button>
+            <span className={`text-[11px] font-mono hidden sm:inline ${themeClasses.textMuted}`}>
+              選択中: {targetGlyphs.length}文字
+            </span>
           </div>
 
           <button
+            type="button"
             onClick={handleApplyBatch}
-            className={`px-4 sm:px-5 py-2 rounded-lg font-bold text-xs flex items-center justify-center space-x-1.5 active:scale-95 transition-colors duration-150 min-w-0 ${themeClasses.accentBtn}`}
+            disabled={targetGlyphs.length === 0}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
           >
             <Sparkles className="w-4 h-4 fill-current shrink-0" />
             <span className="truncate">対象 {targetGlyphs.length} 文字に一括適用</span>

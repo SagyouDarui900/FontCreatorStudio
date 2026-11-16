@@ -37,22 +37,25 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      role="dialog"
+      aria-modal="true"
+      aria-label="かな自動合成"
+      className={`fixed inset-0 z-[60] anim-fade ${
         state.isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-4 bg-black/75 anim-fade'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           state.isFullscreen
-            ? 'w-screen h-screen rounded-none border-none shadow-none'
-            : `w-full max-w-4xl xl:max-w-5xl max-h-[92vh] rounded-2xl border shadow-2xl ${themeClasses.border}`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
         {/* Modal Header */}
         <div
-          className={`flex items-center justify-between px-4 sm:px-5 py-3 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-lg bg-emerald-700 text-white shrink-0">
