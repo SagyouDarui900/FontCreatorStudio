@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import {
   FontProject,
   PathContour,
@@ -109,6 +109,10 @@ export interface AppModalsHostProps {
   setPenPresets: React.Dispatch<React.SetStateAction<UserPenPreset[]>>;
   onApplyPenPreset: (preset: UserPenPreset) => void;
   onChangePressureCurve: (curve: PressureCurveConfig) => void;
+  // Passed through to ExportModal. Optional: when omitted, ExportModal hides
+  // its new-project button. AppModalsHost does not define a handler itself;
+  // the caller (App) must supply the existing new-project handler.
+  onRequestNewProject?: () => void;
 }
 
 export const AppModalsHost: React.FC<AppModalsHostProps> = ({
@@ -144,11 +148,29 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   setPenPresets,
   onApplyPenPreset,
   onChangePressureCurve,
+  onRequestNewProject,
 }) => {
   const { activeModal, openModal, closeModal } = useModalContext();
 
+  // Export modal settings kept here so they survive closing and reopening
+  // the modal (ExportModal unmounts when activeModal changes).
+  const [exportFormat, setExportFormat] = useState<'ttf' | 'otf'>('ttf');
+  const [exportSizePreset, setExportSizePreset] = useState<'raw' | 'standard_jp' | 'custom'>('raw');
+  const [exportCustomScale, setExportCustomScale] = useState<number>(1.0);
+  const [exportPreviewText, setExportPreviewText] = useState<string>('あいう 色は匂へど 漢字 123 ABC');
+  const [exportPreviewFontSize, setExportPreviewFontSize] = useState<number>(28);
+
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" role="status" aria-label="読み込み中">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${themeClasses.modalBg} ${themeClasses.border}`}>
+            <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-medium">読み込み中...</span>
+          </div>
+        </div>
+      }
+    >
       {/* Mobile Theme Selection Drawer */}
       {activeModal === 'mobileTheme' && (
         <div className="sm:hidden fixed inset-0 z-[60] flex flex-col justify-end">
@@ -463,7 +485,18 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           project={project}
           theme={theme}
           onShowToast={showToast}
+          onRequestNewProject={onRequestNewProject}
           onOpenQualityModal={() => openModal('quality')}
+          format={exportFormat}
+          onFormatChange={setExportFormat}
+          sizePreset={exportSizePreset}
+          onSizePresetChange={setExportSizePreset}
+          customScale={exportCustomScale}
+          onCustomScaleChange={setExportCustomScale}
+          previewText={exportPreviewText}
+          onPreviewTextChange={setExportPreviewText}
+          previewFontSize={exportPreviewFontSize}
+          onPreviewFontSizeChange={setExportPreviewFontSize}
         />
       )}
 
