@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  AlertCircle,
   ArrowUpDown,
   BookOpen,
   Columns,
@@ -151,6 +152,23 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
             </button>
           </div>
         </header>
+
+        {/* Compile failure banner: the preview falls back to system fonts */}
+        {state.compileError && (
+          <div
+            className={`mx-4 sm:mx-6 mt-3 p-3 rounded-xl border flex items-start space-x-2 shrink-0 ${
+              isLight
+                ? 'bg-red-50 border-red-200 text-red-900'
+                : 'bg-red-950/40 border-red-800 text-red-200'
+            }`}
+          >
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+            <div className="min-w-0 text-[11px] leading-relaxed">
+              <div className="font-bold">プレビュー用フォントの生成に失敗しました</div>
+              <div>{state.compileError}</div>
+            </div>
+          </div>
+        )}
 
         {/* HEADER BAR 2: Editorial Mode Switcher & Format Controls */}
         <div
