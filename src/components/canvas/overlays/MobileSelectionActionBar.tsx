@@ -46,7 +46,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
         {selectedContourIds.length >= 2 && (
           <button
             onClick={handleMergeSelectedContours}
-            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold transition-colors flex items-center gap-1"
+            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center gap-1"
             title="選択したパスを合体"
           >
             <Layers className="w-3.5 h-3.5" />
@@ -55,7 +55,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
         )}
         <button
           onClick={() => setShowMobilePartSheet(true)}
-          className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold transition-colors"
+          className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold"
         >
           変形
         </button>

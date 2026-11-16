@@ -73,7 +73,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       {/* Select Tool (Object & Contour Transform) */}
       <button
         onClick={() => setToolMode('select')}
-        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'select'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -89,7 +89,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       {/* Node / Direct Selection Tool (Path vertex & handle editor) */}
       <button
         onClick={() => setToolMode('node')}
-        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'node'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -105,7 +105,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       {/* Pen Tool (Bezier) */}
       <button
         onClick={() => setToolMode('pen')}
-        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'pen'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -137,7 +137,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
               setShowBrushMenu(true);
             }
           }}
-          className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
             toolMode === 'brush' || showBrushMenu
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -189,7 +189,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
             setShowGridMenu(false);
             setShowShapeMenu(true);
           }}
-          className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
             isCurrentToolShape || showShapeMenu
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -206,7 +206,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       {/* Eraser Tool */}
       <button
         onClick={() => setToolMode('eraser')}
-        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'eraser'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -223,7 +223,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       <button
         id="btn-toolbar-ruler"
         onClick={() => setToolMode('ruler')}
-        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'ruler'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -239,7 +239,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
       {/* Hand Tool (Desktop only in main toolbar) */}
       <button
         onClick={() => setToolMode('hand')}
-        className={`hidden sm:flex group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`hidden sm:flex group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'hand'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
@@ -260,7 +260,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
             setShowShapeMenu(false);
             setShowGridMenu((prev) => !prev);
           }}
-          className={`group w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`group w-9 h-9 min-w-[36px] min-h-[36px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.showGrid || showGridMenu
               ? themeClasses.activeTool
               : themeClasses.activeToolHover

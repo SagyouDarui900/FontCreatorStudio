@@ -27,7 +27,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
 
   return (
     <div
-      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 text-xs font-medium transition-colors duration-150 pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
+      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 text-xs font-medium pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
         isLight
           ? 'bg-white/95 border-stone-200/90 text-stone-800 '
           : 'bg-[#141e17]/95 border-emerald-800/60 text-emerald-100 '
@@ -51,7 +51,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
             const next = Math.round(Math.max(0.2, cur - 0.05) * 100) / 100;
             onChangeTraceSettings?.({ ...traceSettings, scale: next });
           }}
-          className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+          className={`w-5 h-5 rounded flex items-center justify-center ${
             isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-200'
           }`}
           title="縮小 (-5%)"
@@ -81,7 +81,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
             const next = Math.round(Math.min(3.0, cur + 0.05) * 100) / 100;
             onChangeTraceSettings?.({ ...traceSettings, scale: next });
           }}
-          className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+          className={`w-5 h-5 rounded flex items-center justify-center ${
             isLight ? 'bg-stone-100 hover:bg-stone-200 text-stone-700' : 'bg-[#1c2a20] hover:bg-[#25382b] text-emerald-200'
           }`}
           title="拡大 (+5%)"
@@ -99,7 +99,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
       <div className="flex items-center space-x-1 shrink-0">
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.78 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
             Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
               ? 'bg-amber-600 text-white '
               : isLight
@@ -112,7 +112,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         </button>
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 0.85 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
             Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
               ? 'bg-emerald-600 text-white '
               : isLight
@@ -125,7 +125,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         </button>
         <button
           onClick={() => onChangeTraceSettings?.((prev) => ({ ...prev, scale: 1.0 }))}
-          className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
+          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
             Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
               ? 'bg-sky-600 text-white '
               : isLight
@@ -174,7 +174,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         {/* Position Reset Button */}
         <button
           onClick={handleResetTracePosition}
-          className={`px-2 py-1 rounded text-[10.5px] font-bold flex items-center space-x-1 transition-colors border ${
+          className={`px-2 py-1 rounded text-[10.5px] font-bold flex items-center space-x-1 border ${
             (traceSettings.offsetX !== 0 || traceSettings.offsetY !== 0)
               ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-600'
               : isLight
@@ -190,7 +190,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         {/* Reset All */}
         <button
           onClick={handleResetTraceAll}
-          className={`px-1.5 py-1 rounded text-[10px] flex items-center space-x-0.5 transition-colors ${
+          className={`px-1.5 py-1 rounded text-[10px] flex items-center space-x-0.5 ${
             isLight ? 'text-stone-500 hover:bg-stone-200' : 'text-stone-400 hover:bg-[#25382b]'
           }`}
           title="位置とサイズを推奨初期値にリセット"
@@ -203,7 +203,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
             onSetToolMode?.('brush');
             showCanvasToast('下絵調整を完了しました');
           }}
-          className={`px-2.5 py-1 rounded font-bold text-[10.5px] flex items-center space-x-1 transition-colors ${
+          className={`px-2.5 py-1 rounded font-bold text-[10.5px] flex items-center space-x-1 ${
             isLight
               ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white'

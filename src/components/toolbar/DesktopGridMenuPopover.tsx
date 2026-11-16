@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Grid, X } from 'lucide-react';
 import { GridSettings } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -35,7 +36,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
     setDraftGridSize(String(gridSettings.gridSize || 50));
   }, [gridSettings.gridSize]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const commitDraftGridSize = () => {
     const parsed = parseInt(draftGridSize, 10);
@@ -48,7 +49,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
     setGridSettings((prev) => ({ ...prev, gridSize: clamped }));
   };
 
-  return (
+  return createPortal(
     <div
       ref={popoverRef}
       style={{
@@ -59,7 +60,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
       }}
       className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
-      } sm:w-72 z-50 p-3 pb-6 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-72 z-50 p-3 pb-6 rounded-xl border shadow-2xl overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className={`flex items-center justify-between pb-2 mb-2.5 border-b ${themeClasses.border}`}>
         <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-700 dark:text-emerald-400">
@@ -80,7 +81,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
         <button
           type="button"
           onClick={() => setGridSettings((s) => ({ ...s, showGrid: !s.showGrid }))}
-          className={`p-1.5 rounded-lg border text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+          className={`p-1.5 rounded-lg border text-xs font-bold flex items-center justify-between cursor-pointer ${
             gridSettings.showGrid
               ? 'bg-emerald-600 text-white border-emerald-600'
               : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
@@ -92,7 +93,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
         <button
           type="button"
           onClick={() => setGridSettings((s) => ({ ...s, snapToGrid: !s.snapToGrid }))}
-          className={`p-1.5 rounded-lg border text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+          className={`p-1.5 rounded-lg border text-xs font-bold flex items-center justify-between cursor-pointer ${
             gridSettings.snapToGrid
               ? 'bg-emerald-600 text-white border-emerald-600'
               : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
@@ -202,7 +203,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                   gridSize: size,
                 }))
               }
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
                 (gridSettings.gridSize || 50) === size
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -258,7 +259,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                     gridOpacity: p.val,
                   }))
                 }
-                className={`flex-1 py-0.5 rounded text-[9.5px] font-bold border transition-colors cursor-pointer ${
+                className={`flex-1 py-0.5 rounded text-[9.5px] font-bold border cursor-pointer ${
                   (gridSettings.gridOpacity ?? 30) === p.val
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -290,7 +291,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                   verticalGuide: vg.id,
                 }))
               }
-              className={`py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+              className={`py-1 rounded text-[10px] font-bold border cursor-pointer ${
                 (gridSettings.verticalGuide || 'none') === vg.id
                   ? 'bg-purple-600 text-white border-purple-600'
                   : 'bg-white dark:bg-stone-800 border-purple-200 dark:border-purple-900/50 text-stone-700 dark:text-stone-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
@@ -321,7 +322,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                   japaneseGuide: g.id,
                 }))
               }
-              className={`py-1 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+              className={`py-1 rounded text-[10px] font-bold border cursor-pointer ${
                 (gridSettings.japaneseGuide || 'tian') === g.id
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
@@ -343,7 +344,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               showBodyFrame: prev.showBodyFrame === false ? true : false,
             }))
           }
-          className={`py-1 px-1 rounded text-[10px] font-bold border text-center transition-colors cursor-pointer ${
+          className={`py-1 px-1 rounded text-[10px] font-bold border text-center cursor-pointer ${
             gridSettings.showBodyFrame !== false
               ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200'
               : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500'
@@ -355,7 +356,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
         <button
           type="button"
           onClick={() => setGridSettings((prev) => ({ ...prev, showKanaFrame: !prev.showKanaFrame }))}
-          className={`py-1 px-1 rounded text-[10px] font-bold border text-center transition-colors cursor-pointer ${
+          className={`py-1 px-1 rounded text-[10px] font-bold border text-center cursor-pointer ${
             gridSettings.showKanaFrame
               ? 'bg-amber-100 dark:bg-amber-950 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
               : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500'
@@ -372,7 +373,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               showVerticalCenter: prev.showVerticalCenter === false ? true : false,
             }))
           }
-          className={`py-1 px-1 rounded text-[10px] font-bold border text-center transition-colors cursor-pointer ${
+          className={`py-1 px-1 rounded text-[10px] font-bold border text-center cursor-pointer ${
             gridSettings.showVerticalCenter !== false
               ? 'bg-purple-100 dark:bg-purple-950 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200'
               : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500'
@@ -394,7 +395,8 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
           +/-
         </kbd>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 

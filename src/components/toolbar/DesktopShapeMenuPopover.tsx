@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { ToolMode } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -31,7 +32,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
   isLight,
   popoverRef,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const handleSelectShape = (shapeId: ToolMode) => {
     setLastSelectedShape(shapeId);
@@ -39,7 +40,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
     onClose();
   };
 
-  return (
+  return createPortal(
     <div
       ref={popoverRef}
       style={{
@@ -50,7 +51,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
       }}
       className={`fixed inset-x-3 max-w-xs mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-13 md:left-14' : ''
-      } sm:w-72 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-72 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className={`px-1 py-0.5 text-[11px] font-bold border-b mb-2 flex items-center justify-between ${themeClasses.border}`}>
         <span className={isLight ? 'text-emerald-800' : 'text-emerald-400'}>図形を選択</span>
@@ -62,7 +63,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
               e.stopPropagation();
               onClose();
             }}
-            className="p-1 rounded-md hover:bg-stone-200 dark:hover:bg-[#25362b] opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+            className="p-1 rounded-md hover:bg-stone-200 dark:hover:bg-[#25362b] opacity-70 hover:opacity-100 cursor-pointer"
             title="閉じる"
           >
             <X className="w-3.5 h-3.5" />
@@ -86,7 +87,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium cursor-pointer ${
                 isSelected
                   ? `${themeClasses.activeTool} font-bold`
                   : themeClasses.activeToolHover
@@ -115,7 +116,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium cursor-pointer ${
                 isSelected
                   ? `${themeClasses.activeTool} font-bold`
                   : themeClasses.activeToolHover
@@ -144,7 +145,7 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
                 e.stopPropagation();
                 handleSelectShape(shape.id);
               }}
-              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              className={`flex items-center space-x-1.5 p-1.5 rounded-lg text-xs font-medium cursor-pointer ${
                 isSelected
                   ? `${themeClasses.activeTool} font-bold`
                   : themeClasses.activeToolHover
@@ -156,7 +157,8 @@ export const DesktopShapeMenuPopover: React.FC<DesktopShapeMenuPopoverProps> = R
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 

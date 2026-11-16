@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Paintbrush,
   Sliders,
@@ -63,7 +64,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
   isLight,
   popoverRef,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const isCustomPen = Boolean(
     activePenPreset &&
@@ -74,7 +75,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
         !PEN_PRESETS.some((p) => p.id === brushStyle))
   );
 
-  return (
+  return createPortal(
     <div
       ref={popoverRef}
       style={{
@@ -85,7 +86,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
       }}
       className={`fixed inset-x-3 max-w-sm mx-auto sm:inset-x-auto sm:bottom-auto sm:fixed ${
         anchorLeft === undefined && anchorRight === undefined ? 'sm:left-14 md:left-16' : ''
-      } sm:w-80 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl anim-pop overflow-y-auto ${themeClasses.cardBg}`}
+      } sm:w-80 z-50 p-2.5 pb-8 rounded-xl border shadow-2xl overflow-y-auto ${themeClasses.cardBg}`}
     >
       <div className={`px-2 py-1 text-[11px] font-bold border-b mb-1.5 flex items-center justify-between ${themeClasses.border}`}>
         <div className="flex items-center space-x-1.5">
@@ -103,7 +104,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
                 onClose();
                 onOpenPenPresetsModal();
               }}
-              className="px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer"
+              className="px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
               title="ペン作成・ブラシカスタマイズを開く"
             >
               <Sliders className="w-3 h-3" />
@@ -112,7 +113,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
           )}
           <button
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-stone-200 dark:hover:bg-[#25362b] opacity-70 hover:opacity-100 transition-opacity"
+            className="p-1 rounded-md hover:bg-stone-200 dark:hover:bg-[#25362b] opacity-70 hover:opacity-100"
             title="閉じる"
           >
             <X className="w-3.5 h-3.5" />
@@ -141,7 +142,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
                       setToolMode('brush');
                       onClose();
                     }}
-                    className={`w-full text-left p-2 rounded-xl transition-colors flex items-start space-x-2.5 cursor-pointer ${
+                    className={`w-full text-left p-2 rounded-xl flex items-start space-x-2.5 cursor-pointer ${
                       isSelected
                         ? `${themeClasses.activeTool} font-bold border`
                         : themeClasses.activeToolHover
@@ -199,7 +200,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
                 setToolMode('brush');
                 onClose();
               }}
-              className={`w-full text-left p-2 rounded-xl transition-colors flex items-start space-x-2.5 cursor-pointer ${
+              className={`w-full text-left p-2 rounded-xl flex items-start space-x-2.5 cursor-pointer ${
                 isSelected
                   ? `${themeClasses.activeTool} font-bold border`
                   : themeClasses.activeToolHover
@@ -239,7 +240,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             onClose();
             onOpenPixelStudio();
           }}
-          className={`w-full mt-1.5 py-2 px-2.5 rounded-xl text-xs font-bold border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`}
+          className={`w-full mt-1.5 py-2 px-2.5 rounded-xl text-xs font-bold border flex items-center justify-center space-x-1.5 cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`}
           title="グリッド上でドットを配置し、ピクセルフォントを作字します"
         >
           <Grid className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -254,7 +255,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             onClose();
             onOpenPenPresetsModal();
           }}
-          className={`w-full mt-2 py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+          className={`w-full mt-2 py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 cursor-pointer ${themeClasses.accentBtn}`}
         >
           <Plus className="w-3.5 h-3.5" />
           <span>カスタムブラシを作成・編集</span>
@@ -282,7 +283,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             <button
               key={mode.id}
               onClick={() => onChangePressureSensitivity?.(mode.id)}
-              className={`py-1 px-1 rounded-lg text-center transition-colors border cursor-pointer ${
+              className={`py-1 px-1 rounded-lg text-center border cursor-pointer ${
                 (pressureSensitivity || 'normal') === mode.id
                   ? `${themeClasses.activeTool} font-bold`
                   : `${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`
@@ -340,7 +341,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
             <button
               key={preset.val}
               onClick={() => onChangeSmoothingIntensity?.(preset.val)}
-              className={`py-1 px-0.5 rounded text-[9.5px] font-bold text-center transition-colors border cursor-pointer ${
+              className={`py-1 px-0.5 rounded text-[9.5px] font-bold text-center border cursor-pointer ${
                 smoothingIntensity === preset.val
                   ? themeClasses.activeTool
                   : `${themeClasses.subtoolbarBg} ${themeClasses.activeToolHover}`
@@ -354,7 +355,8 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
           文字を書く際の細かな手の震えやガタつきをリアルタイムに抑制し、滑らかな筆跡を形成します。
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 

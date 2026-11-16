@@ -36,7 +36,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <span className="font-mono tabular-nums font-bold text-xs px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/60 text-sky-900 dark:text-sky-100 border border-sky-300 dark:border-sky-700">
               {Math.round(Math.hypot(rulerMeasurement.end.x - rulerMeasurement.start.x, rulerMeasurement.end.y - rulerMeasurement.start.y))}px
             </span>
-            <span className="font-mono tabular-nums text-[10px] text-stone-500 dark:text-stone-400 hidden sm:inline">
+            <span className="font-mono tabular-nums text-[10px] text-stone-500 dark:text-stone-400">
               ({Math.round(((Math.atan2(-(rulerMeasurement.end.y - rulerMeasurement.start.y), rulerMeasurement.end.x - rulerMeasurement.start.x) * 180 / Math.PI) % 360 + 360) % 360)}°)
             </span>
 
@@ -44,7 +44,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => handleConvertRulerToGuideline('diagonal')}
-              className="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
+              className="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-600 hover:bg-cyan-700 text-white flex items-center space-x-1 cursor-pointer shadow-xs"
               title="定規の角度のまま斜めガイド線を作成"
             >
               <span>斜めガイド化</span>
@@ -54,7 +54,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => handleConvertRulerToGuideline('auto')}
-              className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
+              className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-600 hover:bg-sky-700 text-white flex items-center space-x-1 cursor-pointer shadow-xs"
               title="水平または垂直ガイド線を作成"
             >
               <span>直交ガイド化</span>
@@ -63,7 +63,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <button
               type="button"
               onClick={handleDrawRulerAsStroke}
-              className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center space-x-1 cursor-pointer shadow-xs"
+              className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1 cursor-pointer shadow-xs"
               title="計測ラインを直線ストロークとして作図 (Enter)"
             >
               <PenTool className="w-3 h-3" />
@@ -73,7 +73,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => setRulerMeasurement(null)}
-              className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 transition-colors cursor-pointer flex items-center gap-1"
+              className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 cursor-pointer flex items-center gap-1"
               title="選んだ定規の計測表示を消去 (Esc/Delete)"
             >
               <Trash2 className="w-3 h-3" />
@@ -91,7 +91,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsGuideEraserActive((prev) => !prev)}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center space-x-1 cursor-pointer transition-colors shadow-xs ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center space-x-1 cursor-pointer shadow-xs ${
               isGuideEraserActive
                 ? 'bg-rose-600 text-white ring-2 ring-rose-400 animate-pulse'
                 : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-600'
@@ -106,7 +106,7 @@ export const RulerSubToolbar: React.FC<RulerSubToolbarProps> = ({
             <button
               type="button"
               onClick={handleClearAllGuidelines}
-              className="px-1.5 py-0.5 rounded text-[10px] text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+              className="px-1.5 py-0.5 rounded text-[10px] text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
               title={`すべてのガイド線を消去 (現在: ${customGuidelines.length}本)`}
             >
               全消去 ({customGuidelines.length})

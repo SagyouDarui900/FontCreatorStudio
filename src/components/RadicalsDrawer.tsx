@@ -4,12 +4,11 @@ import { BundledFontsModal } from './BundledFontsModal';
 import { BatchRadicalModal } from './radicalStudio/BatchRadicalModal';
 import { KANJI_RADICALS } from '../data/kanjiRadicals';
 import { KANGXI_214_RADICALS, KangxiRadicalFullEntry } from '../data/kangxi214Radicals';
-import { PathContour, CustomPart, RadicalPlacement } from '../types';
+import { PathContour, CustomPart, RadicalPlacement, GlyphData } from '../types';
 import { generateId, transformContoursForPlacement } from '../utils/path';
 import {
   extractRadicalFromFont,
   getOrExtractRadicalContours,
-  KANGXI_RADICALS_CATALOG,
   RADICAL_FONT_OPTIONS,
   FontStyleOption,
 } from '../utils/radicalExtractor';
@@ -26,6 +25,7 @@ import {
   ShapePresetsTab,
   FromGlyphTab,
   CustomPartsTab,
+  useRadicalsResize,
 } from './radicals';
 
 export type { RadicalsDrawerProps };
@@ -39,8 +39,18 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   selectedChar,
   allGlyphs,
   theme,
-  onOpenRadicalStudio,
+  isOverlay,
 }) => {
+  const effectiveIsOverlay = isOverlay !== undefined ? isOverlay : true;
+  const {
+    drawerWidth,
+    isResizing,
+    gridDensity,
+    setDrawerWidth,
+    setGridDensity,
+    resetDrawerWidth,
+    handleResizeStart,
+  } = useRadicalsResize();
   const [activeTab, setActiveTab] = useState<DrawerTab>('preset');
   const [placement, setPlacement] = useState<RadicalPlacement>('auto');
   const [selectedFontStyle, setSelectedFontStyle] = useState<FontStyleOption>(RADICAL_FONT_OPTIONS[0]);
@@ -135,11 +145,38 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showNotice = (msg: string) => {
+  const showNotice = useCallback((msg: string) => {
     setStatusNotice(msg);
-    setTimeout(() => setStatusNotice(null), 2500);
-  };
+    if (noticeTimerRef.current !== null) {
+      clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = setTimeout(() => {
+      setStatusNotice(null);
+      noticeTimerRef.current = null;
+    }, 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current !== null) {
+        clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || isLicenseModalOpen || batchModalTarget) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, isLicenseModalOpen, batchModalTarget, onClose]);
 
   const lastSavedDrawerJsonRef = useRef<string>('');
 
@@ -456,7 +493,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   }, [selectedChar]);
 
   // Filter modified glyphs for synthesis
-  const availableGlyphs = (Object.values(allGlyphs) as any[]).filter(
+  const availableGlyphs = (Object.values(allGlyphs) as GlyphData[]).filter(
     (g) => g && g.contours && g.contours.length > 0
   );
 
@@ -464,50 +501,175 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
   return (
     <>
-      {/* Mobile Click-Outside Dismiss */}
-      <div
-        onClick={onClose}
-        className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 bg-black/40 lg:hidden z-30"
-      />
+      {/* Overlay Click-Outside Dismiss */}
+      {effectiveIsOverlay && (
+        <div
+          onClick={onClose}
+          className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 bg-black/40 z-30"
+        />
+      )}
 
-      <div
-        className={`fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 w-full sm:w-[320px] sm:max-w-xs border-l shadow-2xl z-40 flex flex-col select-none transition-colors anim-slide-right ${themeClasses.sidebarBg} ${themeClasses.border}`}
+      <aside
+        style={{
+          '--radicals-width': `${drawerWidth}px`,
+        } as React.CSSProperties}
+        className={`${
+          effectiveIsOverlay
+            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 w-full sm:w-[var(--radicals-width)] sm:max-w-[85vw] shadow-2xl anim-slide-right'
+            : 'relative z-10 shrink-0 h-full w-[var(--radicals-width)]'
+        } border-l flex flex-col min-h-0 select-none ${
+          isResizing ? '' : 'transition-[width,background-color,border-color] duration-150'
+        } ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
+        {/* Left Edge Drag Resizer Handle */}
+        <div
+          id="radicals-resizer-handle"
+          onPointerDown={handleResizeStart}
+          onDoubleClick={resetDrawerWidth}
+          style={{ touchAction: 'none' }}
+          className={`hidden sm:flex absolute top-0 -left-2 w-4 h-full cursor-col-resize z-30 items-center justify-center group select-none transition-colors ${
+            isResizing ? 'bg-emerald-500/15' : 'hover:bg-emerald-500/10'
+          }`}
+          title={`左右にドラッグして部首パネル幅を調整 (${drawerWidth}px) / ダブルクリックで初期値にリセット`}
+        >
+          <div
+            className={`w-1 h-14 rounded transition-[transform,background-color] flex items-center justify-center ${
+              isResizing
+                ? 'bg-emerald-500 scale-110'
+                : 'bg-stone-300 dark:bg-stone-600 group-hover:bg-emerald-500 group-hover:scale-105'
+            }`}
+          >
+            <div className="w-0.5 h-6 rounded bg-white/50 dark:bg-black/40" />
+          </div>
+        </div>
+
         {/* Header */}
         <div
-          className={`p-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-2.5 py-2 border-b flex flex-col gap-1.5 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2">
-            <Type className={`w-4 h-4 ${themeClasses.accentText}`} />
-            <div className="flex flex-col">
-              <span className={`text-xs font-bold tracking-wide ${themeClasses.textPrimary}`}>
-                部首・フォントパーツ
-              </span>
-              <span className={`text-[10px] ${themeClasses.textMuted}`}>
-                ベクター輪郭の登録・文字への挿入
-              </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2 min-w-0">
+              <Type className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
+              <div className="flex flex-col min-w-0">
+                <span className={`text-xs font-bold tracking-wide truncate ${themeClasses.textPrimary}`}>
+                  部首・フォントパーツ
+                </span>
+                <span className={`text-[10px] truncate ${themeClasses.textMuted}`}>
+                  ベクター輪郭の登録・文字への挿入
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const firstRad = KANJI_RADICALS.find((r) => r.id === 'rad_kihen') || KANJI_RADICALS[0];
+                  handleOpenBatchModalForPreset(firstRad);
+                }}
+                className={`px-2 py-1 rounded text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap ${themeClasses.accentBadge} hover:opacity-90`}
+                title="部首パーツを指定した複数の漢字へ一括自動配置・合成します"
+              >
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span>一括流し込み</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className={`p-1 rounded transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                title="閉じる (Esc)"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                const firstRad = KANJI_RADICALS.find((r) => r.id === 'rad_kihen') || KANJI_RADICALS[0];
-                handleOpenBatchModalForPreset(firstRad);
-              }}
-              className={`px-2 py-1 rounded-lg text-[10.5px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${themeClasses.accentBadge} hover:opacity-90`}
-              title="部首パーツを指定した複数の漢字へ一括自動配置・合成します"
+
+          {/* Width Presets (sm+) & Card Density Controls */}
+          <div className="flex items-center justify-between gap-2 text-[10px]">
+            <div
+              className={`hidden sm:flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
+              title="部首パネルの幅プリセット（左端をドラッグして自由調整も可）"
             >
-              <Layers className="w-3.5 h-3.5 shrink-0" />
-              <span>一括流し込み</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-            >
-              <X className="w-4 h-4" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setDrawerWidth(288)}
+                title="幅: 狭め (288px)"
+                className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                  drawerWidth <= 310
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                狭
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerWidth(352)}
+                title="幅: 標準 (352px)"
+                className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                  drawerWidth > 310 && drawerWidth < 430
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                標
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerWidth(480)}
+                title="幅: 広め (480px)"
+                className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                  drawerWidth >= 430
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                広
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className={`text-[10px] ${themeClasses.textMuted}`}>カード:</span>
+              <div
+                className={`flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setGridDensity('large')}
+                  title="大カード"
+                  className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                    gridDensity === 'large'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                  }`}
+                >
+                  大
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridDensity('medium')}
+                  title="中カード（標準）"
+                  className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                    gridDensity === 'medium'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                  }`}
+                >
+                  中
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGridDensity('compact')}
+                  title="小カード（一覧性重視）"
+                  className={`px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                    gridDensity === 'compact'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                  }`}
+                >
+                  小
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -521,17 +683,17 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         {/* Smart Suggestion Bar: Automatic constituent radicals for selected character */}
         {suggestedRadicals.length > 0 && (
           <div
-            className={`px-3 py-1.5 border-b flex items-center justify-between text-xs shrink-0 ${
+            className={`px-2.5 py-1.5 border-b flex items-center justify-between gap-2 text-xs shrink-0 min-w-0 ${
               isLight
                 ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
                 : 'bg-[#142319] border-[#223d2b] text-emerald-200'
             }`}
           >
-            <div className="flex items-center gap-1.5 font-bold text-[11px] shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>「{selectedChar}」の推奨部首:</span>
+            <div className="flex items-center gap-1 font-bold text-[11px] shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="whitespace-nowrap">「{selectedChar}」の推奨部首:</span>
             </div>
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pl-2">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x min-w-0">
               {suggestedRadicals.map((rad) => {
                 const targetChar = rad.altChars?.[0] || rad.char;
                 return (
@@ -557,16 +719,16 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
                         });
                       }
                     }}
-                    className={`px-2 py-0.5 rounded text-[10.5px] font-bold border transition-colors flex items-center gap-1 shrink-0 cursor-pointer ${
+                    className={`px-2 py-0.5 rounded text-[10.5px] font-bold border transition-colors flex items-center gap-1 shrink-0 cursor-pointer overflow-hidden ${
                       isLight
                         ? 'bg-white border-emerald-300 text-emerald-900 hover:bg-emerald-100 shadow-xs'
                         : 'bg-[#1a2d21] border-[#2f4d39] text-emerald-100 hover:bg-[#253f2e] shadow-xs'
                     }`}
                     title={`「${rad.char}」(${rad.name}) を挿入`}
                   >
-                    <span className="text-xs font-bold">{rad.displayChar || rad.char}</span>
+                    <span className="text-xs font-bold shrink-0">{rad.displayChar || rad.char}</span>
                     {rad.altChars?.[0] && (
-                      <span className="text-[9px] text-stone-500 font-normal">({rad.altChars[0]})</span>
+                      <span className="text-[9px] text-stone-500 font-normal shrink-0">({rad.altChars[0]})</span>
                     )}
                     <span className="text-[9px] truncate max-w-[55px]">{rad.name.split(' ')[0]}</span>
                   </button>
@@ -578,7 +740,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex overflow-x-auto no-scrollbar sm:grid sm:grid-cols-6 p-1 gap-1 border-b text-[10px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`flex items-center overflow-x-auto no-scrollbar touch-scroll-x p-1 gap-1 border-b text-[10.5px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {[
             { id: 'preset', label: '定番部首' },
@@ -592,11 +754,12 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as DrawerTab)}
-              className={`py-1.5 px-2 sm:px-1 rounded text-center whitespace-nowrap transition-colors shrink-0 sm:shrink cursor-pointer ${
+              className={`flex-1 shrink-0 min-w-fit px-2 py-1 rounded text-center whitespace-nowrap transition-colors cursor-pointer ${
                 activeTab === tab.id
                   ? `${themeClasses.activeTool} border`
                   : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
               }`}
+              title={tab.label}
             >
               {tab.label}
             </button>
@@ -605,36 +768,39 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Font Style Selector for Radicals */}
         <div
-          className={`px-2.5 py-2 border-b space-y-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`px-2.5 py-1.5 border-b space-y-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center justify-between text-[11px]">
-            <span className={`font-bold flex items-center space-x-1 ${themeClasses.textPrimary}`}>
-              <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>部首書体スタイル (プレビュー＆抽出):</span>
+          <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+            <span className={`font-bold flex items-center space-x-1 min-w-0 ${themeClasses.textPrimary}`}>
+              <Type className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
+              <span className="truncate">部首書体スタイル (プレビュー＆抽出):</span>
             </span>
             <button
               type="button"
               onClick={() => setIsLicenseModalOpen(true)}
-              className={`inline-flex items-center gap-1 text-[10px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
+              className={`inline-flex items-center gap-1 text-[10px] font-medium hover:underline cursor-pointer whitespace-nowrap shrink-0 ${themeClasses.accentText}`}
             >
-              <ShieldCheck className="w-3 h-3" />
+              <ShieldCheck className="w-3 h-3 shrink-0" />
               <span>OFL 1.1 ライセンス一覧</span>
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 text-xs">
+          <div className="grid grid-cols-3 gap-1.5 text-[10.5px] sm:text-[11px]">
             {RADICAL_FONT_OPTIONS.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => handleSelectFontStyle(opt)}
-                className={`py-1.5 px-2 rounded border text-center transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
+                className={`min-w-0 py-1 px-1 rounded border text-center transition-colors flex items-center justify-center overflow-hidden cursor-pointer ${
                   selectedFontStyle.id === opt.id
                     ? themeClasses.accentBtn
                     : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
                 }`}
                 title={`${opt.label} (${opt.subLabel})`}
               >
-                <span style={{ fontFamily: opt.fontFamily, fontWeight: opt.fontWeight }}>
+                <span
+                  className="truncate w-full text-center whitespace-nowrap"
+                  style={{ fontFamily: opt.fontFamily, fontWeight: opt.fontWeight }}
+                >
                   {opt.label}
                 </span>
               </button>
@@ -659,6 +825,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             setCategoryFilter={setCategoryFilter}
             filteredRadicals={filteredRadicals}
             selectedFontStyle={selectedFontStyle}
+            gridDensity={gridDensity}
             onInsertPresetRadical={handleInsertPresetRadical}
             onImportAllPresetRadicals={handleImportAllPresetRadicals}
             onBatchInsertPresetRadical={handleOpenBatchModalForPreset}
@@ -697,6 +864,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             kangxiStrokeFilter={kangxiStrokeFilter}
             setKangxiStrokeFilter={setKangxiStrokeFilter}
             selectedFontStyle={selectedFontStyle}
+            gridDensity={gridDensity}
             extractingKangxiNum={extractingKangxiNum}
             setExtractingKangxiNum={setExtractingKangxiNum}
             onInsertWithPlacement={handleInsertWithPlacement}
@@ -713,6 +881,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             isLight={isLight}
             shapeCategoryFilter={shapeCategoryFilter}
             setShapeCategoryFilter={setShapeCategoryFilter}
+            gridDensity={gridDensity}
             onInsertWithPlacement={handleInsertWithPlacement}
           />
         )}
@@ -722,6 +891,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           <FromGlyphTab
             isLight={isLight}
             availableGlyphs={availableGlyphs}
+            gridDensity={gridDensity}
             onInsertWithPlacement={handleInsertWithPlacement}
           />
         )}
@@ -730,6 +900,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         {activeTab === 'custom' && (
           <CustomPartsTab
             isLight={isLight}
+            gridDensity={gridDensity}
             showSaveInput={showSaveInput}
             setShowSaveInput={setShowSaveInput}
             createOnlyFrame={createOnlyFrame}
@@ -747,7 +918,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             showNotice={showNotice}
           />
         )}
-      </div>
+      </aside>
 
       <BundledFontsModal
         isOpen={isLicenseModalOpen}

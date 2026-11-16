@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sliders,
   X,
@@ -33,6 +34,7 @@ interface ToolsMenuDropdownProps {
   onToggleOpen: () => void;
   onClose: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
+  panelRef?: React.RefObject<HTMLDivElement | null>;
   isLight: boolean;
   theme: ThemeMode;
   onOpenExportModal?: () => void;
@@ -69,6 +71,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
   onToggleOpen,
   onClose,
   menuRef,
+  panelRef,
   isLight,
   theme,
   onOpenExportModal,
@@ -101,14 +104,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
 }) => {
   const { openModal } = useModalContext();
   const themeClasses = getThemeClasses(theme);
-  const toolItemClass = `text-left p-2 rounded-xl border transition-colors flex items-start space-x-2 group cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
-  const smallItemClass = `text-left p-2 rounded-xl border transition-colors flex items-center space-x-2 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
+  const toolItemClass = `text-left p-2 rounded-xl border flex items-start space-x-2 group cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
+  const smallItemClass = `text-left p-2 rounded-xl border flex items-center space-x-2 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
 
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`px-2 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-colors border shrink-0 cursor-pointer ${
+        className={`px-2 h-7 rounded-md text-xs font-bold flex items-center gap-1 border shrink-0 cursor-pointer ${
           isOpen
             ? themeClasses.activeTool
             : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -118,7 +121,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
         <Sliders className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
         <span className="font-bold leading-none">機能</span>
         <span
-          className={`text-[9px] opacity-70 transition-transform duration-150 leading-none ${
+          className={`text-[9px] opacity-70 leading-none ${
             isOpen ? 'rotate-180' : ''
           }`}
         >
@@ -126,21 +129,22 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
         </span>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <>
-          {/* Invisible click-away backdrop */}
+          {/* Click-away backdrop rendered at root stacking context above drawers */}
           <div
             className="fixed inset-0 z-50 bg-black/40"
             onClick={onClose}
           />
           <div
+            ref={panelRef}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
             style={{
               maxHeight: 'calc(100dvh - 56px - env(safe-area-inset-top, 0px))',
               paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
             }}
-            className={`fixed right-1 sm:right-3 top-[calc(2.65rem+env(safe-area-inset-top,0px))] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-50 flex flex-col gap-3 shadow-xl anim-pop ${themeClasses.modalBg}`}
+            className={`fixed right-1 sm:right-3 top-[calc(2.65rem+env(safe-area-inset-top,0px))] w-[calc(100vw-8px)] sm:w-[460px] md:w-[480px] overflow-y-auto overscroll-contain rounded-xl border p-3 sm:p-3.5 z-[51] flex flex-col gap-3 shadow-xl ${themeClasses.modalBg}`}
           >
             {/* Menu Header */}
             <div className={`flex items-center justify-between px-0.5 pb-2 border-b ${themeClasses.border}`}>
@@ -152,7 +156,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               </div>
               <button
                 onClick={onClose}
-                className={`p-1 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                className={`p-1 rounded-lg cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる"
               >
                 <X className="w-4 h-4" />
@@ -165,14 +169,14 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 onClose();
                 onOpenExportModal?.();
               }}
-              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between transition-colors cursor-pointer group ${
+              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between cursor-pointer group ${
                 isLight
                   ? 'bg-emerald-50/80 hover:bg-emerald-100/80 border-emerald-200 text-emerald-950'
                   : 'bg-emerald-950/40 hover:bg-emerald-900/50 border-emerald-800/60 text-emerald-200'
               }`}
             >
               <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
                   <Download className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -194,7 +198,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   onToggleMetricsDrawer();
                   onClose();
                 }}
-                className={`w-full sm:hidden p-2 rounded-xl border text-left flex items-center justify-between transition-colors cursor-pointer ${
+                className={`w-full sm:hidden p-2 rounded-xl border text-left flex items-center justify-between cursor-pointer ${
                   showMetricsDrawer
                     ? themeClasses.activeTool
                     : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -680,14 +684,15 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   onClose();
                   onStartNewProject();
                 }}
-                className="w-full text-left px-2.5 py-1.5 text-xs rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center space-x-2 font-medium transition-colors cursor-pointer"
+                className="w-full text-left px-2.5 py-1.5 text-xs rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center space-x-2 font-medium cursor-pointer"
               >
                 <FilePlus className="w-3.5 h-3.5 shrink-0" />
                 <span>新規プロジェクト作成</span>
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

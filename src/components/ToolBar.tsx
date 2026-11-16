@@ -295,8 +295,8 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         orientation === 'vertical'
           ? `flex flex-col items-center justify-start gap-1 sm:gap-1.5 px-1 py-2 ${
               effectivePosition === 'left' ? 'border-r' : 'border-l'
-            } shrink-0 z-20 select-none transition-colors h-full w-12 sm:w-11 overflow-y-auto overflow-x-hidden no-scrollbar`
-          : 'flex flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none transition-colors w-full h-auto overflow-x-auto no-scrollbar'
+            } shrink-0 z-20 select-none h-full w-12 sm:w-11 overflow-y-auto overflow-x-hidden no-scrollbar`
+          : 'flex flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none w-full h-auto overflow-x-auto no-scrollbar'
       } ${themeClasses.toolbarBg}`}
     >
       {/* Primary Drawing and Editing Tools */}
@@ -376,7 +376,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
               e.preventDefault();
               handleCyclePosition();
             }}
-            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl transition-colors duration-75 flex items-center justify-center relative shrink-0 cursor-pointer ${
+            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
               showPositionMenu ? themeClasses.activeTool : themeClasses.activeToolHover
             }`}
             title={`ツールバー配置を変更 (現在: ${

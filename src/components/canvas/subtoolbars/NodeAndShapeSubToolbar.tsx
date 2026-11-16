@@ -48,7 +48,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => setNodeStyle('clean')}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded font-medium cursor-pointer ${
                 nodeStyle === 'clean'
                   ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
                   : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
@@ -60,7 +60,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => setNodeStyle('selected_only')}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded font-medium cursor-pointer ${
                 nodeStyle === 'selected_only'
                   ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
                   : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
@@ -72,7 +72,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
             <button
               type="button"
               onClick={() => setNodeStyle('full')}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded font-medium cursor-pointer ${
                 nodeStyle === 'full'
                   ? 'bg-white dark:bg-stone-700 text-emerald-700 dark:text-emerald-300 font-bold'
                   : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
@@ -92,7 +92,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
                     ? handleToggleNodeType(undefined, undefined)
                     : handleToggleNodeType(selectedContourId ?? undefined, selectedNodeId ?? undefined)
                 }
-                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors cursor-pointer ${
+                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 cursor-pointer ${
                   isLight
                     ? 'bg-sky-100 text-sky-900 hover:bg-sky-200 border border-sky-300'
                     : 'bg-sky-950 text-sky-200 hover:bg-sky-900 border border-sky-700'
@@ -108,7 +108,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteSelectedNode()}
-                className="px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 transition-colors bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 cursor-pointer"
+                className="px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 cursor-pointer"
                 title="選択したノードを削除 (Deleteキー)"
               >
                 <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />
@@ -128,7 +128,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               setIsShiftLockRatio((prev) => !prev);
               showCanvasToast(!isShiftLockRatio ? '正方形・正円比率に固定しました' : '自由比率に切り替えました');
             }}
-            className={`px-2 py-0.5 rounded text-xs font-bold border transition-colors flex items-center space-x-1 cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 cursor-pointer ${
               isShiftLockRatio
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'
@@ -145,7 +145,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               setIsAltFromCenter((prev) => !prev);
               showCanvasToast(!isAltFromCenter ? '中心基準作図をONにしました' : '中心基準作図をOFFにしました');
             }}
-            className={`hidden sm:flex px-2 py-0.5 rounded text-xs font-bold border transition-colors items-center space-x-1 cursor-pointer ${
+            className={`hidden sm:flex px-2 py-0.5 rounded text-xs font-bold border items-center space-x-1 cursor-pointer ${
               isAltFromCenter
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'

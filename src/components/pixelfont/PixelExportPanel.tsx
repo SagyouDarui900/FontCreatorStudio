@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Type,
   Gamepad2,
@@ -8,7 +8,143 @@ import {
   FileCode,
   CheckCircle2,
 } from 'lucide-react';
-import { GlyphData } from '../../types';
+import { FontProject, GlyphData, PixelDotShape } from '../../types';
+import { rasterizeGlyphToPixelGrid, resamplePixelGrid } from '../../utils/pixelFontUtils';
+
+interface PixelTextPreviewCanvasProps {
+  text: string;
+  project: FontProject;
+  currentGrid: Uint8Array;
+  currentUnicode: number;
+  gridWidth: number;
+  gridHeight: number;
+  dotShape: PixelDotShape;
+  tall?: boolean;
+}
+
+const PixelTextPreviewCanvas: React.FC<PixelTextPreviewCanvasProps> = ({
+  text,
+  project,
+  currentGrid,
+  currentUnicode,
+  gridWidth,
+  gridHeight,
+  dotShape,
+  tall = false,
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const str = text || 'ABC 123';
+    const chars = Array.from(str);
+    const maxDim = Math.max(1, gridWidth, gridHeight);
+    const cellPx = Math.max(2, Math.min(4, Math.floor((tall ? 44 : 36) / maxDim)));
+    const gapPx = Math.max(cellPx, 2);
+    const pad = 8;
+
+    const glyphW = gridWidth * cellPx;
+    const glyphH = gridHeight * cellPx;
+    const totalW = Math.max(200, pad * 2 + chars.length * glyphW + Math.max(0, chars.length - 1) * gapPx);
+    const totalH = pad * 2 + glyphH;
+
+    if (canvas.width !== totalW || canvas.height !== totalH) {
+      canvas.width = totalW;
+      canvas.height = totalH;
+    }
+
+    ctx.clearRect(0, 0, totalW, totalH);
+
+    const upm = project.metadata.unitsPerEm || 1000;
+    const asc = project.metadata.ascender ?? 800;
+    const desc = project.metadata.descender ?? -200;
+
+    chars.forEach((ch, idx) => {
+      const cp = ch.codePointAt(0) || 0;
+      const offsetX = pad + idx * (glyphW + gapPx);
+      const offsetY = pad;
+
+      if (ch === ' ' || ch === '\u3000') {
+        return;
+      }
+
+      let charGrid: Uint8Array | null = null;
+      if (cp === currentUnicode) {
+        charGrid = currentGrid;
+      } else {
+        const g: GlyphData | undefined = project.glyphs[cp];
+        if (g?.pixelData?.data && g.pixelData.data.length > 0) {
+          const pw = g.pixelData.width || gridWidth;
+          const ph = g.pixelData.height || gridHeight;
+          charGrid =
+            pw === gridWidth && ph === gridHeight && g.pixelData.data.length === gridWidth * gridHeight
+              ? new Uint8Array(g.pixelData.data)
+              : resamplePixelGrid(g.pixelData.data, pw, ph, gridWidth, gridHeight);
+        } else if (g?.contours && g.contours.length > 0) {
+          charGrid = rasterizeGlyphToPixelGrid(g, gridWidth, gridHeight, upm, asc, desc);
+        }
+      }
+
+      let hasPixels = false;
+      if (charGrid) {
+        for (let i = 0; i < charGrid.length; i++) {
+          if (charGrid[i] === 1) {
+            hasPixels = true;
+            break;
+          }
+        }
+      }
+
+      if (!charGrid || !hasPixels) {
+        ctx.save();
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `bold ${Math.round(glyphH * 0.8)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch, offsetX + glyphW / 2, offsetY + glyphH / 2);
+        ctx.restore();
+        return;
+      }
+
+      ctx.fillStyle = '#34d399';
+      for (let gy = 0; gy < gridHeight; gy++) {
+        for (let gx = 0; gx < gridWidth; gx++) {
+          if (charGrid[gy * gridWidth + gx] !== 1) continue;
+          const px = offsetX + gx * cellPx;
+          const py = offsetY + gy * cellPx;
+          if (dotShape === 'round') {
+            ctx.beginPath();
+            ctx.arc(px + cellPx / 2, py + cellPx / 2, cellPx * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (dotShape === 'diamond') {
+            ctx.beginPath();
+            ctx.moveTo(px + cellPx / 2, py);
+            ctx.lineTo(px + cellPx, py + cellPx / 2);
+            ctx.lineTo(px + cellPx / 2, py + cellPx);
+            ctx.lineTo(px, py + cellPx / 2);
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(px, py, cellPx, cellPx);
+          }
+        }
+      }
+    });
+  }, [text, project, currentGrid, currentUnicode, gridWidth, gridHeight, dotShape, tall]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="block mx-auto"
+      style={{ imageRendering: 'pixelated' }}
+    />
+  );
+};
 
 interface PixelExportPanelProps {
   previewText: string;
@@ -18,6 +154,10 @@ interface PixelExportPanelProps {
   handleExportCHeader: () => void;
   handleExportSinglePng: () => void;
   currentGlyph: GlyphData;
+  project: FontProject;
+  grid: Uint8Array;
+  currentUnicode: number;
+  dotShape: PixelDotShape;
   gridWidth: number;
   gridHeight: number;
   totalDrawnPixelGlyphs: number;
@@ -34,6 +174,10 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
   handleExportCHeader,
   handleExportSinglePng,
   currentGlyph,
+  project,
+  grid,
+  currentUnicode,
+  dotShape,
   gridWidth,
   gridHeight,
   totalDrawnPixelGlyphs,
@@ -70,8 +214,17 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
               className="w-full px-3 py-2 text-sm border border-stone-300 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 focus:outline-hidden"
             />
 
-            <div className="p-3 bg-stone-950 text-emerald-400 font-mono text-center tracking-widest min-h-[60px] flex items-center justify-center overflow-x-auto border border-stone-800">
-              <div className="text-lg font-bold select-none">{previewText || 'ABC 123'}</div>
+            <div className="p-2.5 bg-stone-950 min-h-[64px] flex items-center overflow-x-auto border border-stone-800">
+              <PixelTextPreviewCanvas
+                text={previewText}
+                project={project}
+                currentGrid={grid}
+                currentUnicode={currentUnicode}
+                gridWidth={gridWidth}
+                gridHeight={gridHeight}
+                dotShape={dotShape}
+                tall={true}
+              />
             </div>
           </div>
 
@@ -212,8 +365,16 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             className="w-full px-2 py-1 text-xs border border-stone-300 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 focus:outline-hidden"
           />
 
-          <div className="p-2.5 bg-stone-950 text-emerald-400 font-mono text-center tracking-widest min-h-[50px] flex items-center justify-center overflow-x-auto border border-stone-800">
-            <div className="text-base font-bold select-none">{previewText || 'ABC 123'}</div>
+          <div className="p-2 bg-stone-950 min-h-[56px] flex items-center overflow-x-auto border border-stone-800">
+            <PixelTextPreviewCanvas
+              text={previewText}
+              project={project}
+              currentGrid={grid}
+              currentUnicode={currentUnicode}
+              gridWidth={gridWidth}
+              gridHeight={gridHeight}
+              dotShape={dotShape}
+            />
           </div>
         </div>
 

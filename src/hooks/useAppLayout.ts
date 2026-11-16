@@ -46,11 +46,12 @@ export function useAppLayout({
   }, []);
 
   // Consistent breakpoints:
-  // < 1280: Grid and Metrics act as overlay drawers to protect canvas space on tablets & small laptops (1024-1279px)
-  // 1280 - 1439: Grid is inline sidebar; Metrics is overlay if Grid is open
-  // >= 1440: Both Grid and Metrics can be inline simultaneously
+  // < 1280: Grid, Metrics, and Radicals act as overlay drawers to protect canvas space on tablets & small laptops (1024-1279px)
+  // 1280 - 1439: Grid is inline sidebar; Metrics / Radicals is overlay if Grid is open
+  // >= 1440: Both Grid and Metrics / Radicals can be inline simultaneously
   const isGridOverlay = viewportWidth < 1280;
   const isMetricsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
+  const isRadicalsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
 
   const isZenMode = !showGridDrawer && !showMetricsDrawer && !showRadicals;
 
@@ -70,7 +71,16 @@ export function useAppLayout({
     }
   }, [showGridDrawer, showMetricsDrawer, showRadicals, setShowGridDrawer, setShowMetricsDrawer, setShowRadicals, showToast]);
 
-  const toggleGridDrawer = useCallback(() => setShowGridDrawer((prev) => !prev), [setShowGridDrawer]);
+  const toggleGridDrawer = useCallback(() => {
+    setShowGridDrawer((prev) => {
+      const next = !prev;
+      if (next && viewportWidth < 640) {
+        setShowMetricsDrawer(false);
+        setShowRadicals(false);
+      }
+      return next;
+    });
+  }, [viewportWidth, setShowGridDrawer, setShowMetricsDrawer, setShowRadicals]);
 
   const toggleMetricsDrawer = useCallback(() => {
     const next = !showMetricsDrawer;
@@ -78,8 +88,11 @@ export function useAppLayout({
     if (next && showRadicals) {
       setShowRadicals(false);
     }
+    if (next && viewportWidth < 640 && showGridDrawer) {
+      setShowGridDrawer(false);
+    }
     setShowMetricsDrawer(next);
-  }, [showMetricsDrawer, showRadicals, setShowMetricsDrawer, setShowRadicals]);
+  }, [showMetricsDrawer, showRadicals, showGridDrawer, viewportWidth, setShowMetricsDrawer, setShowRadicals, setShowGridDrawer]);
 
   const toggleRadicals = useCallback(() => {
     const next = !showRadicals;
@@ -87,8 +100,11 @@ export function useAppLayout({
     if (next && showMetricsDrawer) {
       setShowMetricsDrawer(false);
     }
+    if (next && viewportWidth < 640 && showGridDrawer) {
+      setShowGridDrawer(false);
+    }
     setShowRadicals(next);
-  }, [showRadicals, showMetricsDrawer, setShowRadicals, setShowMetricsDrawer]);
+  }, [showRadicals, showMetricsDrawer, showGridDrawer, viewportWidth, setShowRadicals, setShowMetricsDrawer, setShowGridDrawer]);
 
   const handleCloseGridDrawer = useCallback(() => setShowGridDrawer(false), [setShowGridDrawer]);
   const handleCloseMetricsDrawer = useCallback(() => setShowMetricsDrawer(false), [setShowMetricsDrawer]);
@@ -129,6 +145,7 @@ export function useAppLayout({
     viewportWidth,
     isGridOverlay,
     isMetricsOverlay,
+    isRadicalsOverlay,
     isZenMode,
     toggleZenMode,
     toggleGridDrawer,

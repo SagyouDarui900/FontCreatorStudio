@@ -62,6 +62,12 @@ export const STORAGE_KEYS = {
     primary: 'fcs_toolbar_position',
     legacy: ['font_editor_toolbar_position'],
   },
+  RADICALS_WIDTH: {
+    primary: 'fcs_radicals_width',
+  },
+  RADICALS_DENSITY: {
+    primary: 'fcs_radicals_density',
+  },
 } as const;
 
 export function getStorageItem(keyDef: StorageKeyDefinition, defaultValue: string | null = null): string | null {

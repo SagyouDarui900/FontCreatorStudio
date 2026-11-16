@@ -45,6 +45,8 @@ export function usePixelGridState({
 
   const [history, setHistory] = useState<Uint8Array[]>([]);
   const [historyIdx, setHistoryIdx] = useState<number>(-1);
+  const historyRef = useRef<Uint8Array[]>([]);
+  const historyIdxRef = useRef<number>(-1);
 
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -68,94 +70,145 @@ export function usePixelGridState({
     }
   }, [selectedUnicode]);
 
+  const prevIsOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      const settings = projectRef.current.pixelFontSettings;
+      if (settings) {
+        const w = settings.defaultWidth || 16;
+        const h = settings.defaultHeight || 16;
+        const found = PRESET_SIZES.find((p) => p.w === w && p.h === h);
+        setPreset(found ? found.id : 'custom');
+        setGridWidth(w);
+        setGridHeight(h);
+        setDotShape(settings.dotShape || 'square');
+        setMergeContours(settings.mergeContours ?? true);
+      }
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
   const autoSaveGlyph = useCallback(
-    (targetGrid: Uint8Array, uCode: number = currentUnicode, customW?: number, customH?: number) => {
-      const proj = projectRef.current;
+    (
+      targetGrid: Uint8Array,
+      uCode: number = currentUnicode,
+      customW?: number,
+      customH?: number,
+      customDotShape?: PixelDotShape,
+      customMergeContours?: boolean
+    ) => {
       const w = customW ?? gridWidth;
       const h = customH ?? gridHeight;
-      const g = proj.glyphs[uCode] || currentGlyph;
-      const contours = pixelGridToContours(
-        targetGrid,
-        w,
-        h,
-        proj.metadata.unitsPerEm || 1000,
-        proj.metadata.ascender || 800,
-        proj.metadata.descender || -200,
-        g.advanceWidth || 1000,
-        dotShape,
-        mergeContours
-      );
+      const shape = customDotShape ?? dotShape;
+      const merge = customMergeContours ?? mergeContours;
 
-      const vectorContoursBackup =
-        g.vectorContoursBackup || (g.pixelData ? undefined : g.contours && g.contours.length > 0 ? g.contours : undefined);
+      setProject((prev) => {
+        const upm = prev.metadata.unitsPerEm || 1000;
+        const ascender = prev.metadata.ascender ?? 800;
+        const descender = prev.metadata.descender ?? -200;
+        const existing = prev.glyphs[uCode];
+        const fallbackChar = uCode > 0 ? String.fromCodePoint(uCode) : 'A';
+        const g: GlyphData = existing || {
+          unicode: uCode,
+          char: fallbackChar,
+          name: `uni${(uCode || 65).toString(16).toUpperCase().padStart(4, '0')}`,
+          advanceWidth: upm,
+          lsb: 50,
+          contours: [],
+        };
 
-      const pixelData: PixelGlyphData = {
-        width: w,
-        height: h,
-        data: Array.from(targetGrid),
-        shape: dotShape,
-      };
-
-      setProject((prev) => ({
-        ...prev,
-        pixelFontSettings: {
-          isPixelFontProject: true,
-          defaultWidth: w,
-          defaultHeight: h,
-          dotShape,
-          mergeContours,
-        },
-        glyphs: {
-          ...prev.glyphs,
-          [uCode]: {
-            ...g,
-            unicode: uCode,
-            char: g.char || String.fromCodePoint(uCode),
-            contours,
-            vectorContoursBackup,
-            pixelData,
-            modified: true,
-          },
-        },
-        updatedAt: Date.now(),
-      }));
-    },
-    [currentUnicode, currentGlyph, gridWidth, gridHeight, dotShape, mergeContours, setProject]
-  );
-
-  const loadGlyphPixelGrid = useCallback(
-    (uCode: number, w: number, h: number) => {
-      const proj = projectRef.current;
-      const g = proj.glyphs[uCode];
-      let loadedGrid = new Uint8Array(w * h);
-
-      if (g && g.pixelData && g.pixelData.data && g.pixelData.data.length > 0) {
-        if (g.pixelData.data.length === w * h) {
-          loadedGrid = new Uint8Array(g.pixelData.data);
-        } else if (g.pixelData.width && g.pixelData.height && g.pixelData.data.length === g.pixelData.width * g.pixelData.height) {
-          loadedGrid = new Uint8Array(resamplePixelGrid(g.pixelData.data, g.pixelData.width, g.pixelData.height, w, h));
-          autoSaveGlyph(loadedGrid, uCode, w, h);
-        }
-      } else if (g && g.contours && g.contours.length > 0) {
-        loadedGrid = new Uint8Array(
-          rasterizeGlyphToPixelGrid(
-            g,
-            w,
-            h,
-            proj.metadata.unitsPerEm || 1000,
-            proj.metadata.ascender || 800,
-            proj.metadata.descender || -200
-          )
+        const contours = pixelGridToContours(
+          targetGrid,
+          w,
+          h,
+          upm,
+          ascender,
+          descender,
+          g.advanceWidth || upm,
+          shape,
+          merge
         );
-      }
 
-      currentGridRef.current = loadedGrid;
-      setGrid(loadedGrid);
-      setHistory([new Uint8Array(loadedGrid)]);
-      setHistoryIdx(0);
+        const vectorContoursBackup =
+          g.vectorContoursBackup || (g.pixelData ? undefined : g.contours && g.contours.length > 0 ? g.contours : undefined);
+
+        const pixelData: PixelGlyphData = {
+          width: w,
+          height: h,
+          data: Array.from(targetGrid),
+          shape,
+        };
+
+        return {
+          ...prev,
+          pixelFontSettings: {
+            isPixelFontProject: true,
+            defaultWidth: w,
+            defaultHeight: h,
+            dotShape: shape,
+            mergeContours: merge,
+          },
+          glyphs: {
+            ...prev.glyphs,
+            [uCode]: {
+              ...g,
+              unicode: uCode,
+              char: g.char || fallbackChar,
+              contours,
+              vectorContoursBackup,
+              pixelData,
+              modified: true,
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
     },
-    [autoSaveGlyph]
+    [currentUnicode, gridWidth, gridHeight, dotShape, mergeContours, setProject]
   );
+
+  const autoSaveGlyphRef = useRef(autoSaveGlyph);
+  autoSaveGlyphRef.current = autoSaveGlyph;
+
+  const loadGlyphPixelGrid = useCallback((uCode: number, w: number, h: number) => {
+    const proj = projectRef.current;
+    const g = proj.glyphs[uCode];
+    let loadedGrid = new Uint8Array(w * h);
+
+    if (g && g.pixelData && g.pixelData.data && g.pixelData.data.length > 0) {
+      if (g.pixelData.data.length === w * h && g.pixelData.width === w && g.pixelData.height === h) {
+        loadedGrid = new Uint8Array(g.pixelData.data);
+      } else if (
+        g.pixelData.width &&
+        g.pixelData.height &&
+        g.pixelData.data.length === g.pixelData.width * g.pixelData.height
+      ) {
+        loadedGrid = new Uint8Array(resamplePixelGrid(g.pixelData.data, g.pixelData.width, g.pixelData.height, w, h));
+        autoSaveGlyphRef.current(loadedGrid, uCode, w, h);
+      } else if (g.pixelData.data.length === w * h) {
+        loadedGrid = new Uint8Array(g.pixelData.data);
+      }
+    } else if (g && g.contours && g.contours.length > 0) {
+      loadedGrid = new Uint8Array(
+        rasterizeGlyphToPixelGrid(
+          g,
+          w,
+          h,
+          proj.metadata.unitsPerEm || 1000,
+          proj.metadata.ascender ?? 800,
+          proj.metadata.descender ?? -200
+        )
+      );
+    }
+
+    currentGridRef.current = loadedGrid;
+    const initialHist = [new Uint8Array(loadedGrid)];
+    historyRef.current = initialHist;
+    historyIdxRef.current = 0;
+    setGrid(loadedGrid);
+    setHistory(initialHist);
+    setHistoryIdx(0);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -165,52 +218,65 @@ export function usePixelGridState({
 
   const pushHistory = useCallback(
     (nextGrid: Uint8Array) => {
-      const newHistory: Uint8Array[] = history.slice(0, historyIdx + 1).map((h) => new Uint8Array(h));
+      const prevHist = historyRef.current;
+      const prevIdx = historyIdxRef.current;
+      const newHistory: Uint8Array[] = prevHist.slice(0, prevIdx + 1).map((h) => new Uint8Array(h));
       newHistory.push(new Uint8Array(nextGrid));
       if (newHistory.length > 40) newHistory.shift();
+      const nextIdx = newHistory.length - 1;
+
+      historyRef.current = newHistory;
+      historyIdxRef.current = nextIdx;
+      currentGridRef.current = nextGrid;
+
       setHistory(newHistory);
-      setHistoryIdx(newHistory.length - 1);
+      setHistoryIdx(nextIdx);
       setGrid(nextGrid);
-      autoSaveGlyph(nextGrid, currentUnicode);
+      autoSaveGlyphRef.current(nextGrid, currentUnicode);
     },
-    [history, historyIdx, autoSaveGlyph, currentUnicode]
+    [currentUnicode]
   );
 
   const handleUndo = useCallback(() => {
-    if (historyIdx > 0) {
-      const targetIdx = historyIdx - 1;
-      const targetGrid = new Uint8Array(history[targetIdx]);
+    if (historyIdxRef.current > 0) {
+      const targetIdx = historyIdxRef.current - 1;
+      const targetGrid = new Uint8Array(historyRef.current[targetIdx]);
+      historyIdxRef.current = targetIdx;
+      currentGridRef.current = targetGrid;
       setHistoryIdx(targetIdx);
       setGrid(targetGrid);
-      autoSaveGlyph(targetGrid, currentUnicode);
+      autoSaveGlyphRef.current(targetGrid, currentUnicode);
     }
-  }, [history, historyIdx, autoSaveGlyph, currentUnicode]);
+  }, [currentUnicode]);
 
   const handleRedo = useCallback(() => {
-    if (historyIdx < history.length - 1) {
-      const targetIdx = historyIdx + 1;
-      const targetGrid = new Uint8Array(history[targetIdx]);
+    if (historyIdxRef.current < historyRef.current.length - 1) {
+      const targetIdx = historyIdxRef.current + 1;
+      const targetGrid = new Uint8Array(historyRef.current[targetIdx]);
+      historyIdxRef.current = targetIdx;
+      currentGridRef.current = targetGrid;
       setHistoryIdx(targetIdx);
       setGrid(targetGrid);
-      autoSaveGlyph(targetGrid, currentUnicode);
+      autoSaveGlyphRef.current(targetGrid, currentUnicode);
     }
-  }, [history, historyIdx, autoSaveGlyph, currentUnicode]);
+  }, [currentUnicode]);
 
   const handleShift = useCallback(
     (dx: number, dy: number) => {
+      const src = currentGridRef.current;
       const next = new Uint8Array(gridWidth * gridHeight);
       for (let y = 0; y < gridHeight; y++) {
         for (let x = 0; x < gridWidth; x++) {
           const nx = x + dx;
           const ny = y + dy;
           if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
-            next[ny * gridWidth + nx] = grid[y * gridWidth + x];
+            next[ny * gridWidth + nx] = src[y * gridWidth + x];
           }
         }
       }
       pushHistory(next);
     },
-    [gridWidth, gridHeight, grid, pushHistory]
+    [gridWidth, gridHeight, pushHistory]
   );
 
   const handlePresetSelect = (p: PixelGridPreset) => {
@@ -219,7 +285,6 @@ export function usePixelGridState({
     if (found && p !== 'custom') {
       setGridWidth(found.w);
       setGridHeight(found.h);
-      loadGlyphPixelGrid(currentUnicode, found.w, found.h);
     }
   };
 
@@ -243,28 +308,31 @@ export function usePixelGridState({
   };
 
   const handleInvert = () => {
+    const src = currentGridRef.current;
     const next = new Uint8Array(gridWidth * gridHeight);
-    for (let i = 0; i < grid.length; i++) {
-      next[i] = grid[i] === 1 ? 0 : 1;
+    for (let i = 0; i < src.length; i++) {
+      next[i] = src[i] === 1 ? 0 : 1;
     }
     pushHistory(next);
   };
 
   const handleFlipH = () => {
+    const src = currentGridRef.current;
     const next = new Uint8Array(gridWidth * gridHeight);
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        next[y * gridWidth + (gridWidth - 1 - x)] = grid[y * gridWidth + x];
+        next[y * gridWidth + (gridWidth - 1 - x)] = src[y * gridWidth + x];
       }
     }
     pushHistory(next);
   };
 
   const handleFlipV = () => {
+    const src = currentGridRef.current;
     const next = new Uint8Array(gridWidth * gridHeight);
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        next[(gridHeight - 1 - y) * gridWidth + x] = grid[y * gridWidth + x];
+        next[(gridHeight - 1 - y) * gridWidth + x] = src[y * gridWidth + x];
       }
     }
     pushHistory(next);
@@ -275,20 +343,22 @@ export function usePixelGridState({
       onShowToast('回転は正方形グリッドのみ対応しています', 'info');
       return;
     }
+    const src = currentGridRef.current;
     const next = new Uint8Array(gridWidth * gridHeight);
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        next[x * gridWidth + (gridHeight - 1 - y)] = grid[y * gridWidth + x];
+        next[x * gridWidth + (gridHeight - 1 - y)] = src[y * gridWidth + x];
       }
     }
     pushHistory(next);
   };
 
   const handleAddOutline = () => {
-    const next = new Uint8Array(grid);
+    const src = currentGridRef.current;
+    const next = new Uint8Array(src);
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        if (grid[y * gridWidth + x] === 1) {
+        if (src[y * gridWidth + x] === 1) {
           const neighbors = [
             [x + 1, y],
             [x - 1, y],
@@ -311,10 +381,11 @@ export function usePixelGridState({
   };
 
   const handleAddShadow = () => {
-    const next = new Uint8Array(grid);
+    const src = currentGridRef.current;
+    const next = new Uint8Array(src);
     for (let y = 0; y < gridHeight; y++) {
       for (let x = 0; x < gridWidth; x++) {
-        if (grid[y * gridWidth + x] === 1) {
+        if (src[y * gridWidth + x] === 1) {
           const nx = x + 1;
           const ny = y + 1;
           if (nx < gridWidth && ny < gridHeight) {

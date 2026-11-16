@@ -28,16 +28,16 @@ export const PlacementSelector: React.FC<PlacementSelectorProps> = ({
 }) => {
   return (
     <div
-      className={`p-2.5 border-b space-y-1.5 shrink-0 ${
+      className={`px-2.5 py-1.5 border-b space-y-1 shrink-0 ${
         isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#121c15] border-[#25362b]'
       }`}
     >
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="font-bold flex items-center space-x-1">
-          <Combine className="w-3.5 h-3.5 text-emerald-600" />
-          <span>挿入配置 &amp; 骨格プロポーション:</span>
+      <div className="flex flex-wrap items-center justify-between gap-1 text-[11px]">
+        <span className="font-bold flex items-center space-x-1 min-w-0">
+          <Combine className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span className="truncate">挿入配置 &amp; 骨格プロポーション:</span>
         </span>
-        <span className="text-[10px] text-stone-500 font-mono">
+        <span className="text-[10px] text-stone-500 font-mono whitespace-nowrap shrink-0">
           {PLACEMENT_ITEMS.find((item) => item.id === placement)?.label || ''}
           （{PLACEMENT_ITEMS.find((item) => item.id === placement)?.sub || ''}）
         </span>
@@ -50,7 +50,7 @@ export const PlacementSelector: React.FC<PlacementSelectorProps> = ({
               key={item.id}
               type="button"
               onClick={() => setPlacement(item.id)}
-              className={`py-1 px-1 rounded border text-center transition-colors cursor-pointer flex flex-col items-center justify-center ${
+              className={`min-w-0 overflow-hidden py-0.5 px-0.5 rounded border text-center transition-colors cursor-pointer flex flex-col items-center justify-center ${
                 isSelected
                   ? isLight
                     ? 'bg-emerald-800 border-emerald-900 text-white font-bold shadow-xs'
@@ -59,10 +59,11 @@ export const PlacementSelector: React.FC<PlacementSelectorProps> = ({
                   ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-emerald-50'
                   : 'bg-[#18231c] border-[#25362b] text-stone-300 hover:bg-[#202d24]'
               }`}
+              title={`${item.label}（${item.sub}）`}
             >
-              <span className="font-bold leading-tight">{item.label}</span>
+              <span className="font-bold leading-tight truncate max-w-full">{item.label}</span>
               <span
-                className={`text-[9px] scale-90 -mt-0.5 ${
+                className={`text-[8.5px] leading-tight truncate max-w-full ${
                   isSelected ? 'text-emerald-100' : 'text-stone-400'
                 }`}
               >

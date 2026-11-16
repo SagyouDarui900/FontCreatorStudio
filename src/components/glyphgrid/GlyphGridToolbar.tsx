@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { GridDensity } from './types';
 import { ThemeClasses, getThemeClasses } from '../../utils/theme';
+import { STORAGE_KEYS, setStorageItem } from '../../utils/storageKeys';
 import { useModalContext } from '../../contexts/ModalContext';
 
 export interface GlyphGridToolbarProps {
@@ -205,10 +206,10 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
         className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         {/* Row 1: Title, Count, Density control, and Collapse button */}
-        <div className="flex items-center justify-between gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex items-center space-x-1.5 min-w-0">
             <span
-              className={`text-xs font-bold uppercase tracking-wider truncate ${themeClasses.textPrimary}`}
+              className={`text-xs font-bold uppercase tracking-wider whitespace-nowrap ${themeClasses.textPrimary}`}
             >
               文字一覧
             </span>
@@ -225,8 +226,8 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
           </div>
 
           {/* Density switch and close button */}
-          <div className="flex items-center space-x-1 shrink-0">
-            {/* Width Presets (狭: 230px, 標: 264px, 広: 380px) */}
+          <div className="flex items-center space-x-1 shrink-0 ml-auto">
+            {/* Width Presets (狭: 244px, 標: 304px, 広: 420px) */}
             {!effectiveIsOverlay && (
               <div
                 className={`hidden sm:flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
@@ -234,16 +235,12 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               >
                 <button
                   onClick={() => {
-                    setSidebarWidth(230);
-                    try {
-                      localStorage.setItem('fontforge_sidebar_width', '230');
-                    } catch (error) {
-                      console.warn('Failed to persist sidebar width:', error);
-                    }
+                    setSidebarWidth(244);
+                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '244');
                   }}
-                  title="幅: 狭め (230px) - キャンバス重視"
+                  title="幅: 狭め (244px) - キャンバス重視"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth <= 245
+                    sidebarWidth <= 270
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
                   }`}
@@ -252,16 +249,12 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                 </button>
                 <button
                   onClick={() => {
-                    setSidebarWidth(264);
-                    try {
-                      localStorage.setItem('fontforge_sidebar_width', '264');
-                    } catch (error) {
-                      console.warn('Failed to persist sidebar width:', error);
-                    }
+                    setSidebarWidth(304);
+                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '304');
                   }}
-                  title="幅: 標準 (264px)"
+                  title="幅: 標準 (304px)"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth > 245 && sidebarWidth < 321
+                    sidebarWidth > 270 && sidebarWidth < 360
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
                   }`}
@@ -270,16 +263,12 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                 </button>
                 <button
                   onClick={() => {
-                    setSidebarWidth(380);
-                    try {
-                      localStorage.setItem('fontforge_sidebar_width', '380');
-                    } catch (error) {
-                      console.warn('Failed to persist sidebar width:', error);
-                    }
+                    setSidebarWidth(420);
+                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '420');
                   }}
-                  title="幅: 広め (380px) - 一覧性重視"
+                  title="幅: 広め (420px) - 一覧性重視"
                   className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth >= 321
+                    sidebarWidth >= 360
                       ? themeClasses.activeTool
                       : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
                   }`}
@@ -295,7 +284,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             >
               <button
                 onClick={() => setGridDensity('large')}
-                title="大 (3列・見やすい)"
+                title="大 (見やすい)"
                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
                   gridDensity === 'large'
                     ? themeClasses.activeTool
@@ -306,7 +295,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               </button>
               <button
                 onClick={() => setGridDensity('medium')}
-                title="中 (4列・標準)"
+                title="中 (標準)"
                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
                   gridDensity === 'medium'
                     ? themeClasses.activeTool
@@ -317,7 +306,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               </button>
               <button
                 onClick={() => setGridDensity('compact')}
-                title="小 (5列・一覧性重視)"
+                title="小 (一覧性重視)"
                 className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
                   gridDensity === 'compact'
                     ? themeClasses.activeTool
@@ -485,7 +474,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                       className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
                         activeCategoryId === pill.id
                           ? `${themeClasses.activeTool} shadow-xs border`
-                          : `${themeClasses.textMuted} ${themeClasses.activeToolHover} active:scale-95`
+                          : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                       }`}
                     >
                       {pill.label}

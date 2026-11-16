@@ -43,10 +43,15 @@ export function usePixelDrawing({
   const [previewGrid, setPreviewGrid] = useState<Uint8Array | null>(null);
   const [hoverPos, setHoverPos] = useState<Point | null>(null);
 
-  const getGridCoordFromEvent = (e: React.PointerEvent<HTMLCanvasElement>): Point | null => {
+  const getGridCoordFromEvent = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+    clamp: boolean = false
+  ): Point | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
@@ -56,25 +61,39 @@ export function usePixelDrawing({
     const cellW = canvas.width / gridWidth;
     const cellH = canvas.height / gridHeight;
 
-    const gx = Math.floor(rawX / cellW);
-    const gy = Math.floor(rawY / cellH);
+    const rawGx = Math.floor(rawX / cellW);
+    const rawGy = Math.floor(rawY / cellH);
 
-    if (gx < 0 || gx >= gridWidth || gy < 0 || gy >= gridHeight) return null;
-    return { x: gx, y: gy };
+    if (clamp) {
+      return {
+        x: Math.max(0, Math.min(gridWidth - 1, rawGx)),
+        y: Math.max(0, Math.min(gridHeight - 1, rawGy)),
+      };
+    }
+
+    if (rawGx < 0 || rawGx >= gridWidth || rawGy < 0 || rawGy >= gridHeight) return null;
+    return { x: rawGx, y: rawGy };
   };
 
   const applyBrushAt = (targetGrid: Uint8Array, gx: number, gy: number, val: number) => {
-    const radius = Math.floor(brushSize / 2);
     const applySingle = (x: number, y: number) => {
-      if (brushSize === 1) {
+      if (brushSize <= 1) {
         if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
           targetGrid[y * gridWidth + x] = val;
         }
       } else {
-        for (let dy = -radius; dy <= (brushSize % 2 === 0 ? radius - 1 : radius); dy++) {
-          for (let dx = -radius; dx <= (brushSize % 2 === 0 ? radius - 1 : radius); dx++) {
+        const minD = -Math.floor(brushSize / 2);
+        const maxD = minD + brushSize - 1;
+        const center = (minD + maxD) / 2;
+        const maxR = (brushSize - 0.5) / 2;
+        const maxRSq = maxR * maxR;
+
+        for (let dy = minD; dy <= maxD; dy++) {
+          for (let dx = minD; dx <= maxD; dx++) {
             if (brushStamp === 'round' && brushSize > 2) {
-              if (dx * dx + dy * dy > (radius + 0.2) * (radius + 0.2)) continue;
+              const ox = dx - center;
+              const oy = dy - center;
+              if (ox * ox + oy * oy > maxRSq) continue;
             }
             const nx = x + dx;
             const ny = y + dy;
@@ -104,7 +123,7 @@ export function usePixelDrawing({
     e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
-    const pt = getGridCoordFromEvent(e);
+    const pt = getGridCoordFromEvent(e, false);
     if (!pt) return;
 
     setIsDrawing(true);
@@ -143,10 +162,12 @@ export function usePixelDrawing({
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
-    const pt = getGridCoordFromEvent(e);
-    setHoverPos(pt);
+    const hoverPt = getGridCoordFromEvent(e, false);
+    setHoverPos(hoverPt);
 
-    if (!isDrawing || !pt) return;
+    if (!isDrawing) return;
+    const pt = hoverPt || getGridCoordFromEvent(e, true);
+    if (!pt) return;
 
     const currentVal = isErasingStrokeRef.current ? 0 : 1;
 

@@ -23,12 +23,18 @@ export const RulerMeasurementLayer: React.FC<RulerMeasurementLayerProps> = React
     const isOrthogonal = Math.abs(dx) < 2 || Math.abs(dy) < 2;
     const midX = (start.x + end.x) / 2;
     const midY = (start.y + end.y) / 2;
+    // Offset compact readout label perpendicular to the ruler line so it stays clear of measured strokes
+    const nx = -dy / dist;
+    const ny = dx / dist;
+    const labelOffset = 18 / zoom;
+    const labelX = midX + nx * labelOffset;
+    const labelY = midY + ny * labelOffset;
 
     return (
-      <g className="ruler-measurement-layer select-none">
+      <g className="ruler-measurement-layer select-none pointer-events-none">
         {/* Delta X / Delta Y Projection lines */}
         {Math.abs(dx) > 10 && Math.abs(dy) > 10 && (
-          <g className="pointer-events-none">
+          <g>
             <line
               x1={start.x}
               y1={start.y}
@@ -79,198 +85,52 @@ export const RulerMeasurementLayer: React.FC<RulerMeasurementLayerProps> = React
           x2={end.x}
           y2={end.y}
           stroke="#0284c7"
-          strokeWidth={2.5 / zoom}
-          className="pointer-events-none"
+          strokeWidth={2 / zoom}
         />
 
         {/* Start Point Marker */}
         <circle
           cx={start.x}
           cy={start.y}
-          r={4.5 / zoom}
+          r={4 / zoom}
           fill="#0284c7"
           stroke="#ffffff"
           strokeWidth={1.5 / zoom}
-          className="pointer-events-none"
         />
 
         {/* End Point Marker */}
         <circle
           cx={end.x}
           cy={end.y}
-          r={4.5 / zoom}
+          r={4 / zoom}
           fill="#0369a1"
           stroke="#ffffff"
           strokeWidth={1.5 / zoom}
-          className="pointer-events-none"
         />
 
-        {/* Measurement HUD Pill Box */}
-        <g transform={`translate(${midX}, ${midY})`}>
+        {/* Lightweight Non-Interactive Measurement Readout */}
+        <g transform={`translate(${labelX}, ${labelY})`}>
           <rect
-            x={-78 / zoom}
-            y={-15 / zoom}
-            width={156 / zoom}
-            height={30 / zoom}
-            rx={15 / zoom}
-            fill="#0369a1"
-            fillOpacity={0.94}
-            stroke="#ffffff"
-            strokeWidth={1 / zoom}
-            className="pointer-events-none"
+            x={-48 / zoom}
+            y={-9 / zoom}
+            width={96 / zoom}
+            height={18 / zoom}
+            rx={4 / zoom}
+            fill="#0f172a"
+            fillOpacity={0.85}
           />
           <text
-            x={-16 / zoom}
-            y={-1 / zoom}
-            fill="#ffffff"
-            fontSize={10 / zoom}
+            x={0}
+            y={0.5 / zoom}
+            fill="#e0f2fe"
+            fontSize={9.5 / zoom}
             fontWeight="bold"
             fontFamily="monospace"
             textAnchor="middle"
             dominantBaseline="middle"
-            className="pointer-events-none"
           >
-            {Math.round(dist)}px
+            {Math.round(dist)}px {positiveAngle}°{isOrthogonal ? '・直' : ''}
           </text>
-          <text
-            x={-16 / zoom}
-            y={9.5 / zoom}
-            fill="#bae6fd"
-            fontSize={7.5 / zoom}
-            fontFamily="monospace"
-            textAnchor="middle"
-            className="pointer-events-none"
-          >
-            {positiveAngle}° {isOrthogonal ? '(直交)' : ''}
-          </text>
-
-          {/* Quick Clear / Delete Button on the pill */}
-          {onClear && (
-            <g
-              onClick={(e) => {
-                e.stopPropagation();
-                onClear();
-              }}
-              className="cursor-pointer hover:opacity-80 active:scale-95 transition-transform pointer-events-auto"
-              transform={`translate(${58 / zoom}, 0)`}
-            >
-              <title>定規を消去 (Esc/Delete)</title>
-              <circle cx={0} cy={0} r={8.5 / zoom} fill="#ef4444" stroke="#ffffff" strokeWidth={0.8 / zoom} />
-              <text
-                x={0}
-                y={3.5 / zoom}
-                fill="#ffffff"
-                fontSize={10 / zoom}
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                ×
-              </text>
-            </g>
-          )}
-
-          {/* Interactive Action Buttons when measurement is completed */}
-          {!active && dist >= 8 && (
-            <g transform={`translate(0, ${24 / zoom})`} className="pointer-events-auto cursor-pointer">
-              {/* Draw Line Button */}
-              {onDrawLine && (
-                <g
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDrawLine();
-                  }}
-                  className="hover:opacity-90 active:scale-95 transition-transform"
-                >
-                  <rect
-                    x={-74 / zoom}
-                    y={0}
-                    width={46 / zoom}
-                    height={18 / zoom}
-                    rx={9 / zoom}
-                    fill="#10b981"
-                    stroke="#ffffff"
-                    strokeWidth={0.8 / zoom}
-                  />
-                  <text
-                    x={-51 / zoom}
-                    y={11.5 / zoom}
-                    fill="#ffffff"
-                    fontSize={8 / zoom}
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    直線化
-                  </text>
-                </g>
-              )}
-
-              {/* Diagonal Guide Button (if not purely orthogonal) */}
-              {onConvertToGuide && !isOrthogonal && (
-                <g
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onConvertToGuide('diagonal');
-                  }}
-                  className="hover:opacity-90 active:scale-95 transition-transform"
-                  transform={`translate(${-24 / zoom}, 0)`}
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={56 / zoom}
-                    height={18 / zoom}
-                    rx={9 / zoom}
-                    fill="#06b6d4"
-                    stroke="#ffffff"
-                    strokeWidth={0.8 / zoom}
-                  />
-                  <text
-                    x={28 / zoom}
-                    y={11.5 / zoom}
-                    fill="#ffffff"
-                    fontSize={8 / zoom}
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    斜めガイド
-                  </text>
-                </g>
-              )}
-
-              {/* Orthogonal Guide Button */}
-              {onConvertToGuide && (
-                <g
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onConvertToGuide(isOrthogonal ? 'auto' : 'h');
-                  }}
-                  className="hover:opacity-90 active:scale-95 transition-transform"
-                  transform={`translate(${isOrthogonal ? (-20 / zoom) : (36 / zoom)}, 0)`}
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={(isOrthogonal ? 64 : 44) / zoom}
-                    height={18 / zoom}
-                    rx={9 / zoom}
-                    fill="#0284c7"
-                    stroke="#ffffff"
-                    strokeWidth={0.8 / zoom}
-                  />
-                  <text
-                    x={(isOrthogonal ? 32 : 22) / zoom}
-                    y={11.5 / zoom}
-                    fill="#ffffff"
-                    fontSize={8 / zoom}
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    {isOrthogonal ? 'ガイド化' : '水平化'}
-                  </text>
-                </g>
-              )}
-            </g>
-          )}
         </g>
       </g>
     );

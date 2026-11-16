@@ -69,14 +69,14 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
       {/* Target Character Input */}
       <div className="space-y-1">
         <label className="text-[11px] font-bold block">抽出する部首または漢字:</label>
-        <div className="flex space-x-2">
+        <div className="flex gap-2 min-w-0">
           <input
             type="text"
             value={extractChar}
             onChange={(e) => setExtractChar(e.target.value)}
             placeholder="氵, 亻, 木, 語, 海..."
             maxLength={10}
-            className={`flex-1 px-3 py-1.5 rounded-md border text-sm font-bold text-center ${
+            className={`flex-1 min-w-0 px-2.5 py-1.5 rounded-md border text-sm font-bold text-center ${
               isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#19241e] border-[#25362b] text-emerald-100'
             }`}
           />
@@ -84,13 +84,13 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
             type="button"
             onClick={() => onPerformExtraction(extractChar, extractRegion)}
             disabled={isExtracting}
-            className={`px-3 py-1.5 rounded-md font-bold text-xs flex items-center space-x-1 shadow-xs transition-colors cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-md font-bold text-xs flex items-center gap-1 shadow-xs transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
               isLight
                 ? 'bg-emerald-800 text-white hover:bg-emerald-900'
                 : 'bg-emerald-600 text-white hover:bg-emerald-500'
             }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isExtracting ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isExtracting ? 'animate-spin' : ''}`} />
             <span>抽出実行</span>
           </button>
         </div>
@@ -169,13 +169,13 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
       {/* Region Crop */}
       <div className="space-y-1">
         <label className="text-[10px] font-bold text-stone-500 block">抽出部位 (複合漢字から切り出し):</label>
-        <div className="grid grid-cols-5 gap-1 text-[10px]">
+        <div className="flex flex-wrap gap-1 text-[10px]">
           {[
             { id: 'full', label: '全体' },
-            { id: 'hen', label: '偏 (左側)' },
-            { id: 'tsukuri', label: '旁 (右側)' },
-            { id: 'kanmuri', label: '冠 (上側)' },
-            { id: 'ashi', label: '脚 (下側)' },
+            { id: 'hen', label: '偏(左)' },
+            { id: 'tsukuri', label: '旁(右)' },
+            { id: 'kanmuri', label: '冠(上)' },
+            { id: 'ashi', label: '脚(下)' },
           ].map((item) => (
             <button
               key={item.id}
@@ -185,7 +185,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
                 setExtractRegion(reg);
                 onPerformExtraction(extractChar, reg);
               }}
-              className={`py-1 rounded border text-center transition-colors cursor-pointer ${
+              className={`flex-1 min-w-[54px] py-1 px-1 rounded border text-center whitespace-nowrap transition-colors cursor-pointer ${
                 extractRegion === item.id
                   ? isLight
                     ? 'bg-emerald-800 text-white font-bold border-emerald-900'
@@ -236,20 +236,21 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="grid grid-cols-2 gap-1.5 pt-1">
         <button
           type="button"
           onClick={() => onInsertWithPlacement(extractedContours)}
           disabled={extractedContours.length === 0}
-          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors cursor-pointer ${
+          className={`min-w-0 overflow-hidden py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1 shadow-sm transition-colors cursor-pointer ${
             extractedContours.length > 0
               ? isLight
                 ? 'bg-emerald-800 text-white hover:bg-emerald-900'
                 : 'bg-emerald-600 text-white hover:bg-emerald-500'
               : 'bg-stone-300 text-stone-500 cursor-not-allowed'
           }`}
+          title="キャンバスに挿入"
         >
-          <span>キャンバスに挿入</span>
+          <span className="truncate">キャンバス挿入</span>
         </button>
 
         <button
@@ -261,16 +262,17 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
             )
           }
           disabled={extractedContours.length === 0}
-          className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center space-x-1 border transition-colors cursor-pointer ${
+          className={`min-w-0 overflow-hidden py-2 px-2 rounded-lg font-bold text-[11px] flex items-center justify-center gap-1 border transition-colors cursor-pointer ${
             extractedContours.length > 0
               ? isLight
                 ? 'bg-white border-emerald-700 text-emerald-900 hover:bg-emerald-50'
                 : 'bg-[#1a261f] border-emerald-500 text-emerald-200 hover:bg-[#223127]'
               : 'border-stone-300 text-stone-400 cursor-not-allowed'
           }`}
+          title="マイパーツに保存"
         >
-          <BookmarkPlus className="w-3.5 h-3.5" />
-          <span>マイパーツに保存</span>
+          <BookmarkPlus className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">マイパーツ保存</span>
         </button>
       </div>
     </div>

@@ -43,7 +43,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         <button
           type="button"
           onClick={onSelectPrevGlyph}
-          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
+          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 cursor-pointer"
           title="前の文字 ([ または Alt+←)"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -61,7 +61,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         <button
           type="button"
           onClick={onSelectNextGlyph}
-          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 transition-colors cursor-pointer"
+          className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 cursor-pointer"
           title="次の文字 (] または Alt+→)"
         >
           <ChevronRight className="w-3.5 h-3.5" />
@@ -78,7 +78,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
                 onGenerateDakutenTarget(dInfo.daku!, false);
                 showCanvasToast(`濁音「${dInfo.daku}」を自動生成しました！`);
               }}
-              className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 transition-colors cursor-pointer"
+              className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 cursor-pointer"
               title={`濁音「${dInfo.daku}」を自動合成`}
             >
               ＋濁点「{dInfo.daku}」
@@ -91,7 +91,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
                 onGenerateDakutenTarget(dInfo.handaku!, true);
                 showCanvasToast(`半濁音「${dInfo.handaku}」を自動生成しました！`);
               }}
-              className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 transition-colors cursor-pointer"
+              className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 cursor-pointer"
               title={`半濁音「${dInfo.handaku}」を自動合成`}
             >
               ＋半濁点「{dInfo.handaku}」
@@ -110,7 +110,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
             setShowNodes(next);
             showCanvasToast(next ? '頂点・ハンドルを表示しました' : '頂点・ハンドルを非表示にしました');
           }}
-          className={`px-1.5 py-0.5 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border flex items-center space-x-1 cursor-pointer shrink-0 ${
             showNodes
               ? isLight
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
@@ -137,7 +137,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
                 : '塗りつぶし表示モードに戻しました'
             );
           }}
-          className={`px-1.5 py-0.5 rounded border transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border flex items-center space-x-1 cursor-pointer shrink-0 ${
             isOutlineMode
               ? isLight
                 ? 'bg-sky-50 border-sky-400 text-sky-800'

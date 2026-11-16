@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, Smartphone, X } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -20,7 +21,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
     return (
       <button
         onClick={install}
-        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition shadow-xs ${
+        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md shadow-xs ${
           isLight
             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
             : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-bold'
@@ -39,7 +40,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
       <>
         <button
           onClick={() => setShowIOSGuide(true)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md ${
             isLight
               ? 'border border-stone-300 text-stone-700 hover:bg-stone-100'
               : 'border border-slate-700 text-slate-200 hover:bg-slate-800'
@@ -50,7 +51,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
           <span>iOSに追加</span>
         </button>
 
-        {showIOSGuide && (
+        {showIOSGuide && typeof document !== 'undefined' && createPortal(
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 anim-fade">
             <div
               className={`w-full max-w-sm rounded-2xl p-5 shadow-2xl border ${
@@ -90,7 +91,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ isLight = fa
                 閉じる
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </>
     );

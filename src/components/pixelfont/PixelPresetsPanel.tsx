@@ -29,7 +29,14 @@ interface PixelPresetsPanelProps {
   currentUnicode: number;
   dotShape: PixelDotShape;
   setDotShape: (s: PixelDotShape) => void;
-  autoSaveGlyph: (g: Uint8Array, u?: number) => void;
+  autoSaveGlyph: (
+    g: Uint8Array,
+    u?: number,
+    customW?: number,
+    customH?: number,
+    customDotShape?: PixelDotShape,
+    customMergeContours?: boolean
+  ) => void;
   grid: Uint8Array;
   isLight: boolean;
   isMobile?: boolean;
@@ -227,7 +234,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onClick={() => {
                           const val = Math.max(3, gridWidth - 1);
                           setGridWidth(val);
-                          loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -241,7 +247,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onChange={(e) => {
                           const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
                           setGridWidth(val);
-                          loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
                         className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
@@ -249,7 +254,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onClick={() => {
                           const val = Math.min(128, gridWidth + 1);
                           setGridWidth(val);
-                          loadGlyphPixelGrid(currentUnicode, val, gridHeight);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -265,7 +269,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onClick={() => {
                           const val = Math.max(3, gridHeight - 1);
                           setGridHeight(val);
-                          loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -279,7 +282,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onChange={(e) => {
                           const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
                           setGridHeight(val);
-                          loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
                         className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
@@ -287,7 +289,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onClick={() => {
                           const val = Math.min(128, gridHeight + 1);
                           setGridHeight(val);
-                          loadGlyphPixelGrid(currentUnicode, gridWidth, val);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -305,7 +306,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       onClick={() => {
                         setGridWidth(sz);
                         setGridHeight(sz);
-                        loadGlyphPixelGrid(currentUnicode, sz, sz);
                       }}
                       className={`px-2 py-0.5 rounded text-[10.5px] font-mono font-bold border transition-colors cursor-pointer ${
                         gridWidth === sz && gridHeight === sz
@@ -340,8 +340,9 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                 <button
                   key={shape.id}
                   onClick={() => {
-                    setDotShape(shape.id as PixelDotShape);
-                    autoSaveGlyph(grid, currentUnicode);
+                    const nextShape = shape.id as PixelDotShape;
+                    setDotShape(nextShape);
+                    autoSaveGlyph(grid, currentUnicode, undefined, undefined, nextShape);
                     onShowToast(`ドット形状を「${shape.label}」に設定しました`, 'info');
                   }}
                   className={`p-2.5 border text-left rounded-xl transition-colors active:scale-95 cursor-pointer ${
@@ -600,8 +601,9 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <button
                     onClick={() => {
                       handleAutoBinarizeTrace();
-                      if (onReturnToCanvas) onReturnToCanvas();
-                      onShowToast('下絵から自動ドット化して作図キャンバスに配置しました', 'success');
+                      if (onReturnToCanvas && (traceSource !== 'image' || traceImageRef?.current)) {
+                        onReturnToCanvas();
+                      }
                     }}
                     className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 cursor-pointer border border-emerald-500 transition-colors"
                   >
@@ -726,7 +728,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
             onChange={(e) => {
               const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
               setGridWidth(val);
-              loadGlyphPixelGrid(currentUnicode, val, gridHeight);
             }}
             className="w-10 text-center font-mono font-bold text-xs bg-transparent border-b border-emerald-500 focus:outline-hidden"
           />
@@ -739,7 +740,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
             onChange={(e) => {
               const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
               setGridHeight(val);
-              loadGlyphPixelGrid(currentUnicode, gridWidth, val);
             }}
             className="w-10 text-center font-mono font-bold text-xs bg-transparent border-b border-emerald-500 focus:outline-hidden"
           />
@@ -758,8 +758,9 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           <button
             key={shape.id}
             onClick={() => {
-              setDotShape(shape.id as PixelDotShape);
-              autoSaveGlyph(grid, currentUnicode);
+              const nextShape = shape.id as PixelDotShape;
+              setDotShape(nextShape);
+              autoSaveGlyph(grid, currentUnicode, undefined, undefined, nextShape);
             }}
             className={`px-1.5 py-0.5 text-[11px] font-bold border transition-colors cursor-pointer ${
               dotShape === shape.id

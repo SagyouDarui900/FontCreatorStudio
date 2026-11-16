@@ -5,6 +5,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
+import { STORAGE_KEYS, setStorageItem } from '../utils/storageKeys';
 import {
   ContextMenuState,
   GlyphGridProps,
@@ -170,7 +171,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         }}
         className={`${
           effectiveIsOverlay
-            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 z-40 w-full sm:w-72 md:w-[300px] shadow-2xl anim-slide-left outline-none'
+            ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl anim-slide-left outline-none'
             : 'relative z-10 shadow-none shrink-0 outline-none'
         } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
@@ -183,14 +184,11 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             className={`absolute top-0 -right-2 w-4 h-full cursor-col-resize z-30 flex items-center justify-center group select-none transition-colors ${
               isResizing ? 'bg-emerald-500/15' : 'hover:bg-emerald-500/10'
             }`}
-            title={`左右にドラッグしてサイドバー幅を調整 (${sidebarWidth}px) / ダブルクリックで初期値(264px)にリセット`}
+            title={`左右にドラッグしてサイドバー幅を調整 (${sidebarWidth}px) / ダブルクリックで初期値にリセット`}
             onDoubleClick={() => {
-              setSidebarWidth(264);
-              try {
-                localStorage.setItem('fontforge_sidebar_width', '264');
-              } catch (error) {
-                console.warn('Failed to persist sidebar width:', error);
-              }
+              const defaultWidth = typeof window !== 'undefined' && window.innerWidth >= 1280 ? 304 : 264;
+              setSidebarWidth(defaultWidth);
+              setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, String(defaultWidth));
             }}
           >
             <div
@@ -249,13 +247,20 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         {/* Glyphs Grid Matrix */}
         <div
           className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 pb-24 sm:pb-8 grid gap-2 content-start ${
-            gridDensity === 'large'
-              ? 'grid-cols-3'
-              : gridDensity === 'medium'
-              ? 'grid-cols-4'
-              : 'grid-cols-5'
+            effectiveIsOverlay
+              ? gridDensity === 'large'
+                ? 'grid-cols-3'
+                : gridDensity === 'medium'
+                ? 'grid-cols-4'
+                : 'grid-cols-5'
+              : ''
           } ${themeClasses.canvasOuterBg}`}
           style={{
+            gridTemplateColumns: !effectiveIsOverlay
+              ? `repeat(auto-fill, minmax(${
+                  gridDensity === 'large' ? 82 : gridDensity === 'medium' ? 62 : 48
+                }px, 1fr))`
+              : undefined,
             gridAutoRows: gridDensity === 'large' ? '92px' : gridDensity === 'medium' ? '76px' : '62px',
             paddingBottom: effectiveIsOverlay ? 'max(env(safe-area-inset-bottom, 0px) + 40px, 40px)' : undefined,
           }}

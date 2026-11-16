@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { PanelTop, PanelLeft, PanelRight, Check, X } from 'lucide-react';
 import { ToolbarPosition } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -76,13 +77,13 @@ export const ToolbarPositionMenu: React.FC<ToolbarPositionMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       style={anchorStyle}
-      className={`fixed z-50 w-64 p-2 rounded-xl border shadow-xl anim-pop ${themeClasses.cardBg}`}
+      className={`fixed z-50 w-64 p-2 rounded-xl border shadow-xl ${themeClasses.cardBg}`}
       role="dialog"
       aria-label="ツールバー配置設定"
     >
@@ -93,7 +94,7 @@ export const ToolbarPositionMenu: React.FC<ToolbarPositionMenuProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer transition-colors"
+          className="p-1 rounded text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
           title="閉じる"
         >
           <X className="w-3.5 h-3.5" />
@@ -113,7 +114,7 @@ export const ToolbarPositionMenu: React.FC<ToolbarPositionMenuProps> = ({
                 onPositionChange(item.id);
                 onClose();
               }}
-              className={`w-full text-left p-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer group ${
+              className={`w-full text-left p-2 rounded-lg flex items-center justify-between cursor-pointer group ${
                 isActive
                   ? isLight
                     ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
@@ -154,6 +155,7 @@ export const ToolbarPositionMenu: React.FC<ToolbarPositionMenuProps> = ({
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

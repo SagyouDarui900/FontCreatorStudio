@@ -25,7 +25,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         aria-selected={mobileActiveTab === 'canvas'}
         aria-label="作図キャンバス画面に切り替え"
         onClick={() => handleSwitchMobileTab('canvas')}
-        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'canvas'
             ? 'text-emerald-600 dark:text-emerald-400 font-bold'
             : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
@@ -40,7 +40,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         aria-selected={mobileActiveTab === 'grid'}
         aria-label="文字一覧（グリッド）画面を開く"
         onClick={() => handleSwitchMobileTab('grid')}
-        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'grid'
             ? 'text-emerald-600 dark:text-emerald-400 font-bold'
             : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
@@ -55,7 +55,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         aria-selected={mobileActiveTab === 'metrics'}
         aria-label="メトリクス・文字ガイド設定を開く"
         onClick={() => handleSwitchMobileTab('metrics')}
-        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'metrics'
             ? 'text-emerald-600 dark:text-emerald-400 font-bold'
             : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
@@ -70,7 +70,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         aria-selected={mobileActiveTab === 'radicals'}
         aria-label="部首・パーツライブラリを開く"
         onClick={() => handleSwitchMobileTab('radicals')}
-        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+        className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'radicals'
             ? 'text-emerald-600 dark:text-emerald-400 font-bold'
             : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'

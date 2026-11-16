@@ -246,7 +246,7 @@ export function compileFont(
       }
 
       // 3. Resolve overlaps & self-intersections (prevents white holes in single-stroke cursive loops & crossing strokes)
-      if (shouldMerge && glyphContours.length > 0) {
+      if (shouldMerge && glyphContours.length > 0 && !g.pixelData) {
         try {
           glyphContours = unionContours(glyphContours, 1.2, true);
         } catch (e) {

@@ -1,4 +1,5 @@
 export * from './types';
+export * from './useRadicalsResize';
 export * from './PlacementSelector';
 export * from './PresetRadicalsTab';
 export * from './FontExtractionTab';

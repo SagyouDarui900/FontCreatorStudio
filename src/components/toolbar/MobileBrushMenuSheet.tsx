@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Sliders, X, ChevronRight, Paintbrush } from 'lucide-react';
 import { BrushStyle, ToolMode, UserPenPreset, ThemeClasses } from '../../types';
 import { PEN_PRESETS } from '../../utils/path';
@@ -46,11 +47,11 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
   smoothingIntensity,
   onChangeSmoothingIntensity,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const isCustomPen = Boolean(activePenPreset && customPresets.some((p) => p.id === activePenPreset.id));
 
-  return (
+  return createPortal(
  <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end" ref={sheetRef}>
  <div
  className="fixed inset-0 bg-black/60 anim-fade"
@@ -68,7 +69,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  onClose();
  onOpenPenPresetsModal();
  }}
- className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1 cursor-pointer transition-colors"
+ className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1 cursor-pointer"
  >
  <Sliders className="w-3 h-3" />
  <span>作成</span>
@@ -90,7 +91,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  onClose();
  onOpenPenPresetsModal();
  }}
- className={`w-full mb-2.5 p-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-between shrink-0 text-left cursor-pointer ${
+ className={`w-full mb-2.5 p-2.5 rounded-xl text-xs font-bold border flex items-center justify-between shrink-0 text-left cursor-pointer ${
  isLight
  ? 'bg-stone-100 hover:bg-stone-200/80 border-stone-300 text-stone-900 '
  : 'bg-[#1b2720] hover:bg-[#23352b] border-[#2c4033] text-stone-100 '
@@ -138,7 +139,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  setToolMode('brush');
  onClose();
  }}
- className={`w-full text-left p-2.5 rounded-xl transition-colors flex items-center space-x-3 cursor-pointer ${
+ className={`w-full text-left p-2.5 rounded-xl flex items-center space-x-3 cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-100/90 text-emerald-950 font-bold border border-emerald-300'
@@ -200,7 +201,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  setToolMode('brush');
  onClose();
  }}
- className={`w-full text-left p-2.5 rounded-xl transition-colors flex items-center space-x-3 cursor-pointer ${
+ className={`w-full text-left p-2.5 rounded-xl flex items-center space-x-3 cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-100/90 text-emerald-950 font-bold border border-emerald-300'
@@ -271,7 +272,7 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  <button
  key={preset.val}
  onClick={() => onChangeSmoothingIntensity?.(preset.val)}
- className={`py-1.5 px-1 rounded-lg text-xs font-bold text-center transition-colors cursor-pointer ${
+ className={`py-1.5 px-1 rounded-lg text-xs font-bold text-center cursor-pointer ${
  smoothingIntensity === preset.val
  ? isLight
  ? 'bg-emerald-700 text-white '
@@ -287,8 +288,8 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  </div>
  </div>
  </div>
- </div>
-
+ </div>,
+    document.body
   );
 });
 

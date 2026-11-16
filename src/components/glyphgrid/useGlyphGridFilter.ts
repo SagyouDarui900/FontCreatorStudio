@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { FontProject, GlyphData } from '../../types';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../../utils/storageKeys';
 import { GridDensity } from './types';
 
 export interface UseGlyphGridFilterProps {
@@ -8,6 +9,21 @@ export interface UseGlyphGridFilterProps {
   onSelectGlyph: (unicode: number, char: string) => void;
   onClose: () => void;
 }
+
+const getDefaultSidebarWidth = () => {
+  if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
+    return 304;
+  }
+  return 264;
+};
+
+const clampSidebarWidth = (width: number) => {
+  const maxW =
+    typeof window !== 'undefined'
+      ? Math.max(320, Math.min(window.innerWidth * 0.65, 760))
+      : 760;
+  return Math.max(232, Math.min(maxW, Math.round(width)));
+};
 
 export function useGlyphGridFilter({
   project,
@@ -42,30 +58,41 @@ export function useGlyphGridFilter({
 
   // Resizable sidebar width with LocalStorage persistence
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('fontforge_sidebar_width');
-      if (saved) {
-        const val = parseInt(saved, 10);
-        if (!isNaN(val) && val >= 200 && val <= 800) {
-          return val;
-        }
+    const saved = getStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH);
+    if (saved) {
+      const val = Number.parseInt(saved, 10);
+      if (Number.isFinite(val) && val >= 220 && val <= 800) {
+        return clampSidebarWidth(val);
       }
-    } catch (_) {}
-    return 264;
+    }
+    return getDefaultSidebarWidth();
   });
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(true);
   const [isSearchHeaderExpanded, setIsSearchHeaderExpanded] = useState<boolean>(true);
+  const cleanupDragRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cleanupDragRef.current?.();
+      cleanupDragRef.current = null;
+    };
+  }, []);
 
   // Drag resizer handler for left sidebar
   const handleResizeStart = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
+    cleanupDragRef.current?.();
+
     const target = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
     try {
-      target.setPointerCapture?.(e.pointerId);
-    } catch (_) {}
+      target.setPointerCapture?.(pointerId);
+    } catch {
+      // ignore unsupported pointer capture
+    }
 
     setIsResizing(true);
     document.body.style.cursor = 'col-resize';
@@ -74,13 +101,42 @@ export function useGlyphGridFilter({
     const startX = e.clientX;
     const startWidth = sidebarWidth;
     let rafId: number | null = null;
+    let latestClientX = startX;
+
+    const finishDrag = (persist: boolean) => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      setIsResizing(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      try {
+        if (target.hasPointerCapture?.(pointerId)) {
+          target.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // ignore
+      }
+
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerCancel);
+      cleanupDragRef.current = null;
+
+      if (persist) {
+        const finalWidth = clampSidebarWidth(startWidth + (latestClientX - startX));
+        setSidebarWidth(finalWidth);
+        setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, String(finalWidth));
+      }
+    };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
       moveEvent.preventDefault();
-      const delta = moveEvent.clientX - startX;
-      const minW = 220;
-      const maxW = Math.min(window.innerWidth * 0.7, 780);
-      const newWidth = Math.max(minW, Math.min(maxW, Math.round(startWidth + delta)));
+      latestClientX = moveEvent.clientX;
+      const newWidth = clampSidebarWidth(startWidth + (latestClientX - startX));
 
       if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
@@ -89,31 +145,21 @@ export function useGlyphGridFilter({
     };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      setIsResizing(false);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
+      if (upEvent.pointerId !== pointerId) return;
+      latestClientX = upEvent.clientX;
+      finishDrag(true);
+    };
 
-      try {
-        target.releasePointerCapture?.(upEvent.pointerId);
-      } catch (_) {}
-
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
-
-      const delta = upEvent.clientX - startX;
-      const minW = 220;
-      const maxW = Math.min(window.innerWidth * 0.7, 780);
-      const finalWidth = Math.max(minW, Math.min(maxW, Math.round(startWidth + delta)));
-      try {
-        localStorage.setItem('fontforge_sidebar_width', String(finalWidth));
-      } catch (_) {}
+    const handlePointerCancel = (cancelEvent: PointerEvent) => {
+      if (cancelEvent.pointerId !== pointerId) return;
+      finishDrag(true);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+
+    cleanupDragRef.current = () => finishDrag(false);
   };
 
   const activeCategory = useMemo(() => {

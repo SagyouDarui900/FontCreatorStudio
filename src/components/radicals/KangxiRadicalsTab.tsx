@@ -7,6 +7,7 @@ import {
   getOrExtractRadicalContours,
 } from '../../utils/radicalExtractor';
 import { PathContour } from '../../types';
+import { RadicalsDensity } from './types';
 
 interface KangxiRadicalsTabProps {
   isLight: boolean;
@@ -15,6 +16,7 @@ interface KangxiRadicalsTabProps {
   kangxiStrokeFilter: number | 'all';
   setKangxiStrokeFilter: (f: number | 'all') => void;
   selectedFontStyle: FontStyleOption;
+  gridDensity?: RadicalsDensity;
   extractingKangxiNum: number | null;
   setExtractingKangxiNum: (n: number | null) => void;
   onInsertWithPlacement: (contours: PathContour[], name?: string, category?: string) => void;
@@ -51,6 +53,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
   kangxiSearch,
   setKangxiSearch,
   selectedFontStyle,
+  gridDensity = 'medium',
   extractingKangxiNum,
   setExtractingKangxiNum,
   onInsertWithPlacement,
@@ -139,7 +142,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
     <div className="flex-1 flex flex-col min-h-0">
       {/* Search & Filter Controls */}
       <div
-        className={`p-2.5 border-b space-y-2 shrink-0 ${
+        className={`p-2 border-b space-y-1.5 shrink-0 ${
           isLight ? 'bg-[#f4f8f5] border-[#d8e6df]' : 'bg-[#141d17] border-[#25362b]'
         }`}
       >
@@ -169,7 +172,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex space-x-1 overflow-x-auto no-scrollbar text-[10px] pb-0.5">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x text-[10px] pb-0.5">
           {CATEGORY_ITEMS.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
@@ -177,7 +180,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-2 py-0.5 rounded whitespace-nowrap transition-colors cursor-pointer ${
+                className={`shrink-0 px-2 py-0.5 rounded whitespace-nowrap transition-colors cursor-pointer ${
                   isSelected
                     ? isLight
                       ? 'bg-emerald-800 text-white font-bold'
@@ -194,7 +197,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
         </div>
 
         {/* Stroke Count Range Filter */}
-        <div className="flex space-x-1 overflow-x-auto no-scrollbar text-[10px]">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar touch-scroll-x text-[10px]">
           {STROKE_RANGES.map((rng) => {
             const isSelected = selectedStrokeRange === rng.id;
             return (
@@ -202,7 +205,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                 key={rng.id}
                 type="button"
                 onClick={() => setSelectedStrokeRange(rng.id)}
-                className={`px-2 py-0.5 rounded whitespace-nowrap transition-colors cursor-pointer ${
+                className={`shrink-0 px-2 py-0.5 rounded whitespace-nowrap transition-colors cursor-pointer ${
                   isSelected
                     ? isLight
                       ? 'bg-emerald-900 text-white font-bold'
@@ -219,23 +222,30 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
         </div>
 
         {/* Count summary */}
-        <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 pt-0.5">
+        <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-stone-500 dark:text-stone-400 pt-0.5">
           <span>該当部首: {filteredRadicals.length} / 214部首</span>
-          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
-            <Sparkles className="w-3 h-3" />
-            タイルクリックで即時挿入
+          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium whitespace-nowrap">
+            <Sparkles className="w-3 h-3 shrink-0" />
+            <span>タイルクリックで即時挿入</span>
           </span>
         </div>
       </div>
 
-      {/* 4-5 Column Compact Visual Grid Matrix */}
+      {/* Responsive Visual Grid Matrix */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 pb-28 sm:pb-8">
         {filteredRadicals.length === 0 ? (
           <div className="text-center py-10 text-stone-400 text-xs">
             条件に一致する部首が見つかりませんでした
           </div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+          <div
+            className="grid gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(auto-fill, minmax(${
+                gridDensity === 'large' ? 96 : gridDensity === 'compact' ? 64 : 78
+              }px, 1fr))`,
+            }}
+          >
             {filteredRadicals.map((item) => {
               const isExtracting = extractingKangxiNum === item.number;
               const hasAlt = item.altChars && item.altChars.length > 0;
@@ -243,17 +253,17 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
               return (
                 <div
                   key={item.number}
-                  className={`relative p-1.5 rounded-lg border flex flex-col items-center justify-between transition-colors group ${
+                  className={`relative p-1.5 rounded-lg border flex flex-col items-center justify-between overflow-hidden min-w-0 transition-colors group ${
                     isLight
                       ? 'bg-white border-stone-200 hover:border-emerald-600 hover:shadow-xs'
                       : 'bg-[#17221b] border-[#25362b] hover:border-emerald-500 hover:shadow-xs'
                   }`}
                 >
                   {/* Top info badge */}
-                  <div className="w-full flex items-center justify-between text-[8px] text-stone-400 font-mono leading-none mb-1">
-                    <span>#{item.number}</span>
-                    <div className="flex items-center gap-1">
-                      <span>{item.strokes}画</span>
+                  <div className="w-full flex items-center justify-between gap-0.5 text-[8px] text-stone-400 font-mono leading-none mb-1 min-w-0">
+                    <span className="truncate">#{item.number}</span>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {gridDensity !== 'compact' && <span>{item.strokes}画</span>}
                       {onBatchInsertKangxi && (
                         <button
                           type="button"
@@ -262,14 +272,14 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                             e.stopPropagation();
                             onBatchInsertKangxi(item);
                           }}
-                          className={`px-1 py-0.2 rounded text-[8px] font-sans font-bold border transition-colors cursor-pointer ${
+                          className={`p-0.5 rounded text-[8px] font-sans font-bold border transition-colors cursor-pointer flex items-center justify-center ${
                             isLight
                               ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-600 hover:text-white'
                               : 'bg-emerald-950/80 border-emerald-700 text-emerald-300 hover:bg-emerald-600 hover:text-white'
                           }`}
                           title={`「${item.name}」を複数漢字へ一括流し込み`}
                         >
-                          <Layers className="w-2.5 h-2.5 inline" />
+                          <Layers className="w-2.5 h-2.5" />
                         </button>
                       )}
                     </div>
@@ -280,26 +290,42 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                     type="button"
                     disabled={isExtracting}
                     onClick={() => insertRadicalChar(item.char, item.number, item.name, item.category)}
-                    className="w-full flex flex-col items-center py-1 cursor-pointer transition-transform group-hover:scale-105 active:scale-95"
+                    className="w-full flex flex-col items-center py-0.5 px-0.5 min-w-0 overflow-hidden cursor-pointer"
                     title={`「${item.char}」(${item.name}) を挿入`}
                   >
-                    <span
-                      style={{
-                        fontFamily: selectedFontStyle.fontFamily,
-                        fontWeight: selectedFontStyle.fontWeight,
-                      }}
-                      className="text-2xl font-bold leading-none text-emerald-950 dark:text-emerald-100 select-none"
+                    <div
+                      className={`w-full ${
+                        gridDensity === 'large'
+                          ? 'py-1.5'
+                          : gridDensity === 'compact'
+                          ? 'py-0.5'
+                          : 'py-1'
+                      } flex items-center justify-center`}
                     >
-                      {item.displayChar || item.char}
-                    </span>
-                    <span className="text-[9px] font-bold text-stone-700 dark:text-stone-300 truncate w-full text-center mt-1">
+                      <span
+                        style={{
+                          fontFamily: selectedFontStyle.fontFamily,
+                          fontWeight: selectedFontStyle.fontWeight,
+                        }}
+                        className={`${
+                          gridDensity === 'large'
+                            ? 'text-3xl'
+                            : gridDensity === 'compact'
+                            ? 'text-xl'
+                            : 'text-2xl'
+                        } font-bold leading-[1.15] text-emerald-950 dark:text-emerald-100 select-none`}
+                      >
+                        {item.displayChar || item.char}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-bold text-stone-700 dark:text-stone-300 truncate w-full text-center mt-1 leading-tight">
                       {item.name.split(' ')[0]}
                     </span>
                   </button>
 
                   {/* Variant Buttons (altChars: 氵, 扌, 亻, etc.) */}
                   {hasAlt ? (
-                    <div className="w-full flex items-center justify-center gap-1 pt-1 border-t border-stone-100 dark:border-[#223326] mt-1">
+                    <div className="w-full flex flex-wrap items-center justify-center gap-0.5 pt-1 border-t border-stone-100 dark:border-[#223326] mt-1">
                       {item.altChars!.map((alt, altIdx) => (
                         <button
                           key={`${item.number}-${alt}-${altIdx}`}
@@ -308,7 +334,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                             e.stopPropagation();
                             insertRadicalChar(alt, item.number, `${item.name}変形`, item.category);
                           }}
-                          className={`px-1 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                          className={`px-1 py-0.5 rounded text-[10px] leading-[1.15] font-bold border transition-colors cursor-pointer ${
                             isLight
                               ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100'
                               : 'bg-emerald-950/60 border-emerald-700 text-emerald-200 hover:bg-emerald-900'
@@ -320,7 +346,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <div className="w-full flex items-center justify-center text-[8px] text-stone-400 truncate pt-1 border-t border-stone-100 dark:border-[#223326] mt-1">
+                    <div className="w-full text-center text-[8px] text-stone-400 truncate pt-1 border-t border-stone-100 dark:border-[#223326] mt-1">
                       {item.reading.split('・')[0]}
                     </div>
                   )}

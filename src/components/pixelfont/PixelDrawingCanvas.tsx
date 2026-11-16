@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FontProject, GlyphData, Point } from '../../types';
 import { PixelDotShape, BrushStampShape } from './types';
 
@@ -22,6 +22,7 @@ interface PixelDrawingCanvasProps {
   traceScale: number;
   traceOffsetX: number;
   traceOffsetY: number;
+  traceImageVersion?: number;
   traceImageRef: React.RefObject<HTMLImageElement | null>;
   hoverPos: Point | null;
   isDrawing: boolean;
@@ -55,6 +56,7 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
   traceScale,
   traceOffsetX,
   traceOffsetY,
+  traceImageVersion = 0,
   traceImageRef,
   hoverPos,
   isDrawing,
@@ -67,6 +69,42 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
   handlePointerCancel,
   onPointerLeave,
 }) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [boxSize, setBoxSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const updateSize = () => {
+      const style = window.getComputedStyle(el);
+      const padX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
+      const padY = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0');
+      const availW = Math.max(80, el.clientWidth - padX);
+      const availH = Math.max(80, el.clientHeight - padY);
+
+      const ratio = gridWidth / Math.max(1, gridHeight);
+      let fitW = availW;
+      let fitH = fitW / ratio;
+      if (fitH > availH) {
+        fitH = availH;
+        fitW = fitH * ratio;
+      }
+      setBoxSize({
+        w: Math.max(64, Math.floor(fitW)),
+        h: Math.max(64, Math.floor(fitH)),
+      });
+    };
+
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [gridWidth, gridHeight]);
+
+  const maxDim = Math.max(gridWidth, gridHeight);
+  const cellPx = maxDim <= 16 ? 32 : maxDim <= 32 ? 16 : 8;
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -130,9 +168,20 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
             ctx.arc(px + cellW / 2, py + cellH / 2, Math.min(cellW, cellH) * 0.46, 0, Math.PI * 2);
             ctx.fill();
           } else if (dotShape === 'squircle') {
+            const inset = Math.min(cellW, cellH) * 0.04;
             const cr = Math.min(cellW, cellH) * 0.25;
             ctx.beginPath();
-            ctx.roundRect(px + 1, py + 1, cellW - 2, cellH - 2, cr);
+            if (typeof ctx.roundRect === 'function') {
+              ctx.roundRect(
+                px + inset,
+                py + inset,
+                Math.max(1, cellW - inset * 2),
+                Math.max(1, cellH - inset * 2),
+                cr
+              );
+            } else {
+              ctx.fillRect(px + inset, py + inset, Math.max(1, cellW - inset * 2), Math.max(1, cellH - inset * 2));
+            }
             ctx.fill();
           } else if (dotShape === 'diamond') {
             ctx.beginPath();
@@ -190,7 +239,10 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
           ctx.moveTo(gx + 0.5, 0);
           ctx.lineTo(gx + 0.5, height);
         }
-        for (let y = step; y < gridHeight; y += step) {
+      }
+      if (gridHeight >= 16) {
+        const stepY = gridHeight >= 64 ? 16 : 8;
+        for (let y = stepY; y < gridHeight; y += stepY) {
           const gy = Math.round(y * cellH);
           ctx.moveTo(0, gy + 0.5);
           ctx.lineTo(width, gy + 0.5);
@@ -202,11 +254,11 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
 
     // 5.1 Baseline
     if (showMetricsGuides) {
-      const asc = project.metadata.ascender || 800;
-      const desc = project.metadata.descender || -200;
-      const totalH = asc - desc;
+      const asc = project.metadata.ascender ?? 800;
+      const desc = project.metadata.descender ?? -200;
+      const totalH = Math.max(10, asc - desc);
       const marginY = totalH * 0.08;
-      const usableHeight = totalH - 2 * marginY;
+      const usableHeight = Math.max(10, totalH - 2 * marginY);
       const cellHMath = usableHeight / gridHeight;
       const topY = asc - marginY;
       const baselineGy = Math.round(topY / cellHMath);
@@ -230,17 +282,30 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
     if (hoverPos && !isDrawing) {
       ctx.strokeStyle = isLight ? '#059669' : '#10b981';
       ctx.lineWidth = 2;
-      const radius = Math.floor(brushSize / 2);
 
-      for (let dy = -radius; dy <= (brushSize % 2 === 0 ? radius - 1 : radius); dy++) {
-        for (let dx = -radius; dx <= (brushSize % 2 === 0 ? radius - 1 : radius); dx++) {
-          if (brushStamp === 'round' && brushSize > 2) {
-            if (dx * dx + dy * dy > (radius + 0.2) * (radius + 0.2)) continue;
-          }
-          const cx = hoverPos.x + dx;
-          const cy = hoverPos.y + dy;
-          if (cx >= 0 && cx < gridWidth && cy >= 0 && cy < gridHeight) {
-            ctx.strokeRect(cx * cellW + 0.5, cy * cellH + 0.5, cellW - 1, cellH - 1);
+      if (brushSize <= 1) {
+        if (hoverPos.x >= 0 && hoverPos.x < gridWidth && hoverPos.y >= 0 && hoverPos.y < gridHeight) {
+          ctx.strokeRect(hoverPos.x * cellW + 0.5, hoverPos.y * cellH + 0.5, cellW - 1, cellH - 1);
+        }
+      } else {
+        const minD = -Math.floor(brushSize / 2);
+        const maxD = minD + brushSize - 1;
+        const center = (minD + maxD) / 2;
+        const maxR = (brushSize - 0.5) / 2;
+        const maxRSq = maxR * maxR;
+
+        for (let dy = minD; dy <= maxD; dy++) {
+          for (let dx = minD; dx <= maxD; dx++) {
+            if (brushStamp === 'round' && brushSize > 2) {
+              const ox = dx - center;
+              const oy = dy - center;
+              if (ox * ox + oy * oy > maxRSq) continue;
+            }
+            const cx = hoverPos.x + dx;
+            const cy = hoverPos.y + dy;
+            if (cx >= 0 && cx < gridWidth && cy >= 0 && cy < gridHeight) {
+              ctx.strokeRect(cx * cellW + 0.5, cy * cellH + 0.5, cellW - 1, cellH - 1);
+            }
           }
         }
       }
@@ -264,6 +329,7 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
     traceScale,
     traceOffsetX,
     traceOffsetY,
+    traceImageVersion,
     hoverPos,
     isDrawing,
     brushSize,
@@ -274,21 +340,24 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
   ]);
 
   return (
-    <div className="flex-1 flex items-center justify-center w-full h-full min-h-0 p-2 sm:p-4">
+    <div
+      ref={wrapperRef}
+      className="flex-1 flex items-center justify-center w-full h-full min-h-0 min-w-0 p-2 sm:p-4 overflow-hidden"
+    >
       <div
-        className="relative rounded-none overflow-hidden border-2 touch-none flex items-center justify-center"
+        className="relative rounded-none overflow-hidden border-2 touch-none flex items-center justify-center shrink-0"
         style={{
           borderColor: isLight ? '#047857' : '#34d399',
-          maxHeight: 'calc(100vh - 180px)',
-          maxWidth: 'calc(100vw - 200px)',
+          width: boxSize.w > 0 ? `${boxSize.w}px` : undefined,
+          height: boxSize.h > 0 ? `${boxSize.h}px` : undefined,
           aspectRatio: `${gridWidth} / ${gridHeight}`,
         }}
       >
         <canvas
           onContextMenu={(e) => e.preventDefault()}
           ref={canvasRef}
-          width={gridWidth * (gridWidth <= 16 ? 32 : gridWidth <= 32 ? 16 : 8)}
-          height={gridHeight * (gridHeight <= 16 ? 32 : gridHeight <= 32 ? 16 : 8)}
+          width={gridWidth * cellPx}
+          height={gridHeight * cellPx}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}

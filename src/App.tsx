@@ -260,6 +260,7 @@ function AppMain({
     viewportWidth,
     isGridOverlay,
     isMetricsOverlay,
+    isRadicalsOverlay,
     isZenMode,
     toggleZenMode,
     toggleGridDrawer,
@@ -320,14 +321,24 @@ function AppMain({
   const handleOpenKerningModal = useCallback(() => setIsKerningModalOpen(true), [setIsKerningModalOpen]);
   const handleOpenWeightInterpModal = useCallback(() => setIsWeightInterpModalOpen(true), [setIsWeightInterpModalOpen]);
   const handleOpenGlyphCompareModal = useCallback(() => setIsGlyphCompareModalOpen(true), [setIsGlyphCompareModalOpen]);
-  const handleOpenRadicalStudio = useCallback(() => setShowRadicals(true), [setShowRadicals]);
+  const handleOpenRadicalStudio = useCallback(() => {
+    setShowMetricsDrawer(false);
+    if (viewportWidth < 640) {
+      setShowGridDrawer(false);
+    }
+    setShowRadicals(true);
+  }, [viewportWidth, setShowMetricsDrawer, setShowGridDrawer, setShowRadicals]);
   const handleOpenPixelStudio = useCallback(() => setIsPixelStudioOpen(true), [setIsPixelStudioOpen]);
   const handleOpenStorageManagerModal = useCallback(() => setIsStorageManagerOpen(true), [setIsStorageManagerOpen]);
   const handleOpenShortcutsModal = useCallback(() => setIsShortcutsModalOpen(true), [setIsShortcutsModalOpen]);
   const handleOpenExportModal = useCallback(() => setIsExportModalOpen(true), [setIsExportModalOpen]);
   const handleOpenRadicalStudioFromDrawer = useCallback(() => {
+    setShowMetricsDrawer(false);
+    if (viewportWidth < 640) {
+      setShowGridDrawer(false);
+    }
     setShowRadicals(true);
-  }, [setShowRadicals]);
+  }, [viewportWidth, setShowMetricsDrawer, setShowGridDrawer, setShowRadicals]);
 
   // Apply SVG vector contours to current glyph
   const handleApplySvgContours = useCallback(
@@ -439,22 +450,6 @@ function AppMain({
           />
         )}
 
-        {/* Left Side 2: Radical Library & Kanji Composition Parts Drawer */}
-        <RadicalsDrawer
-          isOpen={showRadicals}
-          onClose={handleCloseRadicalsDrawer}
-          onInsertRadical={(contours) => {
-            handleInsertRadical(contours);
-            if (viewportWidth < 1024) handleCloseRadicalsDrawer();
-          }}
-          onBatchInsertRadical={handleBatchInsertRadical}
-          currentContours={currentGlyph.contours || []}
-          selectedChar={selectedChar}
-          allGlyphs={project.glyphs || {}}
-          theme={theme}
-          onOpenRadicalStudio={handleOpenRadicalStudioFromDrawer}
-        />
-
         {/* Center Canvas Workspace Area */}
         <div
           className={`flex-1 min-h-0 w-full flex ${
@@ -546,13 +541,30 @@ function AppMain({
           </div>
         </div>
 
+        {/* Right Side: Radical Library & Kanji Composition Parts Drawer */}
+        <RadicalsDrawer
+          isOpen={showRadicals}
+          onClose={handleCloseRadicalsDrawer}
+          onInsertRadical={(contours) => {
+            handleInsertRadical(contours);
+            if (viewportWidth < 1024) handleCloseRadicalsDrawer();
+          }}
+          onBatchInsertRadical={handleBatchInsertRadical}
+          currentContours={currentGlyph.contours || []}
+          selectedChar={selectedChar}
+          allGlyphs={project.glyphs || {}}
+          theme={theme}
+          isOverlay={isRadicalsOverlay}
+          onOpenRadicalStudio={handleOpenRadicalStudioFromDrawer}
+        />
+
         {/* Right Side: Metrics & Font Metrics Control Sidebar */}
         {showMetricsDrawer && (
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 shadow-2xl w-72 max-w-[85vw] border-l flex flex-col min-h-0'
-                : 'w-64 border-l flex flex-col shrink-0 min-h-0'
+                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 shadow-2xl w-72 sm:w-80 max-w-[85vw] border-l flex flex-col min-h-0'
+                : 'w-64 xl:w-72 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
             <MetricsPanel

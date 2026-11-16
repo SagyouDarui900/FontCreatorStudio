@@ -151,7 +151,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
     <Suspense fallback={null}>
       {/* Mobile Theme Selection Drawer */}
       {activeModal === 'mobileTheme' && (
-        <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="sm:hidden fixed inset-0 z-[60] flex flex-col justify-end">
           <div
             className="fixed inset-0 bg-black/60 anim-fade"
             onClick={closeModal}

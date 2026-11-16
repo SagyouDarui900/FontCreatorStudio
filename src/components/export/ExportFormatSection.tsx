@@ -34,15 +34,15 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
     <>
       {/* Format Selection */}
       <div className="space-y-1.5">
-        <label className="font-bold opacity-80 flex items-center justify-between">
-          <span>ファイル形式を選択</span>
-          <span className="font-normal opacity-70">AviUtl・動画編集・一般利用: TTF推奨</span>
-        </label>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
+          <span className="font-bold opacity-85">ファイル形式を選択</span>
+          <span className="text-[11px] font-normal opacity-70">迷ったら TTF がおすすめ</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={() => setFormat('ttf')}
-            className={`p-2.5 rounded-xl border text-left transition-colors ${
+            className={`p-2.5 sm:p-3 rounded-xl border text-left min-h-[56px] cursor-pointer ${
               format === 'ttf'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -52,19 +52,19 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
                 : 'border-[#25362b] hover:bg-[#1c2920] text-emerald-300'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-sm">.TTF (TrueType)</span>
-              {format === 'ttf' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            <div className="flex items-center justify-between gap-1">
+              <span className="font-bold text-xs sm:text-sm whitespace-nowrap">.TTF (TrueType)</span>
+              {format === 'ttf' && <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
             </div>
-            <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed jp-wrap">
-              AviUtl2、Premiere、Windows、Mac、iPad、Android全対応（最も確実）
+            <p className="mt-1 text-[10.5px] sm:text-[11px] opacity-75 leading-snug jp-wrap">
+              iOS / Android / Mac / Windows / 動画編集 全対応
             </p>
           </button>
 
           <button
             type="button"
             onClick={() => setFormat('otf')}
-            className={`p-2.5 rounded-xl border text-left transition-colors ${
+            className={`p-2.5 sm:p-3 rounded-xl border text-left min-h-[56px] cursor-pointer ${
               format === 'otf'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -74,12 +74,12 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
                 : 'border-[#25362b] hover:bg-[#1c2920] text-emerald-300'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-sm">.OTF (OpenType)</span>
-              {format === 'otf' && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            <div className="flex items-center justify-between gap-1">
+              <span className="font-bold text-xs sm:text-sm whitespace-nowrap">.OTF (OpenType)</span>
+              {format === 'otf' && <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
             </div>
-            <p className="mt-0.5 text-[11px] opacity-75 leading-relaxed jp-wrap">
-              InDesign、Illustrator等のDTP・グラフィックデザインソフト向け
+            <p className="mt-1 text-[10.5px] sm:text-[11px] opacity-75 leading-snug jp-wrap">
+              Illustrator・InDesign等のDTPデザイン向け
             </p>
           </button>
         </div>
@@ -87,31 +87,31 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
 
       {/* Size & Em-box Optimization */}
       <div
-        className={`p-3.5 rounded-xl border space-y-3 ${
+        className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 sm:space-y-3 ${
           isLight ? 'bg-stone-50/90 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
             <Maximize2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold text-xs text-stone-900 dark:text-emerald-200">
-              文字サイズ・仮想ボディ比率の最適化
+            <span className="font-bold text-xs text-stone-900 dark:text-emerald-200 truncate">
+              文字サイズ・出力倍率
             </span>
           </div>
-          <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
-            倍率: {Math.round(effectiveScale * 100)}%
+          <span className="text-xs font-mono tabular-nums font-bold text-emerald-700 dark:text-emerald-300 shrink-0">
+            {Math.round(effectiveScale * 100)}%
           </span>
         </div>
 
-        <p className="text-[11px] opacity-80 leading-relaxed jp-wrap">
-          キャンバス上の下絵（手本フォント）や字面枠に合わせて描いた場合は、<strong>「原寸のまま (100%)」</strong>を選ぶとキャンバスの見た目と全く同じ位置・サイズで正確に出力されます。キャンバス上で小さめに描いた文字を市販フォント同等の大粒サイズに自動拡大したい場合は「和文拡大 (135%)」をお選びください。
+        <p className="text-[11px] opacity-80 leading-snug sm:leading-relaxed jp-wrap">
+          下絵や字面枠どおりに出力する場合は<strong>「原寸 (100%)」</strong>、市販フォント並みの大きさに拡大する場合は「和文拡大 (135%)」をお選びください。
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSizePreset('raw')}
-            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
+            className={`py-2 px-1 sm:p-2.5 min-h-[48px] rounded-lg border text-center min-w-0 flex flex-col items-center justify-center cursor-pointer ${
               sizePreset === 'raw'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -121,14 +121,14 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
                 : 'border-[#283b2e] hover:bg-[#202d24] text-emerald-300'
             }`}
           >
-            <div className="text-xs font-bold">原寸 (100%)</div>
-            <div className="text-[10px] opacity-75 font-normal mt-0.5 truncate">下絵・枠通り【推奨】</div>
+            <div className="text-[11px] sm:text-xs font-bold whitespace-nowrap tabular-nums">原寸 100%</div>
+            <div className="text-[9.5px] sm:text-[10px] opacity-75 font-normal mt-0.5 truncate max-w-full">枠通り推奨</div>
           </button>
 
           <button
             type="button"
             onClick={() => setSizePreset('standard_jp')}
-            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
+            className={`py-2 px-1 sm:p-2.5 min-h-[48px] rounded-lg border text-center min-w-0 flex flex-col items-center justify-center cursor-pointer ${
               sizePreset === 'standard_jp'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -138,14 +138,14 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
                 : 'border-[#283b2e] hover:bg-[#202d24] text-emerald-300'
             }`}
           >
-            <div className="text-xs font-bold">和文拡大 (135%)</div>
-            <div className="text-[10px] opacity-75 font-normal mt-0.5 truncate">動画・AviUtl等</div>
+            <div className="text-[11px] sm:text-xs font-bold whitespace-nowrap tabular-nums">拡大 135%</div>
+            <div className="text-[9.5px] sm:text-[10px] opacity-75 font-normal mt-0.5 truncate max-w-full">動画・大きめ</div>
           </button>
 
           <button
             type="button"
             onClick={() => setSizePreset('custom')}
-            className={`p-2.5 rounded-lg border text-center transition-colors min-w-0 flex flex-col items-center justify-center ${
+            className={`py-2 px-1 sm:p-2.5 min-h-[48px] rounded-lg border text-center min-w-0 flex flex-col items-center justify-center cursor-pointer ${
               sizePreset === 'custom'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-100/70 text-emerald-950 font-bold ring-1 ring-emerald-500'
@@ -155,14 +155,16 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
                 : 'border-[#283b2e] hover:bg-[#202d24] text-emerald-300'
             }`}
           >
-            <div className="text-xs font-bold">カスタム倍率</div>
-            <div className="text-[10px] opacity-75 font-normal mt-0.5">{Math.round(customScale * 100)}%</div>
+            <div className="text-[11px] sm:text-xs font-bold whitespace-nowrap">カスタム</div>
+            <div className="text-[9.5px] sm:text-[10px] opacity-75 font-normal mt-0.5 tabular-nums whitespace-nowrap">
+              {Math.round(customScale * 100)}%
+            </div>
           </button>
         </div>
 
         {sizePreset === 'custom' && (
-          <div className="pt-2 flex items-center space-x-3">
-            <span className="text-[11px] opacity-70 shrink-0">縮小 (80%)</span>
+          <div className="pt-1 flex items-center space-x-2.5">
+            <span className="text-[11px] font-mono tabular-nums opacity-70 shrink-0">80%</span>
             <input
               type="range"
               min="0.8"
@@ -170,60 +172,57 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
               step="0.05"
               value={customScale}
               onChange={(e) => setCustomScale(parseFloat(e.target.value))}
-              className="flex-1 accent-emerald-600 cursor-pointer"
+              className="flex-1 min-h-[32px] accent-emerald-600 cursor-pointer"
             />
-            <span className="text-[11px] opacity-70 shrink-0">拡大 (180%)</span>
+            <span className="text-[11px] font-mono tabular-nums opacity-70 shrink-0">180%</span>
           </div>
         )}
       </div>
 
       {/* Visual Fidelity & Vector Purity */}
       <div
-        className={`p-3.5 rounded-xl border space-y-2.5 ${
+        className={`p-3 sm:p-3.5 rounded-xl border space-y-2 ${
           isLight ? 'bg-stone-50/90 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
         }`}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="font-bold text-xs text-stone-900 dark:text-emerald-200">
-              ベクター原画の忠実再現（筆跡・カーブ保持）
+            <span className="font-bold text-xs text-stone-900 dark:text-emerald-200 truncate">
+              出力オプション・輪郭補正
             </span>
           </div>
-          <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+          <span className="hidden sm:inline text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 shrink-0">
             ベクターデータ保持
           </span>
         </div>
-        <p className="text-[11px] opacity-80 leading-relaxed">
-          TrueType標準のNon-Zero Winding規則に準拠し、描いた時の筆圧、止め・はね・はらい、滑らかな曲線をラスター劣化させずにそのままフォントファイルへ直接コンパイルします。
-        </p>
 
-        <div className="pt-1 flex flex-col space-y-2">
-          <label className="flex items-center space-x-2 cursor-pointer">
+        <div className="flex flex-col gap-1">
+          <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={balanceSideBearings}
               onChange={(e) => setBalanceSideBearings(e.target.checked)}
-              className="w-4 h-4 rounded accent-emerald-600 cursor-pointer"
+              className="w-4 h-4 mt-0.5 rounded accent-emerald-600 cursor-pointer shrink-0"
             />
-            <span className="text-[11px] text-stone-800 dark:text-emerald-200">
-              文字の左右余白（LSB/RSB）を均等にセンタリング補正（左寄りを解消）
+            <span className="text-[11px] leading-snug text-stone-800 dark:text-emerald-200 jp-wrap">
+              文字の左右余白を均等にセンタリング補正（左寄り防止）
             </span>
           </label>
 
-          <label className="flex items-start space-x-2 cursor-pointer p-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors">
+          <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={mergeOverlaps}
               onChange={(e) => setMergeOverlaps(e.target.checked)}
               className="w-4 h-4 mt-0.5 rounded accent-emerald-600 cursor-pointer shrink-0"
             />
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-stone-800 dark:text-emerald-200">
-                一筆書き・重なり白抜き防止（交差輪郭を自動結合して中抜けを解消）
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] font-bold leading-snug text-stone-800 dark:text-emerald-200 jp-wrap">
+                一筆書き・重なり白抜き防止（交差輪郭を自動結合）
               </span>
-              <span className="text-[10px] text-stone-500 dark:text-stone-400">
-                手書き文字や一筆書きでループが重なった部分が白く抜けるのを防ぎ、TrueType標準の外輪郭に一体化します
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 leading-snug mt-0.5 jp-wrap">
+                重なったループが白く抜けるのを防ぎ、標準の外輪郭に一体化します
               </span>
             </div>
           </label>

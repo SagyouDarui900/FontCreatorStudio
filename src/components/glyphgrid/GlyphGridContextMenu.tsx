@@ -1,4 +1,5 @@
 import React, { useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2 } from 'lucide-react';
 import { FontProject } from '../../types';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
@@ -61,13 +62,13 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
     setPos({ left: nextLeft, top: nextTop });
   }, [contextMenu, hasClipboard, contextMenuRef]);
 
-  if (!contextMenu) return null;
+  if (!contextMenu || typeof document === 'undefined') return null;
 
   const { item } = contextMenu;
   const glyph = project.glyphs[item.code];
   const hasContours = Boolean(glyph?.contours?.length);
 
-  return (
+  return createPortal(
     <div
       ref={contextMenuRef}
       style={{ top: pos.top, left: pos.left }}
@@ -201,6 +202,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
           </button>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

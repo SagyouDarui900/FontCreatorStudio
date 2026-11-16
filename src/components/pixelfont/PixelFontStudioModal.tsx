@@ -21,11 +21,15 @@ import {
   RotateCw,
   Trash2,
   ImageIcon,
+  Type,
+  Upload,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { FontProject, GlyphData } from '../../types';
 import { getThemeClasses } from '../../utils/theme';
 import { shareOrDownloadFont } from '../../utils/font';
-import { pixelGridToContours, rasterizeGlyphToPixelGrid } from '../../utils/pixelFontUtils';
+import { pixelGridToContours, rasterizeGlyphToPixelGrid, resamplePixelGrid } from '../../utils/pixelFontUtils';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
 import { PixelFontStudioModalProps } from './types';
 import { usePixelGridState } from './hooks/usePixelGridState';
@@ -69,6 +73,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     dotShape,
     setDotShape,
     mergeContours,
+    setMergeContours,
     grid,
     setGrid,
     currentGridRef,
@@ -122,6 +127,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     setTraceThreshold,
     traceImageSrc,
     setTraceImageSrc,
+    traceImageVersion,
     traceImageRef,
     fileInputRef,
     handleImageUpload,
@@ -381,21 +387,24 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     }
   };
 
-  // Export handlers
-  const handleExportFontFile = async (format: 'otf' | 'ttf' = 'otf') => {
-    autoSaveGlyph(grid, currentUnicode);
-
+  // Build up-to-date glyph map including live current grid edits
+  const buildEffectiveGlyphs = (): Record<number, GlyphData> => {
+    const activeGrid = currentGridRef.current || grid;
+    const upm = project.metadata.unitsPerEm || 1000;
+    const asc = project.metadata.ascender ?? 800;
+    const desc = project.metadata.descender ?? -200;
     const updatedGlyphs: Record<number, GlyphData> = { ...project.glyphs };
-    const isCurrentActive = grid.some((p) => p === 1);
+    const isCurrentActive = activeGrid.some((p) => p === 1);
+
     if (isCurrentActive) {
       const currentContours = pixelGridToContours(
-        grid,
+        activeGrid,
         gridWidth,
         gridHeight,
-        project.metadata.unitsPerEm || 1000,
-        project.metadata.ascender || 800,
-        project.metadata.descender || -200,
-        currentGlyph.advanceWidth || 1000,
+        upm,
+        asc,
+        desc,
+        currentGlyph.advanceWidth || upm,
         dotShape,
         mergeContours
       );
@@ -407,12 +416,37 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
         pixelData: {
           width: gridWidth,
           height: gridHeight,
-          data: Array.from(grid),
+          data: Array.from(activeGrid),
+          shape: dotShape,
+        },
+        modified: true,
+      };
+    } else if (updatedGlyphs[currentUnicode]) {
+      updatedGlyphs[currentUnicode] = {
+        ...updatedGlyphs[currentUnicode],
+        contours: [],
+        pixelData: {
+          width: gridWidth,
+          height: gridHeight,
+          data: Array.from(activeGrid),
           shape: dotShape,
         },
         modified: true,
       };
     }
+
+    return updatedGlyphs;
+  };
+
+  // Export handlers
+  const handleExportFontFile = async (format: 'otf' | 'ttf' = 'otf') => {
+    const activeGrid = currentGridRef.current || grid;
+    autoSaveGlyph(activeGrid, currentUnicode);
+
+    const upm = project.metadata.unitsPerEm || 1000;
+    const asc = project.metadata.ascender ?? 800;
+    const desc = project.metadata.descender ?? -200;
+    const updatedGlyphs = buildEffectiveGlyphs();
 
     const hasAnyGlyphs = Object.values(updatedGlyphs).some(
       (g) => (g.pixelData && g.pixelData.data && g.pixelData.data.some((d) => d === 1)) || (g.contours && g.contours.length > 0)
@@ -432,10 +466,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
             gGrid,
             g.pixelData.width || gridWidth,
             g.pixelData.height || gridHeight,
-            project.metadata.unitsPerEm || 1000,
-            project.metadata.ascender || 800,
-            project.metadata.descender || -200,
-            g.advanceWidth || 1000,
+            upm,
+            asc,
+            desc,
+            g.advanceWidth || upm,
             g.pixelData.shape || dotShape,
             mergeContours
           );
@@ -478,21 +512,60 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
   };
 
   const handleExportSinglePng = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const url = canvas.toDataURL('image/png');
+    const activeGrid = currentGridRef.current || grid;
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = gridWidth;
+    offCanvas.height = gridHeight;
+    const oCtx = offCanvas.getContext('2d');
+    if (!oCtx) return;
+
+    oCtx.clearRect(0, 0, gridWidth, gridHeight);
+    oCtx.fillStyle = '#000000';
+    for (let gy = 0; gy < gridHeight; gy++) {
+      for (let gx = 0; gx < gridWidth; gx++) {
+        if (activeGrid[gy * gridWidth + gx] === 1) {
+          oCtx.fillRect(gx, gy, 1, 1);
+        }
+      }
+    }
+
+    const codeHex = (currentUnicode || 0).toString(16).toUpperCase().padStart(4, '0');
+    const safeChar = (currentGlyph.char || '').replace(/[\\/:*?"<>|\s]/g, '') || `U_${codeHex}`;
+    const url = offCanvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pixel_${currentGlyph.char}_${gridWidth}x${gridHeight}.png`;
+    a.download = `pixel_${safeChar}_U${codeHex}_${gridWidth}x${gridHeight}.png`;
     a.click();
-    onShowToast(`「${currentGlyph.char}」のPNG画像をダウンロードしました`, 'success');
+    onShowToast(`「${currentGlyph.char}」の単体PNG画像 (${gridWidth}×${gridHeight}) をダウンロードしました`, 'success');
+  };
+
+  const getGlyphBitmapAtStudioSize = (g: GlyphData): Uint8Array => {
+    if (g.pixelData && g.pixelData.data && g.pixelData.data.length > 0) {
+      const pw = g.pixelData.width || gridWidth;
+      const ph = g.pixelData.height || gridHeight;
+      return pw === gridWidth && ph === gridHeight && g.pixelData.data.length === gridWidth * gridHeight
+        ? new Uint8Array(g.pixelData.data)
+        : resamplePixelGrid(g.pixelData.data, pw, ph, gridWidth, gridHeight);
+    }
+    return rasterizeGlyphToPixelGrid(
+      g,
+      gridWidth,
+      gridHeight,
+      project.metadata.unitsPerEm || 1000,
+      project.metadata.ascender ?? 800,
+      project.metadata.descender ?? -200
+    );
   };
 
   const handleExportSpritesheet = () => {
-    autoSaveGlyph(grid, currentUnicode);
-    const entries = (Object.entries(project.glyphs) as [string, GlyphData][]).filter(
-      ([_, g]) => (g.pixelData && g.pixelData.data.some((d) => d === 1)) || (g.contours && g.contours.length > 0)
-    );
+    const activeGrid = currentGridRef.current || grid;
+    autoSaveGlyph(activeGrid, currentUnicode);
+    const effectiveGlyphs = buildEffectiveGlyphs();
+    const entries = (Object.entries(effectiveGlyphs) as [string, GlyphData][])
+      .filter(
+        ([_, g]) => (g.pixelData && g.pixelData.data.some((d) => d === 1)) || (g.contours && g.contours.length > 0)
+      )
+      .sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10));
 
     if (entries.length === 0) {
       onShowToast('作成済みのドット文字がありません', 'warning');
@@ -517,10 +590,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       const startX = col * gridWidth;
       const startY = row * gridHeight;
 
-      const gGrid =
-        g.pixelData && g.pixelData.data
-          ? new Uint8Array(g.pixelData.data)
-          : rasterizeGlyphToPixelGrid(g, gridWidth, gridHeight);
+      const gGrid = getGlyphBitmapAtStudioSize(g);
 
       sCtx.fillStyle = '#ffffff';
       for (let gy = 0; gy < gridHeight; gy++) {
@@ -531,8 +601,9 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
         }
       }
 
-      atlasJson[g.char || String.fromCodePoint(u)] = {
-        char: g.char || String.fromCodePoint(u),
+      const keyChar = g.char || String.fromCodePoint(u);
+      atlasJson[keyChar] = {
+        char: keyChar,
         unicode: u,
         x: startX,
         y: startY,
@@ -541,56 +612,67 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       };
     });
 
+    const safeFileBase = (project.name || 'pixel_font').replace(/[\\/:*?"<>|]/g, '_');
     const pngUrl = sheetCanvas.toDataURL('image/png');
     const aPng = document.createElement('a');
     aPng.href = pngUrl;
-    aPng.download = `${project.name || 'pixel_font'}_spritesheet_${gridWidth}x${gridHeight}.png`;
+    aPng.download = `${safeFileBase}_spritesheet_${gridWidth}x${gridHeight}.png`;
     aPng.click();
 
     const jsonBlob = new Blob([JSON.stringify({ fontName: project.name, gridWidth, gridHeight, glyphs: atlasJson }, null, 2)], {
       type: 'application/json',
     });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
     const aJson = document.createElement('a');
-    aJson.href = URL.createObjectURL(jsonBlob);
-    aJson.download = `${project.name || 'pixel_font'}_atlas.json`;
+    aJson.href = jsonUrl;
+    aJson.download = `${safeFileBase}_atlas.json`;
     aJson.click();
+    setTimeout(() => URL.revokeObjectURL(jsonUrl), 60000);
 
     onShowToast(`全 ${entries.length} 文字のスプライトシート (PNG + JSON) を出力しました`, 'success');
   };
 
   const handleExportCHeader = () => {
-    autoSaveGlyph(grid, currentUnicode);
-    const entries = (Object.entries(project.glyphs) as [string, GlyphData][]).filter(
-      ([_, g]) => (g.pixelData && g.pixelData.data.some((d) => d === 1)) || (g.contours && g.contours.length > 0)
-    );
+    const activeGrid = currentGridRef.current || grid;
+    autoSaveGlyph(activeGrid, currentUnicode);
+    const effectiveGlyphs = buildEffectiveGlyphs();
+    const entries = (Object.entries(effectiveGlyphs) as [string, GlyphData][])
+      .filter(
+        ([_, g]) => (g.pixelData && g.pixelData.data.some((d) => d === 1)) || (g.contours && g.contours.length > 0)
+      )
+      .sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10));
 
     if (entries.length === 0) {
       onShowToast('作成済みのドット文字がありません', 'warning');
       return;
     }
 
+    const macroId =
+      (project.name || 'FONT')
+        .toUpperCase()
+        .replace(/[^A-Z0-9_]/g, '_')
+        .replace(/^_+|_+$/g, '') || 'FONT';
+
     let code = `// Pixel Font: ${project.name || 'PixelFont'}\n`;
     code += `// Resolution: ${gridWidth}x${gridHeight}\n`;
     code += `// Total Glyphs: ${entries.length}\n\n`;
-    code += `#ifndef PIXEL_FONT_${(project.name || 'FONT').toUpperCase()}_H\n`;
-    code += `#define PIXEL_FONT_${(project.name || 'FONT').toUpperCase()}_H\n\n`;
+    code += `#ifndef PIXEL_FONT_${macroId}_H\n`;
+    code += `#define PIXEL_FONT_${macroId}_H\n\n`;
     code += `#include <stdint.h>\n\n`;
     code += `const uint8_t FONT_WIDTH = ${gridWidth};\n`;
     code += `const uint8_t FONT_HEIGHT = ${gridHeight};\n\n`;
 
     entries.forEach(([uStr, g]) => {
       const u = parseInt(uStr, 10);
-      const gGrid =
-        g.pixelData && g.pixelData.data
-          ? new Uint8Array(g.pixelData.data)
-          : rasterizeGlyphToPixelGrid(g, gridWidth, gridHeight);
+      const uHex = u.toString(16).toUpperCase().padStart(4, '0');
+      const gGrid = getGlyphBitmapAtStudioSize(g);
 
-      code += `// Character: '${g.char}' (U+${u.toString(16).toUpperCase()})\n`;
-      code += `const uint8_t glyph_0x${u.toString(16).toUpperCase()}[] = {\n`;
+      code += `// Character: '${g.char}' (U+${uHex})\n`;
+      code += `const uint8_t glyph_0x${uHex}[] = {\n`;
 
       const bytesPerRow = Math.ceil(gridWidth / 8);
       for (let y = 0; y < gridHeight; y++) {
-        code += ' ';
+        code += '  ';
         for (let b = 0; b < bytesPerRow; b++) {
           let byteVal = 0;
           for (let bit = 0; bit < 8; bit++) {
@@ -606,13 +688,16 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       code += `};\n\n`;
     });
 
-    code += `#endif // PIXEL_FONT_${(project.name || 'FONT').toUpperCase()}_H\n`;
+    code += `#endif // PIXEL_FONT_${macroId}_H\n`;
 
+    const safeFileBase = (project.name || 'pixel_font').replace(/[\\/:*?"<>|]/g, '_');
     const blob = new Blob([code], { type: 'text/x-c' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${project.name || 'pixel_font'}_${gridWidth}x${gridHeight}.h`;
+    a.href = url;
+    a.download = `${safeFileBase}_${gridWidth}x${gridHeight}.h`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
     onShowToast('C言語ヘッダー形式ビットマップ配列を出力しました', 'success');
   };
 
@@ -713,11 +798,14 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
             <button
               onClick={() => {
-                setShowTracePanel(!showTracePanel);
-                if (!showTrace) setShowTrace(true);
+                setShowTracePanel((prev) => {
+                  const next = !prev;
+                  if (next && !showTrace) setShowTrace(true);
+                  return next;
+                });
               }}
               className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${
-                showTrace
+                showTracePanel
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : isLight
                   ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
@@ -1021,6 +1109,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               traceScale={traceScale}
               traceOffsetX={traceOffsetX}
               traceOffsetY={traceOffsetY}
+              traceImageVersion={traceImageVersion}
               traceImageRef={traceImageRef}
               hoverPos={hoverPos}
               isDrawing={isDrawing}
@@ -1094,6 +1183,34 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                   />
                   <span className="text-emerald-600 dark:text-emerald-400">下絵表示</span>
                 </label>
+                {dotShape === 'square' && (
+                  <>
+                    <span className="opacity-40">|</span>
+                    <label
+                      className="flex items-center space-x-1 cursor-pointer"
+                      title="隣接する正方形ドットを1つの輪郭パスに最適化結合します"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={mergeContours}
+                        onChange={(e) => {
+                          const nextMerge = e.target.checked;
+                          setMergeContours(nextMerge);
+                          autoSaveGlyph(
+                            currentGridRef.current,
+                            currentUnicode,
+                            undefined,
+                            undefined,
+                            undefined,
+                            nextMerge
+                          );
+                        }}
+                        className="accent-emerald-600 cursor-pointer"
+                      />
+                      <span>輪郭結合</span>
+                    </label>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center space-x-1.5">
@@ -1108,6 +1225,236 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* DESKTOP TRACE SETTINGS PANEL */}
+          {showTracePanel && (
+            <div
+              className={`hidden md:flex w-64 border-l-2 p-3 flex-col gap-3 shrink-0 overflow-y-auto ${
+                isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-[#0f1712] border-[#294232] text-emerald-100'
+              }`}
+            >
+              <div className="flex items-center justify-between border-b border-stone-300 dark:border-stone-800 pb-2">
+                <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                  <ImageIcon className="w-4 h-4" />
+                  <span>下絵・トレース設定</span>
+                </span>
+                <button
+                  onClick={() => setShowTracePanel(false)}
+                  className="p-1 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
+                  title="下絵設定を閉じる"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <label className="flex items-center justify-between p-2 border border-stone-300 dark:border-stone-800 bg-white dark:bg-[#142018] text-xs font-bold cursor-pointer">
+                <span>キャンバスに下絵を表示</span>
+                <input
+                  type="checkbox"
+                  checked={showTrace}
+                  onChange={(e) => setShowTrace(e.target.checked)}
+                  className="accent-emerald-600 cursor-pointer w-4 h-4"
+                />
+              </label>
+
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setTraceSource('font')}
+                  className={`flex-1 py-1.5 px-2 text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
+                    traceSource === 'font'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : isLight
+                      ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
+                      : 'bg-[#142018] border-stone-700 text-stone-300 hover:bg-[#1e2f24]'
+                  }`}
+                >
+                  <Type className="w-3.5 h-3.5" />
+                  <span>システム文字</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setTraceSource('image');
+                    if (!traceImageSrc) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                  className={`flex-1 py-1.5 px-2 text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
+                    traceSource === 'image'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : isLight
+                      ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
+                      : 'bg-[#142018] border-stone-700 text-stone-300 hover:bg-[#1e2f24]'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>画像読込</span>
+                </button>
+              </div>
+
+              {traceSource === 'font' ? (
+                <div className="space-y-2 p-2 border border-stone-300 dark:border-stone-800 bg-white dark:bg-[#142018]">
+                  <div className="text-[11px] font-bold opacity-75">参照文字・書体:</div>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={traceChar}
+                      onChange={(e) => setTraceChar(e.target.value)}
+                      placeholder="文字"
+                      className="w-12 text-center font-bold text-sm py-1 border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-900"
+                    />
+                    <select
+                      value={traceFontFamily}
+                      onChange={(e) => setTraceFontFamily(e.target.value)}
+                      className="flex-1 text-xs py-1 px-1.5 border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-900"
+                    >
+                      <option value="sans-serif">ゴシック体</option>
+                      <option value="serif">明朝体</option>
+                      <option value="monospace">等幅</option>
+                      <option value="cursive">手書き風</option>
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 p-2 border border-stone-300 dark:border-stone-800 bg-white dark:bg-[#142018]">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold opacity-75">画像ファイル:</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {traceImageSrc ? '読込済み' : '未選択'}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 py-1.5 px-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>画像選択</span>
+                    </button>
+                    {traceImageSrc && (
+                      <button
+                        onClick={() => {
+                          setTraceImageSrc(null);
+                          traceImageRef.current = null;
+                          onShowToast('下絵画像をクリアしました', 'info');
+                        }}
+                        className="px-2 py-1.5 text-xs font-bold border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 cursor-pointer"
+                      >
+                        クリア
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="font-bold opacity-75">透明度:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{traceOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={traceOpacity}
+                  onChange={(e) => setTraceOpacity(parseInt(e.target.value, 10))}
+                  className="w-full accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="font-bold opacity-75">拡大率:</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{traceScale}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="150"
+                  value={traceScale}
+                  onChange={(e) => setTraceScale(parseInt(e.target.value, 10))}
+                  className="w-full accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-1.5 p-2 border border-stone-300 dark:border-stone-800 bg-white dark:bg-[#142018] text-xs">
+                <div className="flex justify-between">
+                  <span className="font-bold opacity-75">位置調整 (X/Y):</span>
+                  <span className="font-mono text-[11px]">
+                    {traceOffsetX}, {traceOffsetY}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setTraceOffsetX((v) => v - 1)}
+                      className="p-1.5 border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                      title="左へ"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setTraceOffsetX((v) => v + 1)}
+                      className="p-1.5 border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                      title="右へ"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setTraceOffsetY((v) => v - 1)}
+                      className="p-1.5 border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                      title="上へ"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setTraceOffsetY((v) => v + 1)}
+                      className="p-1.5 border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                      title="下へ"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {(traceOffsetX !== 0 || traceOffsetY !== 0) && (
+                    <button
+                      onClick={() => {
+                        setTraceOffsetX(0);
+                        setTraceOffsetY(0);
+                      }}
+                      className="px-2 py-1 text-[11px] font-bold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>戻す</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="font-bold opacity-75">抽出感度 (閾値):</span>
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    {traceThreshold} / 255
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="10"
+                  max="245"
+                  value={traceThreshold}
+                  onChange={(e) => setTraceThreshold(parseInt(e.target.value, 10))}
+                  className="w-full accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              <button
+                onClick={handleAutoBinarizeTrace}
+                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 border border-emerald-400 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 shrink-0" />
+                <span>下絵から自動ドット化</span>
+              </button>
+            </div>
+          )}
 
           {/* MOBILE GLYPHS TAB */}
           {mobileTab === 'glyphs' && (
@@ -1190,6 +1537,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               handleExportCHeader={handleExportCHeader}
               handleExportSinglePng={handleExportSinglePng}
               currentGlyph={currentGlyph}
+              project={project}
+              grid={grid}
+              currentUnicode={currentUnicode}
+              dotShape={dotShape}
               gridWidth={gridWidth}
               gridHeight={gridHeight}
               totalDrawnPixelGlyphs={totalDrawnPixelGlyphs}
@@ -1208,6 +1559,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
             handleExportCHeader={handleExportCHeader}
             handleExportSinglePng={handleExportSinglePng}
             currentGlyph={currentGlyph}
+            project={project}
+            grid={grid}
+            currentUnicode={currentUnicode}
+            dotShape={dotShape}
             gridWidth={gridWidth}
             gridHeight={gridHeight}
             totalDrawnPixelGlyphs={totalDrawnPixelGlyphs}

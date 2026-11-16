@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { RotateCcw, X, Type, Save } from 'lucide-react';
 import { FontProject } from '../../types';
 
@@ -25,9 +26,9 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   onSaveAndReset,
   onResetWithoutSave,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[60] anim-fade">
       <div
         className={`w-full max-w-md rounded-2xl p-5 border shadow-xl space-y-4 ${
@@ -122,6 +123,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -1,4 +1,5 @@
 import { GlyphData, PathContour, Point, BezierNode, PixelDotShape } from '../types';
+import { groupContoursWithHoles } from './path/bounds';
 
 /**
  * Resample pixel grid from source dimensions (srcW, srcH) to destination dimensions (dstW, dstH)
@@ -170,14 +171,14 @@ export function floodFill(
 }
 
 /**
- * Convert 2D Pixel Grid into Vector Path Contours
- * Uses contour loop marching / segment chaining to merge adjacent pixels into optimal polygons.
+ * Convert 2D Pixel Grid into Vector Path Contours (in editor Screen Coordinates: Y=0 top, Y=effectiveEm bottom).
+ * Uses integer grid-vertex edge marching to merge adjacent pixels into optimal clockwise outer / CCW hole polygons.
  */
 export function pixelGridToContours(
   grid: Uint8Array,
   width: number,
   height: number,
-  unitsPerEm: number = 1000,
+  _unitsPerEm: number = 1000,
   ascender: number = 800,
   descender: number = -200,
   advanceWidth: number = 1000,
@@ -200,17 +201,18 @@ export function pixelGridToContours(
   const cellH = usableHeight / height;
 
   const originX = marginX;
-  const topY = ascender - marginY;
+  const topY = marginY;
 
+  // Screen coordinates: y0 < y1 (top to bottom)
   const getCellBounds = (gx: number, gy: number) => {
     const x0 = originX + gx * cellW;
-    const x1 = x0 + cellW;
-    const y1 = topY - gy * cellH;
-    const y0 = y1 - cellH;
+    const x1 = originX + (gx + 1) * cellW;
+    const y0 = topY + gy * cellH;
+    const y1 = topY + (gy + 1) * cellH;
     return { x0, x1, y0, y1 };
   };
 
-  // If shape is round/squircle/diamond or merge is disabled, generate individual dot contours
+  // If shape is round/squircle/diamond or merge is disabled, generate individual clockwise dot contours
   if (shape !== 'square' || !mergeOptimized) {
     let dotId = 0;
     for (let gy = 0; gy < height; gy++) {
@@ -223,39 +225,96 @@ export function pixelGridToContours(
 
           if (shape === 'round') {
             const kappa = 0.5522847498;
-            const ox = r * kappa;
-            const oy = r * kappa;
+            const o = r * kappa;
+            const id = dotId++;
             contours.push({
-              id: `dot_${dotId++}`,
+              id: `dot_${id}`,
               closed: true,
               nodes: [
-                { id: `d_${dotId}_0`, x: cx, y: cy + r, type: 'smooth', handleOut: { x: cx + ox, y: cy + r }, handleIn: { x: cx - ox, y: cy + r } },
-                { id: `d_${dotId}_1`, x: cx + r, y: cy, type: 'smooth', handleOut: { x: cx + r, y: cy - oy }, handleIn: { x: cx + r, y: cy + oy } },
-                { id: `d_${dotId}_2`, x: cx, y: cy - r, type: 'smooth', handleOut: { x: cx - ox, y: cy - r }, handleIn: { x: cx + ox, y: cy - r } },
-                { id: `d_${dotId}_3`, x: cx - r, y: cy, type: 'smooth', handleOut: { x: cx - r, y: cy + oy }, handleIn: { x: cx - r, y: cy - oy } },
+                {
+                  id: `d_${id}_0`,
+                  x: cx,
+                  y: cy - r,
+                  type: 'smooth',
+                  handleIn: { x: cx - o, y: cy - r },
+                  handleOut: { x: cx + o, y: cy - r },
+                },
+                {
+                  id: `d_${id}_1`,
+                  x: cx + r,
+                  y: cy,
+                  type: 'smooth',
+                  handleIn: { x: cx + r, y: cy - o },
+                  handleOut: { x: cx + r, y: cy + o },
+                },
+                {
+                  id: `d_${id}_2`,
+                  x: cx,
+                  y: cy + r,
+                  type: 'smooth',
+                  handleIn: { x: cx + o, y: cy + r },
+                  handleOut: { x: cx - o, y: cy + r },
+                },
+                {
+                  id: `d_${id}_3`,
+                  x: cx - r,
+                  y: cy,
+                  type: 'smooth',
+                  handleIn: { x: cx - r, y: cy + o },
+                  handleOut: { x: cx - r, y: cy - o },
+                },
+              ],
+            });
+          } else if (shape === 'squircle') {
+            const inset = Math.min(cellW, cellH) * 0.04;
+            const sx0 = x0 + inset;
+            const sx1 = x1 - inset;
+            const sy0 = y0 + inset;
+            const sy1 = y1 - inset;
+            const cr = Math.min(sx1 - sx0, sy1 - sy0) * 0.28;
+            const k = cr * 0.5522847498;
+            const id = dotId++;
+            contours.push({
+              id: `dot_${id}`,
+              closed: true,
+              nodes: [
+                { id: `d_${id}_0`, x: sx0 + cr, y: sy0, type: 'smooth', handleIn: { x: sx0 + cr - k, y: sy0 }, handleOut: null },
+                { id: `d_${id}_1`, x: sx1 - cr, y: sy0, type: 'smooth', handleIn: null, handleOut: { x: sx1 - cr + k, y: sy0 } },
+                { id: `d_${id}_2`, x: sx1, y: sy0 + cr, type: 'smooth', handleIn: { x: sx1, y: sy0 + cr - k }, handleOut: null },
+                { id: `d_${id}_3`, x: sx1, y: sy1 - cr, type: 'smooth', handleIn: null, handleOut: { x: sx1, y: sy1 - cr + k } },
+                { id: `d_${id}_4`, x: sx1 - cr, y: sy1, type: 'smooth', handleIn: { x: sx1 - cr + k, y: sy1 }, handleOut: null },
+                { id: `d_${id}_5`, x: sx0 + cr, y: sy1, type: 'smooth', handleIn: null, handleOut: { x: sx0 + cr - k, y: sy1 } },
+                { id: `d_${id}_6`, x: sx0, y: sy1 - cr, type: 'smooth', handleIn: { x: sx0, y: sy1 - cr + k }, handleOut: null },
+                { id: `d_${id}_7`, x: sx0, y: sy0 + cr, type: 'smooth', handleIn: null, handleOut: { x: sx0, y: sy0 + cr - k } },
               ],
             });
           } else if (shape === 'diamond') {
+            const id = dotId++;
             contours.push({
-              id: `dot_${dotId++}`,
+              id: `dot_${id}`,
               closed: true,
               nodes: [
-                { id: `d_${dotId}_0`, x: cx, y: y1, type: 'corner' },
-                { id: `d_${dotId}_1`, x: x1, y: cy, type: 'corner' },
-                { id: `d_${dotId}_2`, x: cx, y: y0, type: 'corner' },
-                { id: `d_${dotId}_3`, x: x0, y: cy, type: 'corner' },
+                { id: `d_${id}_0`, x: cx, y: y0, type: 'corner' },
+                { id: `d_${id}_1`, x: x1, y: cy, type: 'corner' },
+                { id: `d_${id}_2`, x: cx, y: y1, type: 'corner' },
+                { id: `d_${id}_3`, x: x0, y: cy, type: 'corner' },
               ],
             });
           } else {
-            // Square (individual)
+            // Square (individual, clockwise in screen space)
+            const id = dotId++;
+            const rx0 = Math.round(x0);
+            const rx1 = Math.round(x1);
+            const ry0 = Math.round(y0);
+            const ry1 = Math.round(y1);
             contours.push({
-              id: `dot_${dotId++}`,
+              id: `dot_${id}`,
               closed: true,
               nodes: [
-                { id: `d_${dotId}_0`, x: Math.round(x0), y: Math.round(y1), type: 'corner' },
-                { id: `d_${dotId}_1`, x: Math.round(x1), y: Math.round(y1), type: 'corner' },
-                { id: `d_${dotId}_2`, x: Math.round(x1), y: Math.round(y0), type: 'corner' },
-                { id: `d_${dotId}_3`, x: Math.round(x0), y: Math.round(y0), type: 'corner' },
+                { id: `d_${id}_0`, x: rx0, y: ry0, type: 'corner' },
+                { id: `d_${id}_1`, x: rx1, y: ry0, type: 'corner' },
+                { id: `d_${id}_2`, x: rx1, y: ry1, type: 'corner' },
+                { id: `d_${id}_3`, x: rx0, y: ry1, type: 'corner' },
               ],
             });
           }
@@ -265,14 +324,16 @@ export function pixelGridToContours(
     return contours;
   }
 
-  // Merged Square Contours using Edge Marching / Tracing
-  interface Edge {
-    x0: number;
-    y0: number;
-    x1: number;
-    y1: number;
+  // Merged Square Contours using exact integer Grid-Vertex Edge Marching.
+  // In screen coordinates (Y-down), keeping the filled pixel on the RIGHT side of each directed edge
+  // produces Clockwise outer contours (signed area > 0) and Counter-Clockwise holes (signed area < 0).
+  interface GridEdge {
+    gx0: number;
+    gy0: number;
+    gx1: number;
+    gy1: number;
   }
-  const edges: Edge[] = [];
+  const edges: GridEdge[] = [];
 
   const getPixel = (gx: number, gy: number) => {
     if (gx < 0 || gx >= width || gy < 0 || gy >= height) return 0;
@@ -282,23 +343,21 @@ export function pixelGridToContours(
   for (let gy = 0; gy < height; gy++) {
     for (let gx = 0; gx < width; gx++) {
       if (getPixel(gx, gy) === 1) {
-        const { x0, x1, y0, y1 } = getCellBounds(gx, gy);
-
-        // Top edge
+        // Top edge: (gx, gy) -> (gx+1, gy)
         if (getPixel(gx, gy - 1) === 0) {
-          edges.push({ x0, y0: y1, x1, y1: y1 });
+          edges.push({ gx0: gx, gy0: gy, gx1: gx + 1, gy1: gy });
         }
-        // Right edge
+        // Right edge: (gx+1, gy) -> (gx+1, gy+1)
         if (getPixel(gx + 1, gy) === 0) {
-          edges.push({ x0: x1, y0: y1, x1, y1: y0 });
+          edges.push({ gx0: gx + 1, gy0: gy, gx1: gx + 1, gy1: gy + 1 });
         }
-        // Bottom edge
+        // Bottom edge: (gx+1, gy+1) -> (gx, gy+1)
         if (getPixel(gx, gy + 1) === 0) {
-          edges.push({ x0: x1, y0, x1: x0, y1: y0 });
+          edges.push({ gx0: gx + 1, gy0: gy + 1, gx1: gx, gy1: gy + 1 });
         }
-        // Left edge
+        // Left edge: (gx, gy+1) -> (gx, gy)
         if (getPixel(gx - 1, gy) === 0) {
-          edges.push({ x0, y0, x1: x0, y1: y1 });
+          edges.push({ gx0: gx, gy0: gy + 1, gx1: gx, gy1: gy });
         }
       }
     }
@@ -306,51 +365,56 @@ export function pixelGridToContours(
 
   if (edges.length === 0) return [];
 
-  // Chain directed edges into closed polygon loops
-  const edgeMap = new Map<string, Edge[]>();
-  const pointKey = (x: number, y: number) => `${Math.round(x * 10)},${Math.round(y * 10)}`;
+  const edgeMap = new Map<string, GridEdge[]>();
+  const vertexKey = (gx: number, gy: number) => `${gx},${gy}`;
 
   for (const e of edges) {
-    const k = pointKey(e.x0, e.y0);
-    if (!edgeMap.has(k)) edgeMap.set(k, []);
-    edgeMap.get(k)!.push(e);
+    const k = vertexKey(e.gx0, e.gy0);
+    let list = edgeMap.get(k);
+    if (!list) {
+      list = [];
+      edgeMap.set(k, list);
+    }
+    list.push(e);
   }
 
-  const used = new Set<Edge>();
+  const used = new Set<GridEdge>();
   let contourId = 0;
 
   for (const startEdge of edges) {
     if (used.has(startEdge)) continue;
 
-    const rawPoints: Point[] = [{ x: startEdge.x0, y: startEdge.y0 }];
+    const startKey = vertexKey(startEdge.gx0, startEdge.gy0);
+    const loopVertices: { gx: number; gy: number }[] = [{ gx: startEdge.gx0, gy: startEdge.gy0 }];
     used.add(startEdge);
     let curr = startEdge;
 
     while (true) {
-      rawPoints.push({ x: curr.x1, y: curr.y1 });
-      const nextKey = pointKey(curr.x1, curr.y1);
+      const nextKey = vertexKey(curr.gx1, curr.gy1);
       const candidates = edgeMap.get(nextKey) || [];
       const available = candidates.filter((cand) => !used.has(cand));
 
-      if (available.length === 0) {
+      // Include startEdge when back at startKey so we know whether the loop closes onto startEdge
+      const turnChoices = nextKey === startKey ? [...available, startEdge] : available;
+
+      if (turnChoices.length === 0) {
         break;
       }
 
-      let nextEdge: Edge;
-      if (available.length === 1) {
-        nextEdge = available[0];
+      let nextEdge: GridEdge;
+      if (turnChoices.length === 1) {
+        nextEdge = turnChoices[0];
       } else {
-        // When multiple edges branch (e.g. checkerboard diagonal contact),
-        // prioritize turning right (clockwise) to prevent figure-eight self-intersection.
-        const curDx = curr.x1 - curr.x0;
-        const curDy = curr.y1 - curr.y0;
-        let bestEdge = available[0];
+        // At 4-way diagonal checkerboard vertices, turn as sharply RIGHT (clockwise in screen space)
+        // as possible to hug the filled pixel on the right and prevent figure-8 crossings.
+        const curDx = curr.gx1 - curr.gx0;
+        const curDy = curr.gy1 - curr.gy0;
+        let bestEdge = turnChoices[0];
         let maxTurn = -Infinity;
 
-        for (const cand of available) {
-          const candDx = cand.x1 - cand.x0;
-          const candDy = cand.y1 - cand.y0;
-          // 2D cross product for turn direction: positive is right turn in SVG inverted Y coordinate
+        for (const cand of turnChoices) {
+          const candDx = cand.gx1 - cand.gx0;
+          const candDy = cand.gy1 - cand.gy0;
           const cross = curDx * candDy - curDy * candDx;
           const dot = curDx * candDx + curDy * candDy;
           const angle = Math.atan2(cross, dot);
@@ -362,37 +426,44 @@ export function pixelGridToContours(
         nextEdge = bestEdge;
       }
 
+      if (nextEdge === startEdge) {
+        // Closed cleanly back onto startEdge without duplicating the starting vertex
+        break;
+      }
+
+      loopVertices.push({ gx: curr.gx1, gy: curr.gy1 });
       used.add(nextEdge);
       curr = nextEdge;
     }
 
-    if (rawPoints.length >= 3) {
-      // Remove collinear adjacent points
-      const simplified: Point[] = [];
-      const numPts = rawPoints.length;
+    if (loopVertices.length >= 3) {
+      // Remove collinear intermediate vertices in exact integer grid space
+      const simplified: { gx: number; gy: number }[] = [];
+      const numPts = loopVertices.length;
 
       for (let j = 0; j < numPts; j++) {
-        const prev = rawPoints[(j - 1 + numPts) % numPts];
-        const curr = rawPoints[j];
-        const next = rawPoints[(j + 1) % numPts];
+        const prev = loopVertices[(j - 1 + numPts) % numPts];
+        const v = loopVertices[j];
+        const next = loopVertices[(j + 1) % numPts];
 
-        const isHorizontal = Math.abs(prev.y - curr.y) < 0.01 && Math.abs(curr.y - next.y) < 0.01;
-        const isVertical = Math.abs(prev.x - curr.x) < 0.01 && Math.abs(curr.x - next.x) < 0.01;
+        const isHorizontal = prev.gy === v.gy && v.gy === next.gy;
+        const isVertical = prev.gx === v.gx && v.gx === next.gx;
 
         if (!isHorizontal && !isVertical) {
-          simplified.push({ x: Math.round(curr.x), y: Math.round(curr.y) });
+          simplified.push(v);
         }
       }
 
       if (simplified.length >= 3) {
-        const nodes: BezierNode[] = simplified.map((p, idx) => ({
-          id: `node_px_${contourId}_${idx}`,
-          x: p.x,
-          y: p.y,
+        const cId = contourId++;
+        const nodes: BezierNode[] = simplified.map((v, idx) => ({
+          id: `node_px_${cId}_${idx}`,
+          x: Math.round(originX + v.gx * cellW),
+          y: Math.round(topY + v.gy * cellH),
           type: 'corner',
         }));
         contours.push({
-          id: `contour_px_${contourId++}`,
+          id: `contour_px_${cId}`,
           nodes,
           closed: true,
         });
@@ -404,13 +475,13 @@ export function pixelGridToContours(
 }
 
 /**
- * Rasterize Vector Contours onto a Binary Grid
+ * Rasterize Vector Contours (stored in editor Screen Coordinates) onto a Binary Pixel Grid
  */
 export function rasterizeGlyphToPixelGrid(
   glyph: GlyphData,
   width: number,
   height: number,
-  unitsPerEm: number = 1000,
+  _unitsPerEm: number = 1000,
   ascender: number = 800,
   descender: number = -200,
   marginPercent: number = 0.08
@@ -442,34 +513,56 @@ export function rasterizeGlyphToPixelGrid(
   ctx.fillRect(0, 0, width, height);
 
   ctx.fillStyle = '#000000';
-  ctx.beginPath();
 
-  for (const contour of glyph.contours) {
-    if (!contour.nodes || contour.nodes.length === 0) continue;
-    for (let i = 0; i < contour.nodes.length; i++) {
-      const node = contour.nodes[i];
-      const px = (node.x - marginX) * scaleX;
-      const py = (ascender - marginY - node.y) * scaleY;
+  const groups = groupContoursWithHoles(glyph.contours);
 
-      if (i === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        const prev = contour.nodes[i - 1];
-        if (prev.handleOut && node.handleIn) {
-          const cp1x = (prev.handleOut.x - marginX) * scaleX;
-          const cp1y = (ascender - marginY - prev.handleOut.y) * scaleY;
-          const cp2x = (node.handleIn.x - marginX) * scaleX;
-          const cp2y = (ascender - marginY - node.handleIn.y) * scaleY;
-          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, px, py);
+  for (const group of groups) {
+    ctx.beginPath();
+    for (const contour of group) {
+      if (!contour.nodes || contour.nodes.length === 0) continue;
+      const nodes = contour.nodes;
+      const toPxX = (x: number) => (x - marginX) * scaleX;
+      const toPxY = (y: number) => (y - marginY) * scaleY;
+
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const px = toPxX(node.x);
+        const py = toPxY(node.y);
+
+        if (i === 0) {
+          ctx.moveTo(px, py);
         } else {
-          ctx.lineTo(px, py);
+          const prev = nodes[i - 1];
+          if (prev.handleOut || node.handleIn) {
+            const cp1 = prev.handleOut || prev;
+            const cp2 = node.handleIn || node;
+            ctx.bezierCurveTo(toPxX(cp1.x), toPxY(cp1.y), toPxX(cp2.x), toPxY(cp2.y), px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
         }
       }
-    }
-    ctx.closePath();
-  }
 
-  ctx.fill('evenodd');
+      if (contour.closed !== false && nodes.length > 1) {
+        const last = nodes[nodes.length - 1];
+        const first = nodes[0];
+        if (last.handleOut || first.handleIn) {
+          const cp1 = last.handleOut || last;
+          const cp2 = first.handleIn || first;
+          ctx.bezierCurveTo(
+            toPxX(cp1.x),
+            toPxY(cp1.y),
+            toPxX(cp2.x),
+            toPxY(cp2.y),
+            toPxX(first.x),
+            toPxY(first.y)
+          );
+        }
+        ctx.closePath();
+      }
+    }
+    ctx.fill('evenodd');
+  }
 
   const imgData = ctx.getImageData(0, 0, width, height).data;
   for (let y = 0; y < height; y++) {

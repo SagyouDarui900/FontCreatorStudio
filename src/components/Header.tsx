@@ -72,7 +72,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
+  const toolsPanelRef = useRef<HTMLDivElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const themePanelRef = useRef<HTMLDivElement>(null);
 
   const { openModal } = useModalContext();
 
@@ -103,16 +105,30 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
     const handleClickOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
       const target = e.target as Node;
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(target)) {
+      const inTools =
+        (toolsMenuRef.current && toolsMenuRef.current.contains(target)) ||
+        (toolsPanelRef.current && toolsPanelRef.current.contains(target));
+      if (!inTools) {
         setShowToolsMenu(false);
       }
-      if (themeMenuRef.current && !themeMenuRef.current.contains(target)) {
+      const inTheme =
+        (themeMenuRef.current && themeMenuRef.current.contains(target)) ||
+        (themePanelRef.current && themePanelRef.current.contains(target));
+      if (!inTheme) {
+        setShowThemeMenu(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowToolsMenu(false);
         setShowThemeMenu(false);
       }
     };
     document.addEventListener('pointerdown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showToolsMenu, showThemeMenu]);
 
@@ -122,7 +138,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
   return (
     <header
-      className={`min-h-[40px] h-[calc(2.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] border-b flex items-center justify-between px-2 shrink-0 z-40 select-none relative transition-colors overflow-visible gap-1.5 ${themeClasses.headerBg}`}
+      className={`min-h-[40px] h-[calc(2.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] border-b flex items-center justify-between px-2 shrink-0 z-40 select-none relative overflow-visible gap-1.5 ${themeClasses.headerBg}`}
     >
       {/* Hidden file inputs */}
       <input
@@ -144,7 +160,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
       <div className="flex items-center gap-1 sm:gap-1.5 shrink min-w-0">
         <button
           onClick={onToggleGridDrawer}
-          className={`hidden sm:inline-flex h-7 px-2 rounded-md transition-colors items-center gap-1 text-xs font-bold shrink-0 border cursor-pointer ${
+          className={`hidden sm:inline-flex h-7 px-2 rounded-md items-center gap-1 text-xs font-bold shrink-0 border cursor-pointer ${
             showGridDrawer
               ? themeClasses.activeTool
               : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -186,7 +202,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             <button
               id="btn-header-lock-glyph"
               onClick={onToggleLockGlyph}
-              className={`h-6 px-1.5 rounded-md transition-colors inline-flex items-center gap-1 border text-[10px] font-bold shrink-0 whitespace-nowrap cursor-pointer ${
+              className={`h-6 px-1.5 rounded-md inline-flex items-center gap-1 border text-[10px] font-bold shrink-0 whitespace-nowrap cursor-pointer ${
                 isGlyphLocked
                   ? isLight
                     ? 'bg-amber-100 text-amber-900 border-amber-300'
@@ -224,7 +240,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center ${
+            className={`w-6 h-6 rounded inline-flex items-center justify-center ${
               canUndo
                 ? `${themeClasses.activeToolHover} cursor-pointer`
                 : 'opacity-30 cursor-not-allowed'
@@ -236,7 +252,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`w-6 h-6 rounded transition-colors inline-flex items-center justify-center ${
+            className={`w-6 h-6 rounded inline-flex items-center justify-center ${
               canRedo
                 ? `${themeClasses.activeToolHover} cursor-pointer`
                 : 'opacity-30 cursor-not-allowed'
@@ -249,8 +265,12 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
         {/* Test Waterfall Modal */}
         <button
-          onClick={onOpenTestModal}
-          className={`h-7 px-2 rounded-md text-xs font-bold inline-flex items-center gap-1 transition-colors border shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+          onClick={() => {
+            setShowToolsMenu(false);
+            setShowThemeMenu(false);
+            onOpenTestModal();
+          }}
+          className={`h-7 px-2 rounded-md text-xs font-bold inline-flex items-center gap-1 border shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
           title="フォント試し打ち・文章リアルタイムプレビュー"
         >
           <Play className={`w-3.5 h-3.5 fill-current shrink-0 ${themeClasses.accentText}`} />
@@ -261,7 +281,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         <button
           id="btn-header-radicals"
           onClick={onToggleRadicals}
-          className={`h-7 hidden lg:inline-flex px-2 rounded-md text-xs font-semibold items-center gap-1 transition-colors border cursor-pointer ${
+          className={`h-7 hidden lg:inline-flex px-2 rounded-md text-xs font-semibold items-center gap-1 border cursor-pointer ${
             showRadicals
               ? `${themeClasses.activeTool} font-bold`
               : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -289,7 +309,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             id="btn-header-metrics"
             onClick={onToggleMetricsDrawer}
-            className={`px-2 h-7 rounded-md text-xs font-bold hidden md:inline-flex items-center gap-1 transition-colors border cursor-pointer shrink-0 ${
+            className={`px-2 h-7 rounded-md text-xs font-bold hidden md:inline-flex items-center gap-1 border cursor-pointer shrink-0 ${
               showMetricsDrawer
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -304,9 +324,13 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {/* Unified Tools Dropdown */}
         <ToolsMenuDropdown
           isOpen={showToolsMenu}
-          onToggleOpen={() => setShowToolsMenu(!showToolsMenu)}
+          onToggleOpen={() => {
+            setShowThemeMenu(false);
+            setShowToolsMenu((prev) => !prev);
+          }}
           onClose={() => setShowToolsMenu(false)}
           menuRef={toolsMenuRef}
+          panelRef={toolsPanelRef}
           isLight={isLight}
           theme={theme}
           onOpenExportModal={onOpenExportModal}
@@ -349,18 +373,26 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           isLight={isLight}
           cardBgClass={themeClasses.cardBg}
           isOpen={showThemeMenu}
-          onToggleOpen={() => setShowThemeMenu((prev) => !prev)}
+          onToggleOpen={() => {
+            setShowToolsMenu(false);
+            setShowThemeMenu((prev) => !prev);
+          }}
           onClose={() => setShowThemeMenu(false)}
           onChangeTheme={onChangeTheme}
           onToggleTheme={onToggleTheme}
           notify={notify}
           menuRef={themeMenuRef}
+          panelRef={themePanelRef}
         />
 
         {/* Export Font Modal Prominent Trigger */}
         <button
-          onClick={handleExportTtf}
-          className={`px-2.5 h-7 rounded-md text-xs font-bold flex items-center gap-1 transition-colors shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
+          onClick={() => {
+            setShowToolsMenu(false);
+            setShowThemeMenu(false);
+            handleExportTtf();
+          }}
+          className={`px-2.5 h-7 rounded-md text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
           title="OSやiPad・アプリで使えるフォントを出力 (TTF/OTF/WOFF)"
         >
           <Download className="w-3.5 h-3.5 shrink-0" />

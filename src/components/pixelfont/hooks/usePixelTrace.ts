@@ -27,6 +27,7 @@ export function usePixelTrace({
   const [traceOffsetY, setTraceOffsetY] = useState<number>(0);
   const [traceThreshold, setTraceThreshold] = useState<number>(128);
   const [traceImageSrc, setTraceImageSrc] = useState<string | null>(null);
+  const [traceImageVersion, setTraceImageVersion] = useState<number>(0);
   const traceImageRef = useRef<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -38,6 +39,7 @@ export function usePixelTrace({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     const reader = new FileReader();
@@ -50,6 +52,7 @@ export function usePixelTrace({
       const img = new Image();
       img.onload = () => {
         traceImageRef.current = img;
+        setTraceImageVersion((v) => v + 1);
       };
       img.src = src;
 
@@ -59,6 +62,11 @@ export function usePixelTrace({
   };
 
   const handleAutoBinarizeTrace = useCallback(() => {
+    if (traceSource === 'image' && !traceImageRef.current) {
+      onShowToast('先に下絵画像ファイルを選択してください', 'warning');
+      return;
+    }
+
     const offCanvas = document.createElement('canvas');
     offCanvas.width = gridWidth;
     offCanvas.height = gridHeight;
@@ -80,7 +88,7 @@ export function usePixelTrace({
     } else {
       const charToDraw = traceChar || currentGlyph.char || 'A';
       const scale = traceScale / 100;
-      const fontSize = Math.round(gridHeight * 0.85 * scale);
+      const fontSize = Math.round(gridHeight * 0.82 * scale);
       offCtx.font = `bold ${fontSize}px ${traceFontFamily}`;
       offCtx.textAlign = 'center';
       offCtx.textBaseline = 'middle';
@@ -141,6 +149,7 @@ export function usePixelTrace({
     setTraceThreshold,
     traceImageSrc,
     setTraceImageSrc,
+    traceImageVersion,
     traceImageRef,
     fileInputRef,
     handleImageUpload,

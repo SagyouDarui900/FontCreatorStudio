@@ -5,9 +5,7 @@ import {
  Trash2,
  Sliders,
  Sparkles,
- ArrowRightLeft,
  CheckCircle2,
- RotateCcw,
  Eye,
  Info,
  Maximize2,
@@ -15,14 +13,14 @@ import {
  AlignHorizontalDistributeCenter,
  MoveHorizontal,
 } from 'lucide-react';
-import { FontProject, GlyphData } from '../types';
+import { FontProject } from '../types';
 import {
  KERNING_PRESET_GROUPS,
  batchAdjustSidebearings,
  SidebearingBatchOptions,
  calculateAutoKernOffset,
 } from '../utils/metricsHelper';
-import { contoursToSvgPath, normalizeGlyphContoursWinding, getContoursBoundingBox } from '../utils/path';
+import { contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
 
 import { ThemeMode, getThemeClasses, isLightTheme } from '../utils/theme';
 
@@ -55,7 +53,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  const updateProject = useMemo(() => {
  if (onUpdateProject) return onUpdateProject;
  if (setProject) return setProject;
- return (_updater: any) => {};
+ return (_updater: (prev: FontProject) => FontProject) => {};
  }, [onUpdateProject, setProject]);
 
  const notify = (msg: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
@@ -75,8 +73,9 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  const [customValue, setCustomValue] = useState<number>(-100);
  const [sampleText, setSampleText] = useState<string>('「こんにちは」AVANT-GARDE 110番');
 
- // Fullscreen mode state
+ // Fullscreen & Clear confirmation state
  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+ const [isConfirmingClearAll, setIsConfirmingClearAll] = useState<boolean>(false);
 
  // Keyboard shortcut listener: Escape and F
  useEffect(() => {
@@ -166,23 +165,26 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  // Add custom kerning pair
  const handleAddCustomPair = () => {
- if (!customLeft || !customRight) {
+ const leftChar = Array.from(customLeft.trim())[0];
+ const rightChar = Array.from(customRight.trim())[0];
+ if (!leftChar || !rightChar) {
  notify('左文字と右文字の両方を入力してください', 'warning');
  return;
  }
- const pairKey = `${customLeft},${customRight}`;
+ const safeVal = Number.isFinite(customValue) ? Math.round(customValue) : 0;
+ const pairKey = `${leftChar},${rightChar}`;
  updateProject((prev) => ({
  ...prev,
  kerning: {
  ...(prev.kerning || {}),
- [pairKey]: customValue,
+ [pairKey]: safeVal,
  },
  updatedAt: Date.now(),
  }));
  setSelectedPairKey(pairKey);
  setCustomLeft('');
  setCustomRight('');
- notify(`ペア「${pairKey}」(${customValue}) を追加しました`, 'success');
+ notify(`ペア「${pairKey}」(${safeVal}) を追加しました`, 'success');
  };
 
  // Remove kerning pair
@@ -491,16 +493,36 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <div className={`flex items-center justify-between text-[11px] font-bold mb-2 ${themeClasses.textMuted}`}>
  <span>登録済みペア一覧 ({Object.keys(kerningPairs).length} 件):</span>
  {Object.keys(kerningPairs).length > 0 && (
+ isConfirmingClearAll ? (
+ <div className="flex items-center gap-1.5">
  <button
+ type="button"
  onClick={() => {
- if (confirm('登録されているすべてのカーニングをクリアしますか？')) {
  updateProject((prev) => ({ ...prev, kerning: {}, updatedAt: Date.now() }));
- }
+ setIsConfirmingClearAll(false);
+ notify('登録済みのカーニングをすべて削除しました', 'info');
  }}
+ className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] hover:bg-rose-700 transition-colors cursor-pointer"
+ >
+ 本当に全削除
+ </button>
+ <button
+ type="button"
+ onClick={() => setIsConfirmingClearAll(false)}
+ className={`px-1.5 py-0.5 rounded border text-[10px] transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted}`}
+ >
+ キャンセル
+ </button>
+ </div>
+ ) : (
+ <button
+ type="button"
+ onClick={() => setIsConfirmingClearAll(true)}
  className="text-[10px] text-red-500 hover:text-red-700 transition-colors cursor-pointer"
  >
  全削除
  </button>
+ )
  )}
  </div>
  <div className="flex-1 overflow-y-auto max-h-56 flex flex-col gap-1 pr-1">
@@ -569,7 +591,10 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  type="number"
  step={5}
  value={currentPairValue}
- onChange={(e) => handleUpdateKerningValue(Number(e.target.value))}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ handleUpdateKerningValue(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className={`w-20 p-1 text-center font-mono font-bold rounded border ${themeClasses.cardBg}`}
  />
  <span className={`text-xs ${themeClasses.textMuted}`}>units</span>
@@ -987,8 +1012,9 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  {/* Batch Execute Button */}
  <button
+ type="button"
  onClick={handleExecuteSidebearingBatch}
- className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.99] cursor-pointer ${themeClasses.accentBtn}`}
+ className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  <CheckCircle2 className="w-4 h-4" />
  <span>選択カテゴリのサイドベアリングを一括調整</span>

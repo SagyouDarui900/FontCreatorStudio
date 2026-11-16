@@ -223,14 +223,14 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
     <>
       {!isMobileFocusMode && showSubToolbar ? (
         <div
-          className={`h-9 border-b flex items-center gap-1 px-1.5 sm:px-2 shrink-0 z-20 select-none transition-colors ${themeClasses.subtoolbarBg}`}
+          className={`h-9 border-b flex items-center gap-1 px-1.5 sm:px-2 shrink-0 z-20 select-none ${themeClasses.subtoolbarBg}`}
         >
           {/* Fixed Left Scroll Jump Button (outside scroll container) */}
           {subToolbarCanScrollLeft && (
             <button
               type="button"
               onClick={handleSubToolbarScrollLeft}
-              className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
+              className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 cursor-pointer"
               title="ツールバーを左へスクロール"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -393,7 +393,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={handleSubToolbarScrollRight}
-                className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 transition-colors cursor-pointer"
+                className="shrink-0 flex items-center justify-center w-6 h-7 rounded bg-stone-200/95 dark:bg-stone-800/95 hover:bg-emerald-100 dark:hover:bg-emerald-950/80 text-stone-700 dark:text-emerald-300 border border-stone-300/80 dark:border-stone-700/80 cursor-pointer"
                 title="ツールバーを右へスクロール"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -412,7 +412,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                       nextLocked ? 'ガイド線をロックしました' : 'ガイド線のロックを解除しました (移動可能)'
                     );
                   }}
-                  className={`px-1.5 py-1 rounded border transition-colors flex items-center space-x-1 text-xs font-bold cursor-pointer ${
+                  className={`px-1.5 py-1 rounded border flex items-center space-x-1 text-xs font-bold cursor-pointer ${
                     lockGuidelines
                       ? isLight
                         ? 'bg-stone-100 border-stone-300 text-stone-600'
@@ -434,7 +434,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                     setCustomGuidelines([]);
                     showCanvasToast('カスタムガイド線を消去しました');
                   }}
-                  className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 cursor-pointer"
                   title="カスタムガイド線を全消去"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -446,7 +446,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
             <button
               type="button"
               onClick={handleToggleSubToolbar}
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-stone-200 dark:hover:bg-[#202e24] text-stone-400 hover:text-stone-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center rounded hover:bg-stone-200 dark:hover:bg-[#202e24] text-stone-400 hover:text-stone-700 dark:hover:text-emerald-300 cursor-pointer"
               title="サブツールバーを折りたたむ (作図キャンバスを広く使う)"
             >
               <ChevronUp className="w-3.5 h-3.5" />
@@ -457,7 +457,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
         /* Collapsed Docked Minimal Strip (Non-overlapping) */
         !isMobileFocusMode && (
           <div
-            className={`h-7 border-b flex items-center justify-between px-2 shrink-0 z-20 select-none text-xs transition-colors ${themeClasses.subtoolbarBg}`}
+            className={`h-7 border-b flex items-center justify-between px-2 shrink-0 z-20 select-none text-xs ${themeClasses.subtoolbarBg}`}
           >
             <div className="flex items-center space-x-1">
               {onSelectPrevGlyph && (
@@ -488,7 +488,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
             <button
               type="button"
               onClick={handleToggleSubToolbar}
-              className="flex items-center space-x-1 px-2 py-0.5 rounded hover:bg-emerald-100 dark:hover:bg-emerald-950 text-[10.5px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60 transition-colors cursor-pointer"
+              className="flex items-center space-x-1 px-2 py-0.5 rounded hover:bg-emerald-100 dark:hover:bg-emerald-950 text-[10.5px] font-bold text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60 cursor-pointer"
               title="サブツールバーを展開"
             >
               <Sliders className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />

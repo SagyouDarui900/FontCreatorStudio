@@ -52,7 +52,8 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
     { id: 'line' as PixelDrawTool, label: '直線', desc: '直線作図 (Line)', icon: Slash },
     { id: 'rect' as PixelDrawTool, label: '矩形', desc: '矩形枠 (Rect)', icon: Square },
     { id: 'rect_filled' as PixelDrawTool, label: '塗矩形', desc: '塗り矩形 (Filled Rect)', icon: Square, fill: true },
-    { id: 'circle' as PixelDrawTool, label: '円', desc: '円・楕円 (Circle)', icon: Circle },
+    { id: 'circle' as PixelDrawTool, label: '円', desc: '円枠 (Circle)', icon: Circle },
+    { id: 'circle_filled' as PixelDrawTool, label: '塗円', desc: '塗り円 (Filled Circle)', icon: Circle, fill: true },
   ];
 
   if (isMobile) {

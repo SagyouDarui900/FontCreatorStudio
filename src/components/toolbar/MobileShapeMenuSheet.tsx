@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { ToolMode, ThemeClasses } from '../../types';
 
@@ -25,9 +26,9 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
   setLastSelectedShape,
   SHAPE_TOOLS,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
  <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end" ref={sheetRef}>
  <div
  className="fixed inset-0 bg-black/60 anim-fade"
@@ -71,7 +72,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -107,7 +108,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -143,7 +144,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -162,8 +163,8 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  </div>
  </div>
  </div>
- </div>
-
+ </div>,
+    document.body
   );
 });
 
