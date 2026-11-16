@@ -1,8 +1,21 @@
 import * as opentype from 'opentype.js';
 import { FontMetadata, FontProject, GlyphData } from '../../types';
 import { compileFont, CompileFontOptions } from './compilerCore';
+import { validateFontProject } from './validation';
 import { openTypePathToContours } from './paths';
 import { SCREEN_BASELINE_Y } from './constants';
+
+/**
+ * Throw when the project fails validation, so callers never receive a
+ * font built from invalid outlines. compileFont throws the same error,
+ * but the explicit check keeps the failure visible at the export entry point.
+ */
+function assertValidFontProject(project: FontProject): void {
+  const validation = validateFontProject(project);
+  if (!validation.valid) {
+    throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
+  }
+}
 
 /**
  * Share or download the generated font file (.ttf / .otf)
@@ -13,6 +26,7 @@ export async function shareOrDownloadFont(
   format: 'ttf' | 'otf' = 'ttf',
   options?: CompileFontOptions
 ): Promise<{ method: 'share' | 'download'; filename: string }> {
+  assertValidFontProject(project);
   const { buffer } = compileFont(project, { ...options, skipBlobUrl: true });
   const rawName = project.metadata.familyName || 'CustomFont';
   const safeName = rawName.replace(/[^a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff-]/g, '_');
@@ -73,6 +87,7 @@ export function downloadFont(
   options?: CompileFontOptions
 ) {
   try {
+    assertValidFontProject(project);
     const { buffer } = compileFont(project, { ...options, skipBlobUrl: true });
     const mimeType = format === 'otf' ? 'font/otf' : 'font/ttf';
     const blob = new Blob([buffer], { type: mimeType });
