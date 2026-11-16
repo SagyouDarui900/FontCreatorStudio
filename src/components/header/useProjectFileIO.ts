@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { FontProject } from '../../types';
-import { createDefaultProject, loadFontFromFile } from '../../utils/font';
+import { createDefaultProject, loadFontFromFile, validateStoredFontProject } from '../../utils/font';
 import { exportProjectJsonFile } from '../../utils/storageManager';
 
 interface UseProjectFileIOProps {
@@ -58,11 +58,12 @@ export function useProjectFileIO({
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        if (json.metadata && json.glyphs) {
-          setProject(json);
+        const validated = validateStoredFontProject(json);
+        if (validated) {
+          setProject(validated);
           notify('プロジェクトセーブデータを読み込みました', 'success');
         } else {
-          notify('無効なセーブデータファイルです', 'error');
+          notify('無効なセーブデータファイルです。データが破損しているため読み込みませんでした', 'error');
         }
       } catch (err) {
         notify('セーブデータファイルの読み込みに失敗しました', 'error');
