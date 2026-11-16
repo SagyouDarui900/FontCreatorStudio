@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FontProject, PathContour, Point } from '../../../types';
-import { compileFont, balanceProjectGlyphMargins } from '../../../utils/font';
+import { compileFont, balanceProjectGlyphMargins, validateFontProject } from '../../../utils/font';
 import { getContoursBoundingBox } from '../../../utils/path';
 import { ThemeMode, isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
@@ -289,6 +289,10 @@ const [testText, setTestText] = useState<string>(
     compileTimerRef.current = setTimeout(() => {
       compileTimerRef.current = null;
       try {
+        const validation = validateFontProject(project);
+        if (!validation.valid) {
+          throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
+        }
         const { blobUrl } = compileFont(project, {
           scaleFactor: fontScaleMultiplier,
           balanceSideBearings: autoBalanceMargins,
@@ -353,7 +357,11 @@ const [testText, setTestText] = useState<string>(
         setErrorMsg(null);
       } catch (err) {
         console.error('Error compiling test font:', err);
-        setErrorMsg('フォントの生成中にエラーが発生しました。パスの構造を確認してください。');
+        setErrorMsg(
+          err instanceof Error && err.message
+            ? err.message
+            : 'フォントの生成中にエラーが発生しました。パスの構造を確認してください。'
+        );
       }
     }, 250);
 
