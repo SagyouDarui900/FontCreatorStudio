@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontProject } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
+import { validateStoredFontProject } from '../utils/font/validation';
 import {
  StorageUsageBreakdown,
  ProjectBackupSnapshot,
@@ -165,16 +166,21 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  setConfirmRestoreId(null);
  refreshStorageData();
  } else {
- onShowToast('スナップショットデータの復元に失敗しました', 'error');
+ onShowToast('スナップショットデータが無効なため、復元できませんでした', 'error');
  }
  };
 
  // Handle restoring project from IndexedDB autosave history entry
  const handleRestoreAutosaveEntry = (entry: IndexedDBAutoSaveEntry) => {
  if (entry.project) {
- setProject(entry.project);
+ const validated = validateStoredFontProject(entry.project);
+ if (validated) {
+ setProject(validated);
  onShowToast(`IndexedDB自動バックアップ「${formatDateTime(entry.timestamp)}」を復元しました`, 'success');
  refreshStorageData();
+ } else {
+ onShowToast('自動バックアップデータが無効なため、復元できませんでした', 'error');
+ }
  } else {
  onShowToast('バックアップデータの復元に失敗しました', 'error');
  }
