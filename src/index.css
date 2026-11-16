@@ -406,11 +406,11 @@ svg[data-gesturing="true"] .trace-reference-layer image {
 }
 
 /* ==========================================================================
-   MOBILE PERFORMANCE OPTIMIZATIONS
-   Disable unnecessary entrance animations, heavy shadows, and alpha backdrop
-   blending on mobile/touch viewports for instant response and zero GPU lag.
+   MOBILE & TABLET PERFORMANCE OPTIMIZATIONS
+   Disable entrance animations, heavy blur shadows, and complex alpha blending
+   on mobile and tablet viewports (<=1024px or touch pointers) to eliminate GPU overhead.
    ========================================================================== */
-@media (max-width: 640px), (hover: none) and (pointer: coarse) {
+@media (max-width: 1024px), (hover: none), (pointer: coarse) {
   .anim-fade,
   .anim-pop,
   .anim-slide-up,
@@ -421,8 +421,10 @@ svg[data-gesturing="true"] .trace-reference-layer image {
 
   .shadow-2xl,
   .shadow-xl,
-  .shadow-lg {
-    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12) !important;
+  .shadow-lg,
+  .shadow-md,
+  .shadow-inner {
+    box-shadow: none !important;
   }
 
   .bg-black\/40,
@@ -431,7 +433,12 @@ svg[data-gesturing="true"] .trace-reference-layer image {
   .bg-black\/65,
   .bg-black\/70,
   .bg-black\/75 {
-    background-color: rgba(0, 0, 0, 0.78) !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   input[type="range"]::-webkit-slider-thumb {
