@@ -157,39 +157,75 @@ npm run build
 ## ディレクトリ構成
 
 ```text
-src/
-├── components/                  # React UIコンポーネント
-│   ├── canvas/                  # キャンバス描画レイヤー群
-│   │   ├── overlays/            # サブツールバー、情報表示オーバーレイ
-│   │   ├── subtoolbars/         # 各ツールの設定バー
-│   │   └── hooks/               # ポインター入力、ショートカット処理フック
-│   ├── help/                    # チュートリアル・用語集タブ
-│   ├── testpreview/             # 試し打ちモーダル
-│   ├── radicalStudio/           # 部首合成スタジオ
-│   ├── GlyphCanvas.tsx          # メイン作図キャンバス
-│   ├── GlyphGrid.tsx            # 文字選択グリッド
-│   ├── Header.tsx               # 上部メニューバー
-│   ├── ToolBar.tsx              # 左側ツール選択パレット
-│   ├── MetricsPanel.tsx         # 字幅・サイドベアリング数値設定パネル
-│   ├── ExportModal.tsx          # フォント書き出し設定モーダル
-│   ├── StorageManagerModal.tsx  # ストレージ・スナップショット管理モーダル
-│   └── ShortcutsHelpModal.tsx   # ヘルプ・ショートカット一覧モーダル
-├── contexts/                    # React Context (ProjectContext 等)
-├── hooks/                       # アプリケーションロジック用フック
-│   ├── useUndoRedo.ts           # 文字単位のUndo/Redo管理
-│   ├── useProjectStorage.ts     # IndexedDB / LocalStorage 永続化管理
-│   ├── useBrushDrawing.ts       # ブラシ・筆圧描画処理
-│   ├── useNodeEditing.ts        # ベジェノード選択・編集処理
-│   └── useAppShortcuts.ts       # グローバルキーボードショートカット処理
-├── utils/                       # 算術・幾何・フォントバイナリ生成ユーティリティ
-│   ├── font/                    # OpenType.js フォントコンパイラ
-│   ├── path/                    # ベクターパス幾何計算・スプライン変換
-│   ├── indexedDBStorage.ts      # IndexedDB 接続・読み書き処理
-│   ├── storageManager.ts        # ストレージ容量計算・バックアップ処理
-│   └── theme.ts                 # カラーテーマ定義
-├── types.ts                     # TypeScript 型定義
-├── App.tsx                      # ルートUIコンポーネント
-└── main.tsx                     # アプリケーションエントリポイント
+.
+├── .github/workflows/           # GitHub Actions (deploy.yml)
+├── public/                      # 静的ファイル、PWAアイコン
+│   └── assets/aistudio/         # 空ディレクトリ用の .gitignore のみ
+├── scripts/                     # 補助スクリプト
+│   ├── create_adjust_panel.py
+│   └── generate_pwa_icons.js
+├── src/
+│   ├── App.tsx                  # ルートUIコンポーネント
+│   ├── main.tsx                 # アプリケーションエントリポイント
+│   ├── index.css
+│   ├── types.ts                 # types/ への再エクスポート
+│   ├── vite-env.d.ts
+│   ├── components/              # React UIコンポーネント (33ファイル、25フォルダ)
+│   │   ├── canvas/              # キャンバス描画レイヤー群 (hooks, overlays, subtoolbars)
+│   │   ├── batch/               # 一括処理
+│   │   ├── density/             # 密度ヒートマップ
+│   │   ├── export/              # 書き出し設定
+│   │   ├── fontinfo/            # フォント情報
+│   │   ├── glyphSynthesis/      # グリフ合成
+│   │   ├── glyphgrid/           # 文字選択グリッド
+│   │   ├── gridFitting/         # グリッドフィッティング
+│   │   ├── header/              # ヘッダー
+│   │   ├── help/                # チュートリアル・用語集
+│   │   ├── ivs/                 # 異体字セレクタ
+│   │   ├── metrics/             # 字幅・サイドベアリング
+│   │   ├── modals/              # モーダルホスト
+│   │   ├── mojikumi/            # 組版プレビュー
+│   │   ├── navigation/          # モバイルナビゲーション
+│   │   ├── openTypeFeatures/    # OpenType機能
+│   │   ├── penpresets/          # ペンプリセット (tabs)
+│   │   ├── pixelfont/           # ドットフォント (hooks)
+│   │   ├── precision/           # 精度インスペクタ
+│   │   ├── progress/            # 進捗表示
+│   │   ├── quality/             # 品質チェック (hooks, panels)
+│   │   ├── radicalStudio/       # 部首合成スタジオ (hooks)
+│   │   ├── radicals/            # 部首
+│   │   ├── testpreview/         # 試し打ち (hooks)
+│   │   ├── toolbar/             # ツールバー
+│   │   ├── GlyphCanvas.tsx      # メイン作図キャンバス
+│   │   ├── GlyphGrid.tsx        # 文字選択グリッド
+│   │   ├── Header.tsx           # 上部メニューバー
+│   │   ├── ToolBar.tsx          # 左側ツール選択パレット
+│   │   └── ...                  # その他モーダル、パネル (計33ファイル)
+│   ├── contexts/                # React Context (ModalContext, ProjectContext)
+│   ├── data/                    # JIS漢字、部首、Unicode表などの静的データ
+│   ├── hooks/                   # アプリケーションロジック用フック (useUndoRedo, useProjectStorage, useBrushDrawing, useNodeEditing, useAppShortcuts など)
+│   ├── types/                   # 型定義 (brush, canvas, font, geometry, glyph, mojikumi)
+│   └── utils/                   # ユーティリティ
+│       ├── font/                # フォントコンパイラ
+│       ├── path/                # ベクターパス幾何計算、スプライン変換 (stroke_modules)
+│       ├── brush/               # ブラシ
+│       ├── geometry/            # 幾何計算
+│       ├── quality/             # 品質チェック
+│       ├── snap/                # スナップ
+│       ├── indexedDBStorage.ts  # IndexedDB 接続・読み書き処理
+│       ├── storageManager.ts    # ストレージ容量計算・バックアップ処理
+│       └── theme.ts             # カラーテーマ定義
+├── .env.example
+├── .gitignore
+├── index.html
+├── metadata.json
+├── package.json
+├── package-lock.json
+├── bun.lock
+├── test_stroke.ts               # 手動確認用スクリプト (テストではない)
+├── tmp/                         # 一時スクリプト (clean_help_styles.py)
+├── tsconfig.json
+└── vite.config.ts
 ```
 
 ---
