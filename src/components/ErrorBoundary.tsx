@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Download } from 'lucide-react';
 import { loadProjectFromIndexedDB, LOCAL_STORAGE_PROJECT_KEY } from '../utils/storageManager';
+import { clearIndexedDBStorage } from '../utils/indexedDBStorage';
 import { THEME_STORAGE_KEY } from '../hooks/useTheme';
 
 interface Props {
@@ -11,6 +12,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   hasSavedBackup: boolean;
+  resetError: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -24,11 +26,12 @@ export class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       hasSavedBackup: false,
+      resetError: null,
     };
   }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, hasSavedBackup: false };
+    return { hasError: true, error, hasSavedBackup: false, resetError: null };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -69,12 +72,32 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   };
 
-  private handleReset = () => {
+  private handleReset = async () => {
+    const failures: string[] = [];
     try {
       localStorage.removeItem(LOCAL_STORAGE_PROJECT_KEY);
       localStorage.removeItem(THEME_STORAGE_KEY);
-    } catch {
-      // Ignored
+    } catch (e) {
+      console.error('Failed to clear localStorage during reset:', e);
+      failures.push('ローカル保存データの削除に失敗しました。');
+    }
+    // Also delete the IndexedDB project data (active_project) and the
+    // autosave history, so a corrupt stored project cannot break the
+    // next launch again.
+    try {
+      const cleared = await clearIndexedDBStorage();
+      if (!cleared) {
+        failures.push('IndexedDBの削除に失敗しました。');
+      }
+    } catch (e) {
+      console.error('Failed to clear IndexedDB during reset:', e);
+      failures.push('IndexedDBの削除に失敗しました。');
+    }
+    if (failures.length > 0) {
+      // Do not reload: the stored data may still be present, and the user
+      // needs to see that the reset did not complete.
+      this.setState({ resetError: failures.join(' ') });
+      return;
     }
     window.location.reload();
   };
@@ -135,6 +158,11 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.error && (
               <div className={`w-full max-h-28 overflow-y-auto p-2.5 text-left text-[11px] font-mono border mb-5 break-all ${errBoxClass}`}>
                 {this.state.error.message || String(this.state.error)}
+              </div>
+            )}
+            {this.state.resetError && (
+              <div className="w-full p-2.5 text-left text-[11px] border border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 mb-5 break-all">
+                キャッシュ初期化に失敗しました。{this.state.resetError}
               </div>
             )}
 
