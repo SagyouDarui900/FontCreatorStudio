@@ -84,6 +84,8 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['C'], description: '選択中ノードのスムーズ（曲線）／コーナー（角）属性の切り替え', category: 'drawing', badge: 'ノード属性' },
  { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小 (-4px)', category: 'drawing' },
  { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大 (+4px)', category: 'drawing' },
+ { keys: ['['], description: 'ブラシサイズを縮小 (-4px)', category: 'drawing' },
+ { keys: [']'], description: 'ブラシサイズを拡大 (+4px)', category: 'drawing' },
  { keys: ['Shift', '+', 'ドラッグ'], description: '水平・垂直・45度の直線ストロークを描画', category: 'drawing', badge: '直線' },
  { keys: ['Enter'], description: 'ペンツールでのパス作成を開いた線のまま確定（始点クリックで自動閉合）', category: 'drawing' },
  { keys: ['Backspace', '/', 'Delete'], description: 'ペン作図中は直前の1点を削除。通常時は選択要素を削除', category: 'drawing' },
@@ -126,8 +128,8 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['P'], description: '【ヒートマップ診断】アンカー密集度ドットの表示 / 非表示切替', category: 'drawing' },
 
  // 文字送り・ナビゲーション
- { keys: [']', 'または', 'Alt', '+', '→'], description: '次の文字へ進む（五十音順・漢字順）', category: 'nav', badge: '連続作字' },
- { keys: ['[', 'または', 'Alt', '+', '←'], description: '前の文字へ戻る', category: 'nav', badge: '連続作字' },
+ { keys: ['Alt', '+', '→'], description: '次の文字へ進む（五十音順・漢字順）', category: 'nav', badge: '連続作字' },
+ { keys: ['Alt', '+', '←'], description: '前の文字へ戻る', category: 'nav', badge: '連続作字' },
  { keys: ['Alt', '+', 'N'], description: '次の「未作成の文字」へスキップ', category: 'nav', badge: '効率化' },
  { keys: ['Alt', '+', 'P'], description: '前の「未作成の文字」へスキップ', category: 'nav' },
 
