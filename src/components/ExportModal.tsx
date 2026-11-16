@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   X,
   Download,
@@ -35,6 +35,19 @@ interface ExportModalProps {
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   onRequestNewProject?: () => void;
   onOpenQualityModal?: () => void;
+  // Export settings controlled by the caller (AppModalsHost) so the values
+  // survive closing and reopening the modal. When omitted, the modal keeps
+  // its own internal state as before.
+  format?: 'ttf' | 'otf';
+  onFormatChange?: (format: 'ttf' | 'otf') => void;
+  sizePreset?: 'raw' | 'standard_jp' | 'custom';
+  onSizePresetChange?: (preset: 'raw' | 'standard_jp' | 'custom') => void;
+  customScale?: number;
+  onCustomScaleChange?: (scale: number) => void;
+  previewText?: string;
+  onPreviewTextChange?: (text: string) => void;
+  previewFontSize?: number;
+  onPreviewFontSizeChange?: (size: number) => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -45,11 +58,36 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onShowToast,
   onRequestNewProject,
   onOpenQualityModal,
+  format: controlledFormat,
+  onFormatChange,
+  sizePreset: controlledSizePreset,
+  onSizePresetChange,
+  customScale: controlledCustomScale,
+  onCustomScaleChange,
+  previewText: controlledPreviewText,
+  onPreviewTextChange,
+  previewFontSize: controlledPreviewFontSize,
+  onPreviewFontSizeChange,
 }) => {
-  const [format, setFormat] = useState<'ttf' | 'otf'>('ttf');
+  const [internalFormat, setInternalFormat] = useState<'ttf' | 'otf'>('ttf');
+  const format = controlledFormat ?? internalFormat;
+  const setFormat = (next: 'ttf' | 'otf') => {
+    if (onFormatChange) onFormatChange(next);
+    else setInternalFormat(next);
+  };
   // Size Optimization: 'raw' (1.0x キャンバス・下絵通り推奨), 'standard_jp' (1.35x), 'custom'
-  const [sizePreset, setSizePreset] = useState<'raw' | 'standard_jp' | 'custom'>('raw');
-  const [customScale, setCustomScale] = useState<number>(1.0);
+  const [internalSizePreset, setInternalSizePreset] = useState<'raw' | 'standard_jp' | 'custom'>('raw');
+  const sizePreset = controlledSizePreset ?? internalSizePreset;
+  const setSizePreset = (next: 'raw' | 'standard_jp' | 'custom') => {
+    if (onSizePresetChange) onSizePresetChange(next);
+    else setInternalSizePreset(next);
+  };
+  const [internalCustomScale, setInternalCustomScale] = useState<number>(1.0);
+  const customScale = controlledCustomScale ?? internalCustomScale;
+  const setCustomScale = (next: number) => {
+    if (onCustomScaleChange) onCustomScaleChange(next);
+    else setInternalCustomScale(next);
+  };
   const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
   // Overlap removal & self-intersection prevention for single-stroke loops
   const [mergeOverlaps, setMergeOverlaps] = useState<boolean>(() => !isPixelProject);
@@ -69,9 +107,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   // Dynamic preview font cleanup refs & live preview state
   const previewFontUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewVersionRef = useRef(0);
   const [previewFontFamily, setPreviewFontFamily] = useState<string>('ExportPreviewFont');
-  const [previewText, setPreviewText] = useState<string>('あいう 色は匂へど 漢字 123 ABC');
-  const [previewFontSize, setPreviewFontSize] = useState<number>(28);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [internalPreviewText, setInternalPreviewText] = useState<string>('あいう 色は匂へど 漢字 123 ABC');
+  const previewText = controlledPreviewText ?? internalPreviewText;
+  const setPreviewText = (next: string) => {
+    if (onPreviewTextChange) onPreviewTextChange(next);
+    else setInternalPreviewText(next);
+  };
+  const [internalPreviewFontSize, setInternalPreviewFontSize] = useState<number>(28);
+  const previewFontSize = controlledPreviewFontSize ?? internalPreviewFontSize;
+  const setPreviewFontSize = (next: number) => {
+    if (onPreviewFontSizeChange) onPreviewFontSizeChange(next);
+    else setInternalPreviewFontSize(next);
+  };
 
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -102,11 +153,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const effectiveScale =
     sizePreset === 'standard_jp' ? 1.35 : sizePreset === 'raw' ? 1.0 : customScale;
 
-  const compileOptions: CompileFontOptions = {
-    scaleFactor: effectiveScale,
-    mergeOverlaps,
-    balanceSideBearings,
-  };
+  // compileOptions does not use `format`: changing ttf/otf only changes the
+  // download filename and MIME type, so it must not trigger a recompile.
+  const compileOptions: CompileFontOptions = useMemo(
+    () => ({
+      scaleFactor: effectiveScale,
+      mergeOverlaps,
+      balanceSideBearings,
+    }),
+    [effectiveScale, mergeOverlaps, balanceSideBearings]
+  );
 
   const cleanupPreviewFont = useCallback(() => {
     if (previewFontUrlRef.current) {
@@ -129,50 +185,89 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     };
   }, [cleanupPreviewFont]);
 
-  // Compile in-memory preview font for the interactive canvas simulator
+  // Compile in-memory preview font for the interactive canvas simulator.
+  // Debounced by 250ms (same as useTestPreviewState) so continuous edits
+  // do not trigger a compile on every change. On failure the old preview
+  // font is removed and the error is shown instead of keeping stale glyphs.
   useEffect(() => {
     if (!isOpen) {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
       cleanupPreviewFont();
+      setPreviewError(null);
       return;
     }
 
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+    }
+
     let isMounted = true;
-    const generatePreviewFont = async () => {
-      let createdUrl: string | null = null;
-      try {
-        const { blobUrl } = compileFont(project, compileOptions);
-        createdUrl = blobUrl;
-        if (!isMounted) {
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
+    const version = ++previewVersionRef.current;
+    previewTimerRef.current = setTimeout(() => {
+      previewTimerRef.current = null;
+      const generatePreviewFont = async () => {
+        let createdUrl: string | null = null;
+        try {
+          const validationResult = validateFontProject(project);
+          if (!validationResult.valid) {
+            throw new Error(
+              `フォントの検証に失敗しました: ${validationResult.errors.join(' / ')}`
+            );
+          }
+          const { blobUrl } = compileFont(project, compileOptions);
+          createdUrl = blobUrl;
+          if (!isMounted || version !== previewVersionRef.current) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
 
-        const uniqueFamilyName = `PreviewFont_${Date.now()}`;
-        const fontFace = new FontFace(uniqueFamilyName, `url(${blobUrl})`);
-        await fontFace.load();
-        if (!isMounted) {
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
+          const uniqueFamilyName = `PreviewFont_${Date.now()}`;
+          const fontFace = new FontFace(uniqueFamilyName, `url(${blobUrl})`);
+          await fontFace.load();
+          if (!isMounted || version !== previewVersionRef.current) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
 
-        cleanupPreviewFont();
-        document.fonts.add(fontFace);
-        previewFontUrlRef.current = blobUrl;
-        activeFontFaceRef.current = fontFace;
-        setPreviewFontFamily(uniqueFamilyName);
-      } catch {
-        if (createdUrl && createdUrl !== previewFontUrlRef.current) {
-          URL.revokeObjectURL(createdUrl);
+          cleanupPreviewFont();
+          document.fonts.add(fontFace);
+          previewFontUrlRef.current = blobUrl;
+          activeFontFaceRef.current = fontFace;
+          setPreviewFontFamily(uniqueFamilyName);
+          setPreviewError(null);
+        } catch (err) {
+          if (createdUrl && createdUrl !== previewFontUrlRef.current) {
+            URL.revokeObjectURL(createdUrl);
+          }
+          if (!isMounted || version !== previewVersionRef.current) {
+            return;
+          }
+          // Remove the previous preview so a failed compile never leaves
+          // stale glyphs on screen.
+          cleanupPreviewFont();
+          setPreviewFontFamily('ExportPreviewFont');
+          setPreviewError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'プレビュー用フォントの生成に失敗しました。'
+          );
         }
-      }
-    };
+      };
 
-    generatePreviewFont();
+      generatePreviewFont();
+    }, 250);
 
     return () => {
       isMounted = false;
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
     };
-  }, [isOpen, project, format, effectiveScale, mergeOverlaps, balanceSideBearings, cleanupPreviewFont]);
+  }, [isOpen, project, compileOptions, cleanupPreviewFont]);
 
   if (!isOpen) return null;
 
@@ -197,9 +292,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           onShowToast(`.${format.toUpperCase()} フォントファイルをダウンロードしました！`, 'success');
         }
       }
-    } catch {
+    } catch (err) {
       if (onShowToast) {
-        onShowToast('フォントの書き出しに失敗しました。パス構成をご確認ください。', 'error');
+        onShowToast(
+          err instanceof Error && err.message
+            ? `フォントの書き出しに失敗しました: ${err.message}`
+            : 'フォントの書き出しに失敗しました。パス構成をご確認ください。',
+          'error'
+        );
       }
     } finally {
       setIsExporting(false);
@@ -367,6 +467,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           />
 
           {/* Live Render & Size Preview in Modal with Custom Text Input & Presets */}
+          {previewError && (
+            <div
+              className={`p-3 rounded-xl border flex items-start space-x-2 ${
+                isLight
+                  ? 'bg-red-50 border-red-200 text-red-900'
+                  : 'bg-red-950/40 border-red-800 text-red-200'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
+                <div className="font-bold">プレビューの生成に失敗しました</div>
+                <div>{previewError}</div>
+              </div>
+            </div>
+          )}
+
           <FontPreviewSection
             isLight={isLight}
             previewText={previewText}
