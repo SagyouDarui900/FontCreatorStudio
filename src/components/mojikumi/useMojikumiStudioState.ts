@@ -4,7 +4,7 @@ import {
   MojikumiConfig,
   MojikumiPresetId,
 } from '../../types';
-import { compileFont } from '../../utils/font';
+import { compileFont, validateFontProject } from '../../utils/font';
 import {
   MOJIKUMI_PRESETS,
   PRESET_BETA,
@@ -48,6 +48,7 @@ export function useMojikumiStudioState({
   const [isVertical, setIsVertical] = useState<boolean>(true);
   const [fontSource, setFontSource] = useState<MojikumiFontSource>('custom');
   const [compiledFontName, setCompiledFontName] = useState<string>('CustomMojikumiFont');
+  const [compileError, setCompileError] = useState<string | null>(null);
 
   const compiledBlobUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
@@ -107,6 +108,7 @@ export function useMojikumiStudioState({
   useEffect(() => {
     if (!isOpen) {
       releaseCompiledFont();
+      setCompileError(null);
       return;
     }
 
@@ -114,11 +116,16 @@ export function useMojikumiStudioState({
     let pendingBlobUrl: string | null = null;
 
     try {
+      const validation = validateFontProject(project);
+      if (!validation.valid) {
+        throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
+      }
       const { blobUrl } = compileFont(project, {
         mergeOverlaps: true,
         normalizeWinding: true,
       });
       pendingBlobUrl = blobUrl;
+      setCompileError(null);
 
       if (typeof FontFace !== 'undefined') {
         const newFontName = `CustomMojikumiFont_${Date.now()}`;
@@ -137,13 +144,26 @@ export function useMojikumiStudioState({
           })
           .catch(() => {
             URL.revokeObjectURL(blobUrl);
+            if (!cancelled) {
+              setCompileError('プレビュー用フォントの読み込みに失敗しました。');
+            }
           });
       } else {
         URL.revokeObjectURL(blobUrl);
       }
-    } catch {
+    } catch (err) {
       if (pendingBlobUrl) {
         URL.revokeObjectURL(pendingBlobUrl);
+      }
+      // Remove the previous preview font so a failed compile never leaves
+      // stale glyphs on screen, and show the failure instead.
+      releaseCompiledFont();
+      if (!cancelled) {
+        setCompileError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'フォントの生成中にエラーが発生しました。パスの構造を確認してください。'
+        );
       }
     }
 
@@ -292,6 +312,7 @@ export function useMojikumiStudioState({
     fontSource,
     setFontSource,
     effectiveFontFamily,
+    compileError,
     drawnGlyphsCount,
     zoom,
     setZoom,
