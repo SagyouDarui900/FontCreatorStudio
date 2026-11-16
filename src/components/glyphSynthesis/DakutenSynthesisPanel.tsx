@@ -273,14 +273,14 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
       {/* Right Live Preview Box */}
       <div className="lg:col-span-5 flex flex-col gap-3">
         <div
-          className={`p-3.5 sm:p-4 rounded-lg border flex flex-col items-center justify-center ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`p-4 rounded-2xl border flex flex-col items-center justify-center ${themeClasses.cardBg} ${themeClasses.border}`}
         >
-          <div className="w-full flex items-center justify-between text-xs font-bold mb-2">
-            <span className="flex items-center gap-1">
+          <div className="w-full flex items-center justify-between text-xs font-bold mb-2 pb-1.5 border-b">
+            <span className="flex items-center gap-1.5">
               <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>合成プレビュー</span>
             </span>
-            <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border font-bold ${themeClasses.accentBadge}`}>
               「{dakuPreviewChar}」⇒「
               {DAKUTEN_MAPPINGS[dakuPreviewChar]?.daku ||
                 DAKUTEN_MAPPINGS[dakuPreviewChar]?.handaku ||
@@ -290,19 +290,19 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
           </div>
 
           <div
-            className={`w-52 h-52 sm:w-60 sm:h-60 relative rounded-lg border flex items-center justify-center overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
+            className={`w-full aspect-square max-w-[280px] relative rounded-2xl border flex items-center justify-center overflow-hidden ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
-            <div className="absolute inset-0 pointer-events-none opacity-15">
+            <div className="absolute inset-0 pointer-events-none opacity-20">
               <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />
               <div className="absolute top-1/2 left-0 right-0 h-px border-b border-dashed border-current" />
               <div className="absolute inset-4 border border-dashed border-current opacity-40" />
             </div>
 
             {dakutenPreviewSvgPath ? (
-              <svg viewBox="0 0 1000 1000" className="w-full h-full">
+              <svg viewBox="0 0 1000 1000" className="w-full h-full p-2">
                 <path
                   d={dakutenPreviewSvgPath}
-                  fill={isLight ? '#1c1917' : '#34d399'}
+                  fill={isLight ? '#0f172a' : '#34d399'}
                   fillRule="nonzero"
                 />
               </svg>
@@ -313,17 +313,17 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             )}
           </div>
 
-          <div className={`mt-2 text-[11px] text-center flex items-center gap-1 ${themeClasses.textMuted}`}>
-            <Info className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
+          <div className={`mt-2.5 text-[11px] text-center flex items-center gap-1.5 ${themeClasses.textMuted}`}>
+            <Info className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
             <span>親文字に選択した濁点・半濁点を合成します</span>
           </div>
         </div>
 
         <button
           onClick={onExecuteBatch}
-          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+          className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
         >
-          <Wand2 className="w-4 h-4" />
+          <Wand2 className="w-4 h-4 shrink-0" />
           <span>濁音・半濁点を一括合成</span>
         </button>
       </div>
