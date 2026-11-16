@@ -718,7 +718,7 @@ function AppContent() {
   const { theme, changeTheme, isLight, themeClasses } = useTheme();
 
   // Project Storage Manager
-  const { project, setProject, projectRef, saveProjectToIndexedDbWhenIdle, isStorageLoading } = useProjectStorage({
+  const { project, setProject, projectRef, saveProjectToIndexedDbWhenIdle, isStorageLoading, restoreFailed, restoreError, retryRestore, discardCorruptDataAndStartFresh, autoSaveFailed, autoSaveError, retryAutoSave } = useProjectStorage({
     onShowToast: showToast,
   });
 
@@ -752,6 +752,38 @@ function AppContent() {
         showToast={showToast}
         dismissToast={dismissToast}
       />
+      {(restoreFailed || autoSaveFailed) && (
+        <div
+          role="alert"
+          className="fixed left-1/2 top-3 z-[80] w-[min(92vw,560px)] -translate-x-1/2 rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-900 shadow-lg dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+        >
+          <div className="font-bold">
+            {restoreFailed ? '保存データの復元に失敗しました' : '自動保存に失敗しました'}
+          </div>
+          <div className="mt-1">
+            {restoreFailed ? restoreError || '保存されたプロジェクトを読み込めませんでした。' : autoSaveError || '自動保存に失敗しました。'}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {restoreFailed ? (
+              <>
+                <button type="button" onClick={retryRestore} className="rounded-lg bg-red-600 px-3 py-2 font-bold text-white">
+                  復元を再試行する
+                </button>
+                <button type="button" onClick={discardCorruptDataAndStartFresh} className="rounded-lg border border-red-300 bg-white px-3 py-2 font-bold dark:bg-red-900">
+                  破損データを破棄して新規開始する
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={retryAutoSave} className="rounded-lg bg-red-600 px-3 py-2 font-bold text-white">
+                自動保存を再試行する
+              </button>
+            )}
+          </div>
+          {restoreFailed && (
+            <div className="mt-1">自動保存は止まっています。選択するまで保存データは上書きされません。</div>
+          )}
+        </div>
+      )}
     </ProjectProvider>
   );
 }
