@@ -942,6 +942,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setShowNodes,
     setOutlineOnly,
     setEraserSize,
+    brushWidth,
+    onChangeBrushWidth,
     setRulerMeasurement,
     setSelectedContourIds,
     setSelectedNodeId,
@@ -1380,5 +1382,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.activePenPreset !== next.activePenPreset) return false;
   if (prev.pressureCurve !== next.pressureCurve) return false;
   if (prev.isGlyphLocked !== next.isGlyphLocked) return false;
+  if (prev.project?.metadata?.unitsPerEm !== next.project?.metadata?.unitsPerEm) return false;
   return true;
 });
