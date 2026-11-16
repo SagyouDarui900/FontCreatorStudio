@@ -29,6 +29,8 @@ export interface UseCanvasShortcutsProps {
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
   setOutlineOnly: React.Dispatch<React.SetStateAction<boolean>>;
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
+  brushWidth: number;
+  onChangeBrushWidth?: (w: number) => void;
   setRulerMeasurement: (val: RulerMeasurement | null) => void;
   setSelectedContourIds: (ids: string[]) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -65,6 +67,8 @@ export function useCanvasShortcuts({
   setShowNodes,
   setOutlineOnly,
   setEraserSize,
+  brushWidth,
+  onChangeBrushWidth,
   setRulerMeasurement,
   setSelectedContourIds,
   setSelectedNodeId,
@@ -195,6 +199,23 @@ export function useCanvasShortcuts({
       if (toolMode === 'trace_adjust' && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleResetTracePosition();
+        return;
+      }
+
+      // Brush size with '[' / ']' (brush tool only; glyph navigation is Alt+Arrow)
+      if (
+        toolMode === 'brush' &&
+        (e.key === '[' || e.key === ']') &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.shiftKey
+      ) {
+        e.preventDefault();
+        if (onChangeBrushWidth) {
+          const delta = e.key === ']' ? 4 : -4;
+          onChangeBrushWidth(Math.max(4, Math.min(150, brushWidth + delta)));
+        }
         return;
       }
 
@@ -356,6 +377,8 @@ export function useCanvasShortcuts({
     setShowNodes,
     setOutlineOnly,
     setEraserSize,
+    brushWidth,
+    onChangeBrushWidth,
     setRulerMeasurement,
     setSelectedContourIds,
     setSelectedNodeId,
