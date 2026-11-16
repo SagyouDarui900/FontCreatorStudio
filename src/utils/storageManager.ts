@@ -1,4 +1,5 @@
 import { FontProject } from '../types';
+import { validateStoredFontProject } from './font/validation';
 export * from './indexedDBStorage';
 
 export const LOCAL_STORAGE_PROJECT_KEY = 'font_editor_project_data_v2';
@@ -380,9 +381,12 @@ export function loadProjectFromSnapshot(snapshotId: string): FontProject | null 
     const raw = localStorage.getItem(dataKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.metadata && parsed.glyphs) {
-      return parsed as FontProject;
+    const validated = validateStoredFontProject(parsed);
+    if (!validated) {
+      console.warn('Snapshot project data failed validation and was rejected:', snapshotId);
+      return null;
     }
+    return validated;
   } catch (err) {
     console.error('Failed to parse snapshot project data:', err);
   }
