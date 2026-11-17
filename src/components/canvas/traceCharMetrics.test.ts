@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { computeTraceCharMetrics } from './traceCharMetrics';
+import {
+  computeTraceCharMetrics,
+  getDefaultTraceScale,
+  isKanaText,
+  isKanjiText,
+} from './traceCharMetrics';
 
 describe('computeTraceCharMetrics', () => {
   it('renders Japanese kana cleanly inside the 78% kana guide frame with deterministic alphabetic EM centering', () => {
@@ -89,5 +94,36 @@ describe('computeTraceCharMetrics', () => {
     expect(res.effectiveFontSize).toBe(Math.round(1200 * 0.88));
     expect(res.effectiveY).toBe(Math.round(600 + res.effectiveFontSize * 0.38));
     expect(res.anchorX).toBe(600);
+  });
+});
+
+describe('trace character kind and default scale', () => {
+  it('classifies kana, kanji and other characters with the shared patterns', () => {
+    expect(isKanaText('あ')).toBe(true);
+    expect(isKanaText('ア')).toBe(true);
+    expect(isKanaText('漢')).toBe(false);
+    expect(isKanaText('a')).toBe(false);
+    expect(isKanjiText('漢')).toBe(true);
+    expect(isKanjiText('あ')).toBe(false);
+    expect(isKanjiText('a')).toBe(false);
+  });
+
+  it('returns the same default scale for image and character underdrawings', () => {
+    expect(getDefaultTraceScale('あ')).toBe(0.78);
+    expect(getDefaultTraceScale('ア')).toBe(0.78);
+    expect(getDefaultTraceScale('漢')).toBe(0.85);
+    expect(getDefaultTraceScale('a')).toBe(1.0);
+    expect(getDefaultTraceScale('')).toBe(1.0);
+  });
+
+  it('agrees with computeTraceCharMetrics on kana and kanji', () => {
+    for (const ch of ['あ', 'ン', 'ー']) {
+      expect(computeTraceCharMetrics({ charToRender: ch, unitsPerEm: 1000 }).isKana).toBe(true);
+      expect(getDefaultTraceScale(ch)).toBe(0.78);
+    }
+    for (const ch of ['漢', '日']) {
+      expect(computeTraceCharMetrics({ charToRender: ch, unitsPerEm: 1000 }).isKanji).toBe(true);
+      expect(getDefaultTraceScale(ch)).toBe(0.85);
+    }
   });
 });

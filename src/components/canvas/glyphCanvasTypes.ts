@@ -25,6 +25,22 @@ export interface GlyphCanvasProps {
   brushStyle?: BrushStyle;
   onChangeBrushStyle?: (style: BrushStyle) => void;
   onChangeBrushWidth?: (w: number) => void;
+  onAdjustBrushSize?: (delta: number) => void;
+  // Smoothing / union settings. When provided, App (useToolState) is the
+  // source of truth and these values drive drawing through
+  // useCanvasLocalPrefs. When omitted, useCanvasLocalPrefs falls back to
+  // its own localStorage-backed state.
+  autoSmoothBrush?: boolean;
+  onChangeAutoSmoothBrush?: (enabled: boolean) => void;
+  smoothStrength?: 'mild' | 'standard' | 'strong';
+  onChangeSmoothStrength?: (strength: 'mild' | 'standard' | 'strong') => void;
+  smoothPreserveCorners?: boolean;
+  onChangeSmoothPreserveCorners?: (enabled: boolean) => void;
+  autoUnionBrush?: boolean;
+  onChangeAutoUnionBrush?: (enabled: boolean) => void;
+  // Called with a reset function that restores the drawing-side smoothing
+  // settings and the pen stroke width to defaults.
+  onRegisterResetCanvasPrefs?: (reset: () => void) => void;
   pressureSensitivity?: 'high' | 'normal' | 'low' | 'off';
   onChangePressureSensitivity?: (val: 'high' | 'normal' | 'low' | 'off') => void;
   pressureCurve?: PressureCurveConfig;

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   ToolMode,
   BrushStyle,
@@ -11,15 +11,44 @@ import {
   loadStickyBrushConfigs,
   saveStickyBrushConfig,
   loadUserPenPresets,
+  clampBrushWidth,
 } from '../utils/presetData';
+import {
+  STORAGE_KEYS,
+  getBooleanStorageItem,
+  setBooleanStorageItem,
+  getStorageItem,
+  setStorageItem,
+} from '../utils/storageKeys';
+
+const ALL_BRUSH_STYLES: BrushStyle[] = [
+  'brush', 'signpen', 'sumi', 'marumoji', 'fountain', 'mincho_nib',
+  'reisho_chisel', 'g_pen', 'pixel_dot', 'marker', 'ballpoint',
+  'calligraphy', 'highlighter', 'pencil', 'chalk', 'sharp',
+  'sharp_round', 'wobbly', 'polygon',
+];
+
+function loadSavedBrushStyle(): BrushStyle {
+  const saved = getStorageItem(STORAGE_KEYS.BRUSH_STYLE);
+  if (saved && (ALL_BRUSH_STYLES as string[]).includes(saved)) {
+    return saved as BrushStyle;
+  }
+  return 'brush';
+}
+
+function loadSavedSmoothStrength(): 'mild' | 'standard' | 'strong' {
+  const saved = getStorageItem(STORAGE_KEYS.SMOOTH_STRENGTH);
+  if (saved === 'mild' || saved === 'standard' || saved === 'strong') return saved;
+  return 'standard';
+}
 
 export function useToolState() {
   // Tool Modes & Canvas Options (Default tuned for smooth natural handwriting font creation)
   const [toolMode, setToolMode] = useState<ToolMode>('brush');
-  const [brushStyle, setBrushStyle] = useState<BrushStyle>('brush');
+  const [brushStyle, setBrushStyle] = useState<BrushStyle>(() => loadSavedBrushStyle());
   const [brushWidth, setBrushWidth] = useState<number>(() => {
     const saved = loadStickyBrushConfigs();
-    return saved.brush?.brushWidth ?? 38;
+    return clampBrushWidth(saved.brush?.brushWidth ?? 38);
   });
   const [pressureSensitivity, setPressureSensitivity] = useState<'high' | 'normal' | 'low' | 'off'>(() => {
     const saved = loadStickyBrushConfigs();
@@ -35,13 +64,49 @@ export function useToolState() {
   });
 
   // Advanced Writing Feeling Parameters
-  const [autoSmoothBrush, setAutoSmoothBrush] = useState<boolean>(true);
-  const [smoothStrength, setSmoothStrength] = useState<'mild' | 'standard' | 'strong'>('standard');
-  const [smoothPreserveCorners, setSmoothPreserveCorners] = useState<boolean>(true);
+  // These values are the source of truth. GlyphCanvas receives them through
+  // App and passes them into useCanvasLocalPrefs, so the drawing path uses
+  // the same values. They are persisted to localStorage so a preset or
+  // style change is reflected in drawing after a restart.
+  const [autoSmoothBrush, setAutoSmoothBrush] = useState<boolean>(() => {
+    const saved = loadStickyBrushConfigs();
+    const stored = getStorageItem(STORAGE_KEYS.AUTO_SMOOTH_BRUSH);
+    if (stored !== null) return stored === 'true';
+    return saved.brush?.autoSmoothBrush ?? true;
+  });
+  const [smoothStrength, setSmoothStrength] = useState<'mild' | 'standard' | 'strong'>(() => {
+    const saved = loadStickyBrushConfigs();
+    const stored = loadSavedSmoothStrength();
+    if (getStorageItem(STORAGE_KEYS.SMOOTH_STRENGTH) !== null) return stored;
+    return saved.brush?.smoothStrength ?? 'standard';
+  });
+  const [smoothPreserveCorners, setSmoothPreserveCorners] = useState<boolean>(() => {
+    const saved = loadStickyBrushConfigs();
+    const stored = getStorageItem(STORAGE_KEYS.SMOOTH_PRESERVE_CORNERS);
+    if (stored !== null) return stored === 'true';
+    return saved.brush?.smoothPreserveCorners ?? true;
+  });
   const [autoUnionBrush, setAutoUnionBrush] = useState<boolean>(() => {
     const saved = loadStickyBrushConfigs();
-    return saved.brush?.autoUnionBrush ?? true;
+    return getBooleanStorageItem(STORAGE_KEYS.AUTO_UNION_BRUSH, saved.brush?.autoUnionBrush ?? true);
   });
+
+  // Persist brush style and smoothing settings to localStorage on change.
+  useEffect(() => {
+    setStorageItem(STORAGE_KEYS.BRUSH_STYLE, brushStyle);
+  }, [brushStyle]);
+  useEffect(() => {
+    setBooleanStorageItem(STORAGE_KEYS.AUTO_SMOOTH_BRUSH, autoSmoothBrush);
+  }, [autoSmoothBrush]);
+  useEffect(() => {
+    setStorageItem(STORAGE_KEYS.SMOOTH_STRENGTH, smoothStrength);
+  }, [smoothStrength]);
+  useEffect(() => {
+    setBooleanStorageItem(STORAGE_KEYS.SMOOTH_PRESERVE_CORNERS, smoothPreserveCorners);
+  }, [smoothPreserveCorners]);
+  useEffect(() => {
+    setBooleanStorageItem(STORAGE_KEYS.AUTO_UNION_BRUSH, autoUnionBrush);
+  }, [autoUnionBrush]);
 
   // User Writing Presets
   const [penPresets, setPenPresets] = useState<UserPenPreset[]>(() => loadUserPenPresets());
@@ -85,7 +150,7 @@ export function useToolState() {
   }, []);
 
   const handleChangeBrushWidth = useCallback((newWidth: number) => {
-    const clamped = Math.max(2, Math.min(200, Math.round(newWidth)));
+    const clamped = clampBrushWidth(newWidth);
     setBrushWidth(clamped);
     saveStickyBrushConfig(brushStyle, { brushWidth: clamped });
   }, [brushStyle]);
@@ -109,16 +174,17 @@ export function useToolState() {
   // Adjust brush size via [ / ] keys
   const handleAdjustBrushSize = useCallback((delta: number) => {
     setBrushWidth((current: number) => {
-      const next = Math.max(2, Math.min(200, current + delta));
+      const next = clampBrushWidth(current + delta);
       saveStickyBrushConfig(brushStyle, { brushWidth: next });
       return next;
     });
   }, [brushStyle]);
 
   const handleApplyPenPreset = useCallback((preset: UserPenPreset) => {
+    const clampedWidth = clampBrushWidth(preset.brushWidth);
     setActivePenPreset(preset);
     setBrushStyle(preset.brushStyle);
-    setBrushWidth(preset.brushWidth);
+    setBrushWidth(clampedWidth);
     setPressureSensitivity(preset.pressureSensitivity);
     if (preset.pressureCurve) {
       setPressureCurve(preset.pressureCurve);
@@ -131,7 +197,7 @@ export function useToolState() {
     setSmoothPreserveCorners(preset.smoothPreserveCorners);
     setAutoUnionBrush(preset.autoUnionBrush);
     saveStickyBrushConfig(preset.brushStyle, {
-      brushWidth: preset.brushWidth,
+      brushWidth: clampedWidth,
       pressureSensitivity: preset.pressureSensitivity,
       pressureCurve: preset.pressureCurve,
       smoothingIntensity: preset.smoothingIntensity,

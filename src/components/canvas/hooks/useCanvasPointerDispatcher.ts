@@ -135,6 +135,9 @@ export interface UseCanvasPointerDispatcherOptions {
   isDraggingTrace: boolean;
   isResizingTrace: boolean;
   handleTracePointerMove: (e: React.PointerEvent<SVGSVGElement>) => boolean;
+  // Starts a trace drag from anywhere on the canvas in trace_adjust mode,
+  // including outside the underdrawing frame.
+  handleTraceAdjustPointerDown?: (e: React.PointerEvent<SVGSVGElement>) => void;
   resetTraceDragState: () => void;
   traceSettings: TraceSettings;
   onChangeTraceSettings?: React.Dispatch<React.SetStateAction<TraceSettings>>;
@@ -242,8 +245,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setDraggingGuidelineId,
     updateDraggingGuideline,
     handleTracePointerMove,
+    handleTraceAdjustPointerDown,
     resetTraceDragState,
-    traceSettings,
     gridSettings,
     snapMetrics,
     customGuidelines,
@@ -268,6 +271,22 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   const lastPenActiveTimeRef = useRef<number>(0);
   const isStylusActiveRef = useRef<boolean>(false);
   const lastPressureValRef = useRef<number | null>(null);
+  // Live pressure display during pointermove, throttled with rAF so the
+  // status bar updates at most once per frame instead of per event.
+  const pressureRafIdRef = useRef<number | null>(null);
+  const pendingPressureValRef = useRef<number | null>(null);
+  const updateLivePressureThrottled = useCallback((val: number) => {
+    lastPressureValRef.current = val;
+    pendingPressureValRef.current = val;
+    if (pressureRafIdRef.current === null) {
+      pressureRafIdRef.current = requestAnimationFrame(() => {
+        pressureRafIdRef.current = null;
+        if (pendingPressureValRef.current !== null) {
+          setLiveStylusPressure(pendingPressureValRef.current);
+        }
+      });
+    }
+  }, [setLiveStylusPressure]);
 
   // Multi-touch refs
   const touchPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -308,14 +327,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   // A9: last time the palm-rejection toast was shown, for throttling.
   const lastPalmToastTimeRef = useRef<number>(0);
 
-  // Trace drag refs
-  const traceDragStartRef = useRef<{ clientX: number; clientY: number; initOffsetX: number; initOffsetY: number }>({
-    clientX: 0,
-    clientY: 0,
-    initOffsetX: 0,
-    initOffsetY: 0,
-  });
-
   // Pen tool node handle dragging session ref & active contour ref
   const penDragHandleSessionRef = useRef<{
     startPos: Point;
@@ -350,6 +361,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     return () => {
       if (pinchRafIdRef.current !== null) {
         cancelAnimationFrame(pinchRafIdRef.current);
+      }
+      if (pressureRafIdRef.current !== null) {
+        cancelAnimationFrame(pressureRafIdRef.current);
       }
       setSvgGesturing(false);
     };
@@ -627,14 +641,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // TRACE ADJUST DRAG
+    // TRACE ADJUST DRAG: start dragging from anywhere on the canvas,
+    // inside or outside the underdrawing frame. Pointer moves are handled
+    // by handleTracePointerMove in handlePointerMove.
     if (toolMode === 'trace_adjust') {
-      traceDragStartRef.current = {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        initOffsetX: traceSettings.offsetX || 0,
-        initOffsetY: traceSettings.offsetY || 0,
-      };
+      handleTraceAdjustPointerDown?.(e);
       return;
     }
 
@@ -844,8 +855,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     lsb,
     advanceWidth,
     lockGuidelines,
-    traceSettings.offsetX,
-    traceSettings.offsetY,
+    handleTraceAdjustPointerDown,
     activePenContour,
     contours,
     snapMetrics,
@@ -909,6 +919,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     // Isolate active drawing pointer from secondary pointer movements
     if (activeDrawingPointerIdRef.current !== null && e.pointerId !== activeDrawingPointerIdRef.current && !isTwoFingerGestureRef.current) {
       return;
+    }
+
+    // Live stylus pressure display: update during pointermove as well, not
+    // only on pointerdown / pointerup. Throttled to one update per frame.
+    if (e.pointerType === 'pen' && e.pressure > 0) {
+      updateLivePressureThrottled(Math.round(e.pressure * 100));
     }
 
     // Multi-touch gestures (Pinch-to-zoom & 2-finger Pan)
@@ -1230,6 +1246,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isSpacePressed,
     hoverCanvasPos,
     setHoverCanvasPos,
+    updateLivePressureThrottled,
     handleGuidelinePointerMove,
     rulerMeasurement,
     handleRulerPointerMove,

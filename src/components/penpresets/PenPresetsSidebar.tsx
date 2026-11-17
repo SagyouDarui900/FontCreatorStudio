@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, Upload, Copy, Trash2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Download, Upload, Copy, Trash2, Search } from 'lucide-react';
 import { UserPenPreset } from '../../types';
 import { BRUSH_STYLE_INFO } from './constants';
 
@@ -22,6 +22,22 @@ export const PenPresetsSidebar: React.FC<PenPresetsSidebarProps> = ({
   onExportPresets,
   onImportPresets,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState<'updated' | 'name'>('updated');
+
+  const visiblePresets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const matched = query
+      ? presets.filter((p) => p.name.toLowerCase().includes(query))
+      : [...presets];
+    if (sortKey === 'name') {
+      matched.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    } else {
+      matched.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    }
+    return matched;
+  }, [presets, searchQuery, sortKey]);
+
   return (
     <div className="w-56 border-r border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-[#141e17] flex flex-col shrink-0 anim-slide-left overflow-hidden">
       <div className="p-2 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
@@ -42,8 +58,40 @@ export const PenPresetsSidebar: React.FC<PenPresetsSidebarProps> = ({
         </div>
       </div>
 
+      <div className="p-1.5 border-b border-stone-200 dark:border-stone-800 space-y-1.5">
+        <div className="flex items-center gap-1 px-1.5 py-1 rounded-md border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900">
+          <Search className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="名前で検索"
+            className="min-w-0 flex-1 bg-transparent text-xs text-stone-900 dark:text-stone-100 placeholder:text-stone-400 focus:outline-none"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] text-stone-500 dark:text-stone-400">
+            {visiblePresets.length} / {presets.length} 件
+          </span>
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as 'updated' | 'name')}
+            className="text-[11px] font-bold px-1 py-0.5 rounded border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 cursor-pointer outline-none"
+            title="並び替え"
+          >
+            <option value="updated">更新日順</option>
+            <option value="name">名前順</option>
+          </select>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
-        {presets.map((p) => {
+        {visiblePresets.length === 0 && (
+          <p className="p-2 text-[11px] text-stone-500 dark:text-stone-400">
+            {searchQuery ? '検索条件に合うプリセットがありません' : 'プリセットがありません'}
+          </p>
+        )}
+        {visiblePresets.map((p) => {
           const isSelected = p.id === workingPreset.id;
           return (
             <div

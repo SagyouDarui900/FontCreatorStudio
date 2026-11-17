@@ -120,6 +120,8 @@ export interface AppModalsHostProps {
   setPenPresets: React.Dispatch<React.SetStateAction<UserPenPreset[]>>;
   onApplyPenPreset: (preset: UserPenPreset) => void;
   onChangePressureCurve: (curve: PressureCurveConfig) => void;
+  onClearActivePenPreset?: () => void;
+  onResetCanvasPrefs?: () => void;
   // Passed through to ExportModal. Optional: when omitted, ExportModal hides
   // its new-project button. AppModalsHost does not define a handler itself;
   // the caller (App) must supply the existing new-project handler.
@@ -159,6 +161,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   setPenPresets,
   onApplyPenPreset,
   onChangePressureCurve,
+  onClearActivePenPreset,
+  onResetCanvasPrefs,
   onRequestNewProject,
 }) => {
   const { activeModal, openModal, closeModal } = useModalContext();
@@ -198,6 +202,14 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       prevProjectIdRef.current = project.id;
       setTestPreviewPersisted(createDefaultTestPreviewPersistedState());
       setMojikumiPersisted(createDefaultMojikumiPersistedState(project));
+      // Export settings also restart from the new project's defaults:
+      // pixel projects export raw (1.0x, no centering, no overlap merge),
+      // other projects use the standard defaults.
+      const isPixel = Boolean(project.pixelFontSettings?.isPixelFontProject);
+      setExportSizePreset('raw');
+      setExportCustomScale(1.0);
+      setExportMergeOverlaps(!isPixel);
+      setExportBalanceSideBearings(!isPixel);
     }
   }, [project]);
 
@@ -499,11 +511,19 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             stabilizationMethod: activePenPreset?.stabilizationMethod,
             speedStabilization: activePenPreset?.speedStabilization,
             legacyStabilization: activePenPreset?.legacyStabilization,
+            inkBleed: activePenPreset?.inkBleed,
+            axisSlant: activePenPreset?.axisSlant,
+            edgeRoughness: activePenPreset?.edgeRoughness,
+            tipSharpness: activePenPreset?.tipSharpness,
+            pressureGamma: activePenPreset?.pressureGamma,
           }}
           onApplyPreset={onApplyPenPreset}
           onChangePressureCurve={onChangePressureCurve}
           presets={penPresets}
           onUpdatePresets={setPenPresets}
+          activePenPreset={activePenPreset}
+          onClearActivePenPreset={onClearActivePenPreset}
+          onResetCanvasPrefs={onResetCanvasPrefs}
           theme={theme}
         />
       )}

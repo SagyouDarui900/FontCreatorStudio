@@ -31,6 +31,11 @@ export interface UseCanvasShortcutsProps {
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
   brushWidth: number;
   onChangeBrushWidth?: (w: number) => void;
+  // Preferred brush-size adjuster (handleAdjustBrushSize from useToolState).
+  // When provided, '[' / ']' call it instead of onChangeBrushWidth so the
+  // change is saved to the sticky brush config. useAppShortcuts does not
+  // handle '[' / ']' to avoid double adjustment.
+  onAdjustBrushSize?: (delta: number) => void;
   setRulerMeasurement: (val: RulerMeasurement | null) => void;
   setSelectedContourIds: (ids: string[]) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -69,6 +74,7 @@ export function useCanvasShortcuts({
   setEraserSize,
   brushWidth,
   onChangeBrushWidth,
+  onAdjustBrushSize,
   setRulerMeasurement,
   setSelectedContourIds,
   setSelectedNodeId,
@@ -226,8 +232,10 @@ export function useCanvasShortcuts({
         !e.shiftKey
       ) {
         e.preventDefault();
-        if (onChangeBrushWidth) {
-          const delta = e.key === ']' ? 4 : -4;
+        const delta = e.key === ']' ? 4 : -4;
+        if (onAdjustBrushSize) {
+          onAdjustBrushSize(delta);
+        } else if (onChangeBrushWidth) {
           onChangeBrushWidth(Math.max(4, Math.min(150, brushWidth + delta)));
         }
         return;
@@ -396,6 +404,7 @@ export function useCanvasShortcuts({
     setEraserSize,
     brushWidth,
     onChangeBrushWidth,
+    onAdjustBrushSize,
     setRulerMeasurement,
     setSelectedContourIds,
     setSelectedNodeId,

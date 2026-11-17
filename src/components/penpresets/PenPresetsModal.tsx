@@ -23,6 +23,9 @@ import {
 import {
   DEFAULT_PRESSURE_CURVES,
   saveUserPenPresets,
+  validateImportedPenPresets,
+  makeUniquePresetName,
+  clampBrushWidth,
 } from '../../utils/presetData';
 import { ThemeMode, isLightTheme } from '../../utils/theme';
 import { PenPresetsModalProps, StudioTab } from './types';
@@ -38,6 +41,60 @@ import { DynamicTab } from './tabs/DynamicTab';
 import { TextureTab } from './tabs/TextureTab';
 import { SettingsTab } from './tabs/SettingsTab';
 
+function createCleanDefaultPreset(): UserPenPreset {
+  return {
+    id: 'default-brush',
+    name: '標準毛筆ペン',
+    isCustom: false,
+    brushStyle: 'brush',
+    brushWidth: 38,
+    pressureSensitivity: 'high',
+    pressureCurve: DEFAULT_PRESSURE_CURVES.soft,
+    autoSmoothBrush: true,
+    smoothStrength: 'standard',
+    smoothPreserveCorners: true,
+    autoUnionBrush: true,
+    smoothingIntensity: 55,
+    taperStartLength: 0,
+    taperEndLength: 0,
+    taperStartWidth: 100,
+    taperEndWidth: 100,
+    taperStartOpacity: 100,
+    taperEndOpacity: 100,
+    taperStartTime: 100,
+    taperEndTime: 100,
+    forceTaper: false,
+    forceTaperEnd: false,
+    taperTipShape: 'round',
+    nibAngle: 0,
+    nibAspectRatio: 0,
+    nibFollowDirection: false,
+    nibSpacing: 1,
+    constantWidth: false,
+    antiAlias: true,
+    jitterPosition: 0,
+    jitterConstrainPerp: true,
+    jitterSize: 0,
+    jitterOpacity: 0,
+    jitterAngle: 0,
+    jitterSpacing: 0,
+    speedWidthFactor: 0,
+    speedOpacityFactor: 0,
+    speedFeatherFactor: 0,
+    pressureWidthFactor: 0,
+    pressureOpacityFactor: 0,
+    pressureFeatherFactor: 0,
+    stabilizationMethod: 'pre',
+    speedStabilization: 0,
+    legacyStabilization: false,
+    inkBleed: 0,
+    axisSlant: 0,
+    edgeRoughness: 0,
+    tipSharpness: 0,
+    pressureGamma: 1.0,
+  };
+}
+
 export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   isOpen,
   onClose,
@@ -47,6 +104,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   presets,
   onUpdatePresets,
   theme = 'dark' as ThemeMode,
+  activePenPreset,
+  onClearActivePenPreset,
+  onResetCanvasPrefs,
 }) => {
   const isLight = isLightTheme(theme);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -116,7 +176,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
       setWorkingPreset((prev) => ({
         ...prev,
         brushStyle: currentParams.brushStyle,
-        brushWidth: currentParams.brushWidth,
+        brushWidth: clampBrushWidth(currentParams.brushWidth),
         pressureSensitivity: currentParams.pressureSensitivity,
         pressureCurve: currentParams.pressureCurve || prev.pressureCurve,
         autoSmoothBrush: currentParams.autoSmoothBrush,
@@ -128,14 +188,39 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         taperEndLength: currentParams.taperEndLength ?? prev.taperEndLength,
         taperStartWidth: currentParams.taperStartWidth ?? prev.taperStartWidth,
         taperEndWidth: currentParams.taperEndWidth ?? prev.taperEndWidth,
+        taperStartOpacity: currentParams.taperStartOpacity ?? prev.taperStartOpacity,
+        taperEndOpacity: currentParams.taperEndOpacity ?? prev.taperEndOpacity,
+        taperStartTime: currentParams.taperStartTime ?? prev.taperStartTime,
+        taperEndTime: currentParams.taperEndTime ?? prev.taperEndTime,
         forceTaper: currentParams.forceTaper ?? prev.forceTaper,
         forceTaperEnd: currentParams.forceTaperEnd ?? prev.forceTaperEnd,
         taperTipShape: currentParams.taperTipShape ?? prev.taperTipShape,
         nibAngle: currentParams.nibAngle ?? prev.nibAngle,
         nibAspectRatio: currentParams.nibAspectRatio ?? prev.nibAspectRatio,
         nibFollowDirection: currentParams.nibFollowDirection ?? prev.nibFollowDirection,
-        speedWidthFactor: currentParams.speedWidthFactor ?? prev.speedWidthFactor,
+        nibSpacing: currentParams.nibSpacing ?? prev.nibSpacing,
+        constantWidth: currentParams.constantWidth ?? prev.constantWidth,
+        antiAlias: currentParams.antiAlias ?? prev.antiAlias,
+        jitterPosition: currentParams.jitterPosition ?? prev.jitterPosition,
+        jitterConstrainPerp: currentParams.jitterConstrainPerp ?? prev.jitterConstrainPerp,
         jitterSize: currentParams.jitterSize ?? prev.jitterSize,
+        jitterOpacity: currentParams.jitterOpacity ?? prev.jitterOpacity,
+        jitterAngle: currentParams.jitterAngle ?? prev.jitterAngle,
+        jitterSpacing: currentParams.jitterSpacing ?? prev.jitterSpacing,
+        speedWidthFactor: currentParams.speedWidthFactor ?? prev.speedWidthFactor,
+        speedOpacityFactor: currentParams.speedOpacityFactor ?? prev.speedOpacityFactor,
+        speedFeatherFactor: currentParams.speedFeatherFactor ?? prev.speedFeatherFactor,
+        pressureWidthFactor: currentParams.pressureWidthFactor ?? prev.pressureWidthFactor,
+        pressureOpacityFactor: currentParams.pressureOpacityFactor ?? prev.pressureOpacityFactor,
+        pressureFeatherFactor: currentParams.pressureFeatherFactor ?? prev.pressureFeatherFactor,
+        stabilizationMethod: currentParams.stabilizationMethod ?? prev.stabilizationMethod,
+        speedStabilization: currentParams.speedStabilization ?? prev.speedStabilization,
+        legacyStabilization: currentParams.legacyStabilization ?? prev.legacyStabilization,
+        inkBleed: currentParams.inkBleed ?? prev.inkBleed,
+        axisSlant: currentParams.axisSlant ?? prev.axisSlant,
+        edgeRoughness: currentParams.edgeRoughness ?? prev.edgeRoughness,
+        tipSharpness: currentParams.tipSharpness ?? prev.tipSharpness,
+        pressureGamma: currentParams.pressureGamma ?? prev.pressureGamma,
       }));
     }
     prevIsOpenRef.current = isOpen;
@@ -156,36 +241,68 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     return presets.some((p) => p.id === workingPreset.id && p.isCustom);
   }, [presets, workingPreset.id]);
 
+  // Delete confirmation state. The delete itself runs only after the
+  // user confirms in the dialog below, following the pattern used for
+  // part deletion in the radicals drawer.
+  const [pendingDeletePreset, setPendingDeletePreset] = useState<UserPenPreset | null>(null);
+
+  const isDefaultPreset = workingPreset.isCustom === false;
+
   const handleOverwritePreset = () => {
     const next = presets.map((p) =>
       p.id === workingPreset.id ? { ...workingPreset, name: workingPreset.name.trim() || p.name } : p
     );
+    if (!saveUserPenPresets(next)) {
+      showToast('プリセットの保存に失敗しました');
+      return;
+    }
     onUpdatePresets(next);
-    const saved = saveUserPenPresets(next);
     onApplyPreset(workingPreset);
-    showToast(saved ? `「${workingPreset.name}」の設定を上書き保存しました` : 'プリセットの保存に失敗しました');
+    if (workingPreset.pressureCurve) {
+      onChangePressureCurve?.(workingPreset.pressureCurve);
+    }
+    showToast(`「${workingPreset.name}」の設定を上書き保存しました`);
   };
 
   const handleSaveAsNewPreset = () => {
-    const name = workingPreset.name.trim() || `カスタムペン ${presets.length + 1}`;
+    const uniqueName = makeUniquePresetName(
+      workingPreset.name.trim() || `カスタムペン ${presets.length + 1}`,
+      new Set(presets.map((p) => p.name))
+    );
     const newP: UserPenPreset = {
       ...workingPreset,
       id: `preset-custom-${Date.now()}`,
-      name,
+      name: uniqueName,
+      brushWidth: clampBrushWidth(workingPreset.brushWidth),
       isCustom: true,
       createdAt: Date.now(),
     };
     const next = [newP, ...presets];
+    if (!saveUserPenPresets(next)) {
+      showToast('プリセットの保存に失敗しました');
+      return;
+    }
     onUpdatePresets(next);
-    const saved = saveUserPenPresets(next);
     onApplyPreset(newP);
+    if (newP.pressureCurve) {
+      onChangePressureCurve?.(newP.pressureCurve);
+    }
     setWorkingPreset(newP);
-    setRenameInput(name);
-    showToast(saved ? `「${name}」を新規プリセットとして保存し、作図ペンとして適用しました` : 'プリセットの保存に失敗しました');
+    setRenameInput(uniqueName);
+    showToast(`「${uniqueName}」を新規プリセットとして保存し、作図ペンとして適用しました`);
   };
 
   const handleApplyCurrentAndClose = () => {
-    onApplyPreset(workingPreset);
+    const applied: UserPenPreset = {
+      ...workingPreset,
+      brushWidth: clampBrushWidth(workingPreset.brushWidth),
+    };
+    onApplyPreset(applied);
+    // The pressure curve is applied only here, not while editing in the
+    // modal, so closing without applying leaves the app curve unchanged.
+    if (applied.pressureCurve) {
+      onChangePressureCurve?.(applied.pressureCurve);
+    }
     showToast(`「${workingPreset.name}」を作字ペンとして適用しました`);
     onClose();
   };
@@ -194,6 +311,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     setWorkingPreset({
       ...p,
       name: p.name,
+      brushWidth: clampBrushWidth(p.brushWidth),
     });
     setRenameInput(p.name);
     showToast(`「${p.name}」をロードしました`);
@@ -201,25 +319,52 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
   const handleDeletePreset = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = presets.filter((p) => p.id !== id);
+    const target = presets.find((p) => p.id === id);
+    if (!target) return;
+    setPendingDeletePreset(target);
+  };
+
+  const confirmDeletePreset = () => {
+    if (!pendingDeletePreset) return;
+    const target = pendingDeletePreset;
+    setPendingDeletePreset(null);
+    const next = presets.filter((p) => p.id !== target.id);
+    if (!saveUserPenPresets(next)) {
+      showToast('プリセットの削除を保存できませんでした');
+      return;
+    }
     onUpdatePresets(next);
-    const saved = saveUserPenPresets(next);
-    showToast(saved ? 'プリセットを削除しました' : 'プリセットの削除を保存できませんでした');
+    if (activePenPreset && activePenPreset.id === target.id) {
+      onClearActivePenPreset?.();
+    }
+    if (workingPreset.id === target.id) {
+      const fallback = next[0] ?? createCleanDefaultPreset();
+      setWorkingPreset({ ...fallback });
+      setRenameInput(fallback.name);
+    }
+    showToast('プリセットを削除しました');
   };
 
   const handleDuplicatePreset = (p: UserPenPreset, e: React.MouseEvent) => {
     e.stopPropagation();
+    const uniqueName = makeUniquePresetName(
+      `${p.name} (コピー)`,
+      new Set(presets.map((preset) => preset.name))
+    );
     const dup: UserPenPreset = {
       ...p,
       id: `preset-copy-${Date.now()}`,
-      name: `${p.name} (コピー)`,
+      name: uniqueName,
       isCustom: true,
       createdAt: Date.now(),
     };
     const next = [dup, ...presets];
+    if (!saveUserPenPresets(next)) {
+      showToast('プリセットの保存に失敗しました');
+      return;
+    }
     onUpdatePresets(next);
-    const saved = saveUserPenPresets(next);
-    showToast(saved ? `「${dup.name}」を複製しました` : 'プリセットの保存に失敗しました');
+    showToast(`「${uniqueName}」を複製しました`);
   };
 
   const handleExportPresets = () => {
@@ -241,18 +386,60 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (Array.isArray(parsed)) {
-          const next = [...parsed, ...presets];
-          onUpdatePresets(next);
-          const saved = saveUserPenPresets(next);
-          showToast(saved ? `${parsed.length} 個のプリセットを読み込みました` : 'プリセットの保存に失敗しました');
+        if (!Array.isArray(parsed)) {
+          showToast('JSONファイルの形式が正しくありません。プリセットの配列が必要です');
+          return;
         }
+        const { valid, invalidCount, remappedCount } = validateImportedPenPresets(
+          parsed,
+          new Set(presets.map((p) => p.id))
+        );
+        if (valid.length === 0) {
+          showToast('読み込めるプリセットがありませんでした');
+          return;
+        }
+        const next = [...valid, ...presets];
+        if (!saveUserPenPresets(next)) {
+          showToast('プリセットの保存に失敗しました');
+          return;
+        }
+        onUpdatePresets(next);
+        const notes: string[] = [];
+        if (invalidCount > 0) notes.push(`${invalidCount} 個の不正な要素を除外しました`);
+        if (remappedCount > 0) notes.push(`${remappedCount} 個の重複する id を振り直しました`);
+        showToast(
+          `${valid.length} 個のプリセットを読み込みました${notes.length > 0 ? ` (${notes.join('、')})` : ''}`
+        );
       } catch {
         showToast('JSONファイルの読み込みに失敗しました');
       }
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const applyRename = (rawName: string) => {
+    if (isDefaultPreset) {
+      showToast('既定プリセットの名前は変更できません');
+      setIsRenaming(false);
+      return;
+    }
+    const uniqueName = makeUniquePresetName(
+      rawName.trim() || workingPreset.name,
+      new Set(presets.map((p) => p.name)),
+      workingPreset.id,
+      presets
+    );
+    setWorkingPreset((prev) => ({ ...prev, name: uniqueName }));
+    setIsRenaming(false);
+    if (presets.some((p) => p.id === workingPreset.id)) {
+      const next = presets.map((p) => (p.id === workingPreset.id ? { ...p, name: uniqueName } : p));
+      if (!saveUserPenPresets(next)) {
+        showToast('プリセット名の保存に失敗しました');
+        return;
+      }
+      onUpdatePresets(next);
+    }
   };
 
   if (!isOpen) return null;
@@ -292,33 +479,13 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      const newName = renameInput.trim() || workingPreset.name;
-                      setWorkingPreset((prev) => ({ ...prev, name: newName }));
-                      setIsRenaming(false);
-                      if (presets.some((p) => p.id === workingPreset.id)) {
-                        const next = presets.map((p) => (p.id === workingPreset.id ? { ...p, name: newName } : p));
-                        onUpdatePresets(next);
-                        if (!saveUserPenPresets(next)) {
-                          showToast('プリセット名の保存に失敗しました');
-                        }
-                      }
+                      applyRename(renameInput);
                     }
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    const newName = renameInput.trim() || workingPreset.name;
-                    setWorkingPreset((prev) => ({ ...prev, name: newName }));
-                    setIsRenaming(false);
-                    if (presets.some((p) => p.id === workingPreset.id)) {
-                      const next = presets.map((p) => (p.id === workingPreset.id ? { ...p, name: newName } : p));
-                      onUpdatePresets(next);
-                      if (!saveUserPenPresets(next)) {
-                        showToast('プリセット名の保存に失敗しました');
-                      }
-                    }
-                  }}
+                  onClick={() => applyRename(renameInput)}
                   className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
                 >
                   <Check className="w-3.5 h-3.5" />
@@ -327,17 +494,19 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             ) : (
               <div className="flex items-center space-x-1.5">
                 <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{workingPreset.name}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenameInput(workingPreset.name);
-                    setIsRenaming(true);
-                  }}
-                  className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors cursor-pointer"
-                  title="ブラシ名を変更"
-                >
-                  <Edit2 className="w-3 h-3" />
-                </button>
+                {!isDefaultPreset && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenameInput(workingPreset.name);
+                      setIsRenaming(true);
+                    }}
+                    className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors cursor-pointer"
+                    title="ブラシ名を変更"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -455,7 +624,6 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <BasicTab
                 workingPreset={workingPreset}
                 setWorkingPreset={setWorkingPreset}
-                onChangePressureCurve={onChangePressureCurve}
               />
             )}
             {activeTab === 'taper' && (
@@ -518,56 +686,25 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             onClick={() => {
               try {
                 localStorage.removeItem('mojisaku_sticky_brush_configs');
+                // Drawing-side smoothing keys and the pen stroke width are
+                // reset through the canvas as well, so the reset is visible
+                // in drawing immediately instead of only after a restart.
+                localStorage.removeItem('fcs_auto_smooth_brush');
+                localStorage.removeItem('fcs_smooth_strength');
+                localStorage.removeItem('fcs_smooth_preserve_corners');
+                localStorage.removeItem('fcs_auto_union_brush');
+                localStorage.removeItem('fcs_auto_resolve_brush_overlap');
+                localStorage.removeItem('glyph_pen_stroke_width');
+                localStorage.removeItem('fcs_pen_stroke_width');
               } catch (_) {}
-              const cleanDefault: UserPenPreset = {
-                id: 'default-brush',
-                name: '標準毛筆ペン',
-                isCustom: false,
-                brushStyle: 'brush',
-                brushWidth: 38,
-                pressureSensitivity: 'high',
-                pressureCurve: DEFAULT_PRESSURE_CURVES.soft,
-                autoSmoothBrush: true,
-                smoothStrength: 'standard',
-                smoothPreserveCorners: true,
-                autoUnionBrush: true,
-                smoothingIntensity: 55,
-                taperStartLength: 0,
-                taperEndLength: 0,
-                taperStartWidth: 100,
-                taperEndWidth: 100,
-                taperStartOpacity: 100,
-                taperEndOpacity: 100,
-                taperStartTime: 100,
-                taperEndTime: 100,
-                forceTaper: false,
-                forceTaperEnd: false,
-                taperTipShape: 'round',
-                nibAngle: 0,
-                nibAspectRatio: 0,
-                nibFollowDirection: false,
-                nibSpacing: 1,
-                constantWidth: false,
-                antiAlias: true,
-                jitterPosition: 0,
-                jitterConstrainPerp: true,
-                jitterSize: 0,
-                jitterOpacity: 0,
-                jitterAngle: 0,
-                jitterSpacing: 0,
-                speedWidthFactor: 0,
-                speedOpacityFactor: 0,
-                speedFeatherFactor: 0,
-                pressureWidthFactor: 0,
-                pressureOpacityFactor: 0,
-                pressureFeatherFactor: 0,
-                stabilizationMethod: 'pre',
-                speedStabilization: 0,
-                legacyStabilization: false,
-              };
+              onResetCanvasPrefs?.();
+              const cleanDefault = createCleanDefaultPreset();
               setWorkingPreset(cleanDefault);
               setRenameInput(cleanDefault.name);
               onApplyPreset(cleanDefault);
+              if (cleanDefault.pressureCurve) {
+                onChangePressureCurve?.(cleanDefault.pressureCurve);
+              }
               showToast('ペン設定を完全な初期状態（標準筆）にリセットしました');
             }}
             className="px-3 py-1.5 text-xs font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer border border-transparent"
@@ -608,6 +745,34 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         {toastMessage && (
           <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-900/95 text-white text-xs font-medium border border-stone-700 pointer-events-none z-50">
             {toastMessage}
+          </div>
+        )}
+
+        {/* Delete confirmation dialog */}
+        {pendingDeletePreset && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-2xl">
+              <div className="text-sm font-bold text-stone-900 dark:text-stone-100">プリセットを削除しますか？</div>
+              <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+                「{pendingDeletePreset.name}」を削除します。削除されたプリセットは復元できません。
+              </p>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingDeletePreset(null)}
+                  className="px-3 py-1.5 text-xs font-semibold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeletePreset}
+                  className="px-3 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                >
+                  削除する
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

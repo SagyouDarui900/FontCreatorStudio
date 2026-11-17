@@ -4,6 +4,7 @@ import {
   validateFontProject,
   validateStoredFontProject,
   validateStoredFontProjectWithReport,
+  stripInvalidPixelData,
 } from './validation';
 import { FontProject, PathContour } from '../../types';
 
@@ -254,6 +255,75 @@ describe('Font Project Validation & Compilation', () => {
     expect(validation.valid).toBe(false);
     expect(validation.removed.removedPixelData).toBe(1);
     expect(validation.errors.some((e) => e.includes('ピクセルデータ'))).toBe(true);
+  });
+
+  it('compiles the remaining glyphs when one glyph has broken pixelData', () => {
+    const rect: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 500, y: 100, type: 'corner' },
+        { id: 'n3', x: 500, y: 600, type: 'corner' },
+        { id: 'n4', x: 100, y: 600, type: 'corner' },
+      ],
+    };
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+          pixelData: { width: 2, height: 2, data: [1, 0, 1] },
+        },
+        66: {
+          char: 'B',
+          name: 'B',
+          unicode: 66,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rect],
+        },
+      },
+    });
+    const { project: stripped, excluded } = stripInvalidPixelData(project);
+    expect(excluded).toEqual(['A']);
+    expect(stripped.glyphs[65].pixelData).toBeUndefined();
+    expect(stripped.glyphs[66].contours).toHaveLength(1);
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.font.glyphs.length).toBeGreaterThanOrEqual(3);
+    expect(compiled.font.hasChar('B')).toBe(true);
+  });
+
+  it('warns when pixel glyphs use different grid sizes', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+          pixelData: { width: 8, height: 8, data: new Array(64).fill(0) },
+        },
+        66: {
+          char: 'B',
+          name: 'B',
+          unicode: 66,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+          pixelData: { width: 16, height: 16, data: new Array(256).fill(0) },
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(true);
+    expect(validation.warnings.some((w) => w.includes('グリッドサイズが混在'))).toBe(true);
   });
 
   it('rejects out-of-range, zero and duplicate Unicode values', () => {

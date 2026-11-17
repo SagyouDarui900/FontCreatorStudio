@@ -40,6 +40,9 @@ export function usePixelDrawing({
   const lastDrawPosRef = useRef<Point | null>(null);
   const drawingStartGridRef = useRef<Uint8Array | null>(null);
   const isErasingStrokeRef = useRef<boolean>(false);
+  // Only the first pointer draws. A second finger starting mid-stroke is
+  // ignored instead of overwriting the drawing state.
+  const activePointerIdRef = useRef<number | null>(null);
   const [previewGrid, setPreviewGrid] = useState<Uint8Array | null>(null);
   const [hoverPos, setHoverPos] = useState<Point | null>(null);
 
@@ -118,13 +121,53 @@ export function usePixelDrawing({
     }
   };
 
+  // Set one cell (plus symmetry mirrors) without the brush radius, so
+  // rectangle and circle tools draw exactly the dragged range.
+  const applySingleCell = (targetGrid: Uint8Array, gx: number, gy: number, val: number) => {
+    const applyOne = (x: number, y: number) => {
+      if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
+        targetGrid[y * gridWidth + x] = val;
+      }
+    };
+    applyOne(gx, gy);
+    if (symmetryH) applyOne(gridWidth - 1 - gx, gy);
+    if (symmetryV) applyOne(gx, gridHeight - 1 - gy);
+    if (symmetryH && symmetryV) applyOne(gridWidth - 1 - gx, gridHeight - 1 - gy);
+  };
+
+  // Mirror the cells changed by a fill across the enabled symmetry axes,
+  // so the bucket respects the same symmetry settings as the brush.
+  const mirrorFilledCells = (targetGrid: Uint8Array, before: Uint8Array, fillVal: number) => {
+    if (!symmetryH && !symmetryV) return;
+    for (let y = 0; y < gridHeight; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        const idx = y * gridWidth + x;
+        if (targetGrid[idx] === fillVal && before[idx] !== fillVal) {
+          if (symmetryH) targetGrid[y * gridWidth + (gridWidth - 1 - x)] = fillVal;
+          if (symmetryV) targetGrid[(gridHeight - 1 - y) * gridWidth + x] = fillVal;
+          if (symmetryH && symmetryV) {
+            targetGrid[(gridHeight - 1 - y) * gridWidth + (gridWidth - 1 - x)] = fillVal;
+          }
+        }
+      }
+    }
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    // A second finger starting while a stroke is in progress is ignored.
+    if (isDrawing && activePointerIdRef.current !== null && e.pointerId !== activePointerIdRef.current) {
+      return;
+    }
+    activePointerIdRef.current = e.pointerId;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
 
     const pt = getGridCoordFromEvent(e, false);
-    if (!pt) return;
+    if (!pt) {
+      activePointerIdRef.current = null;
+      return;
+    }
 
     setIsDrawing(true);
     setDrawStartPos(pt);
@@ -142,11 +185,14 @@ export function usePixelDrawing({
       setGrid(next);
     } else if (tool === 'bucket') {
       const next = new Uint8Array(currentGridRef.current);
+      const before = new Uint8Array(next);
       const targetVal = next[pt.y * gridWidth + pt.x];
       floodFill(next, gridWidth, gridHeight, pt.x, pt.y, targetVal, currentVal);
+      mirrorFilledCells(next, before, currentVal);
       currentGridRef.current = next;
       pushHistory(next);
       setIsDrawing(false);
+      activePointerIdRef.current = null;
     } else if (
       tool === 'line' ||
       tool === 'rect' ||
@@ -155,7 +201,11 @@ export function usePixelDrawing({
       tool === 'circle_filled'
     ) {
       const pGrid = new Uint8Array(currentGridRef.current);
-      applyBrushAt(pGrid, pt.x, pt.y, currentVal);
+      if (tool === 'line') {
+        applyBrushAt(pGrid, pt.x, pt.y, currentVal);
+      } else {
+        applySingleCell(pGrid, pt.x, pt.y, currentVal);
+      }
       setPreviewGrid(pGrid);
     }
   };
@@ -166,6 +216,7 @@ export function usePixelDrawing({
     setHoverPos(hoverPt);
 
     if (!isDrawing) return;
+    if (activePointerIdRef.current !== null && e.pointerId !== activePointerIdRef.current) return;
     const pt = hoverPt || getGridCoordFromEvent(e, true);
     if (!pt) return;
 
@@ -206,7 +257,7 @@ export function usePixelDrawing({
         for (let y = minY; y <= maxY; y++) {
           for (let x = minX; x <= maxX; x++) {
             if (tool === 'rect_filled' || x === minX || x === maxX || y === minY || y === maxY) {
-              applyBrushAt(pGrid, x, y, currentVal);
+              applySingleCell(pGrid, x, y, currentVal);
             }
           }
         }
@@ -216,7 +267,7 @@ export function usePixelDrawing({
         const radius = Math.round(Math.hypot(dx, dy));
         const circlePts = getMidpointCircle(drawStartPos.x, drawStartPos.y, radius, tool === 'circle_filled');
         for (const p of circlePts) {
-          applyBrushAt(pGrid, p.x, p.y, currentVal);
+          applySingleCell(pGrid, p.x, p.y, currentVal);
         }
       }
 
@@ -224,19 +275,15 @@ export function usePixelDrawing({
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.stopPropagation();
-    try {
-      if ((e.target as HTMLElement)?.hasPointerCapture?.(e.pointerId)) {
-        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      }
-    } catch {
-      // safe fallback
-    }
+  // Finalize the in-progress stroke: apply the preview grid (shape tools)
+  // or the live grid (pencil/eraser) to the history and the project.
+  // Used by pointer-up and by Esc, so a stroke is never lost on close.
+  const commitCurrentStroke = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
     isErasingStrokeRef.current = false;
     lastDrawPosRef.current = null;
+    activePointerIdRef.current = null;
 
     if (previewGrid) {
       currentGridRef.current = previewGrid;
@@ -250,6 +297,20 @@ export function usePixelDrawing({
     drawingStartGridRef.current = null;
   };
 
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    try {
+      if ((e.target as HTMLElement)?.hasPointerCapture?.(e.pointerId)) {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // safe fallback
+    }
+    if (!isDrawing) return;
+    if (activePointerIdRef.current !== null && e.pointerId !== activePointerIdRef.current) return;
+    commitCurrentStroke();
+  };
+
   const handlePointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
     try {
@@ -260,6 +321,7 @@ export function usePixelDrawing({
       // The pointer may already have been released by the browser.
     }
     if (!isDrawing) return;
+    if (activePointerIdRef.current !== null && e.pointerId !== activePointerIdRef.current) return;
 
     const initialGrid = drawingStartGridRef.current;
     if (initialGrid) {
@@ -272,6 +334,7 @@ export function usePixelDrawing({
     setPreviewGrid(null);
     lastDrawPosRef.current = null;
     drawingStartGridRef.current = null;
+    activePointerIdRef.current = null;
   };
 
   return {
@@ -302,5 +365,6 @@ export function usePixelDrawing({
     handlePointerMove,
     handlePointerUp,
     handlePointerCancel,
+    commitCurrentStroke,
   };
 }

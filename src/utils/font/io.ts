@@ -1,7 +1,7 @@
 import * as opentype from 'opentype.js';
 import { FontMetadata, FontProject, GlyphData } from '../../types';
 import { compileFont, CompileFontOptions } from './compilerCore';
-import { validateFontProject } from './validation';
+import { validateFontProject, stripInvalidPixelData } from './validation';
 import { openTypePathToContours } from './paths';
 import { SCREEN_BASELINE_Y } from './constants';
 import { isIOSDevice } from '../platform';
@@ -12,7 +12,9 @@ import { isIOSDevice } from '../platform';
  * but the explicit check keeps the failure visible at the export entry point.
  */
 function assertValidFontProject(project: FontProject): void {
-  const validation = validateFontProject(project);
+  // Strip broken pixelData first so one broken glyph does not block the
+  // export of the remaining glyphs.
+  const validation = validateFontProject(stripInvalidPixelData(project).project);
   if (!validation.valid) {
     throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
   }

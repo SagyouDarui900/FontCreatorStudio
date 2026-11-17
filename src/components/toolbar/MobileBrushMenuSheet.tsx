@@ -194,10 +194,9 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  key={preset.id}
  onClick={(e) => {
  e.stopPropagation();
+ // Do not overwrite the width with the preset default: setBrushStyle
+ // (handleChangeBrushStyle) restores the width saved for the style.
  setBrushStyle?.(preset.id);
- if (preset.defaultWidth) {
- setBrushWidth(preset.defaultWidth);
- }
  setToolMode('brush');
  onClose();
  }}

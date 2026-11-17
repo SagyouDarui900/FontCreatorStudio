@@ -7,7 +7,6 @@ export interface PixelGlyphData {
   height: number;
   data: number[]; // 0 or 1 binary array of length width * height
   shape?: PixelDotShape;
-  advanceWidthCells?: number;
 }
 
 export interface GlyphData {

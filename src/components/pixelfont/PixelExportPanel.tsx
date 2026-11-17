@@ -9,7 +9,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { FontProject, GlyphData, PixelDotShape } from '../../types';
-import { rasterizeGlyphToPixelGrid, resamplePixelGrid } from '../../utils/pixelFontUtils';
+import { rasterizeGlyphToPixelGrid, resamplePixelGrid, normalizePixelGrid } from '../../utils/pixelFontUtils';
 
 interface PixelTextPreviewCanvasProps {
   text: string;
@@ -73,17 +73,21 @@ const PixelTextPreviewCanvas: React.FC<PixelTextPreviewCanvasProps> = ({
       }
 
       let charGrid: Uint8Array | null = null;
+      let charShape: PixelDotShape = dotShape;
       if (cp === currentUnicode) {
         charGrid = currentGrid;
+        charShape = dotShape;
       } else {
         const g: GlyphData | undefined = project.glyphs[cp];
         if (g?.pixelData?.data && g.pixelData.data.length > 0) {
           const pw = g.pixelData.width || gridWidth;
           const ph = g.pixelData.height || gridHeight;
+          const normalized = normalizePixelGrid(g.pixelData.data);
           charGrid =
-            pw === gridWidth && ph === gridHeight && g.pixelData.data.length === gridWidth * gridHeight
-              ? new Uint8Array(g.pixelData.data)
-              : resamplePixelGrid(g.pixelData.data, pw, ph, gridWidth, gridHeight);
+            pw === gridWidth && ph === gridHeight && normalized.length === gridWidth * gridHeight
+              ? normalized
+              : resamplePixelGrid(normalized, pw, ph, gridWidth, gridHeight);
+          charShape = g.pixelData.shape || dotShape;
         } else if (g?.contours && g.contours.length > 0) {
           charGrid = rasterizeGlyphToPixelGrid(g, gridWidth, gridHeight, upm, asc, desc);
         }
@@ -117,16 +121,30 @@ const PixelTextPreviewCanvas: React.FC<PixelTextPreviewCanvasProps> = ({
           if (charGrid[gy * gridWidth + gx] !== 1) continue;
           const px = offsetX + gx * cellPx;
           const py = offsetY + gy * cellPx;
-          if (dotShape === 'round') {
+          if (charShape === 'round') {
             ctx.beginPath();
             ctx.arc(px + cellPx / 2, py + cellPx / 2, cellPx * 0.45, 0, Math.PI * 2);
             ctx.fill();
-          } else if (dotShape === 'diamond') {
+          } else if (charShape === 'diamond') {
             ctx.beginPath();
             ctx.moveTo(px + cellPx / 2, py);
             ctx.lineTo(px + cellPx, py + cellPx / 2);
             ctx.lineTo(px + cellPx / 2, py + cellPx);
             ctx.lineTo(px, py + cellPx / 2);
+            ctx.closePath();
+            ctx.fill();
+          } else if (charShape === 'squircle') {
+            const r = cellPx * 0.28;
+            ctx.beginPath();
+            ctx.moveTo(px + r, py);
+            ctx.lineTo(px + cellPx - r, py);
+            ctx.arcTo(px + cellPx, py, px + cellPx, py + r, r);
+            ctx.lineTo(px + cellPx, py + cellPx - r);
+            ctx.arcTo(px + cellPx, py + cellPx, px + cellPx - r, py + cellPx, r);
+            ctx.lineTo(px + r, py + cellPx);
+            ctx.arcTo(px, py + cellPx, px, py + cellPx - r, r);
+            ctx.lineTo(px, py + r);
+            ctx.arcTo(px, py, px + r, py, r);
             ctx.closePath();
             ctx.fill();
           } else {
@@ -164,6 +182,8 @@ interface PixelExportPanelProps {
   activePixelCount: number;
   isLight: boolean;
   isMobile?: boolean;
+  pngScale?: number;
+  onPngScaleChange?: (scale: number) => void;
 }
 
 export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
@@ -184,6 +204,8 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
   activePixelCount,
   isLight,
   isMobile = false,
+  pngScale = 8,
+  onPngScaleChange,
 }) => {
   if (isMobile) {
     return (
@@ -288,20 +310,37 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             </button>
 
             {/* 4. Single PNG */}
-            <button
-              onClick={handleExportSinglePng}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
-                isLight
-                  ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
-                  : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
-              }`}
-            >
-              <span className="flex items-center space-x-2">
-                <Download className="w-4 h-4" />
-                <span>現在の文字「{currentGlyph.char}」をPNG出力</span>
-              </span>
-              <span className="text-[10px] opacity-75 font-mono">{gridWidth}×{gridHeight}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportSinglePng}
+                className={`flex-1 py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
+                  isLight
+                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
+                    : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
+                }`}
+              >
+                <span className="flex items-center space-x-2">
+                  <Download className="w-4 h-4" />
+                  <span>現在の文字「{currentGlyph.char}」をPNG出力</span>
+                </span>
+                <span className="text-[10px] opacity-75 font-mono">{gridWidth}×{gridHeight}</span>
+              </button>
+              {onPngScaleChange && (
+                <select
+                  value={pngScale}
+                  onChange={(e) => onPngScaleChange(parseInt(e.target.value, 10))}
+                  className="px-2 py-2.5 border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#142018] text-xs font-mono min-h-[44px] cursor-pointer"
+                  title="単体PNG出力の拡大倍率"
+                  aria-label="単体PNG出力の拡大倍率"
+                >
+                  {[1, 2, 4, 8, 16, 32].map((s) => (
+                    <option key={s} value={s}>
+                      {s}倍
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
 
           {/* Real-time Project Stats */}

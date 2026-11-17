@@ -4,10 +4,13 @@
 
 /**
  * Calibrate hardware stylus pressure to a comfortable, expressive 0.04 - 1.0 dynamic range.
+ * Denominator 0.97 is a design value: (rawP - 0.03) / 0.97 maps raw 1.0 to
+ * 1.0, so strong pressure up to 1.0 stays distinguishable instead of
+ * saturating at 1.0 above raw 0.68 (as the old 0.65 denominator did).
  */
 export function calibrateStylusPressure(rawP: number): number {
   if (rawP <= 0) return 0.15;
-  return Math.max(0.04, Math.min(1.0, (rawP - 0.03) / 0.65));
+  return Math.max(0.04, Math.min(1.0, (rawP - 0.03) / 0.97));
 }
 
 /**

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Paintbrush } from 'lucide-react';
-import { UserPenPreset, PressureCurveConfig } from '../../../types';
+import { UserPenPreset } from '../../../types';
 import { SliderControl } from '../Controls';
 import { PressureGraph } from '../PressureGraph';
 import { DEFAULT_PRESSURE_CURVES } from '../../../utils/presetData';
@@ -8,13 +8,11 @@ import { DEFAULT_PRESSURE_CURVES } from '../../../utils/presetData';
 interface BasicTabProps {
   workingPreset: UserPenPreset;
   setWorkingPreset: React.Dispatch<React.SetStateAction<UserPenPreset>>;
-  onChangePressureCurve?: (curve: PressureCurveConfig) => void;
 }
 
 export const BasicTab: React.FC<BasicTabProps> = ({
   workingPreset,
   setWorkingPreset,
-  onChangePressureCurve,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 items-start">
@@ -27,7 +25,7 @@ export const BasicTab: React.FC<BasicTabProps> = ({
         <SliderControl
           label="ブラシ太さ"
           value={workingPreset.brushWidth}
-          min={1}
+          min={4}
           max={150}
           step={1}
           unit="px"
@@ -57,11 +55,12 @@ export const BasicTab: React.FC<BasicTabProps> = ({
       </div>
 
       {/* Pressure Curve Graph */}
+      {/* Curve edits stay inside the modal until Apply; they are not
+          written to the app or sticky settings while editing. */}
       <PressureGraph
         curveConfig={workingPreset.pressureCurve || DEFAULT_PRESSURE_CURVES.soft}
         onChangeCurveConfig={(newConfig) => {
           setWorkingPreset((prev) => ({ ...prev, pressureCurve: newConfig }));
-          onChangePressureCurve?.(newConfig);
         }}
       />
     </div>

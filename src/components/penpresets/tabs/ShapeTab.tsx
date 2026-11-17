@@ -54,11 +54,7 @@ export const ShapeTab: React.FC<ShapeTabProps> = ({
           checked={workingPreset.constantWidth ?? false}
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, constantWidth: v }))}
         />
-        <ToggleControl
-          label="アンチエイリアス / 滑らかなエッジ"
-          checked={workingPreset.antiAlias ?? true}
-          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, antiAlias: v }))}
-        />
+        <p className="text-[11px] text-stone-500 dark:text-stone-400">アンチエイリアスと筆先間隔はベクター輪郭に反映されません。</p>
       </div>
     </div>
   );

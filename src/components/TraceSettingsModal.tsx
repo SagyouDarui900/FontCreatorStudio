@@ -20,6 +20,12 @@ import {
 import { TraceSettings } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BundledFontsModal } from './BundledFontsModal';
+import {
+  TRACE_DEFAULT_OPACITY,
+  TRACE_FONT_OPTIONS,
+  TRACE_SCALE_MAX,
+  TRACE_SCALE_MIN,
+} from './canvas/traceOptions';
 
 interface TraceSettingsModalProps {
   isOpen: boolean;
@@ -100,6 +106,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           type: 'image',
           imageSrc: dataUrl,
         }));
+      }
+    };
+    reader.onerror = () => {
+      if (onShowToast) {
+        onShowToast('下絵画像の読み込みに失敗しました。ファイルを確認して再度お試しください。', 'error');
       }
     };
     reader.readAsDataURL(file);
@@ -281,6 +292,34 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   onChange={handleFileInputChange}
                 />
 
+                {/* Image scope: this character only, or all characters */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setApplyMode('char')}
+                    className={`py-2 px-2 rounded-lg border text-[11px] font-semibold transition-colors cursor-pointer ${
+                      applyMode === 'char'
+                        ? themeClasses.activeTool
+                        : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                    }`}
+                    title="読み込んだ画像を現在選択中の文字だけに適用します"
+                  >
+                    この文字「{activeChar}」だけに適用
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setApplyMode('global')}
+                    className={`py-2 px-2 rounded-lg border text-[11px] font-semibold transition-colors cursor-pointer ${
+                      applyMode === 'global'
+                        ? themeClasses.activeTool
+                        : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                    }`}
+                    title="読み込んだ画像をすべての文字に適用します"
+                  >
+                    全体に適用
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -376,8 +415,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     </div>
                     <input
                       type="range"
-                      min={0.1}
-                      max={4.0}
+                      min={TRACE_SCALE_MIN}
+                      max={TRACE_SCALE_MAX}
                       step={0.05}
                       value={traceSettings.scale ?? 1}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, scale: Number(e.target.value) }))}
@@ -505,6 +544,16 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     <span className="text-[11px]">左右反転</span>
                   </label>
 
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(traceSettings.flipV)}
+                      onChange={(e) => setTraceSettings((s) => ({ ...s, flipV: e.target.checked }))}
+                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
+                    />
+                    <span className="text-[11px]">上下反転</span>
+                  </label>
+
                   <button
                     onClick={() =>
                       setTraceSettings((s) => ({
@@ -537,6 +586,23 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     className="w-full accent-emerald-700"
                   />
                 </div>
+
+                {/* Brightness Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className={themeClasses.textMuted}>明るさ</span>
+                    <span className="font-mono">{Math.round((traceSettings.brightness ?? 1) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2.0}
+                    step={0.1}
+                    value={traceSettings.brightness ?? 1}
+                    onChange={(e) => setTraceSettings((s) => ({ ...s, brightness: Number(e.target.value) }))}
+                    className="w-full accent-emerald-700"
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -550,7 +616,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={traceSettings.text ?? activeChar ?? ''}
+                  maxLength={1}
+                  value={traceSettings.text || activeChar || ''}
                   onChange={(e) => setTraceSettings((s) => ({ ...s, text: e.target.value }))}
                   className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 />
@@ -575,14 +642,11 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   onChange={(e) => setTraceSettings((s) => ({ ...s, fontFamily: e.target.value }))}
                   className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 >
-                  <option value="'Noto Sans JP', sans-serif">ゴシック体 (Noto Sans JP / OFL)</option>
-                  <option value="'Noto Serif JP', serif">明朝体 (Noto Serif JP / OFL)</option>
-                  <option value="'Zen Maru Gothic', sans-serif">丸ゴシック (Zen Maru Gothic / OFL)</option>
-                  <option value="'Kaisei Tokumin', serif">特民明朝 (Kaisei Tokumin / OFL)</option>
-                  <option value="sans-serif">標準 Sans-Serif (システム)</option>
-                  <option value="serif">標準 Serif (システム)</option>
-                  <option value="monospace">等幅 (Monospace / JetBrains Mono)</option>
-                  <option value="cursive">手書き風 (Cursive)</option>
+                  {TRACE_FONT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -610,8 +674,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     </div>
                     <input
                       type="range"
-                      min={0.2}
-                      max={2.0}
+                      min={TRACE_SCALE_MIN}
+                      max={TRACE_SCALE_MAX}
                       step={0.05}
                       value={traceSettings.scale ?? 1}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, scale: Number(e.target.value) }))}
@@ -690,6 +754,40 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between text-[10px]">
+                      <span>回転角度</span>
+                      <span className="font-mono">{traceSettings.rotation || 0}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={-180}
+                      max={180}
+                      step={1}
+                      value={traceSettings.rotation ?? 0}
+                      onChange={(e) => setTraceSettings((s) => ({ ...s, rotation: Number(e.target.value) }))}
+                      className="w-full accent-emerald-700"
+                    />
+                  </div>
+
+                  <div className="space-y-0.5">
+                    <div className="flex justify-between text-[10px]">
+                      <span>フォントサイズ</span>
+                      <span className="font-mono">{traceSettings.fontSize ?? 1000}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={200}
+                      max={2000}
+                      step={10}
+                      value={traceSettings.fontSize ?? 1000}
+                      onChange={(e) => setTraceSettings((s) => ({ ...s, fontSize: Number(e.target.value) }))}
+                      className="w-full accent-emerald-700"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -700,14 +798,14 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           >
             <div className={`flex justify-between ${themeClasses.textMuted}`}>
               <span className="font-semibold">下絵の透明度 (不透明度)</span>
-              <span className="font-mono">{Math.round((traceSettings.opacity ?? 0.3) * 100)}%</span>
+              <span className="font-mono">{Math.round((traceSettings.opacity ?? TRACE_DEFAULT_OPACITY) * 100)}%</span>
             </div>
             <input
               type="range"
               min={0.05}
               max={1.0}
               step={0.05}
-              value={traceSettings.opacity ?? 0.3}
+              value={traceSettings.opacity ?? TRACE_DEFAULT_OPACITY}
               onChange={(e) => setTraceSettings((s) => ({ ...s, opacity: Number(e.target.value) }))}
               className="w-full accent-emerald-700"
             />

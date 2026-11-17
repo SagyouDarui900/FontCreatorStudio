@@ -1,6 +1,11 @@
 import React from 'react';
 import { Move, Minus, Plus, Type, RotateCcw, Check } from 'lucide-react';
 import { ToolMode, TraceSettings } from '../../../types';
+import {
+  TRACE_FONT_OPTIONS,
+  TRACE_SCALE_MAX,
+  TRACE_SCALE_MIN,
+} from '../traceOptions';
 
 export interface TraceAdjustFloatingHudProps {
   toolMode: ToolMode;
@@ -48,7 +53,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         <button
           onClick={() => {
             const cur = traceSettings.scale ?? 1;
-            const next = Math.round(Math.max(0.2, cur - 0.05) * 100) / 100;
+            const next = Math.round(Math.max(TRACE_SCALE_MIN, cur - 0.05) * 100) / 100;
             onChangeTraceSettings?.({ ...traceSettings, scale: next });
           }}
           className={`w-5 h-5 rounded flex items-center justify-center ${
@@ -60,8 +65,8 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         </button>
         <input
           type="range"
-          min="0.3"
-          max="2.0"
+          min={TRACE_SCALE_MIN}
+          max={TRACE_SCALE_MAX}
           step="0.01"
           value={traceSettings.scale ?? 1}
           onChange={(e) => {
@@ -78,7 +83,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
         <button
           onClick={() => {
             const cur = traceSettings.scale ?? 1;
-            const next = Math.round(Math.min(3.0, cur + 0.05) * 100) / 100;
+            const next = Math.round(Math.min(TRACE_SCALE_MAX, cur + 0.05) * 100) / 100;
             onChangeTraceSettings?.({ ...traceSettings, scale: next });
           }}
           className={`w-5 h-5 rounded flex items-center justify-center ${
@@ -158,10 +163,11 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
                   : 'bg-[#1c2a20] text-emerald-200 border-[#2b3e30] focus:border-emerald-500'
               }`}
             >
-              <option value="'Noto Sans JP', sans-serif">ゴシック体</option>
-              <option value="'Noto Serif JP', serif">明朝体</option>
-              <option value="'Zen Maru Gothic', sans-serif">丸ゴシック</option>
-              <option value="'Kaisei Tokumin', serif">特民明朝</option>
+              {TRACE_FONT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </>

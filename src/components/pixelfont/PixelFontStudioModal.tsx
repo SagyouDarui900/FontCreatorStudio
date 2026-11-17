@@ -29,7 +29,7 @@ import {
 import { FontProject, GlyphData } from '../../types';
 import { getThemeClasses } from '../../utils/theme';
 import { shareOrDownloadFont } from '../../utils/font';
-import { pixelGridToContours, rasterizeGlyphToPixelGrid, resamplePixelGrid } from '../../utils/pixelFontUtils';
+import { pixelGridToContours, rasterizeGlyphToPixelGrid, resamplePixelGrid, normalizePixelGrid } from '../../utils/pixelFontUtils';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
 import { PixelFontStudioModalProps } from './types';
 import { usePixelGridState } from './hooks/usePixelGridState';
@@ -59,6 +59,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [mobileTab, setMobileTab] = useState<'canvas' | 'glyphs' | 'presets' | 'export'>('canvas');
   const [previewText, setPreviewText] = useState<string>('あいうえお ABC 123');
+  const [pngScale, setPngScale] = useState<number>(8);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -95,6 +96,9 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     handleAddOutline,
     handleAddShadow,
     autoSaveGlyph,
+    commitCurrentGlyphEdits,
+    requestGridSizeChange,
+    handleRestoreVectorContours,
     loadGlyphPixelGrid,
   } = usePixelGridState({
     project,
@@ -165,6 +169,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     handlePointerMove,
     handlePointerUp,
     handlePointerCancel,
+    commitCurrentStroke,
   } = usePixelDrawing({
     gridWidth,
     gridHeight,
@@ -193,6 +198,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
+        // Commit an in-progress stroke first so it is not lost.
+        if (isDrawing) {
+          commitCurrentStroke();
+        }
         onClose();
         return;
       }
@@ -270,7 +279,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleStudioKeyDown, true);
     };
-  }, [isOpen, handleUndo, handleRedo, onClose, handleShift, setTool]);
+  }, [isOpen, handleUndo, handleRedo, onClose, handleShift, setTool, isDrawing, commitCurrentStroke]);
 
   // Project Glyphs & Categories
   const projectGlyphUnicodes = useMemo(() => {
@@ -356,7 +365,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
   }, [projectGlyphUnicodes, project.glyphs, activeCategory, glyphSearchQuery]);
 
   const handleSelectGlyphItem = (unicode: number) => {
-    autoSaveGlyph(currentGridRef.current, currentUnicode, gridWidth, gridHeight);
+    // Save only when the current glyph has unsaved edits. Switching
+    // glyphs must not rewrite the stored pixelData or mark the project
+    // as a pixel font project.
+    commitCurrentGlyphEdits();
     setCurrentUnicode(unicode);
     onSelectGlyph?.(unicode);
     loadGlyphPixelGrid(unicode, gridWidth, gridHeight);
@@ -461,7 +473,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     for (const [uStr, g] of Object.entries(updatedGlyphs)) {
       const u = parseInt(uStr, 10);
       if (g.pixelData && g.pixelData.data && (!g.contours || g.contours.length === 0)) {
-        const gGrid = new Uint8Array(g.pixelData.data);
+        const gGrid = normalizePixelGrid(g.pixelData.data);
         if (gGrid.some((d) => d === 1)) {
           const c = pixelGridToContours(
             gGrid,
@@ -492,6 +504,21 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       updatedAt: Date.now(),
     };
 
+    // Warn when glyphs use different grid sizes: dots end up with
+    // different sizes in the same em box.
+    const exportSizes = new Set<string>();
+    for (const g of Object.values(updatedGlyphs)) {
+      if (g.pixelData && g.pixelData.width && g.pixelData.height) {
+        exportSizes.add(`${g.pixelData.width}x${g.pixelData.height}`);
+      }
+    }
+    if (exportSizes.size > 1) {
+      onShowToast(
+        `グリッドサイズが混在しています（${[...exportSizes].join('、')}）。ドットの寸法が文字ごとに異なります。`,
+        'warning'
+      );
+    }
+
     try {
       const result = await shareOrDownloadFont(projectToExport, format, {
         scaleFactor: 1.0,
@@ -514,18 +541,21 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
   const handleExportSinglePng = () => {
     const activeGrid = currentGridRef.current || grid;
+    const scale = Math.max(1, Math.min(32, pngScale || 8));
+    const outW = gridWidth * scale;
+    const outH = gridHeight * scale;
     const offCanvas = document.createElement('canvas');
-    offCanvas.width = gridWidth;
-    offCanvas.height = gridHeight;
+    offCanvas.width = outW;
+    offCanvas.height = outH;
     const oCtx = offCanvas.getContext('2d');
     if (!oCtx) return;
 
-    oCtx.clearRect(0, 0, gridWidth, gridHeight);
+    oCtx.clearRect(0, 0, outW, outH);
     oCtx.fillStyle = '#000000';
     for (let gy = 0; gy < gridHeight; gy++) {
       for (let gx = 0; gx < gridWidth; gx++) {
         if (activeGrid[gy * gridWidth + gx] === 1) {
-          oCtx.fillRect(gx, gy, 1, 1);
+          oCtx.fillRect(gx * scale, gy * scale, scale, scale);
         }
       }
     }
@@ -535,18 +565,19 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     const url = offCanvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pixel_${safeChar}_U${codeHex}_${gridWidth}x${gridHeight}.png`;
+    a.download = `pixel_${safeChar}_U${codeHex}_${gridWidth}x${gridHeight}_x${scale}.png`;
     a.click();
-    onShowToast(`「${currentGlyph.char}」の単体PNG画像 (${gridWidth}×${gridHeight}) をダウンロードしました`, 'success');
+    onShowToast(`「${currentGlyph.char}」の単体PNG画像 (${outW}×${outH}、${scale}倍) をダウンロードしました`, 'success');
   };
 
   const getGlyphBitmapAtStudioSize = (g: GlyphData): Uint8Array => {
     if (g.pixelData && g.pixelData.data && g.pixelData.data.length > 0) {
       const pw = g.pixelData.width || gridWidth;
       const ph = g.pixelData.height || gridHeight;
-      return pw === gridWidth && ph === gridHeight && g.pixelData.data.length === gridWidth * gridHeight
-        ? new Uint8Array(g.pixelData.data)
-        : resamplePixelGrid(g.pixelData.data, pw, ph, gridWidth, gridHeight);
+      const normalized = normalizePixelGrid(g.pixelData.data);
+      return pw === gridWidth && ph === gridHeight && normalized.length === gridWidth * gridHeight
+        ? normalized
+        : resamplePixelGrid(normalized, pw, ph, gridWidth, gridHeight);
     }
     return rasterizeGlyphToPixelGrid(
       g,
@@ -927,6 +958,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           setGridWidth={setGridWidth}
           gridHeight={gridHeight}
           setGridHeight={setGridHeight}
+          onRequestGridSizeChange={requestGridSizeChange}
           loadGlyphPixelGrid={loadGlyphPixelGrid}
           currentUnicode={currentUnicode}
           dotShape={dotShape}
@@ -1215,6 +1247,31 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               </div>
 
               <div className="flex items-center space-x-1.5">
+                {currentGlyph.pixelData && currentGlyph.vectorContoursBackup && currentGlyph.vectorContoursBackup.length > 0 && (
+                  <button
+                    onClick={handleRestoreVectorContours}
+                    className="px-2.5 py-1 bg-stone-100 dark:bg-[#142018] hover:bg-stone-200 dark:hover:bg-[#1c2e22] text-xs font-bold flex items-center space-x-1 transition-colors border border-stone-300 dark:border-stone-700 cursor-pointer"
+                    title="ピクセル化する前のベクター輪郭に戻します"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>ベクター輪郭に戻す</span>
+                  </button>
+                )}
+                <label className="flex items-center space-x-1 text-xs font-bold">
+                  <span>PNG倍率</span>
+                  <select
+                    value={pngScale}
+                    onChange={(e) => setPngScale(parseInt(e.target.value, 10))}
+                    className="px-1 py-1 border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#142018] text-xs font-mono cursor-pointer"
+                    title="単体PNG出力の拡大倍率"
+                  >
+                    {[1, 2, 4, 8, 16, 32].map((s) => (
+                      <option key={s} value={s}>
+                        {s}倍
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <button
                   onClick={handleExportSinglePng}
                   className="px-2.5 py-1 bg-stone-100 dark:bg-[#142018] hover:bg-stone-200 dark:hover:bg-[#1c2e22] text-xs font-bold flex items-center space-x-1 transition-colors border border-stone-300 dark:border-stone-700 cursor-pointer"
@@ -1484,6 +1541,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               setGridWidth={setGridWidth}
               gridHeight={gridHeight}
               setGridHeight={setGridHeight}
+              onRequestGridSizeChange={requestGridSizeChange}
               loadGlyphPixelGrid={loadGlyphPixelGrid}
               currentUnicode={currentUnicode}
               dotShape={dotShape}
@@ -1548,6 +1606,8 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               activePixelCount={activePixelCount}
               isLight={isLight}
               isMobile={true}
+              pngScale={pngScale}
+              onPngScaleChange={setPngScale}
             />
           )}
 

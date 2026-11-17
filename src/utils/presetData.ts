@@ -227,15 +227,93 @@ export function saveStickyBrushConfig(style: BrushStyle, config: Partial<StickyB
   }
 }
 
+/** ブラシ幅の範囲。モーダル、ツールバー、ステッパー、適用、インポートで統一する。 */
+export const BRUSH_WIDTH_MIN = 4;
+export const BRUSH_WIDTH_MAX = 150;
+
+export function clampBrushWidth(width: number): number {
+  if (typeof width !== 'number' || !isFinite(width)) return 38;
+  return Math.max(BRUSH_WIDTH_MIN, Math.min(BRUSH_WIDTH_MAX, Math.round(width)));
+}
+
+/**
+ * インポート要素の検証。要素がオブジェクトであること、id と name が
+ * 文字列であることを確認する。brushWidth が数値の場合は範囲内に収める。
+ * brushWidth が数値でない場合は既定値 38 を入れる。
+ */
+export function isValidPenPresetShape(value: unknown): value is UserPenPreset {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string' && candidate.id.length > 0
+    && typeof candidate.name === 'string' && candidate.name.length > 0;
+}
+
+export function sanitizeImportedPenPreset(value: unknown): UserPenPreset | null {
+  if (!isValidPenPresetShape(value)) return null;
+  const brushWidth = typeof value.brushWidth === 'number'
+    ? clampBrushWidth(value.brushWidth)
+    : 38;
+  return { ...value, brushWidth };
+}
+
+/**
+ * インポートした配列を検証する。有効な要素だけを返し、既存の一覧や
+ * インポート内での id の重複には新しい id を振り直す。
+ * 戻り値は { valid, invalidCount, remappedCount }。
+ */
+export function validateImportedPenPresets(
+  parsed: unknown,
+  existingIds: Set<string>
+): { valid: UserPenPreset[]; invalidCount: number; remappedCount: number } {
+  const valid: UserPenPreset[] = [];
+  let invalidCount = 0;
+  let remappedCount = 0;
+  if (!Array.isArray(parsed)) return { valid, invalidCount: 0, remappedCount: 0 };
+  const seen = new Set<string>(existingIds);
+  parsed.forEach((item, index) => {
+    const preset = sanitizeImportedPenPreset(item);
+    if (!preset) {
+      invalidCount += 1;
+      return;
+    }
+    if (seen.has(preset.id)) {
+      preset.id = `preset-imported-${Date.now()}-${index}`;
+      remappedCount += 1;
+    }
+    seen.add(preset.id);
+    valid.push(preset);
+  });
+  return { valid, invalidCount, remappedCount };
+}
+
+/** 名前の重複を避ける。重複する場合は「名前 2」「名前 3」のように番号を付ける。 */
+export function makeUniquePresetName(name: string, existingNames: Set<string>, selfId?: string, presets?: UserPenPreset[]): string {
+  const base = name.trim() || 'カスタムペン';
+  const taken = new Set<string>();
+  for (const n of existingNames) taken.add(n);
+  if (presets && selfId) {
+    const self = presets.find((p) => p.id === selfId);
+    if (self) taken.delete(self.name);
+  }
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base} ${n}`)) n += 1;
+  return `${base} ${n}`;
+}
+
 export function loadUserPenPresets(): UserPenPreset[] {
   try {
     const stored = localStorage.getItem(PRESETS_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
+    if (stored === null) {
+      return DEFAULT_PEN_PRESETS;
     }
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) {
+      return DEFAULT_PEN_PRESETS;
+    }
+    // 保存された空配列は空の一覧として維持する。キーが存在しない場合だけ
+    // 既定プリセットを返す。
+    return parsed.filter((item): item is UserPenPreset => isValidPenPresetShape(item));
   } catch (e) {
     console.warn('Failed to load pen presets from localStorage', e);
   }

@@ -67,8 +67,8 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
             </div>
             <input
               type="range"
-              min={2}
-              max={160}
+              min={4}
+              max={150}
               value={brushWidth}
               onChange={(e) => onChangeBrushWidth?.(parseInt(e.target.value, 10))}
               className="w-full accent-emerald-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer"

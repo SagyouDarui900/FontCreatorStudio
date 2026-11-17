@@ -49,7 +49,18 @@ export const RandomTab: React.FC<RandomTabProps> = ({
             unit="%"
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, jitterAngle: v }))}
           />
+          <SliderControl
+            label="不透明度ランダム"
+            value={workingPreset.jitterOpacity ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, jitterOpacity: v }))}
+            desc="ベクター輪郭には不透明度の情報がないため、太さの変化として近似して反映されます"
+          />
         </div>
+        <p className="text-[11px] text-stone-500 dark:text-stone-400">間隔ランダムはベクター輪郭に反映されません。輪郭は連続した線として描画されます。</p>
 
         <ToggleControl
           label="位置ランダムは上下(法線)に拘束"

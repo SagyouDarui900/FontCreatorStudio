@@ -70,11 +70,10 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
             value={brushStyle || 'signpen'}
             onChange={(e) => {
               const newStyle = e.target.value as BrushStyle;
+              // Do not overwrite the width here: onChangeBrushStyle
+              // (handleChangeBrushStyle) restores the width saved for
+              // the selected style.
               onChangeBrushStyle(newStyle);
-              const preset = PEN_PRESETS.find((p) => p.id === newStyle);
-              if (preset && preset.defaultWidth && onChangeBrushWidth) {
-                onChangeBrushWidth(preset.defaultWidth);
-              }
             }}
             className={`text-xs font-bold px-1.5 py-0.5 rounded border cursor-pointer outline-none ${
               isLight

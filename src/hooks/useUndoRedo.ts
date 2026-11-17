@@ -48,7 +48,6 @@ export const arePixelDataEqual = (a?: PixelGlyphData, b?: PixelGlyphData): boole
     a.width !== b.width ||
     a.height !== b.height ||
     a.shape !== b.shape ||
-    a.advanceWidthCells !== b.advanceWidthCells ||
     a.data.length !== b.data.length
   ) {
     return false;

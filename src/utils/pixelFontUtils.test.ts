@@ -5,6 +5,8 @@ import {
   getBresenhamLine,
   getMidpointCircle,
   floodFill,
+  normalizePixelDataValues,
+  isPixelDataLengthValid,
 } from './pixelFontUtils';
 import { contoursToOpenTypePath } from './font/paths';
 
@@ -151,5 +153,33 @@ describe('pixelFontUtils', () => {
     floodFill(grid, 3, 3, 1, 1, 0, 1);
     expect(grid[1 * 3 + 1]).toBe(1);
     expect(grid[0]).toBe(0);
+  });
+
+  it('keeps pixel cells square when advanceWidth differs from the em height', () => {
+    const grid = new Uint8Array(2 * 2);
+    grid[0] = 1;
+    // advanceWidth 500 with em height 1000: cells must stay square.
+    const contours = pixelGridToContours(grid, 2, 2, 1000, 800, -200, 500, 'square', true);
+    expect(contours).toHaveLength(1);
+    const xs = contours[0].nodes.map((n) => n.x);
+    const ys = contours[0].nodes.map((n) => n.y);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    expect(w).toBe(h);
+  });
+
+  it('treats non-zero pixel values as filled in both merged and individual paths', () => {
+    const grid = new Uint8Array([2, 0, 0, 0]);
+    const merged = pixelGridToContours(grid, 2, 2, 1000, 800, -200, 1000, 'square', true);
+    expect(merged).toHaveLength(1);
+    const individual = pixelGridToContours(grid, 2, 2, 1000, 800, -200, 1000, 'round', false);
+    expect(individual).toHaveLength(1);
+  });
+
+  it('normalizes pixel values to 0 or 1 and validates data length', () => {
+    expect(normalizePixelDataValues([0, 1, 2, -1, NaN])).toEqual([0, 1, 1, 1, 0]);
+    expect(isPixelDataLengthValid({ width: 2, height: 2, data: [1, 0, 0, 1] })).toBe(true);
+    expect(isPixelDataLengthValid({ width: 2, height: 2, data: [1, 0, 0] })).toBe(false);
+    expect(isPixelDataLengthValid({ width: 2, height: 2, data: [1, 0, 0, 1, 0] })).toBe(false);
   });
 });

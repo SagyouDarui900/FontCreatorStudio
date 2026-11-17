@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { TraceSettings } from '../../../types';
 import { TraceResizeHandle } from '../TraceReferenceLayer';
+import { getDefaultTraceScale } from '../traceCharMetrics';
+import { clampTraceScale } from '../traceOptions';
 
 interface UseTraceTransformOptions {
   upm: number;
@@ -74,6 +76,8 @@ export function useTraceTransform({
     [traceSettings.offsetX, traceSettings.offsetY]
   );
 
+  // Corner handles only: every corner scales from the center by the
+  // pointer distance ratio, so the handle kind does not change the math.
   const handlePointerDownTraceResize = useCallback(
     (e: React.PointerEvent, _handle: TraceResizeHandle) => {
       e.stopPropagation();
@@ -118,10 +122,8 @@ export function useTraceTransform({
 
   const handleResetTraceAll = useCallback(() => {
     if (!onChangeTraceSettings) return;
-    const isKana = /[ぁ-んァ-ヶー]/.test(traceSettings.text || activeChar || '');
-    const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(traceSettings.text || activeChar || '');
-    const defaultScale =
-      traceSettings.type === 'image' ? (isKana ? 0.78 : isKanji ? 0.85 : 1.0) : 1.0;
+    // Same default scale rule for image and character underdrawings.
+    const defaultScale = getDefaultTraceScale(traceSettings.text || activeChar || '');
     onChangeTraceSettings((prev) => ({
       ...prev,
       offsetX: 0,
@@ -130,7 +132,7 @@ export function useTraceTransform({
       rotation: 0,
     }));
     showCanvasToast(`下絵の位置とサイズ(${Math.round(defaultScale * 100)}%)をリセットしました`);
-  }, [onChangeTraceSettings, showCanvasToast, traceSettings.type, traceSettings.text, activeChar]);
+  }, [onChangeTraceSettings, showCanvasToast, traceSettings.text, activeChar]);
 
   const handleTracePointerMove = useCallback(
     (e: React.PointerEvent): boolean => {
@@ -150,7 +152,7 @@ export function useTraceTransform({
         const currentDist = Math.hypot(e.clientX - centerScreenX, e.clientY - centerScreenY);
         const ratio = currentDist / initDist;
         const rawScale = initScale * ratio;
-        const nextScale = Math.round(Math.max(0.2, Math.min(3.0, rawScale)) * 100) / 100;
+        const nextScale = Math.round(clampTraceScale(rawScale) * 100) / 100;
         onChangeTraceSettings((prev) => ({
           ...prev,
           scale: nextScale,

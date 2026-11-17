@@ -7,7 +7,7 @@ import {
   normalizeGlyphContoursWinding,
   unionContours,
 } from '../path';
-import { pixelGridToContours } from '../pixelFontUtils';
+import { pixelGridToContours, normalizePixelGrid } from '../pixelFontUtils';
 import {
   DEFAULT_UPM,
   DEFAULT_ASCENDER,
@@ -15,7 +15,7 @@ import {
   isAsymmetricOrPunctuationGlyph,
   resolveBaselineY,
 } from './constants';
-import { validateFontProject } from './validation';
+import { validateFontProject, stripInvalidPixelData } from './validation';
 import { contoursToOpenTypePath } from './paths';
 import { deriveProjectPaltMetrics } from './metrics';
 
@@ -78,6 +78,12 @@ export function compileFont(
   buffer: ArrayBuffer;
   blobUrl: string;
 } {
+  // One broken pixelData entry must not stop the whole export: strip
+  // invalid pixelData (and normalize values to 0/1) before validating.
+  // Callers that can notify the user (ExportModal) strip first as well
+  // and report the excluded glyphs.
+  project = stripInvalidPixelData(project).project;
+
   // Run project validation check prior to compilation.
   // Validation errors stop compilation: an invalid outline must not be
   // exported as if it were a valid font.
@@ -190,7 +196,7 @@ export function compileFont(
 
     // Fallback: If contours are empty but pixelData exists with filled pixels, generate contours automatically
     if (glyphContours.length === 0 && g.pixelData?.data && g.pixelData.width && g.pixelData.height) {
-      const pGrid = new Uint8Array(g.pixelData.data);
+      const pGrid = normalizePixelGrid(g.pixelData.data);
       if (pGrid.some((val) => val === 1)) {
         glyphContours = pixelGridToContours(
           pGrid,

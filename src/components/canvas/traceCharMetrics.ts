@@ -5,6 +5,32 @@ export interface TraceCharMetricsInput {
   advanceWidth?: number;
 }
 
+/**
+ * Shared character-kind checks for trace defaults. The same regular
+ * expressions are used by computeTraceCharMetrics and by the trace
+ * transform reset, so the kana / kanji decision cannot drift apart.
+ */
+const KANA_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF]/;
+const KANJI_PATTERN = /[\u4E00-\u9FAF\u3400-\u4DBF\uF900-\uFAFF]/;
+
+export function isKanaText(text: string): boolean {
+  return KANA_PATTERN.test(text);
+}
+
+export function isKanjiText(text: string): boolean {
+  return KANJI_PATTERN.test(text);
+}
+
+/**
+ * Default trace scale for a character: kana 0.78, kanji 0.85, otherwise
+ * 1.0. The rule applies to image and character underdrawings alike.
+ */
+export function getDefaultTraceScale(text: string): number {
+  if (isKanaText(text)) return 0.78;
+  if (isKanjiText(text)) return 0.85;
+  return 1.0;
+}
+
 export interface TraceCharMetrics {
   isKana: boolean;
   isKanji: boolean;
@@ -49,8 +75,8 @@ export function computeTraceCharMetrics({
   const half = upm / 2;
   const screenBaselineY = Math.round(upm * 0.8);
 
-  const isKana = /[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF]/.test(charToRender);
-  const isKanji = /[\u4E00-\u9FAF\u3400-\u4DBF\uF900-\uFAFF]/.test(charToRender);
+  const isKana = isKanaText(charToRender);
+  const isKanji = isKanjiText(charToRender);
   const isJapanese =
     isKana ||
     isKanji ||

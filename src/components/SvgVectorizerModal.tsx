@@ -18,10 +18,35 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { PathContour } from '../types';
-import { parseSvgStringToContours } from '../utils/svgParser';
+import { parseSvgStringToContours, SvgFitMode } from '../utils/svgParser';
 import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
 import { contoursToSvgPath, getSafeGlyphViewBox } from '../utils/path';
 import { ThemeMode, isLightTheme } from '../utils/theme';
+
+/** Maximum SVG text size accepted for parsing (1 MB). */
+const SVG_TEXT_MAX_BYTES = 1024 * 1024;
+
+/**
+ * Decodes an SVG file buffer, following the encoding declared in the XML
+ * declaration when it is not UTF-8. Returns a warning when the declared
+ * encoding cannot be used and UTF-8 fallback decoding is applied.
+ */
+function decodeSvgFile(buffer: ArrayBuffer): { text: string; warning: string | null } {
+  const head = new TextDecoder('utf-8').decode(new Uint8Array(buffer).slice(0, 2048));
+  const match = head.match(/<\?xml[^>]*encoding\s*=\s*["']([^"']+)["']/i);
+  const encoding = match?.[1]?.trim();
+  if (encoding && !/^utf-?8$/i.test(encoding)) {
+    try {
+      return { text: new TextDecoder(encoding).decode(buffer), warning: null };
+    } catch {
+      return {
+        text: new TextDecoder('utf-8').decode(buffer),
+        warning: `XML宣言の encoding "${encoding}" でデコードできなかったため、UTF-8 として読み込みました。文字化けする場合は UTF-8 で保存し直してください。`,
+      };
+    }
+  }
+  return { text: new TextDecoder('utf-8').decode(buffer), warning: null };
+}
 
 interface SvgVectorizerModalProps {
   isOpen: boolean;
@@ -48,7 +73,10 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
   const [svgText, setSvgText] = useState<string>('');
   const [svgParsedContours, setSvgParsedContours] = useState<PathContour[]>([]);
   const [svgParseError, setSvgParseError] = useState<string | null>(null);
+  const [svgWarnings, setSvgWarnings] = useState<string[]>([]);
+  const [svgFileWarning, setSvgFileWarning] = useState<string | null>(null);
   const [fitToEm, setFitToEm] = useState<boolean>(true);
+  const [fitMode, setFitMode] = useState<SvgFitMode>('center');
 
   // Image Vectorizer states
   const imgFileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +85,11 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
   const [generatedSvgString, setGeneratedSvgString] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showOriginalOverlay, setShowOriginalOverlay] = useState<boolean>(true);
+  // True when the latest vectorization finished with zero contours.
+  const [vectorizeEmpty, setVectorizeEmpty] = useState<boolean>(false);
+  // Latest vectorization request id. Results from older requests are
+  // discarded so a slow earlier run cannot overwrite a newer one.
+  const vectorizeRequestIdRef = useRef(0);
 
   // Vectorizer parameters
   const [threshold, setThreshold] = useState<number>(128);
@@ -94,7 +127,9 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
   // Debounced auto-vectorization
   const runVectorize = useCallback(async () => {
     if (!rawImageSrc) return;
+    const requestId = ++vectorizeRequestIdRef.current;
     setIsProcessing(true);
+    setVectorizeEmpty(false);
     try {
       const result = await vectorizeImage(rawImageSrc, {
         threshold,
@@ -105,15 +140,22 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
         minArea,
         fitMargin: 80,
       });
+      // Discard results from an older request that finished after a newer one started.
+      if (requestId !== vectorizeRequestIdRef.current) return;
       setVectorContours(result.contours);
       setGeneratedSvgString(result.svgString);
+      setVectorizeEmpty(result.contours.length === 0);
     } catch (err: any) {
+      if (requestId !== vectorizeRequestIdRef.current) return;
       console.error('Vectorization error:', err);
       setVectorContours([]);
       setGeneratedSvgString('');
+      setVectorizeEmpty(false);
       onShowToast?.('ベクター化に失敗しました。画像を確認して再度お試しください', 'error');
     } finally {
-      setIsProcessing(false);
+      if (requestId === vectorizeRequestIdRef.current) {
+        setIsProcessing(false);
+      }
     }
   }, [rawImageSrc, threshold, smoothing, contrast, brightness, invert, minArea, onShowToast]);
 
@@ -124,18 +166,24 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
     }
   }, [rawImageSrc, runVectorize]);
 
-  if (!isOpen) return null;
-
-  // Handle SVG text parsing
-  const handleSvgTextChange = (text: string) => {
-    setSvgText(text);
+  // Parse SVG text with the current fit settings. Called from the debounced
+  // effect below, so toggling the fit checkbox or fit mode always re-parses
+  // with the new values instead of the stale state.
+  const parseSvgText = useCallback((text: string, fit: boolean, mode: SvgFitMode) => {
     if (!text.trim()) {
       setSvgParsedContours([]);
       setSvgParseError(null);
+      setSvgWarnings([]);
+      return;
+    }
+    if (new TextEncoder().encode(text).length > SVG_TEXT_MAX_BYTES) {
+      setSvgParseError('SVGテキストが 1MB を超えているため解析しませんでした。');
+      setSvgParsedContours([]);
+      setSvgWarnings([]);
       return;
     }
     try {
-      const res = parseSvgStringToContours(text, fitToEm);
+      const res = parseSvgStringToContours(text, fit, { fitMode: mode });
       if (res.contours.length === 0) {
         setSvgParseError('ベクターパス（path / rect / polygon等）が見つかりませんでした。');
         setSvgParsedContours([]);
@@ -143,19 +191,42 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
         setSvgParsedContours(res.contours);
         setSvgParseError(null);
       }
+      setSvgWarnings(res.warnings);
     } catch (e: any) {
       setSvgParseError(e.message || 'SVGの解析に失敗しました。');
       setSvgParsedContours([]);
+      setSvgWarnings([]);
     }
+  }, []);
+
+  // Debounced SVG parsing (300ms) so every keystroke does not re-parse.
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => parseSvgText(svgText, fitToEm, fitMode), 300);
+    return () => clearTimeout(timer);
+  }, [svgText, fitToEm, fitMode, isOpen, parseSvgText]);
+
+  if (!isOpen) return null;
+
+  // Handle SVG text parsing
+  const handleSvgTextChange = (text: string) => {
+    setSvgText(text);
+    setSvgFileWarning(null);
   };
 
   const handleSvgFileUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      handleSvgTextChange(content);
+      const buffer = e.target?.result as ArrayBuffer | null;
+      if (!buffer) return;
+      const decoded = decodeSvgFile(buffer);
+      setSvgText(decoded.text);
+      setSvgFileWarning(decoded.warning);
     };
-    reader.readAsText(file);
+    reader.onerror = () => {
+      setSvgParseError('SVGファイルの読み込みに失敗しました。');
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleImageFileUpload = (file: File) => {
@@ -497,6 +568,12 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                       </span>
                     </div>
 
+                    {vectorizeEmpty && !isProcessing && (
+                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                        輪郭が見つかりませんでした。閾値を調整してください。
+                      </p>
+                    )}
+
                     {/* Threshold */}
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
@@ -668,12 +745,30 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   checked={fitToEm}
                   onChange={(e) => {
                     setFitToEm(e.target.checked);
-                    if (svgText) handleSvgTextChange(svgText);
                   }}
                   className="w-4 h-4 accent-emerald-700 /* 入力要素 */ rounded-xs"
                 />
                 <span>1000×1000 EM枠に自動フィット</span>
               </label>
+
+              {fitToEm && (
+                <label className="flex items-center space-x-1.5 text-[11px]">
+                  <span>配置方法:</span>
+                  <select
+                    value={fitMode}
+                    onChange={(e) => setFitMode(e.target.value as SvgFitMode)}
+                    className={`px-1.5 py-1 border text-[11px] ${
+                      isLight
+                        ? 'bg-white border-stone-300 text-stone-800'
+                        : 'bg-[#101813] border-[#25362b] text-emerald-100'
+                    }`}
+                  >
+                    <option value="center">中央配置</option>
+                    <option value="baseline">ベースライン合わせ</option>
+                    <option value="viewbox">viewBox 基準</option>
+                  </select>
+                </label>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -692,6 +787,18 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 />
                 {svgParseError && (
                   <p className="text-[11px] text-red-600 font-semibold">{svgParseError}</p>
+                )}
+                {svgFileWarning && (
+                  <p className="text-[11px] text-amber-600 font-semibold">{svgFileWarning}</p>
+                )}
+                {svgWarnings.length > 0 && (
+                  <div className="space-y-0.5">
+                    {svgWarnings.map((warning, i) => (
+                      <p key={i} className="text-[11px] text-amber-600">
+                        {warning}
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
 

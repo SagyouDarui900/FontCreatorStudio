@@ -72,8 +72,10 @@ describe('brushPressure', () => {
   it('calibrates stylus hardware pressure to dynamic range', () => {
     expect(calibrateStylusPressure(0)).toBe(0.15);
     expect(calibrateStylusPressure(0.03)).toBe(0.04);
-    expect(calibrateStylusPressure(0.68)).toBe(1.0);
-    expect(calibrateStylusPressure(0.95)).toBe(1.0);
+    // Denominator 0.97 keeps strong pressure distinguishable up to 1.0.
+    expect(calibrateStylusPressure(0.68)).toBeCloseTo(0.67, 2);
+    expect(calibrateStylusPressure(0.95)).toBeCloseTo(0.948, 2);
+    expect(calibrateStylusPressure(1.0)).toBe(1.0);
   });
 
   it('computes dynamic mouse pressure based on motion velocity', () => {

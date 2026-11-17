@@ -1,5 +1,7 @@
 import { FontProject } from '../../types';
 import { DEFAULT_ASCENDER, DEFAULT_DESCENDER } from './constants';
+import { sanitizeStoredTraceSettings } from '../traceSettings';
+import { normalizePixelDataValues, isPixelDataLengthValid } from '../pixelFontUtils';
 
 /** 検証や復元で除外・置き換えた件数。 */
 export interface RemovedValidationCounts {
@@ -194,7 +196,7 @@ export function validateFontProject(project: FontProject): FontValidationResult 
     const hasFilledPixelData =
       !!g.pixelData?.data &&
       Array.isArray(g.pixelData.data) &&
-      g.pixelData.data.some((d) => d === 1);
+      g.pixelData.data.some((d) => d !== 0);
     if (!g.contours || g.contours.length === 0) {
       if (hasFilledPixelData) {
         warnings.push(`文字「${label}」はピクセルデータのみのグリフです。輪郭に変換して書き出します。`);
@@ -273,6 +275,20 @@ export function validateFontProject(project: FontProject): FontValidationResult 
     }
   }
 
+  // Pixel grid sizes differ per glyph: dots end up with different sizes
+  // in the same em box. Warn instead of blocking the export.
+  const pixelSizes = new Set<string>();
+  for (const g of glyphs) {
+    if (g.pixelData && typeof g.pixelData.width === 'number' && typeof g.pixelData.height === 'number') {
+      pixelSizes.add(`${g.pixelData.width}x${g.pixelData.height}`);
+    }
+  }
+  if (pixelSizes.size > 1) {
+    warnings.push(
+      `ピクセルグリフのグリッドサイズが混在しています（${[...pixelSizes].join('、')}）。ドットの寸法が文字ごとに異なります。`
+    );
+  }
+
   // Kerning: project.kerning entries (char-pair keys -> offset)
   for (const [pairKey, value] of Object.entries(project.kerning || {})) {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -322,6 +338,47 @@ export interface StoredValidationReport {
   project: FontProject;
   removed: RemovedValidationCounts;
   warnings: string[];
+}
+
+/**
+ * Remove broken pixelData (invalid size or data length mismatch) from a
+ * copy of the project so one broken glyph does not stop the whole export.
+ * Valid pixelData values are normalized to 0 or 1. Glyphs whose pixelData
+ * is removed keep their vector contours, if any; otherwise they export
+ * as empty glyphs. Returns the cleaned project and the labels of the
+ * glyphs whose pixelData was removed.
+ */
+export function stripInvalidPixelData(project: FontProject): {
+  project: FontProject;
+  excluded: string[];
+} {
+  const excluded: string[] = [];
+  let changed = false;
+  const glyphs: Record<number, FontProject['glyphs'][number]> = {};
+  for (const [key, g] of Object.entries(project.glyphs || {})) {
+    const unicode = Number(key);
+    if (!g || !g.pixelData) {
+      glyphs[unicode] = g;
+      continue;
+    }
+    const p = g.pixelData;
+    if (!isPixelDataLengthValid(p)) {
+      excluded.push(g.char || `U+${g.unicode.toString(16).toUpperCase()}`);
+      changed = true;
+      const { pixelData: _removed, ...rest } = g;
+      glyphs[unicode] = { ...rest, contours: g.contours || [] };
+      continue;
+    }
+    const normalized = normalizePixelDataValues(p.data);
+    if (normalized.some((v, i) => v !== p.data[i])) {
+      changed = true;
+      glyphs[unicode] = { ...g, pixelData: { ...p, data: normalized } };
+    } else {
+      glyphs[unicode] = g;
+    }
+  }
+  if (!changed && excluded.length === 0) return { project, excluded };
+  return { project: { ...project, glyphs }, excluded };
 }
 
 /**
@@ -499,9 +556,8 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
         validPixelData = {
           width: p.width,
           height: p.height,
-          data: p.data.map((d: any) => (d === 1 ? 1 : 0)),
+          data: p.data.map((d: any) => (d ? 1 : 0)),
           shape: p.shape,
-          advanceWidthCells: typeof p.advanceWidthCells === 'number' ? p.advanceWidthCells : undefined,
         };
       } else {
         removed.removedPixelData++;
@@ -520,11 +576,16 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     };
   }
 
+  const sanitizedTraceSettings = sanitizeStoredTraceSettings(proj.traceSettings);
+
   const project = {
     ...proj,
     metadata: sanitizedMetadata,
     glyphs: validatedGlyphs,
     ...(sanitizedKerning !== undefined ? { kerning: sanitizedKerning } : {}),
+    // Trace settings: keep the image-free settings, drop any stored image
+    // data URLs and sanitize the values.
+    ...(sanitizedTraceSettings !== undefined ? { traceSettings: sanitizedTraceSettings } : {}),
   } as unknown as FontProject;
 
   return { project, removed, warnings };

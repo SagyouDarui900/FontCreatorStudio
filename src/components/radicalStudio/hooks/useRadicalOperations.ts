@@ -22,6 +22,7 @@ import {
   flipContoursVertical,
   transformContoursForPlacement,
   getContoursBoundingBox,
+  contoursHaveFiniteCoordinates,
   unionContours,
   normalizeGlyphContoursWinding,
   simplifyGlyphContours,
@@ -758,6 +759,10 @@ export function useRadicalOperations({
         const res = parseSvgStringToContours(text, true);
         if (res.contours.length === 0) {
           notify('SVGファイル内に有効なベクターパスが見つかりませんでした', 'warning');
+          return;
+        }
+        if (!contoursHaveFiniteCoordinates(res.contours)) {
+          notify('非有限の座標（Infinity / NaN）を含むため取り込みませんでした', 'error');
           return;
         }
         commitPartChange(res.contours);

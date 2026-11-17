@@ -36,7 +36,9 @@ import { KANA_PAIRS } from './data/unicodeTables';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
 import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
+import { contoursHaveFiniteCoordinates } from './utils/path';
 import { AppModalsHost } from './components/modals/AppModalsHost';
+import { toStoredTraceSettings } from './utils/traceSettings';
 
 interface AppMainProps {
   theme: ThemeMode;
@@ -127,11 +129,13 @@ function AppMain({
     penPresets,
     setPenPresets,
     activePenPreset,
+    setActivePenPreset,
     handleChangeBrushStyle,
     handleChangeBrushWidth,
     handleChangePressureSensitivity,
     handleChangePressureCurve,
     handleChangeSmoothingIntensity,
+    handleAdjustBrushSize,
     handleApplyPenPreset,
   } = useToolState();
 
@@ -147,6 +151,39 @@ function AppMain({
     offsetX: 0,
     offsetY: 0,
   });
+
+  // Clear a manually entered display character when the selected glyph
+  // changes, so the underdrawing follows the new character. While staying
+  // on one glyph, a manual entry is kept; an empty text falls back to the
+  // selected character in the reference layer and the settings modal.
+  useEffect(() => {
+    setTraceSettings((prev) => (prev.text ? { ...prev, text: '' } : prev));
+  }, [selectedUnicode]);
+
+  // Persist trace settings in the project, without image data (data URLs
+  // are large and stay in memory only). Restoring applies stored settings
+  // once per stored value; later edits write back through this effect.
+  const appliedTraceSettingsRef = useRef<string | null>(null);
+  useEffect(() => {
+    const stored = toStoredTraceSettings(traceSettings);
+    setProject((prev) => {
+      if (JSON.stringify(prev.traceSettings ?? null) === JSON.stringify(stored)) return prev;
+      return { ...prev, traceSettings: stored };
+    });
+  }, [traceSettings, setProject]);
+
+  useEffect(() => {
+    const stored = project.traceSettings;
+    if (!stored) return;
+    const key = JSON.stringify(stored);
+    if (key === appliedTraceSettingsRef.current) return;
+    if (key === JSON.stringify(toStoredTraceSettings(traceSettings))) {
+      appliedTraceSettingsRef.current = key;
+      return;
+    }
+    appliedTraceSettingsRef.current = key;
+    setTraceSettings((prev) => ({ ...prev, ...stored }));
+  }, [project.traceSettings]);
 
   // Grid & Guideline Settings
   const [gridSettings, setGridSettings] = useState<GridSettings>({
@@ -240,6 +277,7 @@ function AppMain({
     setIsPenPresetsModalOpen,
     closeModal,
     isAnyModalOpen,
+    activeModal,
   } = useModalContext();
 
   // Glyph Overlay Comparison Settings
@@ -267,6 +305,23 @@ function AppMain({
       setStorageItem(STORAGE_KEYS.GLYPH_OVERLAY, JSON.stringify(overlaySettings));
     } catch (e) {}
   }, [overlaySettings]);
+
+  // Warn once per glyph when a pixel-data glyph is opened on the normal
+  // canvas: edits there are overwritten the next time the pixel studio
+  // opens, because pixelData takes priority on load.
+  const warnedPixelGlyphsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (activeModal !== null) return;
+    const g = project.glyphs[selectedUnicode];
+    if (!g?.pixelData) return;
+    const key = `${project.id}:${selectedUnicode}`;
+    if (warnedPixelGlyphsRef.current.has(key)) return;
+    warnedPixelGlyphsRef.current.add(key);
+    showToast(
+      `「${g.char || ''}」はピクセルデータを編集中の文字です。通常キャンバスでの編集はピクセルスタジオで上書きされます`,
+      'warning'
+    );
+  }, [activeModal, project, selectedUnicode, showToast]);
 
   // Responsive layout tracking & navigation state
   const {
@@ -324,6 +379,19 @@ function AppMain({
 
   const openPenPresetsModal = useCallback(() => setIsPenPresetsModalOpen(true), [setIsPenPresetsModalOpen]);
 
+  // Drawing-side reset (canvas smoothing settings + pen stroke width),
+  // registered by GlyphCanvas and invoked from the pen presets modal.
+  const canvasPrefsResetRef = useRef<(() => void) | null>(null);
+  const handleRegisterResetCanvasPrefs = useCallback((reset: () => void) => {
+    canvasPrefsResetRef.current = reset;
+  }, []);
+  const handleResetCanvasPrefs = useCallback(() => {
+    canvasPrefsResetRef.current?.();
+  }, []);
+  const handleClearActivePenPreset = useCallback(() => {
+    setActivePenPreset(undefined);
+  }, [setActivePenPreset]);
+
   const handleOpenTestModal = useCallback(() => setIsTestModalOpen(true), [setIsTestModalOpen]);
   const handleOpenFontInfoModal = useCallback(() => setIsFontInfoModalOpen(true), [setIsFontInfoModalOpen]);
   const handleOpenTraceModal = useCallback(() => setIsTraceModalOpen(true), [setIsTraceModalOpen]);
@@ -375,6 +443,10 @@ function AppMain({
         return;
       }
       if (svgContours.length === 0) return;
+      if (!contoursHaveFiniteCoordinates(svgContours)) {
+        showToast('非有限の座標（Infinity / NaN）を含むため適用しませんでした', 'error');
+        return;
+      }
       commitHistory();
       if (append) {
         const existing = currentGlyph.contours || [];
@@ -494,9 +566,9 @@ function AppMain({
             toolMode={toolMode}
             setToolMode={setToolMode}
             brushStyle={brushStyle}
-            setBrushStyle={setBrushStyle}
+            setBrushStyle={handleChangeBrushStyle}
             brushWidth={brushWidth}
-            setBrushWidth={setBrushWidth}
+            setBrushWidth={handleChangeBrushWidth}
             pressureSensitivity={pressureSensitivity}
             onChangePressureSensitivity={handleChangePressureSensitivity}
             smoothingIntensity={smoothingIntensity}
@@ -508,6 +580,7 @@ function AppMain({
             onOpenPixelStudio={handleOpenPixelStudio}
             onQuickSaveGlyph={handleQuickSaveCurrentGlyph}
             onOpenExportModal={handleOpenExportModal}
+            traceEnabled={traceSettings.enabled}
             theme={theme}
             activePenPreset={activePenPreset}
           />
@@ -524,8 +597,18 @@ function AppMain({
               onSetToolMode={setToolMode}
               brushWidth={brushWidth}
               brushStyle={brushStyle}
-              onChangeBrushStyle={setBrushStyle}
-              onChangeBrushWidth={setBrushWidth}
+              onChangeBrushStyle={handleChangeBrushStyle}
+              onChangeBrushWidth={handleChangeBrushWidth}
+              onAdjustBrushSize={handleAdjustBrushSize}
+              autoSmoothBrush={autoSmoothBrush}
+              onChangeAutoSmoothBrush={setAutoSmoothBrush}
+              smoothStrength={smoothStrength}
+              onChangeSmoothStrength={setSmoothStrength}
+              smoothPreserveCorners={smoothPreserveCorners}
+              onChangeSmoothPreserveCorners={setSmoothPreserveCorners}
+              autoUnionBrush={autoUnionBrush}
+              onChangeAutoUnionBrush={setAutoUnionBrush}
+              onRegisterResetCanvasPrefs={handleRegisterResetCanvasPrefs}
               pressureSensitivity={pressureSensitivity}
               onChangePressureSensitivity={setPressureSensitivity}
               pressureCurve={pressureCurve}
@@ -680,6 +763,8 @@ function AppMain({
         setPenPresets={setPenPresets}
         onApplyPenPreset={handleApplyPenPreset}
         onChangePressureCurve={handleChangePressureCurve}
+        onClearActivePenPreset={handleClearActivePenPreset}
+        onResetCanvasPrefs={handleResetCanvasPrefs}
         onRequestNewProject={handleRequestNewProject}
       />
 

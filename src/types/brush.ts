@@ -42,6 +42,19 @@ export interface PressureCurveConfig {
   presetId?: 'linear' | 'soft' | 'hard' | 's-curve' | 'delicate' | 'custom';
 }
 
+/**
+ * Extended preset fields and their drawing connection (strokePointsToOutline):
+ * Connected: taperStartOpacity, taperEndOpacity, jitterOpacity (width
+ * approximation, because a filled vector outline has no opacity channel),
+ * jitterPosition, jitterConstrainPerp, jitterAngle, speedFeatherFactor,
+ * pressureWidthFactor, pressureFeatherFactor, pressureGamma, constantWidth,
+ * inkBleed, axisSlant, edgeRoughness, tipSharpness.
+ * Not connected, kept in the type for import compatibility and shown in
+ * the modal with a note instead of an editor: taperStartTime, taperEndTime,
+ * nibSpacing, jitterSpacing, speedOpacityFactor, pressureOpacityFactor,
+ * stabilizationMethod, speedStabilization, legacyStabilization, antiAlias.
+ * Smoothing itself is applied through smoothingIntensity / autoSmoothBrush.
+ */
 export interface UserPenPreset {
   id: string;
   name: string;

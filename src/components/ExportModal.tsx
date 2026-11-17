@@ -22,6 +22,7 @@ import {
   downloadFont,
   shareOrDownloadFont,
   validateFontProject,
+  stripInvalidPixelData,
   FontValidationResult,
   CompileFontOptions,
 } from '../utils/font';
@@ -101,6 +102,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     else setInternalCustomScale(next);
   };
   const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
+  // Broken pixelData must not stop the whole export: strip it before
+  // validating or compiling, and report the excluded glyphs below.
+  const { project: exportProject, excluded: excludedPixelGlyphs } = useMemo(
+    () => stripInvalidPixelData(project),
+    [project]
+  );
   // Overlap removal & self-intersection prevention for single-stroke loops.
   // Controlled by AppModalsHost when provided, so the values survive
   // closing and reopening the modal. The internal default is off for pixel
@@ -166,19 +173,27 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isFullscreen, onClose]);
 
-  // Effective scale factor
-  const effectiveScale =
-    sizePreset === 'standard_jp' ? 1.35 : sizePreset === 'raw' ? 1.0 : customScale;
+  // Effective scale factor. Pixel projects always export at 1.0 with no
+  // centering: the pixel studio already places dots at their final size,
+  // so the standard_jp 1.35x scale and side-bearing balancing would move
+  // and resize them.
+  const effectiveScale = isPixelProject
+    ? 1.0
+    : sizePreset === 'standard_jp'
+      ? 1.35
+      : sizePreset === 'raw'
+        ? 1.0
+        : customScale;
 
   // compileOptions does not use `format`: the binary is always CFF-flavored
   // OpenType (OTTO), so there is no per-format recompile.
   const compileOptions: CompileFontOptions = useMemo(
     () => ({
       scaleFactor: effectiveScale,
-      mergeOverlaps,
-      balanceSideBearings,
+      mergeOverlaps: isPixelProject ? false : mergeOverlaps,
+      balanceSideBearings: isPixelProject ? false : balanceSideBearings,
     }),
-    [effectiveScale, mergeOverlaps, balanceSideBearings]
+    [effectiveScale, mergeOverlaps, balanceSideBearings, isPixelProject]
   );
 
   const cleanupPreviewFont = useCallback(() => {
@@ -228,13 +243,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       const generatePreviewFont = async () => {
         let createdUrl: string | null = null;
         try {
-          const validationResult = validateFontProject(project);
+          const validationResult = validateFontProject(exportProject);
           if (!validationResult.valid) {
             throw new Error(
               `フォントの検証に失敗しました: ${validationResult.errors.join(' / ')}`
             );
           }
-          const { blobUrl } = compileFont(project, compileOptions);
+          const { blobUrl } = compileFont(exportProject, compileOptions);
           createdUrl = blobUrl;
           if (!isMounted || version !== previewVersionRef.current) {
             URL.revokeObjectURL(blobUrl);
@@ -284,12 +299,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         previewTimerRef.current = null;
       }
     };
-  }, [isOpen, project, compileOptions, cleanupPreviewFont]);
+  }, [isOpen, exportProject, compileOptions, cleanupPreviewFont]);
 
   if (!isOpen) return null;
 
-  const glyphCount = Object.keys(project.glyphs).length;
-  const validation: FontValidationResult = validateFontProject(project);
+  const glyphCount = Object.keys(exportProject.glyphs).length;
+  const baseValidation: FontValidationResult = validateFontProject(exportProject);
+  const validation: FontValidationResult =
+    excludedPixelGlyphs.length > 0
+      ? {
+          ...baseValidation,
+          warnings: [
+            ...baseValidation.warnings,
+            `破損したピクセルデータを除外しました（${excludedPixelGlyphs.join('、')}）。この文字は空グリフとして書き出されます。`,
+          ],
+        }
+      : baseValidation;
 
   const handleExport = async (action: 'download' | 'share') => {
     if (!validation.valid) {
@@ -304,12 +329,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     setIsExporting(true);
     try {
       if (action === 'share') {
-        await shareOrDownloadFont(project, format, compileOptions);
+        await shareOrDownloadFont(exportProject, format, compileOptions);
         if (onShowToast) {
           onShowToast('フォントの共有・保存ダイアログを開きました', 'success');
         }
       } else {
-        downloadFont(project, format, compileOptions);
+        downloadFont(exportProject, format, compileOptions);
         if (onShowToast) {
           onShowToast(`.${format.toUpperCase()} フォントファイルをダウンロードしました！`, 'success');
         }
@@ -505,6 +530,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             mergeOverlaps={mergeOverlaps}
             setMergeOverlaps={setMergeOverlaps}
           />
+
+          {isPixelProject && (
+            <div
+              className={`p-3 rounded-xl border text-[11px] leading-relaxed ${
+                isLight
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
+              }`}
+            >
+              ピクセルプロジェクトのため、倍率は 1.0 倍、センタリングと重なり結合は無効で書き出します。
+            </div>
+          )}
 
           {/* Live Render & Size Preview in Modal with Custom Text Input & Presets */}
           {previewError && (

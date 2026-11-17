@@ -31,6 +31,50 @@ export function resamplePixelGrid(
 }
 
 /**
+ * Normalize pixel data values to 0 or 1. Values other than 0 are treated
+ * as filled, so every processing path (merged contours, individual dots,
+ * preview, validation) sees the same binary grid.
+ */
+export function normalizePixelDataValues(
+  data: ArrayLike<number> | undefined | null
+): number[] {
+  if (!data) return [];
+  const out: number[] = new Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    out[i] = typeof v === 'number' && Number.isFinite(v) && v !== 0 ? 1 : 0;
+  }
+  return out;
+}
+
+export function normalizePixelGrid(
+  data: ArrayLike<number> | undefined | null
+): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(normalizePixelDataValues(data));
+}
+
+/**
+ * Check that pixel data has a positive width and height and that the data
+ * length matches width * height.
+ */
+export function isPixelDataLengthValid(p: {
+  width?: unknown;
+  height?: unknown;
+  data?: unknown;
+}): boolean {
+  return (
+    typeof p.width === 'number' &&
+    Number.isFinite(p.width) &&
+    p.width > 0 &&
+    typeof p.height === 'number' &&
+    Number.isFinite(p.height) &&
+    p.height > 0 &&
+    Array.isArray(p.data) &&
+    p.data.length === p.width * p.height
+  );
+}
+
+/**
  * Bresenham Line Drawing Algorithm
  */
 export function getBresenhamLine(x0: number, y0: number, x1: number, y1: number): Point[] {
@@ -190,6 +234,10 @@ export function pixelGridToContours(
 
   if (width <= 0 || height <= 0 || !grid || grid.length === 0) return [];
 
+  // Normalize 0/1 here so merged and individual-dot paths agree on
+  // what counts as filled (any non-zero value is filled).
+  grid = normalizePixelGrid(grid);
+
   const effectiveEm = Math.max(10, ascender - descender);
   const marginY = effectiveEm * marginPercent;
   const marginX = Math.max(10, advanceWidth) * marginPercent;
@@ -197,11 +245,14 @@ export function pixelGridToContours(
   const usableWidth = Math.max(10, advanceWidth - 2 * marginX);
   const usableHeight = Math.max(10, effectiveEm - 2 * marginY);
 
-  const cellW = usableWidth / width;
-  const cellH = usableHeight / height;
+  // Square cells: use one cell size for both axes so a dot stays square
+  // regardless of advanceWidth. The grid is centered in the usable area.
+  const cell = Math.min(usableWidth / width, usableHeight / height);
+  const cellW = cell;
+  const cellH = cell;
 
-  const originX = marginX;
-  const topY = marginY;
+  const originX = marginX + (usableWidth - cellW * width) / 2;
+  const topY = marginY + (usableHeight - cellH * height) / 2;
 
   // Screen coordinates: y0 < y1 (top to bottom)
   const getCellBounds = (gx: number, gy: number) => {

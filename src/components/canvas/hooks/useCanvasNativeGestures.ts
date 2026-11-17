@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Point, ToolMode, TraceSettings } from '../../../types';
 import { computeWheelZoomTransform } from './viewportMath';
+import { clampTraceScale } from '../traceOptions';
 
 export interface UseCanvasNativeGesturesProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -161,7 +162,7 @@ export function useCanvasNativeGestures({
         const delta = -Math.sign(deltaY) * 0.05;
         onChangeTraceSettingsRef.current((prev) => {
           const currentScale = prev.scale ?? 1;
-          const nextScale = Math.round(Math.max(0.2, Math.min(3.0, currentScale + delta)) * 100) / 100;
+          const nextScale = Math.round(clampTraceScale(currentScale + delta) * 100) / 100;
           return { ...prev, scale: nextScale };
         });
         return;

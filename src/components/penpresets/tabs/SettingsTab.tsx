@@ -26,35 +26,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, autoSmoothBrush: v }))}
         />
 
-        {/* Stabilization Method: Pre / Post */}
-        <div className="flex flex-col space-y-1 pt-0.5">
-          <span className="text-xs font-medium text-stone-700 dark:text-stone-300">補正方法</span>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              type="button"
-              onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'pre' }))}
-              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border cursor-pointer ${
-                (workingPreset.stabilizationMethod || 'pre') === 'pre'
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
-                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-              }`}
-            >
-              事前補正 (リアルタイム追従)
-            </button>
-            <button
-              type="button"
-              onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'post' }))}
-              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border cursor-pointer ${
-                workingPreset.stabilizationMethod === 'post'
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
-                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-              }`}
-            >
-              事後補正 (書き終わり時に最適化)
-            </button>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
           <SliderControl
             label="常時補正強度"
@@ -65,16 +36,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             unit=""
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, smoothingIntensity: v }))}
           />
-          <SliderControl
-            label="高速時補正強度"
-            value={workingPreset.speedStabilization ?? 0}
-            min={0}
-            max={100}
-            step={5}
-            unit=""
-            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedStabilization: v }))}
-          />
         </div>
+        <p className="text-[11px] text-stone-500 dark:text-stone-400">補正方法・高速時補正強度・旧方式の事前補正は描画に反映されません。手ぶれ補正は常時補正強度で調整します。</p>
 
         <ToggleControl
           label="折れ・角の張り出しを保持 (転折保護)"

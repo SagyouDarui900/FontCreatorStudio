@@ -71,4 +71,10 @@ export interface PenPresetsModalProps {
   presets: UserPenPreset[];
   onUpdatePresets: (newPresets: UserPenPreset[]) => void;
   theme?: ThemeMode;
+  // The preset currently applied in the app. Used to clear it when the
+  // preset itself is deleted.
+  activePenPreset?: UserPenPreset | null;
+  onClearActivePenPreset?: () => void;
+  // Restores the drawing-side smoothing settings and pen stroke width.
+  onResetCanvasPrefs?: () => void;
 }

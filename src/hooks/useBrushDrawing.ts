@@ -361,11 +361,25 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           }
         }
 
+        // Straight-line pressure: same rules as normal drawing. Pen uses
+        // calibrated stylus pressure; mouse / touch use the speed-based
+        // pseudo pressure instead of a fixed 0.5.
         let pres = 0.5;
         if (pressureSensitivity === 'off') {
           pres = 0.5;
         } else if (isPen) {
-          pres = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
+          pres = calibrateStylusPressure(e.pressure && e.pressure > 0 ? e.pressure : 0.15);
+        } else {
+          const p0Time = typeof p0.time === 'number' ? p0.time : Date.now();
+          const dt = (e.timeStamp || Date.now()) - p0Time;
+          const ds = Math.hypot(endX - p0.x, endY - p0.y);
+          if (dt > 0 && ds > 0) {
+            const { smoothSpeed, rawPressure } = computeMouseSpeedPressure(dt, ds, mouseSmoothSpeedRef.current);
+            mouseSmoothSpeedRef.current = smoothSpeed;
+            pres = blendStrokePressure(e.pointerType, pressureSensitivity, rawPressure, p0.pressure);
+          } else if (typeof p0.pressure === 'number') {
+            pres = p0.pressure;
+          }
         }
 
         const pEnd: StrokePoint = {

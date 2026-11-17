@@ -24,6 +24,7 @@ export interface ViewToolButtonsProps {
   orientation?: 'horizontal' | 'vertical';
   onQuickSaveGlyph?: () => void;
   onOpenTraceModal?: () => void;
+  traceEnabled?: boolean;
   themeClasses: ThemeClasses;
 }
 
@@ -40,6 +41,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
   orientation = 'horizontal',
   onQuickSaveGlyph,
   onOpenTraceModal,
+  traceEnabled,
   themeClasses,
 }) => {
   return (
@@ -183,9 +185,11 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
           <button
             onClick={onOpenTraceModal}
             className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
-              themeClasses.activeToolHover
+              traceEnabled
+                ? themeClasses.activeTool
+                : themeClasses.activeToolHover
             }`}
-            title="下絵・看板写真トレース設定"
+            title={`下絵・看板写真トレース設定 (現在${traceEnabled ? '表示中' : '非表示'})`}
           >
             <Layers className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
           </button>

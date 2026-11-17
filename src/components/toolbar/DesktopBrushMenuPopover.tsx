@@ -193,10 +193,10 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
               key={preset.id}
               onClick={(e) => {
                 e.stopPropagation();
+                // Do not overwrite the width with the preset default:
+                // setBrushStyle (handleChangeBrushStyle) restores the
+                // width saved for the selected style.
                 setBrushStyle?.(preset.id);
-                if (preset.defaultWidth) {
-                  setBrushWidth(preset.defaultWidth);
-                }
                 setToolMode('brush');
                 onClose();
               }}

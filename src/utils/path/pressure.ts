@@ -223,6 +223,22 @@ export const PEN_PRESETS: PenPresetInfo[] = [
     defaultWidth: 35,
   },
   {
+    id: 'pixel_dot',
+    name: 'ピクセル筆',
+    shortName: 'ピクセル',
+    category: 'special',
+    description: 'ビットマップ状のストローク',
+    defaultWidth: 28,
+  },
+  {
+    id: 'polygon',
+    name: '多角形ペン',
+    shortName: '多角形',
+    category: 'special',
+    description: '多角形断面のソリッドストローク',
+    defaultWidth: 32,
+  },
+  {
     id: 'wobbly',
     name: 'ゆらぎ手書き',
     shortName: 'ゆらぎ',

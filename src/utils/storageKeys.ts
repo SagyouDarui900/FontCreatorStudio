@@ -24,7 +24,23 @@ export const STORAGE_KEYS = {
   },
   AUTO_UNION_BRUSH: {
     primary: 'fcs_auto_union_brush',
-    legacy: ['fontforge_auto_union_brush', 'fontforge_auto_resolve_brush_overlap'],
+    legacy: ['fontforge_auto_union_brush'],
+  },
+  AUTO_RESOLVE_BRUSH_OVERLAP: {
+    primary: 'fcs_auto_resolve_brush_overlap',
+    legacy: ['fontforge_auto_resolve_brush_overlap'],
+  },
+  AUTO_SMOOTH_BRUSH: {
+    primary: 'fcs_auto_smooth_brush',
+  },
+  SMOOTH_STRENGTH: {
+    primary: 'fcs_smooth_strength',
+  },
+  SMOOTH_PRESERVE_CORNERS: {
+    primary: 'fcs_smooth_preserve_corners',
+  },
+  BRUSH_STYLE: {
+    primary: 'fcs_brush_style',
   },
   PALM_REJECTION_MODE: {
     primary: 'fcs_palm_rejection_mode',

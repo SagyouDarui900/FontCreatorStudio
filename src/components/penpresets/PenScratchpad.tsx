@@ -2,6 +2,11 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { PenTool, RotateCcw } from 'lucide-react';
 import { UserPenPreset, StrokePoint } from '../../types';
 import { strokePointsToOutline, contoursToSvgPath } from '../../utils/path';
+import {
+  calibrateStylusPressure,
+  computeMouseSpeedPressure,
+  blendStrokePressure,
+} from '../../utils/brush';
 
 interface PenScratchpadProps {
   workingPreset: UserPenPreset;
@@ -20,7 +25,38 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
   const isDrawingScratchpadRef = useRef<boolean>(false);
   const scratchpadPointsRef = useRef<StrokePoint[]>([]);
   const scratchpadContoursRef = useRef<string[]>([]);
+  const scratchpadSmoothSpeedRef = useRef<number>(0.5);
   const [livePressure, setLivePressure] = useState<number>(0);
+
+  // Same pressure rules as actual drawing (useBrushDrawing): pen uses
+  // calibrated stylus pressure, mouse / touch use speed-based pseudo
+  // pressure, blended with the previous sample.
+  const computeScratchPressure = useCallback((e: React.PointerEvent<HTMLCanvasElement>): number => {
+    const last = scratchpadPointsRef.current[scratchpadPointsRef.current.length - 1];
+    if (workingPreset.pressureSensitivity === 'off') return 0.5;
+    let rawPres = 0.5;
+    if (e.pointerType === 'pen') {
+      rawPres = calibrateStylusPressure(typeof e.pressure === 'number' ? e.pressure : 0);
+    } else if (typeof e.pressure === 'number' && e.pressure > 0 && e.pressure !== 0.5) {
+      rawPres = e.pressure;
+    } else if (last && last.time) {
+      const rect = scratchpadCanvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const scaleX = (scratchpadCanvasRef.current?.width ?? rect.width) / rect.width;
+        const scaleY = (scratchpadCanvasRef.current?.height ?? rect.height) / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        const dt = Date.now() - last.time;
+        const ds = Math.hypot(x - last.x, y - last.y);
+        const { smoothSpeed, rawPressure } = computeMouseSpeedPressure(dt, ds, scratchpadSmoothSpeedRef.current);
+        scratchpadSmoothSpeedRef.current = smoothSpeed;
+        rawPres = rawPressure;
+      }
+    } else {
+      rawPres = 0.55;
+    }
+    return blendStrokePressure(e.pointerType, workingPreset.pressureSensitivity, rawPres, last?.pressure);
+  }, [workingPreset.pressureSensitivity]);
 
   const redrawScratchpad = useCallback(() => {
     const canvas = scratchpadCanvasRef.current;
@@ -79,11 +115,12 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
     const scaleY = canvas.height / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
-    const rawPressure = typeof e.pressure === 'number' && e.pressure > 0 ? e.pressure : 0.5;
+    const rawPressure = computeScratchPressure(e);
 
     isDrawingScratchpadRef.current = true;
+    scratchpadSmoothSpeedRef.current = 0.5;
     setLivePressure(rawPressure);
-    scratchpadPointsRef.current = [{ x, y, pressure: rawPressure, time: Date.now() }];
+    scratchpadPointsRef.current = [{ x, y, pressure: rawPressure, time: Date.now(), pointerType: e.pointerType }];
     redrawScratchpad();
   };
 
@@ -98,10 +135,10 @@ export const PenScratchpad: React.FC<PenScratchpadProps> = ({
     const scaleY = canvas.height / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
-    const rawPressure = typeof e.pressure === 'number' && e.pressure > 0 ? e.pressure : 0.5;
+    const rawPressure = computeScratchPressure(e);
 
     setLivePressure(rawPressure);
-    scratchpadPointsRef.current.push({ x, y, pressure: rawPressure, time: Date.now() });
+    scratchpadPointsRef.current.push({ x, y, pressure: rawPressure, time: Date.now(), pointerType: e.pointerType });
     redrawScratchpad();
   };
 

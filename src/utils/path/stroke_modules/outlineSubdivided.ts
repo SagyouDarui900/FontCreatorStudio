@@ -374,6 +374,37 @@ export function strokePointsToOutline(
     return strokePointsToOutline([resampled[0]], strokeWidth, style, roundCap, pressureSensitivity, pressureCurve);
   }
 
+  const cp = options?.customPreset;
+
+  // jitterPosition: deterministic centreline offset. When
+  // jitterConstrainPerp is true the offset is perpendicular to the stroke
+  // (normal direction); otherwise it uses a pseudo-random direction.
+  // Applied before cumulative distances are computed.
+  if (cp?.jitterPosition && cp.jitterPosition > 0) {
+    const amp = (cp.jitterPosition / 100) * Math.max(1, strokeWidth * 0.08);
+    const constrainPerp = cp.jitterConstrainPerp !== false;
+    for (let i = 1; i < n - 1; i++) {
+      const prevP = resampled[i - 1];
+      const nextP = resampled[i + 1];
+      let dx = nextP.x - prevP.x;
+      let dy = nextP.y - prevP.y;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
+      const noise1 = Math.sin(i * 12.9898) * 43758.5453;
+      const noise2 = Math.sin(i * 78.233) * 12543.21;
+      const r1 = noise1 - Math.floor(noise1) - 0.5;
+      const r2 = noise2 - Math.floor(noise2) - 0.5;
+      if (constrainPerp) {
+        resampled[i].x += -dy * r1 * 2 * amp;
+        resampled[i].y += dx * r1 * 2 * amp;
+      } else {
+        resampled[i].x += r1 * 2 * amp;
+        resampled[i].y += r2 * 2 * amp;
+      }
+    }
+  }
+
   // 4. Cumulative distance
   const dists = new Float64Array(n);
   for (let i = 1; i < n; i++) {
@@ -445,7 +476,6 @@ export function strokePointsToOutline(
   // 6. Width Modulation calculation
   const rawLeftWidths = new Float64Array(n);
   const rawRightWidths = new Float64Array(n);
-  const cp = options?.customPreset;
 
   for (let i = 0; i < n; i++) {
     const normDist = dists[i] / totalLength;
@@ -456,6 +486,11 @@ export function strokePointsToOutline(
     } else {
       const rawP = resampled[i].pressure ?? 0.5;
       pointPressure = evaluatePressureCurve(rawP, pressureCurve, pressureSensitivity);
+      // pressureGamma: additional response exponent (0.5 - 2.5, 1.0 = neutral).
+      if (cp?.pressureGamma && cp.pressureGamma !== 1.0) {
+        const gamma = Math.max(0.5, Math.min(2.5, cp.pressureGamma));
+        pointPressure = Math.max(0.02, Math.min(1.0, Math.pow(pointPressure, gamma)));
+      }
     }
 
     let leftHalfWidth = strokeWidth / 2;
@@ -615,7 +650,6 @@ export function strokePointsToOutline(
       rightHalfWidth = Math.max(3, (strokeWidth / 2) * (presFactor + wobbleRight));
     }
 
-    const cp = options?.customPreset;
     if (cp) {
       const startLen = Math.min(0.40, (cp.taperStartLength ?? 0) / 100);
       const endLen = Math.min(0.40, (cp.taperEndLength ?? 0) / 100);
@@ -637,7 +671,11 @@ export function strokePointsToOutline(
       let shapeMultiplier = 1.0;
       const aspect = Math.min(0.85, (cp.nibAspectRatio ?? 0) / 100);
       if (aspect > 0.01) {
-        const angleDeg = cp.nibAngle ?? 0;
+        // jitterAngle: deterministic variation of the nib angle.
+        const angleJitter = cp.jitterAngle
+          ? (Math.sin(i * 0.53) * 0.5 + Math.cos(i * 0.29) * 0.5) * (cp.jitterAngle / 100) * 30
+          : 0;
+        const angleDeg = (cp.nibAngle ?? 0) + angleJitter;
         const angleRad = (angleDeg * Math.PI) / 180;
         let deltaTheta = 0;
         if (cp.nibFollowDirection) {
@@ -663,9 +701,68 @@ export function strokePointsToOutline(
         const organicNoise = Math.sin(i * 0.18) * 0.5 + Math.sin(i * 0.45) * 0.3 + Math.cos(i * 0.85) * 0.2;
         jitterMultiplier = 1.0 + organicNoise * (cp.jitterSize / 100) * 0.15;
       }
+      // jitterOpacity: a vector outline has no per-point opacity channel, so
+      // opacity jitter is approximated as a small deterministic width
+      // variation, the same channel used for jitterSize.
+      if (cp.jitterOpacity && cp.jitterOpacity > 0) {
+        const opacityNoise = Math.sin(i * 0.31) * 0.5 + Math.sin(i * 0.77) * 0.5;
+        jitterMultiplier *= 1.0 + opacityNoise * (cp.jitterOpacity / 100) * 0.15;
+      }
 
-      leftHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier;
-      rightHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier;
+      // Taper opacity: approximated as a width factor (0.7 at 0% opacity to
+      // 1.0 at 100%), because a filled vector outline cannot carry opacity.
+      let opacityMultiplier = 1.0;
+      const startOpacity = cp.taperStartOpacity !== undefined ? Math.max(0, Math.min(100, cp.taperStartOpacity)) / 100 : 1;
+      const endOpacity = cp.taperEndOpacity !== undefined ? Math.max(0, Math.min(100, cp.taperEndOpacity)) / 100 : 1;
+      if (startLen > 0.001 && normDist < startLen) {
+        const t = Math.max(0, Math.min(1.0, normDist / startLen));
+        const opacityAt = startOpacity + (1 - startOpacity) * t;
+        opacityMultiplier *= 0.7 + 0.3 * opacityAt;
+      }
+      if (endLen > 0.001 && normDist > 1.0 - endLen) {
+        const t = Math.max(0, Math.min(1.0, (1.0 - normDist) / endLen));
+        const opacityAt = endOpacity + (1 - endOpacity) * t;
+        opacityMultiplier *= 0.7 + 0.3 * opacityAt;
+      }
+
+      // speedFeatherFactor / pressureFeatherFactor: kasuri simulated by
+      // narrowing the stroke at high speed or light pressure.
+      let featherMultiplier = 1.0;
+      if (cp.speedFeatherFactor && cp.speedFeatherFactor > 0) {
+        const speedVal = resampled[i].speed ?? 0.5;
+        if (speedVal > 0.5) {
+          featherMultiplier *= 1.0 - (cp.speedFeatherFactor / 100) * 0.35 * Math.min(1, speedVal - 0.5);
+        }
+      }
+      if (cp.pressureFeatherFactor && cp.pressureFeatherFactor > 0) {
+        featherMultiplier *= 1.0 - (cp.pressureFeatherFactor / 100) * 0.35 * (1 - pointPressure);
+      }
+
+      // pressureWidthFactor: extra width change driven by pressure.
+      let pressureWidthMultiplier = 1.0;
+      if (cp.pressureWidthFactor && cp.pressureWidthFactor !== 0) {
+        pressureWidthMultiplier = 1.0 + (cp.pressureWidthFactor / 100) * (pointPressure - 0.5);
+      }
+
+      // inkBleed: bleed widens the stroke slightly.
+      const inkBleedMultiplier = cp.inkBleed ? 1.0 + (cp.inkBleed / 100) * 0.15 : 1.0;
+
+      // tipSharpness: extra narrowing in the last 10% of the stroke.
+      let tipMultiplier = 1.0;
+      if (cp.tipSharpness && cp.tipSharpness > 0 && normDist > 0.9) {
+        tipMultiplier = 1.0 - (cp.tipSharpness / 100) * 0.5 * ((normDist - 0.9) / 0.1);
+      }
+
+      leftHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier;
+      rightHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier;
+
+      // constantWidth: uniform width along the stroke. The taper tip
+      // narrowing is kept, all other width variation is discarded.
+      if (cp.constantWidth) {
+        const uniform = (strokeWidth / 2) * taperMultiplier;
+        leftHalfWidth = uniform;
+        rightHalfWidth = uniform;
+      }
     }
 
     if (isNaN(leftHalfWidth) || !isFinite(leftHalfWidth) || leftHalfWidth < 0.5) {
@@ -944,6 +1041,39 @@ export function strokePointsToOutline(
   }
 
   const simplifiedLoop: Point[] = cleanLoop;
+
+  // axisSlant / edgeRoughness: applied to the closed outline loop.
+  // axisSlant shears the loop around its centroid (positive angle leans
+  // the top to the right, as in italic). edgeRoughness adds deterministic
+  // boundary noise.
+  if (cp) {
+    if (cp.axisSlant && cp.axisSlant !== 0) {
+      const slantRad = (Math.max(-45, Math.min(45, cp.axisSlant)) * Math.PI) / 180;
+      const tanSlant = Math.tan(slantRad);
+      let cx = 0;
+      let cy = 0;
+      for (const p of simplifiedLoop) {
+        cx += p.x;
+        cy += p.y;
+      }
+      cx /= Math.max(1, simplifiedLoop.length);
+      cy /= Math.max(1, simplifiedLoop.length);
+      for (const p of simplifiedLoop) {
+        p.x = Number((p.x + (cy - p.y) * tanSlant).toFixed(2));
+      }
+    }
+    if (cp.edgeRoughness && cp.edgeRoughness > 0) {
+      const amp = (cp.edgeRoughness / 100) * 2.5;
+      for (let i = 0; i < simplifiedLoop.length; i++) {
+        const n1 = Math.sin(i * 12.9898) * 43758.5453;
+        const n2 = Math.sin(i * 78.233) * 12543.21;
+        const r1 = n1 - Math.floor(n1) - 0.5;
+        const r2 = n2 - Math.floor(n2) - 0.5;
+        simplifiedLoop[i].x = Number((simplifiedLoop[i].x + r1 * 2 * amp).toFixed(2));
+        simplifiedLoop[i].y = Number((simplifiedLoop[i].y + r2 * 2 * amp).toFixed(2));
+      }
+    }
+  }
 
   // 11. Convert to smooth G1-continuous Bézier nodes
   const total = simplifiedLoop.length;

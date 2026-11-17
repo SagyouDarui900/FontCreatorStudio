@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FontProject, PathContour, Point } from '../../../types';
-import { compileFont, balanceProjectGlyphMargins, validateFontProject } from '../../../utils/font';
+import { compileFont, balanceProjectGlyphMargins, validateFontProject, stripInvalidPixelData } from '../../../utils/font';
 import { getContoursBoundingBox } from '../../../utils/path';
 import { ThemeMode, isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
@@ -437,14 +437,19 @@ const [testText, setTestText] = usePersistedField(
     compileTimerRef.current = setTimeout(() => {
       compileTimerRef.current = null;
       try {
-        const validation = validateFontProject(project);
+        // Pixel projects preview at 1.0 with no centering or overlap
+        // merging, matching the pixel studio export. Broken pixelData is
+        // stripped first so one broken glyph does not stop the preview.
+        const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
+        const previewProject = stripInvalidPixelData(project).project;
+        const validation = validateFontProject(previewProject);
         if (!validation.valid) {
           throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
         }
-        const { blobUrl } = compileFont(project, {
-          scaleFactor: fontScaleMultiplier,
-          balanceSideBearings: autoBalanceMargins,
-          mergeOverlaps: true,
+        const { blobUrl } = compileFont(previewProject, {
+          scaleFactor: isPixelProject ? 1.0 : fontScaleMultiplier,
+          balanceSideBearings: isPixelProject ? false : autoBalanceMargins,
+          mergeOverlaps: isPixelProject ? false : true,
           normalizeWinding: true,
         });
         const newFontName = `CustomTestFont_v${compileVersion}_${Date.now()}`;

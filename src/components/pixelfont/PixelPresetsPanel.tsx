@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Grid,
   Check,
@@ -20,11 +20,12 @@ import { PRESET_SIZES } from './constants';
 
 interface PixelPresetsPanelProps {
   preset: PixelGridPreset;
-  onPresetSelect: (p: PixelGridPreset) => void;
+  onPresetSelect: (p: PixelGridPreset) => boolean | void;
   gridWidth: number;
   setGridWidth: (w: number) => void;
   gridHeight: number;
   setGridHeight: (h: number) => void;
+  onRequestGridSizeChange?: (w: number, h: number) => boolean;
   loadGlyphPixelGrid: (u: number, w: number, h: number) => void;
   currentUnicode: number;
   dotShape: PixelDotShape;
@@ -75,6 +76,49 @@ interface PixelPresetsPanelProps {
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
 }
 
+// Custom size input: typing never clamps the intermediate value. The
+// value is clamped to 3..128 only when the input is committed (blur or
+// Enter), so values such as "1" on the way to "16" stay editable.
+function CustomSizeInput({
+  value,
+  onCommit,
+  className,
+}: {
+  value: number;
+  onCommit: (value: number) => void;
+  className?: string;
+}) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+  const commit = () => {
+    const parsed = parseInt(text, 10);
+    if (Number.isFinite(parsed)) {
+      onCommit(Math.max(3, Math.min(128, parsed)));
+    } else {
+      setText(String(value));
+    }
+  };
+  return (
+    <input
+      type="number"
+      min="3"
+      max="128"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit();
+        }
+      }}
+      className={className}
+    />
+  );
+}
+
 export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
   preset,
   onPresetSelect,
@@ -82,6 +126,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
   setGridWidth,
   gridHeight,
   setGridHeight,
+  onRequestGridSizeChange,
   loadGlyphPixelGrid,
   currentUnicode,
   dotShape,
@@ -124,6 +169,17 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
   setSymmetryV,
   onShowToast,
 }) => {
+  // Route size changes through the confirming handler when provided, so
+  // a size change asks first and keeps the previous state in Undo history.
+  const changeGridSize = (w: number, h: number) => {
+    if (onRequestGridSizeChange) {
+      onRequestGridSizeChange(w, h);
+    } else {
+      setGridWidth(w);
+      setGridHeight(h);
+    }
+  };
+
   if (isMobile) {
     return (
       <div
@@ -198,8 +254,9 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <button
                     key={p.id}
                     onClick={() => {
-                      onPresetSelect(p.id);
-                      onShowToast(`解像度を ${p.label} に変更しました`, 'info');
+                      if (onPresetSelect(p.id) !== false) {
+                        onShowToast(`解像度を ${p.label} に変更しました`, 'info');
+                      }
                     }}
                     className={`p-2.5 border text-left flex flex-col justify-between min-h-[58px] transition-colors cursor-pointer ${
                       isSelected
@@ -232,28 +289,20 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => {
-                          const val = Math.max(3, gridWidth - 1);
-                          setGridWidth(val);
+                          changeGridSize(Math.max(3, gridWidth - 1), gridHeight);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <input
-                        type="number"
-                        min="3"
-                        max="128"
+                      <CustomSizeInput
                         value={gridWidth}
-                        onChange={(e) => {
-                          const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
-                          setGridWidth(val);
-                        }}
+                        onCommit={(val) => changeGridSize(val, gridHeight)}
                         className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
                       <button
                         onClick={() => {
-                          const val = Math.min(128, gridWidth + 1);
-                          setGridWidth(val);
+                          changeGridSize(Math.min(128, gridWidth + 1), gridHeight);
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -267,28 +316,20 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => {
-                          const val = Math.max(3, gridHeight - 1);
-                          setGridHeight(val);
+                          changeGridSize(gridWidth, Math.max(3, gridHeight - 1));
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <input
-                        type="number"
-                        min="3"
-                        max="128"
+                      <CustomSizeInput
                         value={gridHeight}
-                        onChange={(e) => {
-                          const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
-                          setGridHeight(val);
-                        }}
+                        onCommit={(val) => changeGridSize(gridWidth, val)}
                         className="flex-1 text-center font-mono font-bold text-xs py-1 rounded-sm /* 入力のみ最大rounded-sm */ border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]"
                       />
                       <button
                         onClick={() => {
-                          const val = Math.min(128, gridHeight + 1);
-                          setGridHeight(val);
+                          changeGridSize(gridWidth, Math.min(128, gridHeight + 1));
                         }}
                         className="w-7 h-7 flex items-center justify-center border border-stone-300 dark:border-stone-700 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -304,8 +345,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     <button
                       key={sz}
                       onClick={() => {
-                        setGridWidth(sz);
-                        setGridHeight(sz);
+                        changeGridSize(sz, sz);
                       }}
                       className={`px-2 py-0.5 rounded text-[10.5px] font-mono font-bold border transition-colors cursor-pointer ${
                         gridWidth === sz && gridHeight === sz
@@ -720,27 +760,15 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
       {preset === 'custom' && (
         <div className="flex items-center gap-1.5 bg-white dark:bg-[#142018] px-2 py-0.5 border border-stone-300 dark:border-stone-800 shrink-0">
           <span className="font-bold text-[10px] opacity-70">W:</span>
-          <input
-            type="number"
-            min="3"
-            max="128"
+          <CustomSizeInput
             value={gridWidth}
-            onChange={(e) => {
-              const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
-              setGridWidth(val);
-            }}
+            onCommit={(val) => changeGridSize(val, gridHeight)}
             className="w-10 text-center font-mono font-bold text-xs bg-transparent border-b border-emerald-500 focus:outline-hidden"
           />
           <span className="font-bold text-[10px] opacity-70">× H:</span>
-          <input
-            type="number"
-            min="3"
-            max="128"
+          <CustomSizeInput
             value={gridHeight}
-            onChange={(e) => {
-              const val = Math.max(3, Math.min(128, parseInt(e.target.value, 10) || 12));
-              setGridHeight(val);
-            }}
+            onCommit={(val) => changeGridSize(gridWidth, val)}
             className="w-10 text-center font-mono font-bold text-xs bg-transparent border-b border-emerald-500 focus:outline-hidden"
           />
         </div>

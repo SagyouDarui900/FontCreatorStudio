@@ -48,6 +48,7 @@ export interface ToolBarProps {
   onOpenPixelStudio?: () => void;
   onQuickSaveGlyph?: () => void;
   onOpenExportModal?: () => void;
+  traceEnabled?: boolean;
   theme: ThemeMode;
   activePenPreset?: UserPenPreset;
   userPresets?: UserPenPreset[];
@@ -74,6 +75,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   onOpenPixelStudio,
   onQuickSaveGlyph,
   onOpenExportModal,
+  traceEnabled,
   theme,
   activePenPreset,
   userPresets = [],
@@ -351,6 +353,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         orientation={orientation}
         onQuickSaveGlyph={onQuickSaveGlyph}
         onOpenTraceModal={onOpenTraceModal}
+        traceEnabled={traceEnabled}
         themeClasses={themeClasses}
       />
 

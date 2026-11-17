@@ -1,6 +1,13 @@
 import { PathContour } from './geometry';
 import { GlyphData } from './glyph';
 import { OpenTypeFeaturesConfig, MojikumiConfig } from './mojikumi';
+import { TraceSettings } from './canvas';
+
+/**
+ * Trace settings as stored in a project. Underdrawing images (data URLs)
+ * are excluded: they are large and are kept only in memory.
+ */
+export type StoredTraceSettings = Omit<TraceSettings, 'imageSrc' | 'charImages'>;
 
 export interface FontMetadata {
   familyName: string;
@@ -104,6 +111,8 @@ export interface FontProject {
   kerning?: Record<string, number>; // Pair string "char1,char2" or "unicode1,unicode2" -> offset in font units
   openTypeFeatures?: OpenTypeFeaturesConfig;
   pixelFontSettings?: PixelFontProjectSettings;
+  /** Trace underdrawing settings, without image data (see StoredTraceSettings). */
+  traceSettings?: StoredTraceSettings;
   /** @deprecated Alias for backwards compatibility; prefer openTypeFeatures.mojikumi */
   mojikumiSettings?: MojikumiConfig;
   createdAt: number;

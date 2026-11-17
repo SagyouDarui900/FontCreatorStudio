@@ -71,6 +71,16 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   brushStyle = 'brush' as BrushStyle,
   onChangeBrushStyle,
   onChangeBrushWidth,
+  onAdjustBrushSize,
+  autoSmoothBrush: propAutoSmoothBrush,
+  onChangeAutoSmoothBrush,
+  smoothStrength: propSmoothStrength,
+  onChangeSmoothStrength,
+  smoothPreserveCorners: propSmoothPreserveCorners,
+  onChangeSmoothPreserveCorners,
+  autoUnionBrush: propAutoUnionBrush,
+  onChangeAutoUnionBrush,
+  onRegisterResetCanvasPrefs,
   pressureSensitivity = 'high' as 'high' | 'normal' | 'low' | 'off',
   onChangePressureSensitivity,
   pressureCurve,
@@ -164,6 +174,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSmoothStrength,
     smoothPreserveCorners,
     setSmoothPreserveCorners,
+    resetCanvasLocalPrefs,
     palmRejectionMode,
     setPalmRejectionMode,
     handleSetPalmRejectionMode,
@@ -180,6 +191,14 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   } = useCanvasLocalPrefs({
     propOutlineOnly,
     onChangeOutlineOnly,
+    propAutoSmoothBrush,
+    onChangeAutoSmoothBrush,
+    propSmoothStrength,
+    onChangeSmoothStrength,
+    propSmoothPreserveCorners,
+    onChangeSmoothPreserveCorners,
+    propAutoUnionBrush,
+    onChangeAutoUnionBrush,
   });
 
   // Zoom & Pan Viewport State
@@ -409,6 +428,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const {
     penStrokeWidth,
     handleSetPenStrokeWidth,
+    handleResetPenStrokeWidth,
     penCapStyle,
     handleSetPenCapStyle,
     activePenContour,
@@ -433,6 +453,17 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setSelectedHandleType,
     isGlyphLocked,
   });
+
+  // Register the drawing-side reset (smoothing settings + pen stroke
+  // width) so the pen presets modal can restore defaults through App.
+  const resetCanvasPrefsRef = useRef<() => void>(() => {});
+  resetCanvasPrefsRef.current = () => {
+    resetCanvasLocalPrefs();
+    handleResetPenStrokeWidth();
+  };
+  useEffect(() => {
+    onRegisterResetCanvasPrefs?.(() => resetCanvasPrefsRef.current());
+  }, [onRegisterResetCanvasPrefs]);
 
   // ---------------- CANVAS ERASER HOOK ----------------
   const {
@@ -798,6 +829,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isDraggingTrace,
     isResizingTrace,
     handleTracePointerMove,
+    handleTraceAdjustPointerDown: handlePointerDownTraceImage,
     resetTraceDragState,
     traceSettings,
     onChangeTraceSettings,
@@ -981,6 +1013,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     setEraserSize,
     brushWidth,
     onChangeBrushWidth,
+    onAdjustBrushSize,
     setRulerMeasurement,
     setSelectedContourIds,
     setSelectedNodeId,
@@ -1246,6 +1279,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handlePointerDownTraceImage={handlePointerDownTraceImage}
           handlePointerDownTraceResize={handlePointerDownTraceResize}
           handleResetTracePosition={handleResetTracePosition}
+          onTraceImageError={() =>
+            showCanvasToast('下絵画像を読み込めませんでした', '画像ファイルを確認してください')
+          }
           isResizingTrace={isResizingTrace}
           hoverCanvasPos={hoverCanvasPos}
           customGuidelines={customGuidelines}

@@ -58,7 +58,17 @@ export const DynamicTab: React.FC<DynamicTabProps> = ({
           unit="%"
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, pressureWidthFactor: v }))}
         />
+        <SliderControl
+          label="筆圧:かすれ"
+          value={workingPreset.pressureFeatherFactor ?? 0}
+          min={0}
+          max={100}
+          step={5}
+          unit="%"
+          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, pressureFeatherFactor: v }))}
+        />
       </div>
+      <p className="text-[11px] text-stone-500 dark:text-stone-400">速度・筆圧による不透明度変化はベクター輪郭に反映されません。</p>
     </div>
   );
 };

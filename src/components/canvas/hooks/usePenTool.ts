@@ -60,6 +60,14 @@ export function usePenTool({
     } catch {}
   }, []);
 
+  const handleResetPenStrokeWidth = useCallback(() => {
+    setPenStrokeWidth(36);
+    try {
+      localStorage.removeItem('glyph_pen_stroke_width');
+      localStorage.removeItem('fcs_pen_stroke_width');
+    } catch {}
+  }, []);
+
   const handleSetPenCapStyle = useCallback((style: 'round' | 'butt' | 'square') => {
     setPenCapStyle(style);
     try {
@@ -302,6 +310,7 @@ export function usePenTool({
     penStrokeWidth,
     setPenStrokeWidth,
     handleSetPenStrokeWidth,
+    handleResetPenStrokeWidth,
     penCapStyle,
     setPenCapStyle,
     handleSetPenCapStyle,

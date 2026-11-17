@@ -74,6 +74,7 @@ export interface CanvasSvgStageProps {
   handlePointerDownTraceResize: (e: React.PointerEvent, handle: TraceResizeHandle) => void;
   handleResetTracePosition: () => void;
   isResizingTrace: boolean;
+  onTraceImageError?: () => void;
   hoverCanvasPos: Point | null;
   customGuidelines: CustomGuideline[];
   isGuideEraserActive: boolean;
@@ -173,6 +174,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   handlePointerDownTraceResize,
   handleResetTracePosition,
   isResizingTrace,
+  onTraceImageError,
   hoverCanvasPos,
   customGuidelines,
   isGuideEraserActive,
@@ -361,6 +363,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             onPointerDownResize={handlePointerDownTraceResize}
             onDoubleClickReset={handleResetTracePosition}
             isResizing={isResizingTrace}
+            onTraceImageError={onTraceImageError}
           />
         )}
 
