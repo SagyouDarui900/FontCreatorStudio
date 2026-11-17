@@ -91,9 +91,12 @@ export function useCanvasShortcuts({
       // In-progress Pen Drawing Shortcuts
       if (activePenContour) {
         // Ctrl+Z / Cmd+Z: undo last placed node (prevents triggering full glyph history undo)
+        // stopImmediatePropagation() is required here: stopPropagation() does not
+        // stop the separate window keydown listener in useAppShortcuts, which
+        // would otherwise run the full glyph history undo as well.
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
           e.preventDefault();
-          e.stopPropagation();
+          e.stopImmediatePropagation();
           handleUndoPenNode();
           return;
         }
@@ -127,6 +130,9 @@ export function useCanvasShortcuts({
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0) || selectedContourIds.length > 0) {
           e.preventDefault();
+          // Stop the separate window keydown listener in useAppShortcuts so that
+          // Alt+Arrow only nudges the selection instead of also changing glyphs.
+          e.stopImmediatePropagation();
           if (isGlyphLocked) {
             showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             return;
@@ -166,13 +172,14 @@ export function useCanvasShortcuts({
       }
 
       // View & Zoom Navigation shortcuts
-      if (e.key === '0' || (e.shiftKey && e.key === '!')) {
+      // Ctrl/Meta/Alt + 0/1 is left to the browser (zoom reset, tab switch, etc.).
+      if ((e.key === '0' || (e.shiftKey && e.key === '!')) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         resetView('fit');
         showCanvasToast('画面にフィット (Fit to Screen)');
         return;
       }
-      if (e.key === '1') {
+      if (e.key === '1' && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         resetView('100%');
         showCanvasToast('等倍表示 (100%)');
@@ -196,8 +203,11 @@ export function useCanvasShortcuts({
       }
 
       // Trace Reset shortcut in trace_adjust mode
+      // stopImmediatePropagation() keeps the app-level tool switch (R -> rect)
+      // in useAppShortcuts from running as well.
       if (toolMode === 'trace_adjust' && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
+        e.stopImmediatePropagation();
         handleResetTracePosition();
         return;
       }
@@ -275,6 +285,9 @@ export function useCanvasShortcuts({
         ((e.key === 'w' || e.key === 'W') && e.altKey)
       ) {
         e.preventDefault();
+        // Stop the app-level tool switch (O -> ellipse) in useAppShortcuts so
+        // that Shift+O / Alt+O only toggles the outline-only display.
+        e.stopImmediatePropagation();
         setOutlineOnly((prev) => {
           const next = !prev;
           showCanvasToast(

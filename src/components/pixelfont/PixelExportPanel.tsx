@@ -149,7 +149,7 @@ const PixelTextPreviewCanvas: React.FC<PixelTextPreviewCanvasProps> = ({
 interface PixelExportPanelProps {
   previewText: string;
   setPreviewText: (text: string) => void;
-  handleExportFontFile: (format: 'otf' | 'ttf') => void;
+  handleExportFontFile: (format: 'otf') => void;
   handleExportSpritesheet: () => void;
   handleExportCHeader: () => void;
   handleExportSinglePng: () => void;
@@ -255,24 +255,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
               <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1.5 py-0.5">OTF</span>
             </button>
 
-            {/* 2. Direct TTF Font Export */}
-            <button
-              onClick={() => handleExportFontFile('ttf')}
-              className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
-                isLight
-                  ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-800'
-                  : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
-              }`}
-              title="作成したピクセルフォントをTTF形式でダウンロード (.ttf)"
-            >
-              <span className="flex items-center space-x-2">
-                <Download className="w-4 h-4" />
-                <span>TTFフォント書き出し (.ttf)</span>
-              </span>
-              <span className="text-[10px] font-mono uppercase opacity-75">TTF</span>
-            </button>
-
-            {/* 3. Spritesheet */}
+            {/* 2. Spritesheet */}
             <button
               onClick={handleExportSpritesheet}
               className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
@@ -288,7 +271,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
               <Download className="w-4 h-4" />
             </button>
 
-            {/* 4. C/C++ Header */}
+            {/* 3. C/C++ Header */}
             <button
               onClick={handleExportCHeader}
               className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
@@ -304,7 +287,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
               <FileCode className="w-4 h-4" />
             </button>
 
-            {/* 5. Single PNG */}
+            {/* 4. Single PNG */}
             <button
               onClick={handleExportSinglePng}
               className={`w-full py-2.5 px-3 border text-xs font-bold flex items-center justify-between min-h-[44px] cursor-pointer ${
@@ -405,24 +388,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             <span className="text-[10px] font-mono uppercase bg-emerald-700/80 px-1 py-0.5">.otf</span>
           </button>
 
-          {/* 2. Direct TTF Font Export */}
-          <button
-            onClick={() => handleExportFontFile('ttf')}
-            className={`w-full py-1.5 px-2.5 border text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
-              isLight
-                ? 'bg-stone-50 hover:bg-stone-100 border-stone-300 text-stone-700'
-                : 'bg-[#142018] hover:bg-[#1c2e22] border-stone-700 text-emerald-300'
-            }`}
-            title="作成したピクセルフォントをTTF形式でダウンロード (.ttf)"
-          >
-            <span className="flex items-center space-x-1.5">
-              <Download className="w-3.5 h-3.5" />
-              <span>TTFフォント書き出し</span>
-            </span>
-            <span className="text-[10px] font-mono uppercase opacity-75">.ttf</span>
-          </button>
-
-          {/* 3. Spritesheet */}
+          {/* 2. Spritesheet */}
           <button
             onClick={handleExportSpritesheet}
             className={`w-full py-1.5 px-2.5 border text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
@@ -439,7 +405,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
             <Download className="w-3.5 h-3.5" />
           </button>
 
-          {/* 4. C / C++ Array Header */}
+          {/* 3. C / C++ Array Header */}
           <button
             onClick={handleExportCHeader}
             className={`w-full py-1.5 px-2.5 border text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${

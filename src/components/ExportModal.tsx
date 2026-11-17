@@ -39,8 +39,11 @@ interface ExportModalProps {
   // Export settings controlled by the caller (AppModalsHost) so the values
   // survive closing and reopening the modal. When omitted, the modal keeps
   // its own internal state as before.
-  format?: 'ttf' | 'otf';
-  onFormatChange?: (format: 'ttf' | 'otf') => void;
+  // The format is always 'otf': opentype.js writes CFF outlines with sfnt
+  // version OTTO and has no TrueType (glyf) writer, so a TTF choice would
+  // only relabel the same CFF binary.
+  format?: 'otf';
+  onFormatChange?: (format: 'otf') => void;
   sizePreset?: 'raw' | 'standard_jp' | 'custom';
   onSizePresetChange?: (preset: 'raw' | 'standard_jp' | 'custom') => void;
   customScale?: number;
@@ -49,6 +52,10 @@ interface ExportModalProps {
   onPreviewTextChange?: (text: string) => void;
   previewFontSize?: number;
   onPreviewFontSizeChange?: (size: number) => void;
+  mergeOverlaps?: boolean;
+  onMergeOverlapsChange?: (merge: boolean) => void;
+  balanceSideBearings?: boolean;
+  onBalanceSideBearingsChange?: (balance: boolean) => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -69,10 +76,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onPreviewTextChange,
   previewFontSize: controlledPreviewFontSize,
   onPreviewFontSizeChange,
+  mergeOverlaps: controlledMergeOverlaps,
+  onMergeOverlapsChange,
+  balanceSideBearings: controlledBalanceSideBearings,
+  onBalanceSideBearingsChange,
 }) => {
-  const [internalFormat, setInternalFormat] = useState<'ttf' | 'otf'>('ttf');
+  const [internalFormat, setInternalFormat] = useState<'otf'>('otf');
   const format = controlledFormat ?? internalFormat;
-  const setFormat = (next: 'ttf' | 'otf') => {
+  const setFormat = (next: 'otf') => {
     if (onFormatChange) onFormatChange(next);
     else setInternalFormat(next);
   };
@@ -90,20 +101,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     else setInternalCustomScale(next);
   };
   const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
-  // Overlap removal & self-intersection prevention for single-stroke loops
-  const [mergeOverlaps, setMergeOverlaps] = useState<boolean>(() => !isPixelProject);
-  const [balanceSideBearings, setBalanceSideBearings] = useState<boolean>(() => !isPixelProject);
+  // Overlap removal & self-intersection prevention for single-stroke loops.
+  // Controlled by AppModalsHost when provided, so the values survive
+  // closing and reopening the modal. The internal default is off for pixel
+  // projects and on otherwise.
+  const [internalMergeOverlaps, setInternalMergeOverlaps] = useState<boolean>(() => !isPixelProject);
+  const mergeOverlaps = controlledMergeOverlaps ?? internalMergeOverlaps;
+  const setMergeOverlaps = (next: boolean) => {
+    if (onMergeOverlapsChange) onMergeOverlapsChange(next);
+    else setInternalMergeOverlaps(next);
+  };
+  const [internalBalanceSideBearings, setInternalBalanceSideBearings] = useState<boolean>(() => !isPixelProject);
+  const balanceSideBearings = controlledBalanceSideBearings ?? internalBalanceSideBearings;
+  const setBalanceSideBearings = (next: boolean) => {
+    if (onBalanceSideBearingsChange) onBalanceSideBearingsChange(next);
+    else setInternalBalanceSideBearings(next);
+  };
   const [isExporting, setIsExporting] = useState(false);
   const [copiedCss, setCopiedCss] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      const pixelProj = Boolean(project.pixelFontSettings?.isPixelFontProject);
-      setMergeOverlaps(!pixelProj);
-      setBalanceSideBearings(!pixelProj);
-    }
-  }, [isOpen, project.pixelFontSettings?.isPixelFontProject]);
 
   // Dynamic preview font cleanup refs & live preview state
   const previewFontUrlRef = useRef<string | null>(null);
@@ -154,8 +170,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const effectiveScale =
     sizePreset === 'standard_jp' ? 1.35 : sizePreset === 'raw' ? 1.0 : customScale;
 
-  // compileOptions does not use `format`: changing ttf/otf only changes the
-  // download filename and MIME type, so it must not trigger a recompile.
+  // compileOptions does not use `format`: the binary is always CFF-flavored
+  // OpenType (OTTO), so there is no per-format recompile.
   const compileOptions: CompileFontOptions = useMemo(
     () => ({
       scaleFactor: effectiveScale,
@@ -312,7 +328,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const cssSnippet = `@font-face {
   font-family: '${fontFamily}';
-  src: url('${fileName}') format('${format === 'ttf' ? 'truetype' : 'opentype'}');
+  src: url('${fileName}') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -388,7 +404,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 {glyphCount}文字収録 · 倍率 {Math.round(effectiveScale * 100)}% · .{format.toUpperCase()}
               </p>
               <p className={`hidden sm:block text-[11px] truncate ${themeClasses.textMuted}`}>
-                TrueType / OpenType 規格準拠のフォントファイルを生成します
+                OpenType (CFF) 規格準拠のフォントファイルを生成します
               </p>
             </div>
           </div>

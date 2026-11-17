@@ -111,20 +111,24 @@ export function useAppShortcuts({
         }
       }
 
+      // Tool switching only runs with no modifier keys. Alt/Shift + letter
+      // combinations belong to other shortcuts (for example Shift+O / Alt+O
+      // toggles the outline-only display in useCanvasShortcuts), and
+      // Ctrl/Cmd + letter combinations belong to edit shortcuts above.
       if (e.key === 'v' || e.key === 'V') {
-        if (!ctrlOrCmd) setToolMode('select');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('select');
       } else if (e.key === 'p' || e.key === 'P') {
-        if (!ctrlOrCmd) setToolMode('pen');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('pen');
       } else if (e.key === 'b' || e.key === 'B') {
-        if (!ctrlOrCmd) setToolMode('brush');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('brush');
       } else if (e.key === 'e' || e.key === 'E') {
-        if (!ctrlOrCmd) setToolMode('eraser');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('eraser');
       } else if (e.key === 'r' || e.key === 'R') {
-        if (!ctrlOrCmd) setToolMode('rect');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('rect');
       } else if (e.key === 'o' || e.key === 'O') {
-        if (!ctrlOrCmd) setToolMode('ellipse');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('ellipse');
       } else if (e.key === 'm' || e.key === 'M') {
-        if (!ctrlOrCmd) setToolMode('ruler');
+        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('ruler');
       }
     };
 

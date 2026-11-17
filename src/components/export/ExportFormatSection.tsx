@@ -3,8 +3,10 @@ import { Check, Maximize2, ShieldCheck } from 'lucide-react';
 
 export interface ExportFormatSectionProps {
   isLight: boolean;
-  format: 'ttf' | 'otf';
-  setFormat: (format: 'ttf' | 'otf') => void;
+  // The output is always OTF (CFF outlines). The format props stay so the
+  // section keeps the same interface as before; only 'otf' is offered.
+  format: 'otf';
+  setFormat: (format: 'otf') => void;
   sizePreset: 'raw' | 'standard_jp' | 'custom';
   setSizePreset: (preset: 'raw' | 'standard_jp' | 'custom') => void;
   customScale: number;
@@ -32,35 +34,15 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
 }) => {
   return (
     <>
-      {/* Format Selection */}
+      {/* Format Selection: OTF only. opentype.js writes CFF outlines with
+          sfnt version OTTO and has no TrueType (glyf) writer, so offering
+          TTF would only relabel the same CFF binary. */}
       <div className="space-y-1.5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
-          <span className="font-bold opacity-85">ファイル形式を選択</span>
-          <span className="text-[11px] font-normal opacity-70">迷ったら TTF がおすすめ</span>
+          <span className="font-bold opacity-85">ファイル形式</span>
+          <span className="text-[11px] font-normal opacity-70">CFF アウトラインの OpenType 形式で出力します</span>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-          <button
-            type="button"
-            onClick={() => setFormat('ttf')}
-            className={`p-2.5 sm:p-3 rounded-xl border text-left min-h-[56px] cursor-pointer ${
-              format === 'ttf'
-                ? isLight
-                  ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
-                  : 'border-emerald-500 bg-emerald-950/60 text-emerald-100 ring-2 ring-emerald-500/30'
-                : isLight
-                ? 'border-stone-200 hover:bg-stone-50 text-stone-700'
-                : 'border-[#25362b] hover:bg-[#1c2920] text-emerald-300'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-1">
-              <span className="font-bold text-xs sm:text-sm whitespace-nowrap">.TTF (TrueType)</span>
-              {format === 'ttf' && <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
-            </div>
-            <p className="mt-1 text-[10.5px] sm:text-[11px] opacity-75 leading-snug jp-wrap">
-              iOS / Android / Mac / Windows / 動画編集 全対応
-            </p>
-          </button>
-
+        <div className="grid grid-cols-1 gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={() => setFormat('otf')}

@@ -139,11 +139,16 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       if (e.key === 'PageDown' || (e.altKey && e.key === 'ArrowRight')) {
         if (validPage < totalPages) {
           e.preventDefault();
+          // Stop the event here so the window keydown listeners do not also
+          // nudge the selection (useCanvasShortcuts) or change glyphs
+          // (useAppShortcuts) for the same key press.
+          e.stopPropagation();
           setCurrentPage(Math.min(totalPages, validPage + 1));
         }
       } else if (e.key === 'PageUp' || (e.altKey && e.key === 'ArrowLeft')) {
         if (validPage > 1) {
           e.preventDefault();
+          e.stopPropagation();
           setCurrentPage(Math.max(1, validPage - 1));
         }
       }

@@ -49,7 +49,7 @@ describe('Font Project Validation & Compilation', () => {
     expect(compiled.buffer.byteLength).toBeGreaterThan(256);
   });
 
-  it('compiles a single rectangular contour into TTF bytes with valid advanceWidth', () => {
+  it('compiles a single rectangular contour into OTF bytes with valid advanceWidth', () => {
     const rectContour: PathContour = {
       id: 'c1',
       closed: true,

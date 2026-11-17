@@ -54,7 +54,7 @@ export interface CategoryDiagnosticStat {
   completedChars: number;
   emptyChars: number;
   draftChars: number;
-  lowComplexityChars: number;
+  lowComplexityChars: number; // 著しく低い字形複雑度とやや低い字形複雑度の合計（個別判定と同じ基準）
   completionRate: number; // 0 to 100%
 }
 
@@ -230,6 +230,60 @@ export function analyzeGlyphComplexity(
 }
 
 /**
+ * 字形複雑度の判定基準（個別判定とカテゴリ別集計で共通）
+ * 戻り値: 'critically_low'（著しく低い）/ 'low'（やや低い）/ 'complete'（完成）
+ * 本来単純な文字（NATURALLY_SIMPLE_CHARS / NATURALLY_SIMPLE_KANJI）は常に 'complete'。
+ * 漢字・ひらがな・カタカナ・欧文・数字・記号のすべてで、ノード数と複雑度スコアの両方を使う。
+ */
+export type ComplexityLevel = 'critically_low' | 'low' | 'complete';
+
+export function classifyGlyphComplexity(
+  categoryType: CharacterCategoryType,
+  metrics: GlyphComplexityMetrics
+): ComplexityLevel {
+  if (metrics.isNaturallySimple) {
+    return 'complete';
+  }
+
+  if (categoryType === 'kanji') {
+    // 一般的な漢字なのに輪郭1個かつノード10個未満、またはスコア15未満
+    if (metrics.nodeCount < 10 || (metrics.contourCount === 1 && metrics.nodeCount <= 8) || metrics.complexityScore < 16) {
+      return 'critically_low';
+    }
+    if (metrics.nodeCount < 16 || metrics.complexityScore < 24) {
+      return 'low';
+    }
+    return 'complete';
+  }
+
+  if (categoryType === 'hiragana' || categoryType === 'katakana') {
+    if (metrics.nodeCount < 6 || metrics.complexityScore < 14) {
+      return 'critically_low';
+    }
+    if (metrics.nodeCount < 10 || metrics.complexityScore < 22) {
+      return 'low';
+    }
+    return 'complete';
+  }
+
+  if (categoryType === 'latin' || categoryType === 'digits') {
+    if (metrics.nodeCount < 4 || metrics.complexityScore < 12) {
+      return 'critically_low';
+    }
+    if (metrics.nodeCount < 6 || metrics.complexityScore < 18) {
+      return 'low';
+    }
+    return 'complete';
+  }
+
+  // symbols: 低複雑度の段階は設けず、著しく低い場合のみ 'critically_low'
+  if (metrics.nodeCount < 5 || metrics.complexityScore < 12) {
+    return 'critically_low';
+  }
+  return 'complete';
+}
+
+/**
  * プロジェクト診断（未完成文字・低複雑度字形の抽出）を実行
  */
 export function runProjectDiagnostics(
@@ -348,41 +402,10 @@ export function runProjectDiagnostics(
       draftCount++;
     } else {
       // 3. 著しく低い字形複雑度（Critically Low Complexity）の判定
-      let isCriticallyLow = false;
-      let isLow = false;
-
-      if (categoryType === 'kanji') {
-        if (!metrics.isNaturallySimple) {
-          // 一般的な漢字なのに輪郭1個かつノード10個未満、またはスコア15未満
-          if (metrics.nodeCount < 10 || (metrics.contourCount === 1 && metrics.nodeCount <= 8) || metrics.complexityScore < 16) {
-            isCriticallyLow = true;
-          } else if (metrics.nodeCount < 16 || metrics.complexityScore < 24) {
-            isLow = true;
-          }
-        }
-      } else if (categoryType === 'hiragana' || categoryType === 'katakana') {
-        if (!metrics.isNaturallySimple) {
-          if (metrics.nodeCount < 6 || metrics.complexityScore < 14) {
-            isCriticallyLow = true;
-          } else if (metrics.nodeCount < 10 || metrics.complexityScore < 22) {
-            isLow = true;
-          }
-        }
-      } else if (categoryType === 'latin' || categoryType === 'digits') {
-        if (!metrics.isNaturallySimple) {
-          if (metrics.nodeCount < 4 || metrics.complexityScore < 12) {
-            isCriticallyLow = true;
-          } else if (metrics.nodeCount < 6 || metrics.complexityScore < 18) {
-            isLow = true;
-          }
-        }
-      } else if (categoryType === 'symbols') {
-        if (!metrics.isNaturallySimple) {
-          if (metrics.nodeCount < 5 || metrics.complexityScore < 12) {
-            isCriticallyLow = true;
-          }
-        }
-      }
+      // 個別判定とカテゴリ別集計で共通の classifyGlyphComplexity を使う
+      const complexityLevel = classifyGlyphComplexity(categoryType, metrics);
+      const isCriticallyLow = complexityLevel === 'critically_low';
+      const isLow = complexityLevel === 'low';
 
       if (isCriticallyLow) {
         status = 'critically_low_complexity';
@@ -454,13 +477,15 @@ export function runProjectDiagnostics(
       } else if (!m.isAllClosed || m.nodeCount <= 2 || m.bboxArea <= 100) {
         catDraft++;
       } else {
+        // 個別判定と同じ classifyGlyphComplexity を使う。
+        // 'critically_low' と 'low' の両方を lowComplexityChars に数える。
+        // これにより、カテゴリの完成数と個別判定の完成数が同じ基準になる。
         const catType = getCharacterCategoryType(item.code, item.char);
-        if (catType === 'kanji' && !m.isNaturallySimple && m.nodeCount < 10) {
-          catLow++;
-        } else if ((catType === 'hiragana' || catType === 'katakana') && !m.isNaturallySimple && m.nodeCount < 6) {
-          catLow++;
-        } else {
+        const level = classifyGlyphComplexity(catType, m);
+        if (level === 'complete') {
           catCompleted++;
+        } else {
+          catLow++;
         }
       }
     });

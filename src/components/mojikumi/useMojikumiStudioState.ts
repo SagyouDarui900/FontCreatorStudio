@@ -19,6 +19,41 @@ import {
   MojikumiMobileTab,
   MojikumiSidebarTab,
 } from './types';
+// Persisted editing state lives in ./persistedState (no heavy imports) so
+// AppModalsHost can hold it without pulling this hook's compileFont
+// dependency into the startup bundle. Re-exported here for existing users.
+import {
+  createDefaultMojikumiPersistedState,
+  type MojikumiPersistedState,
+} from './persistedState';
+export { createDefaultMojikumiPersistedState, type MojikumiPersistedState };
+
+// A single field of the lifted state. When no lifted state is supplied the
+// field falls back to local useState, so the hook also works standalone.
+function usePersistedField<S extends object, K extends keyof S>(
+  persistedValue: S | undefined,
+  persistedOnChange: React.Dispatch<React.SetStateAction<S>> | undefined,
+  key: K,
+  initial: S[K]
+): [S[K], React.Dispatch<React.SetStateAction<S[K]>>] {
+  const [internal, setInternal] = useState<S[K]>(initial);
+  const setPersisted = useCallback(
+    (action: React.SetStateAction<S[K]>) => {
+      persistedOnChange?.((prev) => ({
+        ...prev,
+        [key]:
+          typeof action === 'function'
+            ? (action as (prevValue: S[K]) => S[K])(prev[key])
+            : action,
+      }));
+    },
+    [persistedOnChange, key]
+  );
+  if (persistedValue === undefined || persistedOnChange === undefined) {
+    return [internal, setInternal];
+  }
+  return [persistedValue[key], setPersisted];
+}
 
 interface UseMojikumiStudioStateParams {
   isOpen: boolean;
@@ -26,6 +61,8 @@ interface UseMojikumiStudioStateParams {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  persistedState?: MojikumiPersistedState;
+  onPersistedStateChange?: React.Dispatch<React.SetStateAction<MojikumiPersistedState>>;
 }
 
 export function useMojikumiStudioState({
@@ -34,52 +71,106 @@ export function useMojikumiStudioState({
   project,
   setProject,
   onShowToast,
+  persistedState,
+  onPersistedStateChange,
 }: UseMojikumiStudioStateParams) {
-  const [layoutMode, setLayoutMode] = useState<EditorialLayoutMode>('book_spread');
-  const [mobileTab, setMobileTab] = useState<MojikumiMobileTab>('preview');
-  const [sidebarTab, setSidebarTab] = useState<MojikumiSidebarTab>('text');
+  const persistedDefaults = useMemo(() => createDefaultMojikumiPersistedState(project), [project]);
+  const [layoutMode, setLayoutMode] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'layoutMode',
+    persistedDefaults.layoutMode
+  );
+  const [mobileTab, setMobileTab] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'mobileTab',
+    persistedDefaults.mobileTab
+  );
+  const [sidebarTab, setSidebarTab] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'sidebarTab',
+    persistedDefaults.sidebarTab
+  );
 
-  const [selectedWorkId, setSelectedWorkId] = useState<string>(AOZORA_TEXTS[0].id);
+  const [selectedWorkId, setSelectedWorkId] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'selectedWorkId',
+    persistedDefaults.selectedWorkId
+  );
   const currentWork = useMemo(() => {
     return AOZORA_TEXTS.find((w) => w.id === selectedWorkId) || AOZORA_TEXTS[0];
   }, [selectedWorkId]);
 
-  const [customText, setCustomText] = useState<string>(AOZORA_TEXTS[0].text);
-  const [isVertical, setIsVertical] = useState<boolean>(true);
-  const [fontSource, setFontSource] = useState<MojikumiFontSource>('custom');
+  const [customText, setCustomText] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'customText',
+    persistedDefaults.customText
+  );
+  const [isVertical, setIsVertical] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'isVertical',
+    persistedDefaults.isVertical
+  );
+  const [fontSource, setFontSource] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'fontSource',
+    persistedDefaults.fontSource
+  );
   const [compiledFontName, setCompiledFontName] = useState<string>('CustomMojikumiFont');
   const [compileError, setCompileError] = useState<string | null>(null);
 
   const compiledBlobUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
 
-  const [zoom, setZoom] = useState<number>(1.0);
-  const [fontSizeQ, setFontSizeQ] = useState<number>(14);
-  const [lineFeedH, setLineFeedH] = useState<number>(24);
-  const [charsPerLine, setCharsPerLine] = useState<number>(20);
-  const [lineCount, setLineCount] = useState<number>(14);
-  const [showBodyGrid, setShowBodyGrid] = useState<boolean>(false);
+  const [zoom, setZoom] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'zoom',
+    persistedDefaults.zoom
+  );
+  const [fontSizeQ, setFontSizeQ] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'fontSizeQ',
+    persistedDefaults.fontSizeQ
+  );
+  const [lineFeedH, setLineFeedH] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'lineFeedH',
+    persistedDefaults.lineFeedH
+  );
+  const [charsPerLine, setCharsPerLine] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'charsPerLine',
+    persistedDefaults.charsPerLine
+  );
+  const [lineCount, setLineCount] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'lineCount',
+    persistedDefaults.lineCount
+  );
+  const [showBodyGrid, setShowBodyGrid] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showBodyGrid',
+    persistedDefaults.showBodyGrid
+  );
 
-  const initialConfig: MojikumiConfig = useMemo(() => {
-    return (
-      project.mojikumiSettings || {
-        preset: 'beta',
-        table: PRESET_BETA,
-        kinsoku: 'weak_v2',
-        kinsokuAdjust: 'push_out',
-        burasagari: 'standard',
-        paragraphIndent: 'visual_half',
-      }
-    );
-  }, [project.mojikumiSettings]);
-
-  const [currentConfig, setCurrentConfig] = useState<MojikumiConfig>(initialConfig);
-
-  // Sync draft mojikumi config when opening modal or loading a different project
-  useEffect(() => {
-    if (!isOpen) return;
-    setCurrentConfig(initialConfig);
-  }, [isOpen, project.id, initialConfig]);
+  const [currentConfig, setCurrentConfig] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'currentConfig',
+    persistedDefaults.currentConfig
+  );
 
   // Escape key closes modal
   useEffect(() => {

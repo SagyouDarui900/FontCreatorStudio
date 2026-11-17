@@ -23,7 +23,7 @@ import { ManuscriptView } from './mojikumi/ManuscriptView';
 import { MojikumiSidebar } from './mojikumi/MojikumiSidebar';
 import { PoetryTanzakuView } from './mojikumi/PoetryTanzakuView';
 import { EditorialLayoutMode, MojikumiStudioModalProps } from './mojikumi/types';
-import { useMojikumiStudioState } from './mojikumi/useMojikumiStudioState';
+import { useMojikumiStudioState, type MojikumiPersistedState } from './mojikumi/useMojikumiStudioState';
 
 export type { EditorialLayoutMode, MojikumiStudioModalProps } from './mojikumi/types';
 
@@ -35,7 +35,14 @@ const LAYOUT_MODES: { id: EditorialLayoutMode; label: string; icon: typeof BookO
   { id: 'compare3', label: '3様式アキ量比較', icon: Eye },
 ];
 
-export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
+export interface MojikumiStudioModalWithPersistedProps extends MojikumiStudioModalProps {
+  // Lifted editing state held by AppModalsHost so it survives switching to
+  // the Test Preview modal and back. Omitted for standalone use.
+  persistedState?: MojikumiPersistedState;
+  onPersistedStateChange?: React.Dispatch<React.SetStateAction<MojikumiPersistedState>>;
+}
+
+export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps> = ({
   isOpen,
   onClose,
   project,
@@ -43,6 +50,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
   theme,
   onShowToast,
   onOpenTestPreview,
+  persistedState,
+  onPersistedStateChange,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -53,6 +62,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalProps> = ({
     project,
     setProject,
     onShowToast,
+    persistedState,
+    onPersistedStateChange,
   });
 
   if (!isOpen) return null;

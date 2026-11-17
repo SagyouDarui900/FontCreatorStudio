@@ -68,20 +68,17 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['B'], description: '筆・毛筆ブラシツールに切り替え', category: 'tools', badge: '手書き' },
  { keys: ['P'], description: 'ベクターペンツール（ベジェ曲線）に切り替え', category: 'tools', badge: 'ベジェ' },
  { keys: ['V'], description: '選択・移動ツールに切り替え', category: 'tools' },
- { keys: ['A'], description: 'ノード編集・ダイレクト選択ツールに切り替え', category: 'tools' },
  { keys: ['E'], description: '消しゴムツールに切り替え', category: 'tools' },
- { keys: ['U', 'または', 'S'], description: '長方形ツールに切り替え', category: 'tools' },
+ { keys: ['R'], description: '長方形ツールに切り替え', category: 'tools' },
  { keys: ['O'], description: '楕円・円ツールに切り替え', category: 'tools' },
- { keys: ['R'], description: '定規・距離計測ツールに切り替え', category: 'tools' },
- { keys: ['H'], description: '手のひらツール（キャンバス移動）に切り替え', category: 'tools' },
+ { keys: ['M'], description: '定規・距離計測ツールに切り替え', category: 'tools' },
+ { keys: ['H'], description: '照準ポインター・十字線の表示 / 非表示切り替え', category: 'view' },
 
  // 描画・編集操作
  { keys: ['Ctrl / ⌘', '+', 'C'], description: '選択した輪郭パスをクリップボードにコピー', category: 'drawing', badge: '便利' },
- { keys: ['Ctrl / ⌘', '+', 'X'], description: '選択した輪郭パスをクリップボードに切り取り', category: 'drawing' },
  { keys: ['Ctrl / ⌘', '+', 'V'], description: 'クリップボードの輪郭パスを現在の文字に貼り付け', category: 'drawing', badge: '便利' },
- { keys: ['Ctrl / ⌘', '+', 'D'], description: '選択した輪郭パスをその場で複製', category: 'drawing' },
  { keys: ['↑', '↓', '←', '→'], description: '選択したノードや輪郭を矢印キーで移動（Shiftで10px、Altで0.1px単位）', category: 'drawing' },
- { keys: ['C'], description: '選択中ノードのスムーズ（曲線）／コーナー（角）属性の切り替え', category: 'drawing', badge: 'ノード属性' },
+ { keys: ['C'], description: 'ペン作図中はパスを閉じて確定 / 選択中ノードのスムーズ（曲線）／コーナー（角）属性の切り替え', category: 'drawing', badge: 'ノード属性' },
  { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小 (-4px)', category: 'drawing' },
  { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大 (+4px)', category: 'drawing' },
  { keys: ['['], description: 'ブラシサイズを縮小 (-4px)', category: 'drawing' },
@@ -89,19 +86,6 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['Shift', '+', 'ドラッグ'], description: '水平・垂直・45度の直線ストロークを描画', category: 'drawing', badge: '直線' },
  { keys: ['Enter'], description: 'ペンツールでのパス作成を開いた線のまま確定（始点クリックで自動閉合）', category: 'drawing' },
  { keys: ['Backspace', '/', 'Delete'], description: 'ペン作図中は直前の1点を削除。通常時は選択要素を削除', category: 'drawing' },
- { keys: ['Esc'], description: 'ペン作図中のパスを破棄 / 選択解除 / モーダルを閉じる', category: 'tools' },
- { keys: ['Ctrl / ⌘', '+', 'Z'], description: '取り消し (Undo) - 現在の文字の編集履歴を1段階戻す', category: 'drawing' },
- { keys: ['Ctrl / ⌘', '+', 'A'], description: '現在の文字のすべての輪郭パスを選択', category: 'drawing' },
- { keys: ['Alt', '+', 'S'], description: 'パスの単純化（頂点数を削減し形状を滑らかに整理）', category: 'drawing', badge: '単純化' },
- { keys: ['Shift', '+', 'Alt', '+', 'S'], description: '左右余白（サイドベアリング）自動設定', category: 'drawing', badge: '自動設定' },
-
- // モーダル・ダイアログの即時呼び出し
- { keys: ['Ctrl / ⌘', '+', 'E', 'または', 'Alt + E'], description: 'フォント書き出しモーダル（TTF / WOFF / SVG）を開く', category: 'tools', badge: '書き出し' },
- { keys: ['Alt', '+', 'T'], description: '試し打ち・文章プレビュー画面を開く', category: 'tools', badge: 'プレビュー' },
- { keys: ['Alt', '+', 'Q'], description: 'フォント品質検査・自動診断画面を開く', category: 'tools', badge: '品質診断' },
- { keys: ['Alt', '+', 'I'], description: 'フォント情報・基本メトリクス設定を開く', category: 'tools' },
- { keys: ['Alt', '+', 'K'], description: 'カーニング（文字間ペア調整）画面を開く', category: 'tools' },
- { keys: ['Alt', '+', 'M'], description: 'ストレージ管理・バックアップ復元画面を開く', category: 'tools' },
 
  // 表示・ズーム・レイアウト
  { keys: ['Space', '+', 'ドラッグ'], description: '一時的に手のひらツールになりキャンバスをパン移動', category: 'view', badge: '必須' },
@@ -111,12 +95,9 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['+'], description: 'ズームイン (拡大)', category: 'view' },
  { keys: ['-'], description: 'ズームアウト (縮小)', category: 'view' },
  { keys: ['F'], description: '集中モード（全画面表示）の切り替え', category: 'view', badge: '全画面' },
- { keys: ['\\'], description: '文字一覧サイドバーの開閉', category: 'view' },
  { keys: ['Shift', '+', 'O', 'または', 'Alt + O'], description: 'パス輪郭のみ表示（ワイヤーフレーム表示 / 塗りつぶし）の切り替え', category: 'view', badge: '輪郭モード' },
  { keys: ['N'], description: 'パス頂点（ノード）とハンドルの表示 / 非表示切り替え', category: 'view', badge: '頂点表示' },
  { keys: ['G'], description: '方眼グリッドの表示 / 非表示切り替え', category: 'view' },
- { keys: ['Alt', '+', '+'], description: '方眼グリッドのマス目サイズを拡大 (+5px)', category: 'view' },
- { keys: ['Alt', '+', '-'], description: '方眼グリッドのマス目サイズを縮小 (-5px)', category: 'view' },
 
  // 各専用モーダル内の効率ショートカット
  { keys: ['R'], description: '【品質診断】フォントの品質を再スキャン / 【ストレージ】再読込', category: 'view' },
@@ -128,18 +109,15 @@ const SHORTCUTS: ShortcutItem[] = [
  { keys: ['P'], description: '【ヒートマップ診断】アンカー密集度ドットの表示 / 非表示切替', category: 'drawing' },
 
  // 文字送り・ナビゲーション
- { keys: ['Alt', '+', '→'], description: '次の文字へ進む（五十音順・漢字順）', category: 'nav', badge: '連続作字' },
- { keys: ['Alt', '+', '←'], description: '前の文字へ戻る', category: 'nav', badge: '連続作字' },
- { keys: ['Alt', '+', 'N'], description: '次の「未作成の文字」へスキップ', category: 'nav', badge: '効率化' },
- { keys: ['Alt', '+', 'P'], description: '前の「未作成の文字」へスキップ', category: 'nav' },
+ { keys: ['Alt', '+', '→'], description: '次の文字へ進む（選択がない場合）', category: 'nav', badge: '連続作字' },
+ { keys: ['Alt', '+', '←'], description: '前の文字へ戻る（選択がない場合）', category: 'nav', badge: '連続作字' },
 
  // 編集・プロジェクト保存
- { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す (Undo)', category: 'edit' },
+ { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す (Undo) / ペン作図中は直前の1点の取り消し', category: 'edit' },
  { keys: ['Ctrl / ⌘', '+', 'Shift', '+', 'Z'], description: 'やり直す (Redo)', category: 'edit' },
  { keys: ['Ctrl / ⌘', '+', 'Y'], description: 'やり直す (Redo)', category: 'edit' },
  { keys: ['Ctrl / ⌘', '+', 'S'], description: 'プロジェクトをブラウザに即時保存', category: 'edit', badge: '保存' },
  { keys: ['Esc'], description: 'パス描画中止 / 選択解除 / モーダルを閉じる', category: 'edit' },
- { keys: ['?'], description: 'この説明書・ショートカット集を開く', category: 'edit' },
 ];
 
 const SHORTCUT_CATEGORIES = [
@@ -674,7 +652,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <span>Q. 出力したフォントをWindowsやMacにインストールするには？</span>
  </h4>
  <div className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5 space-y-1">
- <p><strong>Windows:</strong> ダウンロードした <code>.ttf</code> または <code>.otf</code> ファイルを右クリックして「すべてのユーザーに対してインストール」をクリックします。</p>
+ <p><strong>Windows:</strong> ダウンロードした <code>.otf</code> ファイルを右クリックして「すべてのユーザーに対してインストール」をクリックします。</p>
  <p><strong>Mac:</strong> ファイルをダブルクリックして「Font Book」を開き、「フォントをインストール」をクリックします。</p>
  </div>
  </div>
@@ -690,7 +668,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <span>Q. iPadやiPhoneでフォントを使うには？</span>
  </h4>
  <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5">
- 無料のフォント管理アプリ（<strong>Fontcase</strong> や <strong>iFont</strong> 等）にエクスポートした <code>.ttf</code> ファイルを取り込み、構成プロファイルをインストールすることで、Pages, Keynote, CLIP STUDIO PAINT, Procreate, ibisPaint 等のアプリで直接使用できます。
+ 無料のフォント管理アプリ（<strong>Fontcase</strong> や <strong>iFont</strong> 等）にエクスポートした <code>.otf</code> ファイルを取り込み、構成プロファイルをインストールすることで、Pages, Keynote, CLIP STUDIO PAINT, Procreate, ibisPaint 等のアプリで直接使用できます。
  </p>
  </div>
 

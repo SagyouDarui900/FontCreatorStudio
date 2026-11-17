@@ -19,12 +19,16 @@ function assertValidFontProject(project: FontProject): void {
 }
 
 /**
- * Share or download the generated font file (.ttf / .otf)
+ * Share or download the generated font file (.otf).
+ * The format is always OTF: opentype.js writes CFF outlines with sfnt
+ * version OTTO and has no TrueType (glyf) writer, so a .ttf filename
+ * would mislabel the binary. The `format` parameter is kept as 'otf'
+ * so call sites keep a single format argument.
  * Supports iPadOS/iOS native Share Sheet (ファイルに保存 / AirDrop) and direct download fallback.
  */
 export async function shareOrDownloadFont(
   project: FontProject,
-  format: 'ttf' | 'otf' = 'ttf',
+  format: 'otf' = 'otf',
   options?: CompileFontOptions
 ): Promise<{ method: 'share' | 'download'; filename: string }> {
   assertValidFontProject(project);
@@ -32,7 +36,7 @@ export async function shareOrDownloadFont(
   const rawName = project.metadata.familyName || 'CustomFont';
   const safeName = rawName.replace(/[^a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff-]/g, '_');
   const filename = `${safeName}-${project.metadata.styleName || 'Regular'}.${format}`;
-  const mimeType = format === 'otf' ? 'font/otf' : 'font/ttf';
+  const mimeType = 'font/otf';
   const blob = new Blob([buffer], { type: mimeType });
 
   // Check for iPad / iPhone / Safari touch device (isIOSDevice covers
@@ -78,17 +82,17 @@ export async function shareOrDownloadFont(
 }
 
 /**
- * Download the generated font file (.ttf)
+ * Download the generated font file (.otf, CFF outlines)
  */
 export function downloadFont(
   project: FontProject,
-  format: 'ttf' | 'otf' = 'ttf',
+  format: 'otf' = 'otf',
   options?: CompileFontOptions
 ) {
   try {
     assertValidFontProject(project);
     const { buffer } = compileFont(project, { ...options, skipBlobUrl: true });
-    const mimeType = format === 'otf' ? 'font/otf' : 'font/ttf';
+    const mimeType = 'font/otf';
     const blob = new Blob([buffer], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

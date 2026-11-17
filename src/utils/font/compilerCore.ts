@@ -843,7 +843,10 @@ export function compileFont(
 
   const buffer = font.toArrayBuffer();
 
-  // Self-Validation: Verify binary TrueType can be parsed cleanly by OpenType parser
+  // Self-Validation: Verify binary OpenType (CFF outlines, sfnt version
+  // OTTO) can be parsed cleanly by OpenType parser. opentype.js has no
+  // TrueType (glyf) writer, so the compiled binary is always CFF-flavored
+  // OpenType regardless of the requested filename extension.
   try {
     opentype.parse(buffer);
   } catch (parseErr: any) {
@@ -855,7 +858,7 @@ export function compileFont(
 
   let blobUrl = '';
   if (!options?.skipBlobUrl) {
-    const blob = new Blob([buffer], { type: 'font/ttf' });
+    const blob = new Blob([buffer], { type: 'font/otf' });
     blobUrl = URL.createObjectURL(blob);
   }
 

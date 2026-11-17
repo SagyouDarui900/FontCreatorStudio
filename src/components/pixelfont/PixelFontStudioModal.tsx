@@ -438,8 +438,9 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     return updatedGlyphs;
   };
 
-  // Export handlers
-  const handleExportFontFile = async (format: 'otf' | 'ttf' = 'otf') => {
+  // Export handlers. The format is always 'otf': opentype.js writes CFF
+  // outlines with sfnt version OTTO and has no TrueType (glyf) writer.
+  const handleExportFontFile = async (format: 'otf' = 'otf') => {
     const activeGrid = currentGridRef.current || grid;
     autoSaveGlyph(activeGrid, currentUnicode);
 
@@ -506,7 +507,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           : `「${project.metadata.familyName || 'PixelFont'}」を ${formatUpper} 形式 (.${format}) で出力しました`;
       onShowToast(msg, 'success');
     } catch (err: any) {
-      console.error('Failed to export OTF/TTF font:', err);
+      console.error('Failed to export OTF font:', err);
       onShowToast(`フォントの書き出しに失敗しました: ${err?.message || '不明なエラー'}`, 'error');
     }
   };

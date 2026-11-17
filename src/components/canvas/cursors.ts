@@ -35,7 +35,21 @@ export const HIGH_CONTRAST_CROSSHAIR_CURSOR = `url("data:image/svg+xml,${encodeU
 
 export const contourSvgCache = new Map<string, string>();
 export const getCachedContourSvgPath = (c: PathContour): string => {
-  const key = `${c.id}_${c.closed}_${c.nodes?.length}_${c.nodes?.[0]?.x}_${c.nodes?.[c.nodes?.length - 1]?.y}`;
+  // The key must cover every value that shapes the SVG path output
+  // (contoursToSvgPath uses each node's x/y, handleIn and handleOut, plus
+  // closed). The previous key only used the first node's x and the last
+  // node's y, so editing any other coordinate or handle returned a stale
+  // cached path for hit testing.
+  const key = [
+    c.id,
+    c.closed ? '1' : '0',
+    (c.nodes ?? [])
+      .map(
+        (n) =>
+          `${n.x},${n.y},${n.handleIn?.x ?? ''},${n.handleIn?.y ?? ''},${n.handleOut?.x ?? ''},${n.handleOut?.y ?? ''}`
+      )
+      .join(';'),
+  ].join('|');
   if (!contourSvgCache.has(key)) {
     contourSvgCache.set(key, contoursToSvgPath([c]));
   }

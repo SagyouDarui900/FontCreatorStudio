@@ -5,8 +5,48 @@ import { getContoursBoundingBox } from '../../../utils/path';
 import { ThemeMode, isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
 import { transformGlyphContours } from '../previewUtils';
+// Persisted editing state lives in ./persistedState (no heavy imports) so
+// AppModalsHost can hold it without pulling this hook's compileFont
+// dependency into the startup bundle. Re-exported here for existing users.
+import {
+  createDefaultTestPreviewPersistedState,
+  type TestPreviewPersistedState,
+} from '../persistedState';
+export { createDefaultTestPreviewPersistedState, type TestPreviewPersistedState };
 
-export function useTestPreviewState(props: TestPreviewModalProps) {
+// A single field of the lifted state. When no lifted state is supplied the
+// field falls back to local useState, so the hook also works standalone.
+function usePersistedField<S extends object, K extends keyof S>(
+  persistedValue: S | undefined,
+  persistedOnChange: React.Dispatch<React.SetStateAction<S>> | undefined,
+  key: K,
+  initial: S[K]
+): [S[K], React.Dispatch<React.SetStateAction<S[K]>>] {
+  const [internal, setInternal] = useState<S[K]>(initial);
+  const setPersisted = useCallback(
+    (action: React.SetStateAction<S[K]>) => {
+      persistedOnChange?.((prev) => ({
+        ...prev,
+        [key]:
+          typeof action === 'function'
+            ? (action as (prevValue: S[K]) => S[K])(prev[key])
+            : action,
+      }));
+    },
+    [persistedOnChange, key]
+  );
+  if (persistedValue === undefined || persistedOnChange === undefined) {
+    return [internal, setInternal];
+  }
+  return [persistedValue[key], setPersisted];
+}
+
+export function useTestPreviewState(
+  props: TestPreviewModalProps & {
+    persistedState?: TestPreviewPersistedState;
+    onPersistedStateChange?: React.Dispatch<React.SetStateAction<TestPreviewPersistedState>>;
+  }
+) {
   const {
     isOpen,
     onClose,
@@ -16,39 +56,136 @@ export function useTestPreviewState(props: TestPreviewModalProps) {
     theme,
     onShowToast,
     onOpenMojikumiStudio,
+    persistedState,
+    onPersistedStateChange,
   } = props;
 
-const [testText, setTestText] = useState<string>(
-    'いろはにほへと　ちりぬるを\nわかよたれそ　つねならむ\nうゐのおくやま　けふこえて\nあさきゆめみし　ゑひもせす'
+  const persistedDefaults = useMemo(() => createDefaultTestPreviewPersistedState(), []);
+
+const [testText, setTestText] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'testText',
+    persistedDefaults.testText
   );
-  const [writingMode, setWritingMode] = useState<'horizontal' | 'vertical'>('horizontal');
-  const [fontSize, setFontSize] = useState<number>(36);
-  const [lineHeight, setLineHeight] = useState<number>(2.0);
-  const [letterSpacing, setLetterSpacing] = useState<number>(0.05); // in em
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left');
-  const [useTsume, setUseTsume] = useState<boolean>(false); // OpenType palt / proportional
-  const [showSpaceMarkers, setShowSpaceMarkers] = useState<boolean>(false); // Highlight 全角/半角空白
-  const [showGenkoGrid, setShowGenkoGrid] = useState<boolean>(false); // 原稿用紙マス目
-  const [showCharBoxes, setShowCharBoxes] = useState<boolean>(false); // 仮想ボディ枠 (1em)
-  const [showNotebookGuides, setShowNotebookGuides] = useState<boolean>(true); // ノート風ガイド罫線 (ベースライン・中心軸・高さ上限下限)
-  const [autoBalanceMargins, setAutoBalanceMargins] = useState<boolean>(false); // デフォルト: ガイド枠の手書き位置優先 (1:1描画位置)
-  const [fontScaleMultiplier, setFontScaleMultiplier] = useState<number>(1.0); // 1.0x (原寸キャンバス通り) or 1.35x (拡大)
-  const [isWaterfall, setIsWaterfall] = useState<boolean>(false);
+  const [writingMode, setWritingMode] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'writingMode',
+    persistedDefaults.writingMode
+  );
+  const [fontSize, setFontSize] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'fontSize',
+    persistedDefaults.fontSize
+  );
+  const [lineHeight, setLineHeight] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'lineHeight',
+    persistedDefaults.lineHeight
+  );
+  const [letterSpacing, setLetterSpacing] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'letterSpacing',
+    persistedDefaults.letterSpacing
+  ); // in em
+  const [textAlign, setTextAlign] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'textAlign',
+    persistedDefaults.textAlign
+  );
+  const [useTsume, setUseTsume] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'useTsume',
+    persistedDefaults.useTsume
+  ); // OpenType palt / proportional
+  const [showSpaceMarkers, setShowSpaceMarkers] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showSpaceMarkers',
+    persistedDefaults.showSpaceMarkers
+  ); // Highlight 全角/半角空白
+  const [showGenkoGrid, setShowGenkoGrid] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showGenkoGrid',
+    persistedDefaults.showGenkoGrid
+  ); // 原稿用紙マス目
+  const [showCharBoxes, setShowCharBoxes] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showCharBoxes',
+    persistedDefaults.showCharBoxes
+  ); // 仮想ボディ枠 (1em)
+  const [showNotebookGuides, setShowNotebookGuides] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showNotebookGuides',
+    persistedDefaults.showNotebookGuides
+  ); // ノート風ガイド罫線 (ベースライン・中心軸・高さ上限下限)
+  const [autoBalanceMargins, setAutoBalanceMargins] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'autoBalanceMargins',
+    persistedDefaults.autoBalanceMargins
+  ); // デフォルト: ガイド枠の手書き位置優先 (1:1描画位置)
+  const [fontScaleMultiplier, setFontScaleMultiplier] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'fontScaleMultiplier',
+    persistedDefaults.fontScaleMultiplier
+  ); // 1.0x (原寸キャンバス通り) or 1.35x (拡大)
+  const [isWaterfall, setIsWaterfall] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'isWaterfall',
+    persistedDefaults.isWaterfall
+  );
   const [fontFamilyName, setFontFamilyName] = useState<string>('CustomTestFont');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Selected character for quick coordinate/scale/aspect adjustment and main editor jump
-  const [selectedCharInfo, setSelectedCharInfo] = useState<{
-    char: string;
-    unicode: number;
-    lineIndex: number;
-    charIndex: number;
-  } | null>(null);
-  const [adjustDx, setAdjustDx] = useState<number>(0);
-  const [adjustDy, setAdjustDy] = useState<number>(0);
-  const [adjustScaleX, setAdjustScaleX] = useState<number>(100);
-  const [adjustScaleY, setAdjustScaleY] = useState<number>(100);
-  const [isAspectLocked, setIsAspectLocked] = useState<boolean>(true);
+  const [selectedCharInfo, setSelectedCharInfo] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'selectedCharInfo',
+    persistedDefaults.selectedCharInfo
+  );
+  const [adjustDx, setAdjustDx] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'adjustDx',
+    persistedDefaults.adjustDx
+  );
+  const [adjustDy, setAdjustDy] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'adjustDy',
+    persistedDefaults.adjustDy
+  );
+  const [adjustScaleX, setAdjustScaleX] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'adjustScaleX',
+    persistedDefaults.adjustScaleX
+  );
+  const [adjustScaleY, setAdjustScaleY] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'adjustScaleY',
+    persistedDefaults.adjustScaleY
+  );
+  const [isAspectLocked, setIsAspectLocked] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'isAspectLocked',
+    persistedDefaults.isAspectLocked
+  );
 
   // Handle mouse wheel scrolling horizontally in vertical writing mode
   const handleVerticalWheel = useCallback(

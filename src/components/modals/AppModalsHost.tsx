@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   FontProject,
   PathContour,
@@ -12,6 +12,17 @@ import {
 import { ThemeMode, THEME_PRESETS } from '../../utils/theme';
 import { useModalContext } from '../../contexts/ModalContext';
 import { Palette, Check, X } from 'lucide-react';
+// [group d] Lifted Test Preview / Mojikumi Studio editing state (3-A1).
+// Imported from the small persistedState files (no compileFont dependency)
+// so this host does not pull opentype.js into the startup bundle.
+import {
+  createDefaultTestPreviewPersistedState,
+  type TestPreviewPersistedState,
+} from '../testpreview/persistedState';
+import {
+  createDefaultMojikumiPersistedState,
+  type MojikumiPersistedState,
+} from '../mojikumi/persistedState';
 
 const TestPreviewModal = lazy(() =>
   import('../testpreview').then((module) => ({ default: module.TestPreviewModal }))
@@ -154,11 +165,41 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
 
   // Export modal settings kept here so they survive closing and reopening
   // the modal (ExportModal unmounts when activeModal changes).
-  const [exportFormat, setExportFormat] = useState<'ttf' | 'otf'>('ttf');
+  const [exportFormat, setExportFormat] = useState<'otf'>('otf');
   const [exportSizePreset, setExportSizePreset] = useState<'raw' | 'standard_jp' | 'custom'>('raw');
   const [exportCustomScale, setExportCustomScale] = useState<number>(1.0);
   const [exportPreviewText, setExportPreviewText] = useState<string>('あいう 色は匂へど 漢字 123 ABC');
   const [exportPreviewFontSize, setExportPreviewFontSize] = useState<number>(28);
+  // 2-A2: overlap merging and side-bearing balancing live here too, using
+  // the same pattern as the five settings above. The initial values follow
+  // the project at mount time (off for pixel projects, on otherwise);
+  // after that the user's choice persists across reopening the modal.
+  const [exportMergeOverlaps, setExportMergeOverlaps] = useState<boolean>(
+    () => !project.pixelFontSettings?.isPixelFontProject
+  );
+  const [exportBalanceSideBearings, setExportBalanceSideBearings] = useState<boolean>(
+    () => !project.pixelFontSettings?.isPixelFontProject
+  );
+
+  // [group d] Test Preview / Mojikumi Studio editing state kept here so it
+  // survives switching between the two modals (each modal unmounts when
+  // activeModal changes, which previously reset its useState to defaults).
+  const [testPreviewPersisted, setTestPreviewPersisted] = useState<TestPreviewPersistedState>(
+    () => createDefaultTestPreviewPersistedState()
+  );
+  const [mojikumiPersisted, setMojikumiPersisted] = useState<MojikumiPersistedState>(() =>
+    createDefaultMojikumiPersistedState(project)
+  );
+
+  // [group d] A different project starts from defaults again.
+  const prevProjectIdRef = useRef(project.id);
+  useEffect(() => {
+    if (prevProjectIdRef.current !== project.id) {
+      prevProjectIdRef.current = project.id;
+      setTestPreviewPersisted(createDefaultTestPreviewPersistedState());
+      setMojikumiPersisted(createDefaultMojikumiPersistedState(project));
+    }
+  }, [project]);
 
   return (
     <Suspense
@@ -272,6 +313,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           theme={theme}
           onShowToast={showToast}
           onOpenMojikumiStudio={() => openModal('mojikumi')}
+          persistedState={testPreviewPersisted}
+          onPersistedStateChange={setTestPreviewPersisted}
         />
       )}
 
@@ -497,6 +540,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           onPreviewTextChange={setExportPreviewText}
           previewFontSize={exportPreviewFontSize}
           onPreviewFontSizeChange={setExportPreviewFontSize}
+          mergeOverlaps={exportMergeOverlaps}
+          onMergeOverlapsChange={setExportMergeOverlaps}
+          balanceSideBearings={exportBalanceSideBearings}
+          onBalanceSideBearingsChange={setExportBalanceSideBearings}
         />
       )}
 
@@ -552,6 +599,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           onShowToast={showToast}
           onOpenOpenTypeModal={() => openModal('openTypeFeatures')}
           onOpenTestPreview={() => openModal('test')}
+          persistedState={mojikumiPersisted}
+          onPersistedStateChange={setMojikumiPersisted}
         />
       )}
 

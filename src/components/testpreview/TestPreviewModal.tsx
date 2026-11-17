@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sliders, Edit3 } from 'lucide-react';
 import { TestPreviewModalProps } from './types';
-import { useTestPreviewState } from './hooks/useTestPreviewState';
+import { useTestPreviewState, type TestPreviewPersistedState } from './hooks/useTestPreviewState';
 import { getThemeClasses } from '../../utils/theme';
 import { PreviewToolbar } from './PreviewToolbar';
 import { TextControlsPanel } from './TextControlsPanel';
@@ -10,7 +10,14 @@ import { PreviewCanvas } from './PreviewCanvas';
 import { CharAdjustPanel } from './CharAdjustPanel';
 import { PreviewFooter } from './PreviewFooter';
 
-export const TestPreviewModal: React.FC<TestPreviewModalProps> = (props) => {
+export interface TestPreviewModalWithPersistedProps extends TestPreviewModalProps {
+  // Lifted editing state held by AppModalsHost so it survives switching to
+  // the Mojikumi Studio modal and back. Omitted for standalone use.
+  persistedState?: TestPreviewPersistedState;
+  onPersistedStateChange?: React.Dispatch<React.SetStateAction<TestPreviewPersistedState>>;
+}
+
+export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (props) => {
   const { isOpen, onClose, project, setProject, onSelectGlyphForEdit, onOpenMojikumiStudio } = props;
   const state = useTestPreviewState(props);
   const themeClasses = getThemeClasses(props.theme);
