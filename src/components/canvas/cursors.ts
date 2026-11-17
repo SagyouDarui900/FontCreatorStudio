@@ -33,7 +33,18 @@ export const HIGH_CONTRAST_ANCHOR_ERASER_CURSOR = `url("data:image/svg+xml,${enc
 export const HIGH_CONTRAST_ERASER_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(HIGH_CONTRAST_RETICLE_SVG)}") 16 16, crosshair`;
 export const HIGH_CONTRAST_CROSSHAIR_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(HIGH_CONTRAST_RETICLE_SVG)}") 16 16, crosshair`;
 
+export const CONTOUR_SVG_CACHE_MAX_ENTRIES = 500;
+
 export const contourSvgCache = new Map<string, string>();
+
+// contoursToSvgPath rounds every coordinate to 2 decimal places, so the
+// key uses the same rounding: values differing by less than 0.01 would
+// otherwise create separate entries for an identical path.
+const fmtCoord = (v: number | undefined | null): string => {
+  if (v === undefined || v === null || !Number.isFinite(v)) return '';
+  return String(Number(v.toFixed(2)));
+};
+
 export const getCachedContourSvgPath = (c: PathContour): string => {
   // The key must cover every value that shapes the SVG path output
   // (contoursToSvgPath uses each node's x/y, handleIn and handleOut, plus
@@ -46,12 +57,20 @@ export const getCachedContourSvgPath = (c: PathContour): string => {
     (c.nodes ?? [])
       .map(
         (n) =>
-          `${n.x},${n.y},${n.handleIn?.x ?? ''},${n.handleIn?.y ?? ''},${n.handleOut?.x ?? ''},${n.handleOut?.y ?? ''}`
+          `${fmtCoord(n.x)},${fmtCoord(n.y)},${fmtCoord(n.handleIn?.x)},${fmtCoord(n.handleIn?.y)},${fmtCoord(n.handleOut?.x)},${fmtCoord(n.handleOut?.y)}`
       )
       .join(';'),
   ].join('|');
-  if (!contourSvgCache.has(key)) {
-    contourSvgCache.set(key, contoursToSvgPath([c]));
+  const cached = contourSvgCache.get(key);
+  if (cached !== undefined) return cached;
+  const path = contoursToSvgPath([c]);
+  // Map keeps insertion order: evict the oldest entries first so the
+  // cache stays bounded.
+  while (contourSvgCache.size >= CONTOUR_SVG_CACHE_MAX_ENTRIES) {
+    const oldest = contourSvgCache.keys().next();
+    if (oldest.done) break;
+    contourSvgCache.delete(oldest.value);
   }
-  return contourSvgCache.get(key)!;
+  contourSvgCache.set(key, path);
+  return path;
 };

@@ -444,7 +444,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  type="button"
  onClick={handleAutoKernAllPairs}
- className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 cursor-pointer transition-colors"
+ className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 cursor-pointer transition-colors"
  title="作図済みグリフの光学プロファイルからペアカーニングを自動計算"
  >
  <Sparkles className="w-3 h-3" />
@@ -455,7 +455,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  {KERNING_PRESET_GROUPS.map((group) => (
  <div
  key={group.id}
- className={`p-2 rounded border flex items-center justify-between text-xs transition-colors ${themeClasses.cardBg}`}
+ className={`p-2 rounded-lg border flex items-center justify-between text-xs transition-colors ${themeClasses.cardBg}`}
  >
  <div className="flex flex-col">
  <span className="font-bold text-[11px]">{group.name}</span>
@@ -463,7 +463,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
  <button
  onClick={() => handleApplyPresetGroup(group)}
- className={`px-2.5 py-1 text-[10px] font-bold rounded shrink-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`px-2.5 py-1 text-[10px] font-bold rounded-lg shrink-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  一括登録
  </button>
@@ -487,7 +487,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="左 (A)"
  value={customLeft}
  onChange={(e) => setCustomLeft(e.target.value)}
- className={`w-14 p-1.5 rounded border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <span className={`font-bold ${themeClasses.textMuted}`}>+</span>
  <input
@@ -496,7 +496,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="右 (V)"
  value={customRight}
  onChange={(e) => setCustomRight(e.target.value)}
- className={`w-14 p-1.5 rounded border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <input
  type="number"
@@ -504,11 +504,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="-100"
  value={customValue}
  onChange={(e) => setCustomValue(Number(e.target.value))}
- className={`w-20 p-1.5 rounded border text-center font-mono font-bold ${themeClasses.cardBg}`}
+ className={`w-20 p-1.5 rounded-lg border text-center font-mono font-bold ${themeClasses.cardBg}`}
  />
  <button
  onClick={handleAddCustomPair}
- className={`flex-1 py-1.5 px-3 rounded font-bold text-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  追加
  </button>

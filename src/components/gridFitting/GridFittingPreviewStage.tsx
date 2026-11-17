@@ -102,7 +102,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 flex-1">
         {/* 1. Vector Path & Stem Guide Overlay */}
         <div
-          className={`p-3 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
+          className={`p-3 sm:p-4 rounded-xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
             mobilePreviewDisplay === 'raster' ? 'hidden sm:flex' : 'flex'
           } ${themeClasses.subtoolbarBg}`}
         >
@@ -182,7 +182,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
 
         {/* 2. Low-Res Raster Simulation Canvas */}
         <div
-          className={`p-3 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
+          className={`p-3 sm:p-4 rounded-xl border flex flex-col justify-between space-y-2 sm:space-y-3 relative overflow-hidden ${
             mobilePreviewDisplay === 'vector' ? 'hidden sm:flex' : 'flex'
           } ${themeClasses.subtoolbarBg}`}
         >

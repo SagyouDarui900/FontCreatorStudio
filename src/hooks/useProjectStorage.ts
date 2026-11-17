@@ -209,8 +209,16 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
                 if (removedNotice) {
                   onShowToastRef.current(removedNotice, 'warning');
                 }
-                // Migrate LocalStorage project to IndexedDB for safety
-                void saveProjectToIndexedDB(validatedLocal);
+                if (restoreFailure) {
+                  // IndexedDB could not be read, so the LocalStorage
+                  // copy is used instead. It is not written back to
+                  // IndexedDB: the unreadable data there may be newer
+                  // than this copy.
+                  onShowToastRef.current(
+                    `${restoreFailure} 古いLocalStorageのコピーを表示しています。IndexedDBのデータは上書きしていません。`,
+                    'warning'
+                  );
+                }
                 return;
               }
               if (!restoreFailure) {

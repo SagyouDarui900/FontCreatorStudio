@@ -11,8 +11,15 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['apple-touch-icon.png', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+        registerType: 'prompt',
+        // includeManifestIcons は false にする。既定値 true では manifest
+        // の icons 3 件が precache に追加され、globPatterns でも同じ
+        // ファイルを拾うため同一ファイルが 2 回列挙される。false にしても
+        // globPatterns で拾われるため precache から消えない。
+        includeManifestIcons: false,
+        // includeAssets は指定しない。public/ のアイコン類は下の
+        // globPatterns (**/*.{...,png,svg,...}) で precache されるため、
+        // ここに列挙すると同一ファイルがマニフェストに 2 回入る。
         manifest: {
           id: './',
           name: 'FontCreator',
@@ -53,10 +60,10 @@ export default defineConfig(() => {
           // ビルド時に列挙できない。オンライン時に取得したフォントは下の
           // CacheFirst の runtimeCaching で保持され、次回以降のオフラインで使える。
           // 初回オフラインで下絵フォントが使えない点は OfflineIndicator で表示する。
-          // 上限は 60 件。woff2 は unicode-range ごとに分割されるため、60 件で
-          // 5 書体 × 複数文字をまかなえる。1 件あたり数十 KB のため、合計は数 MB
-          // 程度で Workbox の制限を超えない。上限を超えた分はキャッシュから
-          // 削除され、オフラインで使えない場合がある。
+          // 上限は 120 件。woff2 は unicode-range ごとに分割されるため、120 件で
+          // 全書体・全ウェイトの複数文字をまかなえる。1 件あたり数十 KB のため、
+          // 合計は数 MB 程度で Workbox の制限を超えない。上限を超えた分は
+          // キャッシュから削除され、オフラインで使えない場合がある。
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -64,7 +71,7 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'google-fonts-cache',
                 expiration: {
-                  maxEntries: 60,
+                  maxEntries: 120,
                   maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
@@ -78,7 +85,7 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'gstatic-fonts-cache',
                 expiration: {
-                  maxEntries: 60,
+                  maxEntries: 120,
                   maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {

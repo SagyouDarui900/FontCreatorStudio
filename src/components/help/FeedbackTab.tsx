@@ -69,7 +69,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
     <div className="space-y-4">
       {/* Intro Banner */}
       <div
-        className={`p-4 border relative ${
+        className={`p-4 rounded-lg border relative ${
           isLight
             ? 'bg-stone-50 border-stone-200'
             : 'bg-[#152018] border-[#25362b]'
@@ -77,7 +77,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
       >
         <div className="space-y-1.5">
           <div className="flex items-center space-x-2">
-            <span className="p-1.5 bg-emerald-700 text-white">
+            <span className="p-1.5 rounded-lg bg-emerald-700 text-white">
               <Github className="w-4 h-4" />
             </span>
             <h3 className="text-sm font-bold text-stone-900 dark:text-emerald-100">
@@ -92,7 +92,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 
       {/* GitHub Repository Card */}
       <div
-        className={`p-3.5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+        className={`p-3.5 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
           isLight ? 'bg-white border-stone-200' : 'bg-[#152018] border-[#25362b]'
         }`}
       >
@@ -110,7 +110,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
         <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto">
           <button
             onClick={handleCopyRepoUrl}
-            className={`flex-1 sm:flex-initial py-1.5 px-2.5 text-xs font-semibold flex items-center justify-center space-x-1.5 border transition-colors ${
+            className={`flex-1 sm:flex-initial py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 border transition-colors ${
               copiedUrl
                 ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300'
                 : isLight
@@ -126,7 +126,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
             href={GITHUB_REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 sm:flex-initial py-1.5 px-3 text-xs font-bold flex items-center justify-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white dark:bg-emerald-700 dark:hover:bg-emerald-600 border border-stone-900 dark:border-emerald-600 transition-colors"
+            className="flex-1 sm:flex-initial py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 bg-stone-900 hover:bg-stone-800 text-white dark:bg-emerald-700 dark:hover:bg-emerald-600 border border-stone-900 dark:border-emerald-600 transition-colors"
           >
             <Github className="w-3.5 h-3.5" />
             <span>GitHubを開く</span>
@@ -137,7 +137,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 
       {/* Main Focus: Bug Report Card */}
       <div
-        className={`p-3.5 border flex flex-col justify-between space-y-3 transition-colors ${
+        className={`p-3.5 rounded-lg border flex flex-col justify-between space-y-3 transition-colors ${
           isLight
             ? 'bg-white border-rose-300'
             : 'bg-[#181d19] border-rose-900'
@@ -158,7 +158,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
             href={GITHUB_NEW_ISSUE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 py-2 px-3 text-xs font-bold flex items-center justify-center space-x-1.5 bg-rose-700 hover:bg-rose-800 text-white border border-rose-800 transition-colors"
+            className="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 bg-rose-700 hover:bg-rose-800 text-white border border-rose-800 transition-colors"
           >
             <Github className="w-3.5 h-3.5" />
             <span>GitHub Issue で不具合を報告する</span>
@@ -166,7 +166,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
           </a>
           <button
             onClick={handleCopyTemplate}
-            className={`py-1.5 px-2.5 text-xs font-semibold flex items-center justify-center space-x-1 border transition-colors ${
+            className={`py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 border transition-colors ${
               copiedTemplate
                 ? 'bg-emerald-100 text-emerald-900 border-emerald-400 dark:bg-emerald-950 dark:text-emerald-300'
                 : isLight
@@ -183,7 +183,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 
       {/* Guide on Reporting Issues */}
       <div
-        className={`p-3.5 border space-y-2 ${
+        className={`p-3.5 rounded-lg border space-y-2 ${
           isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#141e17] border-[#223326]'
         }`}
       >
@@ -206,7 +206,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 
       {/* Technical & Environment Details */}
       <div
-        className={`p-3.5 border space-y-2 ${
+        className={`p-3.5 rounded-lg border space-y-2 ${
           isLight ? 'bg-stone-50/80 border-stone-200' : 'bg-[#121c15] border-[#223326]'
         }`}
       >
@@ -217,16 +217,16 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
               現在の動作環境・アプリ情報
             </span>
           </div>
-          <span className="text-[10px] px-1.5 py-0.5 font-mono border bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800">
+          <span className="text-[10px] px-1.5 py-0.5 rounded font-mono border bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800">
             PWA Ready / Offline Supported
           </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-stone-600 dark:text-stone-400 pt-1">
-          <div className="flex items-center justify-between p-2 bg-white dark:bg-[#16221a] border border-stone-200 dark:border-stone-800">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#16221a] border border-stone-200 dark:border-stone-800">
             <span>アプリバージョン:</span>
             <span className="font-mono font-bold text-stone-900 dark:text-stone-100">v2.1.0</span>
           </div>
-          <div className="flex items-center justify-between p-2 bg-white dark:bg-[#16221a] border border-stone-200 dark:border-stone-800">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#16221a] border border-stone-200 dark:border-stone-800">
             <span>データ保存形式:</span>
             <span className="font-mono font-bold text-stone-900 dark:text-stone-100">IndexedDB + LocalStorage</span>
           </div>

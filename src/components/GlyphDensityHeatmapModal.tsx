@@ -118,6 +118,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
       };
       setProject((prev) => ({
         ...prev,
+        updatedAt: Date.now(),
         glyphs: {
           ...prev.glyphs,
           [unicode]: updatedGlyph,
@@ -148,6 +149,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
       };
       setProject((prev) => ({
         ...prev,
+        updatedAt: Date.now(),
         glyphs: {
           ...prev.glyphs,
           [unicode]: updatedGlyph,
@@ -179,6 +181,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
       };
       setProject((prev) => ({
         ...prev,
+        updatedAt: Date.now(),
         glyphs: {
           ...prev.glyphs,
           [unicode]: updatedGlyph,
@@ -216,6 +219,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
       };
       setProject((prev) => ({
         ...prev,
+        updatedAt: Date.now(),
         glyphs: {
           ...prev.glyphs,
           [unicode]: updatedGlyph,
@@ -243,6 +247,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
     };
     setProject((prev) => ({
       ...prev,
+      updatedAt: Date.now(),
       glyphs: {
         ...prev.glyphs,
         [unicode]: updatedGlyph,

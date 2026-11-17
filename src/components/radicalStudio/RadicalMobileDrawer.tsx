@@ -224,7 +224,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  <div className="grid grid-cols-3 gap-1 p-0.5 rounded-lg bg-stone-200/70 dark:bg-[#1b261f]">
  <button
  onClick={() => setLeftSidebarTab('presets')}
- className={`py-1.5 text-xs font-bold rounded-md ${
+ className={`py-1.5 text-xs font-bold rounded-lg ${
  leftSidebarTab === 'presets'
  ? 'bg-white dark:bg-[#25362b] text-emerald-900 dark:text-emerald-200 shadow-xs'
  : 'text-stone-600 dark:text-stone-400'
@@ -234,7 +234,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  </button>
  <button
  onClick={() => setLeftSidebarTab('kanji_db')}
- className={`py-1.5 text-xs font-bold rounded-md ${
+ className={`py-1.5 text-xs font-bold rounded-lg ${
  leftSidebarTab === 'kanji_db'
  ? 'bg-white dark:bg-[#25362b] text-emerald-900 dark:text-emerald-200 shadow-xs'
  : 'text-stone-600 dark:text-stone-400'
@@ -244,7 +244,7 @@ export const RadicalMobileDrawer: React.FC<RadicalMobileDrawerProps> = React.mem
  </button>
  <button
  onClick={() => setLeftSidebarTab('custom')}
- className={`py-1.5 text-xs font-bold rounded-md ${
+ className={`py-1.5 text-xs font-bold rounded-lg ${
  leftSidebarTab === 'custom'
  ? 'bg-white dark:bg-[#25362b] text-emerald-900 dark:text-emerald-200 shadow-xs'
  : 'text-stone-600 dark:text-stone-400'

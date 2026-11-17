@@ -144,7 +144,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
               onClick={() => setShowPenStrokeMenu(false)}
             >
               <div
-                className={`p-3 rounded-2xl shadow-2xl border flex flex-col space-y-2.5 min-w-[240px] text-xs pointer-events-auto anim-pop ${
+                className={`p-3 rounded-xl shadow-2xl border flex flex-col space-y-2.5 min-w-[240px] text-xs pointer-events-auto anim-pop ${
                   isLight
                     ? 'bg-white border-sky-200 text-stone-800'
                     : 'bg-[#0f1b14] border-sky-800/80 text-sky-100'

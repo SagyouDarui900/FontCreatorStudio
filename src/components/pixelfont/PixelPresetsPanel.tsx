@@ -190,7 +190,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
         <div className="w-full min-w-[320px] max-sm:min-w-0 sm:min-w-[360px] max-w-2xl mx-auto space-y-3.5">
           {/* Top Quick Status & Return to Canvas Bar */}
           <div
-            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 shrink-0 ${
+            className={`p-2.5 rounded-none border flex items-center justify-between gap-2 shrink-0 ${
               isLight ? 'bg-white border-stone-200' : 'bg-[#142018] border-[#25382b]'
             }`}
           >
@@ -347,7 +347,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       onClick={() => {
                         changeGridSize(sz, sz);
                       }}
-                      className={`px-2 py-0.5 rounded text-[10.5px] font-mono font-bold border transition-colors cursor-pointer ${
+                      className={`px-2 py-0.5 rounded-none text-[10.5px] font-mono font-bold border transition-colors cursor-pointer ${
                         gridWidth === sz && gridHeight === sz
                           ? 'bg-emerald-600 text-white border-emerald-500'
                           : 'bg-white dark:bg-[#18261f] border-stone-300 dark:border-stone-700 hover:bg-emerald-50 dark:hover:bg-emerald-950'
@@ -363,7 +363,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
 
           {/* 2. Dot Shape */}
           <div
-            className={`p-3 rounded-xl border space-y-2.5 ${
+            className={`p-3 rounded-none border space-y-2.5 ${
               isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#142018] border-[#25382b] text-emerald-100'
             }`}
           >
@@ -385,7 +385,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     autoSaveGlyph(grid, currentUnicode, undefined, undefined, nextShape);
                     onShowToast(`ドット形状を「${shape.label}」に設定しました`, 'info');
                   }}
-                  className={`p-2.5 border text-left rounded-xl transition-colors active:scale-95 cursor-pointer ${
+                  className={`p-2.5 border text-left rounded-none transition-colors active:scale-95 cursor-pointer ${
                     dotShape === shape.id
                       ? 'bg-emerald-600 text-white border-emerald-500 font-bold'
                       : isLight
@@ -406,7 +406,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           {/* 3. Trace & Underlay Reference */}
           {setShowTrace && (
             <div
-              className={`p-3 rounded-xl border space-y-3 ${
+              className={`p-3 rounded-none border space-y-3 ${
                 isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#142018] border-[#25382b] text-emerald-100'
               }`}
             >
@@ -415,7 +415,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <ImageIcon className="w-4 h-4 shrink-0" />
                   <span className="truncate">下絵・トレース参照レイヤー</span>
                 </span>
-                <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-none border border-emerald-200 dark:border-emerald-800">
                   <input
                     type="checkbox"
                     checked={showTrace}
@@ -430,7 +430,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setTraceSource('font')}
-                    className={`flex-1 py-2 px-2 text-xs font-bold border rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 px-2 text-xs font-bold border rounded-none transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
                       traceSource === 'font'
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : isLight
@@ -446,7 +446,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       setTraceSource('image');
                       fileInputRef?.current?.click();
                     }}
-                    className={`flex-1 py-2 px-2 text-xs font-bold border rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 px-2 text-xs font-bold border rounded-none transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
                       traceSource === 'image'
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : isLight
@@ -461,7 +461,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
               )}
 
               {traceSource === 'font' ? (
-                <div className="space-y-2 p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812]">
+                <div className="space-y-2 p-2.5 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812]">
                   <span className="text-[11px] font-bold opacity-75">参照文字 & フォント書体:</span>
                   <div className="flex gap-2">
                     <input
@@ -469,12 +469,12 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                       value={traceChar}
                       onChange={(e) => setTraceChar?.(e.target.value)}
                       placeholder="文字"
-                      className="w-14 text-center font-bold text-sm py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                      className="w-14 text-center font-bold text-sm py-1.5 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
                     />
                     <select
                       value={traceFontFamily}
                       onChange={(e) => setTraceFontFamily?.(e.target.value)}
-                      className="flex-1 text-xs py-1.5 px-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-medium"
+                      className="flex-1 text-xs py-1.5 px-2 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-medium"
                     >
                       <option value="sans-serif">ゴシック体 (Sans-serif)</option>
                       <option value="serif">明朝体 (Serif)</option>
@@ -484,11 +484,11 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-2">
+                <div className="p-2.5 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold opacity-75">読み込み中の画像:</span>
                     <span
-                      className={`text-[10.5px] font-bold px-2 py-0.5 rounded-md ${
+                      className={`text-[10.5px] font-bold px-2 py-0.5 rounded-none ${
                         traceImageSrc
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                           : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
@@ -500,7 +500,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => fileInputRef?.current?.click()}
-                      className="flex-1 py-1.5 px-2.5 text-xs font-bold border border-emerald-600 bg-emerald-600 text-white rounded-lg flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
+                      className="flex-1 py-1.5 px-2.5 text-xs font-bold border border-emerald-600 bg-emerald-600 text-white rounded-none flex items-center justify-center gap-1 active:scale-95 cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>画像を変更・再選択</span>
@@ -512,7 +512,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           if (traceImageRef) traceImageRef.current = null;
                           onShowToast('下絵画像をクリアしました', 'info');
                         }}
-                        className="px-2.5 py-1.5 text-xs font-bold border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg active:scale-95 cursor-pointer"
+                        className="px-2.5 py-1.5 text-xs font-bold border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-none active:scale-95 cursor-pointer"
                       >
                         クリア
                       </button>
@@ -562,7 +562,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
 
               {/* Position Offset Controls */}
               {setTraceOffsetX && setTraceOffsetY && (
-                <div className="p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1.5">
+                <div className="p-2.5 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold opacity-75">下絵位置の微調整 (X/Y):</span>
                     <span className="font-mono text-[11px]">
@@ -574,28 +574,28 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setTraceOffsetX((prev) => prev - 1)}
-                        className="w-8 h-8 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                        className="w-8 h-8 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
                         title="左へ移動"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setTraceOffsetX((prev) => prev + 1)}
-                        className="w-8 h-8 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                        className="w-8 h-8 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
                         title="右へ移動"
                       >
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setTraceOffsetY((prev) => prev - 1)}
-                        className="w-8 h-8 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                        className="w-8 h-8 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
                         title="上へ移動"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setTraceOffsetY((prev) => prev + 1)}
-                        className="w-8 h-8 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                        className="w-8 h-8 rounded-none border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
                         title="下へ移動"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
@@ -608,7 +608,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                           setTraceOffsetX(0);
                           setTraceOffsetY(0);
                         }}
-                        className="px-2 py-1 text-xs font-bold border border-stone-300 dark:border-stone-700 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center gap-1 active:scale-95 cursor-pointer"
+                        className="px-2 py-1 text-xs font-bold border border-stone-300 dark:border-stone-700 rounded-none hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center gap-1 active:scale-95 cursor-pointer"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>中央揃え</span>
@@ -645,7 +645,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                         onReturnToCanvas();
                       }
                     }}
-                    className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 cursor-pointer border border-emerald-500 transition-colors"
+                    className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-none flex items-center justify-center space-x-2 active:scale-95 cursor-pointer border border-emerald-500 transition-colors"
                   >
                     <Sparkles className="w-4 h-4 shrink-0" />
                     <span>下絵から自動ドット化してキャンバスへ</span>
@@ -658,7 +658,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           {/* 4. Canvas Visual Guides */}
           {setShowGridLines && setShowSubdivisions && setSymmetryH && setSymmetryV && (
             <div
-              className={`p-3 rounded-xl border space-y-2.5 text-xs ${
+              className={`p-3 rounded-none border space-y-2.5 text-xs ${
                 isLight ? 'bg-white border-stone-200 text-stone-900' : 'bg-[#142018] border-[#25382b] text-emerald-100'
               }`}
             >
@@ -666,7 +666,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                 ガイド線 & 対称描画設定
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center space-x-2 p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
+                <label className="flex items-center space-x-2 p-2 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showGridLines}
@@ -676,7 +676,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <span className="font-bold text-xs">方眼グリッド線</span>
                 </label>
 
-                <label className="flex items-center space-x-2 p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
+                <label className="flex items-center space-x-2 p-2 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showSubdivisions}
@@ -686,7 +686,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <span className="font-bold text-xs">中心分割線</span>
                 </label>
 
-                <label className="flex items-center space-x-2 p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
+                <label className="flex items-center space-x-2 p-2 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={symmetryH}
@@ -696,7 +696,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
                   <span className="font-bold text-xs">左右対称描画</span>
                 </label>
 
-                <label className="flex items-center space-x-2 p-2 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
+                <label className="flex items-center space-x-2 p-2 rounded-none border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#101812] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={symmetryV}
@@ -713,7 +713,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           {onReturnToCanvas && (
             <button
               onClick={onReturnToCanvas}
-              className="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white dark:bg-stone-700 dark:hover:bg-stone-600 font-bold text-xs rounded-xl flex items-center justify-center space-x-2 active:scale-95 transition-colors cursor-pointer"
+              className="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white dark:bg-stone-700 dark:hover:bg-stone-600 font-bold text-xs rounded-none flex items-center justify-center space-x-2 active:scale-95 transition-colors cursor-pointer"
             >
               <Pencil className="w-4 h-4" />
               <span>作図キャンバスに戻る</span>

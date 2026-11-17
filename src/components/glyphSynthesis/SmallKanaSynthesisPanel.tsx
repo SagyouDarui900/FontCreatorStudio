@@ -262,7 +262,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
       {/* Right Live Preview Box */}
       <div className="lg:col-span-5 flex flex-col gap-3">
         <div
-          className={`p-4 rounded-2xl border flex flex-col items-center justify-center shadow-xs ${themeClasses.cardBg} ${themeClasses.border}`}
+          className={`p-4 rounded-xl border flex flex-col items-center justify-center shadow-xs ${themeClasses.cardBg} ${themeClasses.border}`}
         >
           <div className="w-full flex items-center justify-between text-xs font-bold mb-2 pb-1.5 border-b">
             <span className="flex items-center gap-1.5">
@@ -275,7 +275,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
           </div>
 
           <div
-            className={`w-full aspect-square max-w-[280px] relative rounded-2xl border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+            className={`w-full aspect-square max-w-[280px] relative rounded-xl border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <div className="absolute inset-0 pointer-events-none opacity-20">
               <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />

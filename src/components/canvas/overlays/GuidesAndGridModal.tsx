@@ -83,7 +83,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors cursor-pointer"
+            className="p-1 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

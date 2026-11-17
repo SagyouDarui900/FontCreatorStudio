@@ -179,11 +179,16 @@ export function sanitizeCustomParts(rawParts: unknown): CustomPart[] {
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+function forgetDb(): void {
+  dbPromise = null;
+}
+
 function getDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
 
   dbPromise = new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
+      dbPromise = null;
       reject(new Error('IndexedDB is not supported'));
       return;
     }
@@ -198,11 +203,22 @@ function getDB(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      // Drop the cached connection when it closes or another tab triggers
+      // a version change, so the next call opens a fresh one.
+      db.addEventListener('close', forgetDb);
+      db.addEventListener('versionchange', () => {
+        db.close();
+        forgetDb();
+      });
+      resolve(db);
     };
 
     request.onerror = () => {
       console.error('IndexedDB open error:', request.error);
+      // Forget the rejected promise so the next call retries opening
+      // the database instead of reusing the rejection.
+      dbPromise = null;
       reject(request.error);
     };
   });
@@ -273,11 +289,20 @@ export async function loadCustomParts(): Promise<CustomPart[]> {
         (a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)
       );
     }
+
+    // IndexedDB is empty but already initialized: the user deleted all
+    // parts (or saved an empty list). Do not read the LocalStorage
+    // fallback, or the old copy would come back.
+    if (isCustomPartsInitialized()) {
+      return [];
+    }
   } catch (err) {
     console.warn('Failed to load from IndexedDB, trying localStorage fallback:', err);
   }
 
-  // Fallback & automatic migration from localStorage
+  // Fallback & automatic migration from localStorage. This runs only when
+  // IndexedDB has never been initialized, or when the IndexedDB read
+  // itself failed and the stored state is unknown.
   try {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
@@ -285,15 +310,16 @@ export async function loadCustomParts(): Promise<CustomPart[]> {
       if (Array.isArray(parsed) && parsed.length > 0) {
         const sanitized = sanitizeCustomParts(parsed);
         if (sanitized.length === 0) return [];
-        // Save to IndexedDB asynchronously
-        saveCustomParts(sanitized).then(() => {
-          try {
-            // Remove from localStorage to clear quota
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-          } catch {
-            // ignore
-          }
-        });
+        // Migrate to IndexedDB and wait for it to finish, so the
+        // LocalStorage copy is not left behind when the tab closes
+        // before the asynchronous migration runs.
+        await saveCustomParts(sanitized);
+        try {
+          // Remove from localStorage to clear quota
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch {
+          // ignore
+        }
         return sanitized;
       }
     }
@@ -385,6 +411,13 @@ export async function saveCustomParts(parts: CustomPart[]): Promise<SaveCustomPa
     });
 
     markCustomPartsInitialized();
+    // A copy written to LocalStorage as a fallback while IndexedDB
+    // saving failed must not remain after a later successful save.
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     dispatchCustomPartsUpdated();
     return { ok: true, fallbackSavedCount: 0, fallbackDroppedCount: 0 };
   } catch (err) {
@@ -398,4 +431,33 @@ export async function saveCustomParts(parts: CustomPart[]): Promise<SaveCustomPa
       return { ok: false, fallbackSavedCount: 0, fallbackDroppedCount: compacted.length };
     }
   }
+}
+
+/**
+ * Delete all custom parts from IndexedDB and LocalStorage.
+ * The initialized flag is kept: an empty store with the flag set means
+ * the user deleted all parts, and loadCustomParts must return an empty
+ * array instead of falling back to an old LocalStorage copy or showing
+ * the default parts again.
+ */
+export async function deleteCustomParts(): Promise<boolean> {
+  try {
+    const db = await getDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error('Custom parts clear was aborted.'));
+    });
+  } catch (err) {
+    console.warn('Failed to clear custom parts from IndexedDB:', err);
+  }
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+  dispatchCustomPartsUpdated();
+  return true;
 }

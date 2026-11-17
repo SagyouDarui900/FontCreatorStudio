@@ -74,7 +74,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
               }
               setShowGridMenu((prev) => !prev);
             }}
-            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
               gridSettings.showGrid || showGridMenu
                 ? themeClasses.activeTool
                 : themeClasses.activeToolHover
@@ -106,7 +106,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {/* Snap to Grid */}
         <button
           onClick={() => setGridSettings((s) => ({ ...s, snapToGrid: !s.snapToGrid }))}
-          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.snapToGrid
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -119,7 +119,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {/* Metrics Lines Toggle */}
         <button
           onClick={() => setGridSettings((s) => ({ ...s, showMetrics: !s.showMetrics }))}
-          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.showMetrics
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -132,7 +132,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {/* Ruler Bars Toggle (Top/Left Rulers) */}
         <button
           onClick={() => setGridSettings((s) => ({ ...s, showRulers: !s.showRulers }))}
-          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.showRulers !== false
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -150,7 +150,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
               return { ...s, showCursorCrosshair: next, highContrastCursor: next };
             })
           }
-          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+          className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
             gridSettings.showCursorCrosshair
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
@@ -171,7 +171,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {onQuickSaveGlyph && (
           <button
             onClick={onQuickSaveGlyph}
-            className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+            className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
               themeClasses.activeToolHover
             }`}
             title="現在の文字を保存 (即時永続化 & 単体JSONバックアップ書き出し)"
@@ -184,7 +184,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
         {onOpenTraceModal && (
           <button
             onClick={onOpenTraceModal}
-            className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+            className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
               traceEnabled
                 ? themeClasses.activeTool
                 : themeClasses.activeToolHover

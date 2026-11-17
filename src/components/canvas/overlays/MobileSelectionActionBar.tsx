@@ -31,7 +31,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
 
   return (
     <div
-      className={`sm:hidden absolute bottom-2 left-2 right-2 z-30 flex items-center justify-between px-3 py-1.5 rounded-full border shadow-md whitespace-nowrap ${
+      className={`sm:hidden absolute bottom-2 left-2 right-2 z-30 flex items-center justify-between px-3 py-1.5 rounded-xl border shadow-md whitespace-nowrap ${
         isLight
           ? 'bg-white border-emerald-300 text-stone-800'
           : 'bg-[#121c15] border-emerald-700 text-emerald-100'

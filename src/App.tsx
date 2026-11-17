@@ -59,14 +59,30 @@ function AppMain({
   showToast,
   dismissToast,
 }: AppMainProps) {
-  // Service Worker update notice (PWA-2): with registerType 'autoUpdate'
-  // the new service worker activates on its own, but the open page keeps
-  // running the old JS until it reloads. Prompt the user to reload
-  // instead of reloading automatically, so editing data is not lost.
+  // Service Worker update notice: registerType 'prompt' では新しい
+  // Service Worker は waiting 状態で止まり、自動で有効化も再読み込みも
+  // されない。onNeedRefresh で needRefresh が true になり、下のバナーが
+  // 表示される。バナーの「再読み込み」で updateServiceWorker(true) を呼ぶと
+  // skipWaiting が送られ、新しい Service Worker が制御を取ってページが
+  // 再読み込みされる。自動保存は 2000ms デバウンスのため、再読み込みは
+  // ユーザーの選択に任せる。onRegisteredSW では 60 分ごとに更新を確認する。
+  // prompt モードでは vite-plugin-pwa は skipWaiting / clientsClaim を
+  // 生成しないため、ここでの指定は不要。
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW();
+  } = useRegisterSW({
+    onNeedRefresh: () => {
+      setNeedRefresh(true);
+    },
+    onRegisteredSW: (_swUrl, registration) => {
+      if (registration) {
+        setInterval(() => {
+          void registration.update();
+        }, 60 * 60 * 1000);
+      }
+    },
+  });
 
   const {
     project,
@@ -168,7 +184,7 @@ function AppMain({
     const stored = toStoredTraceSettings(traceSettings);
     setProject((prev) => {
       if (JSON.stringify(prev.traceSettings ?? null) === JSON.stringify(stored)) return prev;
-      return { ...prev, traceSettings: stored };
+      return { ...prev, traceSettings: stored, updatedAt: Date.now() };
     });
   }, [traceSettings, setProject]);
 
@@ -900,7 +916,7 @@ function AppContent() {
       {(restoreFailed || autoSaveFailed) && (
         <div
           role="alert"
-          className="fixed left-1/2 top-3 z-[80] w-[min(92vw,560px)] -translate-x-1/2 rounded-xl border border-red-300 bg-red-50 p-3 text-xs text-red-900 shadow-lg dark:border-red-800 dark:bg-red-950 dark:text-red-100"
+          className="fixed left-1/2 top-3 z-[80] w-[min(92vw,560px)] -translate-x-1/2 rounded-none border border-red-300 bg-red-50 p-3 text-xs text-red-900 shadow-lg dark:border-red-800 dark:bg-red-950 dark:text-red-100"
         >
           <div className="font-bold">
             {restoreFailed ? '保存データの復元に失敗しました' : '自動保存に失敗しました'}
@@ -911,15 +927,15 @@ function AppContent() {
           <div className="mt-2 flex flex-wrap gap-2">
             {restoreFailed ? (
               <>
-                <button type="button" onClick={retryRestore} className="rounded-lg bg-red-600 px-3 py-2 font-bold text-white">
+                <button type="button" onClick={retryRestore} className="rounded-none bg-red-600 px-3 py-2 font-bold text-white">
                   復元を再試行する
                 </button>
-                <button type="button" onClick={discardCorruptDataAndStartFresh} className="rounded-lg border border-red-300 bg-white px-3 py-2 font-bold dark:bg-red-900">
+                <button type="button" onClick={discardCorruptDataAndStartFresh} className="rounded-none border border-red-300 bg-white px-3 py-2 font-bold dark:bg-red-900">
                   破損データを破棄して新規開始する
                 </button>
               </>
             ) : (
-              <button type="button" onClick={retryAutoSave} className="rounded-lg bg-red-600 px-3 py-2 font-bold text-white">
+              <button type="button" onClick={retryAutoSave} className="rounded-none bg-red-600 px-3 py-2 font-bold text-white">
                 自動保存を再試行する
               </button>
             )}

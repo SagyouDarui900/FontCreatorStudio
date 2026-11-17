@@ -27,7 +27,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div
-        className={`p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
@@ -117,7 +117,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
 
         {paltList.length === 0 ? (
           <div
-            className={`p-8 rounded-2xl border text-center space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+            className={`p-8 rounded-xl border text-center space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <Sparkles className="w-8 h-8 text-amber-500 mx-auto" />
             <div className="space-y-1">

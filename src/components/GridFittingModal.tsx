@@ -159,7 +159,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-1.5 shrink-0">
-            <div className="flex items-center space-x-0.5 bg-black/5 dark:bg-white/5 p-0.5 sm:p-1 rounded-xl">
+            <div className="flex items-center space-x-0.5 bg-black/5 dark:bg-white/5 p-0.5 sm:p-1 rounded-lg">
               {(
                 [
                   { id: 'grayscale', label: 'Anti-Alias' },
@@ -183,7 +183,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             <button
               onClick={() => setEnablePreview((prev) => !prev)}
-              className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-xl border text-[10px] sm:text-[11px] font-bold flex items-center space-x-1 transition-colors shrink-0 cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg border text-[10px] sm:text-[11px] font-bold flex items-center space-x-1 transition-colors shrink-0 cursor-pointer ${
                 enablePreview
                   ? `${themeClasses.accentBtn} border-transparent`
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`

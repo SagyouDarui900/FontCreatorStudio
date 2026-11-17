@@ -34,7 +34,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Ligature Overview & Add Form Card */}
       <div
-        className={`p-4 sm:p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`p-4 sm:p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         <div className="flex items-center space-x-3">
           <div
@@ -108,7 +108,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
           {ligatures.map((lig) => (
             <div
               key={lig.id}
-              className={`p-3.5 rounded-2xl border transition-colors flex items-center justify-between ${
+              className={`p-3.5 rounded-xl border transition-colors flex items-center justify-between ${
                 lig.enabled
                   ? `${themeClasses.cardBg} ${themeClasses.accentBorder}`
                   : `${themeClasses.subtoolbarBg} ${themeClasses.border} opacity-60`

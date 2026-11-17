@@ -34,7 +34,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-full sm:rounded-xl border shadow-md text-[11px] sm:text-xs font-medium max-w-full ${
+            className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border shadow-md text-[11px] sm:text-xs font-medium max-w-full ${
               isLight
                 ? isError
                   ? 'bg-rose-50 border-rose-200 text-rose-900'

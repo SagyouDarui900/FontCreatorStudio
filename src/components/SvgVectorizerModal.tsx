@@ -297,8 +297,8 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               ? 'w-screen h-screen bg-[#f7faf8] text-stone-800'
               : 'w-screen h-screen bg-[#151e18] text-emerald-100'
             : isLight
-            ? 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] rounded-none sm:rounded-2xl bg-[#f7faf8] border-[#c8ded3] text-stone-800'
+            : 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] rounded-none sm:rounded-2xl bg-[#151e18] border-[#25362b] text-emerald-100'
         }`}
       >
         {/* Header */}
@@ -351,7 +351,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center border transition-colors ${
+              className={`p-1 rounded-lg max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center border transition-colors ${
                 isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
               }`}
               title="閉じる (Esc)"
@@ -650,7 +650,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         onClose();
                       }}
                       disabled={vectorContours.length === 0}
-                      className={`w-full py-2.5 px-3 font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
+                      className={`w-full py-2.5 px-3 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
                         vectorContours.length === 0
                           ? 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
                           : isLight

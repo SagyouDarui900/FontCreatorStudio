@@ -22,7 +22,7 @@ export const OpenTypePreviewPanel: React.FC<OpenTypePreviewPanelProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div
-        className={`p-5 rounded-2xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -62,7 +62,7 @@ export const OpenTypePreviewPanel: React.FC<OpenTypePreviewPanelProps> = ({
 
         {/* Live Writing Render Display Area */}
         <div
-          className={`p-6 rounded-2xl border min-h-[220px] flex items-center justify-center overflow-auto transition-colors shadow-inner ${themeClasses.cardBg} ${themeClasses.border}`}
+          className={`p-6 rounded-xl border min-h-[220px] flex items-center justify-center overflow-auto transition-colors shadow-inner ${themeClasses.cardBg} ${themeClasses.border}`}
         >
           <div
             style={{

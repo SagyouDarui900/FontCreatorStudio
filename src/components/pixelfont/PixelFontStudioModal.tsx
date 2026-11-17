@@ -753,7 +753,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
         className={`w-full ${
           isFullscreen
             ? 'h-full max-h-none rounded-none border-0'
-            : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px] rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border'
+            : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px] rounded-none shadow-2xl border-0 sm:border'
         } flex flex-col overflow-hidden select-none ${themeClasses.modalBg}`}
       >
         <input

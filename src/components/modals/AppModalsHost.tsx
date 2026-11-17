@@ -223,7 +223,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             <button
               type="button"
               onClick={closeModal}
-              className={`p-1 rounded-full cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1 rounded-lg cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="読み込みを中止して閉じる"
               aria-label="閉じる"
             >
@@ -253,7 +253,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
               <button
                 type="button"
                 onClick={closeModal}
-                className={`p-1.5 rounded-full cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                className={`p-1.5 rounded-lg cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる"
               >
                 <X className="w-4 h-4" />

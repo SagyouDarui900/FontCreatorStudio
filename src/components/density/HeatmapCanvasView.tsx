@@ -153,7 +153,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
       {/* Selected Node / Contextual Inspector Popover */}
       {selectedNode && (
         <div
-          className={`absolute bottom-6 right-6 z-20 p-3.5 rounded-2xl border shadow-xl max-w-xs anim-slide-up max-sm:bottom-20 ${
+          className={`absolute bottom-6 right-6 z-20 p-3.5 rounded-xl border shadow-xl max-w-xs anim-slide-up max-sm:bottom-20 ${
             isLight ? 'bg-white/95 border-amber-300 text-stone-800' : 'bg-[#132017]/95 border-amber-600/80 text-emerald-100'
           }`}
         >
@@ -227,7 +227,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
       {/* Interactive SVG Stage */}
       <div className="flex-1 flex items-center justify-center overflow-hidden p-2">
         <div
-          className="relative rounded-2xl border shadow-inner flex items-center justify-center transition-transform"
+          className="relative rounded-xl border shadow-inner flex items-center justify-center transition-transform"
           style={{
             width: 'min(100%, 540px)',
             aspectRatio: '1 / 1',

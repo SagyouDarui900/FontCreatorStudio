@@ -584,6 +584,7 @@ const [testText, setTestText] = usePersistedField(
       if (!prevG) return prev;
       return {
         ...prev,
+        updatedAt: Date.now(),
         glyphs: {
           ...prev.glyphs,
           [unicode]: {

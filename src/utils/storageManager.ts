@@ -1,5 +1,6 @@
 import { FontProject } from '../types';
 import { validateStoredFontProjectWithReport } from './font/validation';
+import { deleteCustomParts } from './customPartsStorage';
 export * from './indexedDBStorage';
 
 export const LOCAL_STORAGE_PROJECT_KEY = 'font_editor_project_data_v2';
@@ -549,6 +550,12 @@ export function deleteStorageBreakdownItem(key: string): {
       }
     } else {
       removeKey(key);
+      if (key.includes('custom_parts')) {
+        // The LocalStorage key holds only the fallback copy: the parts
+        // themselves live in IndexedDB. Clear that store as well, or
+        // the deleted parts would come back on the next load.
+        void deleteCustomParts();
+      }
     }
 
     window.dispatchEvent(new Event('storage'));

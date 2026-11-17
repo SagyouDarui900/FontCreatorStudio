@@ -187,7 +187,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                     setActiveTab(tab.id);
                   }
                 }}
-                className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg flex items-center space-x-1.5 sm:space-x-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isSelected
                     ? themeClasses.accentBtn
                     : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`

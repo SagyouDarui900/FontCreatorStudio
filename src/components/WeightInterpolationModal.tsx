@@ -525,7 +525,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               {/* Left Column: Dedicated Visual Stage & Live Text String Preview (5 cols) */}
               <div className="lg:col-span-5 sticky lg:top-0 space-y-3">
                 {/* Single Glyph Vector Preview Stage */}
-                <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between pb-1 border-b">
                     <span className="text-xs font-bold flex items-center gap-1.5">
                       <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -563,7 +563,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                   {/* SVG Stage */}
                   <div
-                    className={`relative w-full aspect-square max-w-[280px] mx-auto rounded-2xl border flex items-center justify-center overflow-hidden shadow-none ${
+                    className={`relative w-full aspect-square max-w-[280px] mx-auto rounded-xl border flex items-center justify-center overflow-hidden shadow-none ${
                       isLight ? 'bg-stone-50' : 'bg-black/30'
                     } ${themeClasses.border}`}
                   >
@@ -638,7 +638,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 </div>
 
                 {/* Live Sample Text Preview Bar */}
-                <div className={`p-3.5 rounded-2xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-3.5 rounded-xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold flex items-center gap-1.5">
                       <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -682,7 +682,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               {/* Right Column: Weight Controls, Presets & Scope (7 cols) */}
               <div className="lg:col-span-7 space-y-4">
                 {/* 1. Presets Bar */}
-                <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold block opacity-90">
                       ① ウェイトプリセットを選択
@@ -718,7 +718,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 </div>
 
                 {/* 2. Weight Delta Slider */}
-                <div className={`p-4 rounded-2xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-4 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold flex items-center gap-1.5">
                       <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -781,7 +781,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 </div>
 
                 {/* 3. Scope Selection */}
-                <div className={`p-4 rounded-2xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-4 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold flex items-center gap-1.5">
                       <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -825,7 +825,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             /* Master Interpolation Tab */
             <div className="max-w-3xl mx-auto space-y-5">
               {/* Top: 2 Master Glyphs Selector Card */}
-              <div className={`p-4 rounded-2xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+              <div className={`p-4 rounded-xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                 <div className="text-xs font-bold flex items-center gap-1.5">
                   <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>補間マスターグリフの選択</span>
@@ -871,7 +871,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               </div>
 
               {/* Interpolation Factor Slider */}
-              <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+              <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                 <div className="flex items-center justify-between text-xs">
                   <label className="font-bold flex items-center gap-1.5">
                     <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -912,7 +912,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               </div>
 
               {/* Master Morphing Preview Stage */}
-              <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+              <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                 <div className="text-xs font-bold flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -926,7 +926,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 </div>
 
                 <div
-                  className={`w-full aspect-square max-w-[320px] mx-auto rounded-2xl border flex items-center justify-center relative overflow-hidden shadow-none ${
+                  className={`w-full aspect-square max-w-[320px] mx-auto rounded-xl border flex items-center justify-center relative overflow-hidden shadow-none ${
                     isLight ? 'bg-stone-50' : 'bg-black/30'
                   } ${themeClasses.border}`}
                 >

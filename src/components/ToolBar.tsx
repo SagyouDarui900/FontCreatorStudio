@@ -382,7 +382,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
               e.preventDefault();
               handleCyclePosition();
             }}
-            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
+            className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
               showPositionMenu ? themeClasses.activeTool : themeClasses.activeToolHover
             }`}
             title={`ツールバー配置を変更 (現在: ${

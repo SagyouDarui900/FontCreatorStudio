@@ -91,7 +91,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
     <div className="space-y-4">
       {/* 1. Target Scope Selection */}
       {setScope && (
-        <div className={`p-4 rounded-2xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+        <div className={`p-4 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
           <div className="flex items-center justify-between">
             <span className="font-bold text-xs flex items-center gap-1.5">
               <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -128,7 +128,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       )}
 
       {/* 2. Size & Bounding Frame Presets */}
-      <div className={`p-4 rounded-2xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-4 rounded-xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <div className="flex items-center justify-between">
           <span className="font-bold text-xs flex items-center gap-1.5">
             <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -294,7 +294,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       </div>
 
       {/* 4. Alignment & Advance Width */}
-      <div className={`p-4 rounded-2xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-4 rounded-xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <span className="font-bold text-xs flex items-center gap-1.5">
           <MoveHorizontal className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
           <span>④ 位置揃え & 送り幅 (Advance Width)</span>
@@ -402,7 +402,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       </div>
 
       {/* 5. Quality & File Size Optimization */}
-      <div className={`p-4 rounded-2xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <span className="font-bold text-xs flex items-center gap-1.5">
           <ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
           <span>⑤ 輪郭・データ最適化</span>
