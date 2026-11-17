@@ -234,11 +234,13 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         setExtractedContours(contours);
       } catch (err) {
         console.error('Extraction failed:', err);
+        setExtractedContours([]);
+        showNotice('抽出に失敗しました。フォントまたは文字を確認してください');
       } finally {
         setIsExtracting(false);
       }
     },
-    [extractFontFamily, extractWeight, extractSmoothing]
+    [extractFontFamily, extractWeight, extractSmoothing, showNotice]
   );
 
   // Trigger extraction when options change in extract tab
@@ -396,14 +398,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     }
 
     setCustomParts(updated);
+    let saved = true;
     try {
       localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(updated));
     } catch {
-      // ignore
+      saved = false;
     }
     setNewPartName('');
     setShowSaveInput(false);
-    showNotice(`「${name}」を保存しました`);
+    if (saved) {
+      showNotice(`「${name}」を保存しました`);
+    } else {
+      showNotice(`「${name}」の保存に失敗しました`);
+    }
   };
 
   // Create clean name-only frame without contours
@@ -417,14 +424,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     };
     const updated = [newPart, ...customParts];
     setCustomParts(updated);
+    let saved = true;
     try {
       localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(updated));
     } catch {
-      // ignore
+      saved = false;
     }
     setNewPartName('');
     setShowSaveInput(false);
-    showNotice(`名前枠「${name}」を作成しました`);
+    if (saved) {
+      showNotice(`名前枠「${name}」を作成しました`);
+    } else {
+      showNotice(`名前枠「${name}」の保存に失敗しました`);
+    }
   };
 
   // Import all high-quality standard radicals into custom parts

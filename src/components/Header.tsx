@@ -254,6 +254,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 : 'opacity-30 cursor-not-allowed'
             }`}
             title="元に戻す (Ctrl+Z)"
+            aria-label="元に戻す (Ctrl+Z)"
           >
             <Undo2 className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -266,6 +267,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                 : 'opacity-30 cursor-not-allowed'
             }`}
             title="やり直す (Ctrl+Y)"
+            aria-label="やり直す (Ctrl+Y)"
           >
             <Redo2 className="w-3.5 h-3.5 shrink-0" />
           </button>
@@ -370,8 +372,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           onToggleFullscreen={toggleFullscreen}
         />
 
-        {/* In-App PWA Install Button (Desktop & Tablet) */}
-        <div className="hidden sm:flex items-center">
+        {/* In-App PWA Install Button (always visible, including mobile) */}
+        <div className="flex items-center">
           <PWAInstallButton isLight={isLight} />
         </div>
 

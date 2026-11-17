@@ -212,7 +212,7 @@ export function loadStickyBrushConfigs(): Record<BrushStyle, StickyBrushConfig> 
   return { ...DEFAULT_BRUSH_CONFIGS };
 }
 
-export function saveStickyBrushConfig(style: BrushStyle, config: Partial<StickyBrushConfig>): void {
+export function saveStickyBrushConfig(style: BrushStyle, config: Partial<StickyBrushConfig>): boolean {
   try {
     const current = loadStickyBrushConfigs();
     current[style] = {
@@ -220,8 +220,10 @@ export function saveStickyBrushConfig(style: BrushStyle, config: Partial<StickyB
       ...config,
     };
     localStorage.setItem(STICKY_BRUSH_MEMORY_KEY, JSON.stringify(current));
+    return true;
   } catch (e) {
     console.warn('Failed to save sticky brush config', e);
+    return false;
   }
 }
 
@@ -240,10 +242,12 @@ export function loadUserPenPresets(): UserPenPreset[] {
   return DEFAULT_PEN_PRESETS;
 }
 
-export function saveUserPenPresets(presets: UserPenPreset[]): void {
+export function saveUserPenPresets(presets: UserPenPreset[]): boolean {
   try {
     localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    return true;
   } catch (e) {
     console.warn('Failed to save pen presets to localStorage', e);
+    return false;
   }
 }

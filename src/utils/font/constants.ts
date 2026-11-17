@@ -1,6 +1,9 @@
 export const SCREEN_BASELINE_Y = 800;
 export const DEFAULT_UPM = 1000;
-export const DEFAULT_ASCENDER = 880;
+// Default ascender matches the screen baseline (800) and the default
+// project metadata, so the compile-time baseline and the screen baseline
+// use the same value for a new project.
+export const DEFAULT_ASCENDER = 800;
 export const DEFAULT_DESCENDER = -120;
 
 // Small Hiragana & Katakana unicodes (should remain in their natural position, not centered)

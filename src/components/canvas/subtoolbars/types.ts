@@ -60,8 +60,8 @@ export interface CanvasSubToolbarProps {
   handleFinishPenContour?: (closed: boolean) => void;
   handleUndoPenNode?: () => void;
   handleResetPenContour?: () => void;
-  eraserMode: 'stroke' | 'cut' | 'all' | 'node';
-  setEraserMode: (mode: 'stroke' | 'cut' | 'all' | 'node') => void;
+  eraserMode: 'stroke' | 'cut' | 'node';
+  setEraserMode: (mode: 'stroke' | 'cut' | 'node') => void;
   eraserSize: number;
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
   isShapeTool: boolean;

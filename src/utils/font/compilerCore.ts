@@ -55,6 +55,18 @@ export interface CompileFontOptions {
 }
 
 /**
+ * String.fromCodePoint throws a RangeError for values outside 0x0-0x10FFFF.
+ * Return null instead so one invalid code point never aborts compilation.
+ */
+function safeFromCodePoint(code: number): string | null {
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Compile the FontProject into an OpenType font object and binary buffer
  */
 export function compileFont(
@@ -128,7 +140,12 @@ export function compileFont(
   if (openTypeFeaturesEnabled) {
     for (const pair of featureConfig?.customKerningPairs || []) {
       if (!pair.enabled || !Number.isFinite(pair.amount)) continue;
-      const key = `${String.fromCodePoint(pair.firstUnicode)},${String.fromCodePoint(pair.secondUnicode)}`;
+      // Invalid Unicode values are rejected by validateFontProject before
+      // compilation; skip them here as well so fromCodePoint never throws.
+      const firstChar = safeFromCodePoint(pair.firstUnicode);
+      const secondChar = safeFromCodePoint(pair.secondUnicode);
+      if (firstChar === null || secondChar === null) continue;
+      const key = `${firstChar},${secondChar}`;
       configuredKerning[key] = pair.amount;
     }
 
@@ -320,7 +337,7 @@ export function compileFont(
   const verticalDerivations: {
     targetUnicode: number;
     sourceUnicode: number;
-    action: 'rotate90' | 'shiftTopRight' | 'shiftTopRight_smallKana';
+    action: 'rotate90' | 'shiftTopRight';
     targetName?: string;
   }[] = [
     { targetUnicode: 0xfe31, sourceUnicode: 0x30fc, action: 'rotate90' }, // 長音符 ー -> ︱
@@ -377,7 +394,7 @@ export function compileFont(
           }));
         }
 
-        if (options?.mergeOverlaps !== false && derivedContours.length > 1) {
+        if (options?.mergeOverlaps === true && derivedContours.length > 1) {
           try {
             derivedContours = unionContours(derivedContours);
           } catch (_) {}
@@ -622,9 +639,11 @@ export function compileFont(
       // If hex codes like "U+0041" or "0x0041"
       if (leftChar.startsWith('U+') || leftChar.startsWith('0x')) {
         const code = parseInt(leftChar.replace(/^U\+|^0x/, ''), 16);
-        leftIdx = (font as any).hasChar?.(String.fromCodePoint(code))
-          ? (font as any).charToGlyphIndex(String.fromCodePoint(code))
-          : -1;
+        const leftCharFromCode = safeFromCodePoint(code);
+        leftIdx =
+          leftCharFromCode !== null && (font as any).hasChar?.(leftCharFromCode)
+            ? (font as any).charToGlyphIndex(leftCharFromCode)
+            : -1;
       } else {
         leftIdx = (font as any).hasChar?.(leftChar)
           ? (font as any).charToGlyphIndex(leftChar)
@@ -633,9 +652,11 @@ export function compileFont(
 
       if (rightChar.startsWith('U+') || rightChar.startsWith('0x')) {
         const code = parseInt(rightChar.replace(/^U\+|^0x/, ''), 16);
-        rightIdx = (font as any).hasChar?.(String.fromCodePoint(code))
-          ? (font as any).charToGlyphIndex(String.fromCodePoint(code))
-          : -1;
+        const rightCharFromCode = safeFromCodePoint(code);
+        rightIdx =
+          rightCharFromCode !== null && (font as any).hasChar?.(rightCharFromCode)
+            ? (font as any).charToGlyphIndex(rightCharFromCode)
+            : -1;
       } else {
         rightIdx = (font as any).hasChar?.(rightChar)
           ? (font as any).charToGlyphIndex(rightChar)

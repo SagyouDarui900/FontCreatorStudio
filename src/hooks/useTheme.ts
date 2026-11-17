@@ -3,7 +3,14 @@ import { ThemeMode, isLightTheme, getThemeClasses, getThemePreset } from '../uti
 
 export const THEME_STORAGE_KEY = 'font_editor_theme_mode';
 
-export function useTheme() {
+export interface UseThemeOptions {
+  // Called when saving the theme setting fails, so the caller can notify
+  // the user. Load failure needs no notification: the light theme is used.
+  onSaveError?: () => void;
+}
+
+export function useTheme(options?: UseThemeOptions) {
+  const onSaveError = options?.onSaveError;
   const [theme, setTheme] = useState<ThemeMode>(() => {
     let saved: string | null = null;
     try {
@@ -20,6 +27,7 @@ export function useTheme() {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch (e) {
       console.warn('Failed to save theme:', e);
+      onSaveError?.();
     }
     // Disable all CSS transitions during theme switch for instantaneous crisp swap
     document.documentElement.setAttribute('data-theme-switching', 'true');

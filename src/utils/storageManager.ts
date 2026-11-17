@@ -1,5 +1,5 @@
 import { FontProject } from '../types';
-import { validateStoredFontProject } from './font/validation';
+import { validateStoredFontProjectWithReport } from './font/validation';
 export * from './indexedDBStorage';
 
 export const LOCAL_STORAGE_PROJECT_KEY = 'font_editor_project_data_v2';
@@ -309,14 +309,93 @@ export function listSnapshots(): ProjectBackupSnapshot[] {
 }
 
 /**
- * Save index of snapshots
+ * Save index of snapshots.
+ * Returns false when the write fails (1-10) so callers can report the
+ * failure instead of treating the snapshot as created.
  */
-function saveSnapshotsIndex(snapshots: ProjectBackupSnapshot[]): void {
+function saveSnapshotsIndex(snapshots: ProjectBackupSnapshot[]): boolean {
   try {
     localStorage.setItem(SNAPSHOTS_INDEX_KEY, JSON.stringify(snapshots));
+    return true;
   } catch (err) {
     console.warn('Failed to save snapshots index:', err);
+    return false;
   }
+}
+
+/**
+ * Counts of invalid data removed while validating a stored project.
+ * The validation step (validation.ts) reports these in its `removed`
+ * field; this type mirrors that shape.
+ */
+export interface RemovedDataCounts {
+  glyphs: number;
+  nodes: number;
+  contours: number;
+  replacedAdvanceWidth: number;
+  replacedLsb: number;
+  removedPixelData: number;
+}
+
+function readRemovedCounts(value: unknown): RemovedDataCounts | null {
+  if (!value || typeof value !== 'object') return null;
+  const removed = (value as Record<string, unknown>).removed;
+  if (!removed || typeof removed !== 'object') return null;
+  const record = removed as Record<string, unknown>;
+  const num = (key: string): number => {
+    const v = record[key];
+    return typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  };
+  const counts: RemovedDataCounts = {
+    glyphs: num('glyphs'),
+    nodes: num('nodes'),
+    contours: num('contours'),
+    replacedAdvanceWidth: num('replacedAdvanceWidth'),
+    replacedLsb: num('replacedLsb'),
+    removedPixelData: num('removedPixelData'),
+  };
+  const total =
+    counts.glyphs + counts.nodes + counts.contours + counts.replacedAdvanceWidth + counts.replacedLsb + counts.removedPixelData;
+  return total > 0 ? counts : null;
+}
+
+/**
+ * Normalize a validation result into a project plus the removed-data
+ * counts, tolerating both return shapes: a bare FontProject (from
+ * validateStoredFontProject) and a { project, removed } report (from
+ * validateStoredFontProjectWithReport). Returns project null when the
+ * input is null or has no project.
+ */
+export function normalizeValidatedProject(validated: unknown): {
+  project: FontProject | null;
+  removed: RemovedDataCounts | null;
+} {
+  if (!validated || typeof validated !== 'object') {
+    return { project: null, removed: null };
+  }
+  const record = validated as Record<string, unknown>;
+  const nested = record.project;
+  if (nested && typeof nested === 'object') {
+    return { project: nested as FontProject, removed: readRemovedCounts(validated) };
+  }
+  return { project: validated as FontProject, removed: readRemovedCounts(validated) };
+}
+
+/**
+ * Build a user-facing notice for removed invalid data, or null when
+ * nothing was removed.
+ */
+export function formatRemovedDataNotice(removed: RemovedDataCounts | null): string | null {
+  if (!removed) return null;
+  const parts: string[] = [];
+  if (removed.glyphs > 0) parts.push(`グリフ${removed.glyphs}件`);
+  if (removed.contours > 0) parts.push(`輪郭${removed.contours}件`);
+  if (removed.nodes > 0) parts.push(`ノード${removed.nodes}件`);
+  if (removed.replacedAdvanceWidth > 0) parts.push(`送り幅の置換${removed.replacedAdvanceWidth}件`);
+  if (removed.replacedLsb > 0) parts.push(`左サイドベアリングの置換${removed.replacedLsb}件`);
+  if (removed.removedPixelData > 0) parts.push(`ピクセルデータ${removed.removedPixelData}件`);
+  if (parts.length === 0) return null;
+  return `復元時に無効なデータを除外しました（${parts.join('、')}）。`;
 }
 
 /**
@@ -352,7 +431,18 @@ export function createLocalSnapshot(
 
     const currentList = listSnapshots();
     const updatedList = [snapshot, ...currentList.filter((s) => s.id !== id)];
-    saveSnapshotsIndex(updatedList);
+    // If the index cannot be saved, the snapshot is not listed anywhere:
+    // report failure and remove the orphaned data instead of claiming
+    // success (1-10).
+    if (!saveSnapshotsIndex(updatedList)) {
+      try {
+        localStorage.removeItem(dataKey);
+      } catch (_) {}
+      return {
+        success: false,
+        error: 'スナップショットの目録の保存に失敗しました。スナップショットは作成されませんでした。',
+      };
+    }
 
     window.dispatchEvent(new Event('storage'));
     return { success: true, snapshot };
@@ -373,24 +463,100 @@ export function createLocalSnapshot(
 }
 
 /**
- * Load project data from snapshot
+ * Load project data from snapshot, also reporting invalid data removed
+ * during validation (1-3).
  */
-export function loadProjectFromSnapshot(snapshotId: string): FontProject | null {
+export function loadProjectFromSnapshotWithReport(snapshotId: string): {
+  project: FontProject | null;
+  removed: RemovedDataCounts | null;
+} {
   try {
     const dataKey = `${SNAPSHOT_DATA_PREFIX}${snapshotId}`;
     const raw = localStorage.getItem(dataKey);
-    if (!raw) return null;
+    if (!raw) return { project: null, removed: null };
     const parsed = JSON.parse(raw);
-    const validated = validateStoredFontProject(parsed);
-    if (!validated) {
+    const normalized = normalizeValidatedProject(validateStoredFontProjectWithReport(parsed));
+    if (!normalized.project) {
       console.warn('Snapshot project data failed validation and was rejected:', snapshotId);
-      return null;
+      return { project: null, removed: null };
     }
-    return validated;
+    return normalized;
   } catch (err) {
     console.error('Failed to parse snapshot project data:', err);
   }
-  return null;
+  return { project: null, removed: null };
+}
+
+/**
+ * Load project data from snapshot
+ */
+export function loadProjectFromSnapshot(snapshotId: string): FontProject | null {
+  return loadProjectFromSnapshotWithReport(snapshotId).project;
+}
+
+/**
+ * Delete one storage-breakdown item, keeping the snapshot index and its
+ * data keys consistent (1-12):
+ * - deleting the snapshots index also deletes every snapshot data key;
+ * - deleting a snapshot data key also removes that snapshot from the index.
+ */
+export function deleteStorageBreakdownItem(key: string): {
+  success: boolean;
+  freedBytes: number;
+  removedKeys: string[];
+} {
+  try {
+    const removedKeys: string[] = [];
+    let freedBytes = 0;
+    const removeKey = (targetKey: string): void => {
+      const value = localStorage.getItem(targetKey);
+      if (value === null) return;
+      freedBytes += getStringSizeBytes(targetKey) + getStringSizeBytes(value);
+      localStorage.removeItem(targetKey);
+      removedKeys.push(targetKey);
+    };
+
+    if (key === SNAPSHOTS_INDEX_KEY) {
+      // Collect data keys first: removing keys while iterating localStorage
+      // would skip entries.
+      const dataKeys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const storedKey = localStorage.key(i);
+        if (storedKey && storedKey.startsWith(SNAPSHOT_DATA_PREFIX)) {
+          dataKeys.push(storedKey);
+        }
+      }
+      dataKeys.forEach(removeKey);
+      removeKey(key);
+    } else if (key.startsWith(SNAPSHOT_DATA_PREFIX)) {
+      removeKey(key);
+      const snapshotId = key.slice(SNAPSHOT_DATA_PREFIX.length);
+      try {
+        const rawIndex = localStorage.getItem(SNAPSHOTS_INDEX_KEY);
+        if (rawIndex) {
+          const parsed: unknown = JSON.parse(rawIndex);
+          if (Array.isArray(parsed)) {
+            const updated = parsed.filter((s: unknown) => {
+              return !s || typeof s !== 'object' || (s as { id?: unknown }).id !== snapshotId;
+            });
+            if (updated.length !== parsed.length) {
+              localStorage.setItem(SNAPSHOTS_INDEX_KEY, JSON.stringify(updated));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to remove snapshot from index:', err);
+      }
+    } else {
+      removeKey(key);
+    }
+
+    window.dispatchEvent(new Event('storage'));
+    return { success: true, freedBytes, removedKeys };
+  } catch (err) {
+    console.error('Failed to delete storage item:', err);
+    return { success: false, freedBytes: 0, removedKeys: [] };
+  }
 }
 
 /**

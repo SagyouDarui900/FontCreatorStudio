@@ -2,8 +2,8 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 
 interface EraserSubToolbarProps {
-  eraserMode: 'stroke' | 'cut' | 'all' | 'node';
-  setEraserMode: (mode: 'stroke' | 'cut' | 'all' | 'node') => void;
+  eraserMode: 'stroke' | 'cut' | 'node';
+  setEraserMode: (mode: 'stroke' | 'cut' | 'node') => void;
   eraserSize: number;
   setEraserSize: React.Dispatch<React.SetStateAction<number>>;
   handleClearAll: () => void;

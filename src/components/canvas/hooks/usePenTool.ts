@@ -220,23 +220,27 @@ export function usePenTool({
     ]
   );
 
-  // Auto-commit or safely finalize in-progress pen contour when switching tools
+  // When switching away from the pen tool, discard the in-progress pen
+  // path instead of auto-committing it (A8). The user is told by a toast
+  // that the path was discarded. Use Esc (handleResetPenContour) or Enter
+  // (handleFinishPenContour) to cancel or commit explicitly before
+  // switching tools.
   const prevToolModeRef = useRef<ToolMode | undefined>(toolMode);
   useEffect(() => {
     if (prevToolModeRef.current === 'pen' && toolMode && toolMode !== 'pen') {
       if (activePenContour) {
-        if (!isGlyphLocked && activePenContour.nodes.length >= 2) {
-          handleFinishPenContour(activePenContour.closed || false);
-        } else {
-          setActivePenContour(null);
-          setSelectedNodeId(null);
-          setSelectedHandleType(null);
+        const count = activePenContour.nodes.length;
+        setActivePenContour(null);
+        setSelectedNodeId(null);
+        setSelectedHandleType(null);
+        if (count > 0) {
+          showCanvasToast('作図中のパスを破棄しました', `${count} 点の未確定パスを消去`);
         }
         setPenMousePos(null);
       }
     }
     prevToolModeRef.current = toolMode;
-  }, [toolMode, isGlyphLocked, activePenContour, handleFinishPenContour, setSelectedHandleType, setSelectedNodeId]);
+  }, [toolMode, activePenContour, setSelectedHandleType, setSelectedNodeId, showCanvasToast]);
 
   const handlePenHudPointerDown = useCallback(
     (e: React.PointerEvent) => {

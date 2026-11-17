@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
  Keyboard,
  X,
@@ -142,9 +142,18 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  const [selectedCategory, setSelectedCategory] = useState<string>('all');
  const [searchQuery, setSearchQuery] = useState<string>('');
  const [isFullscreen, setIsFullscreen] = useState(false);
+ // B7: dialog focus management. No shared focus-trap helper exists in this
+ // codebase, so this modal traps Tab focus itself (see keydown handler).
+ const modalRef = useRef<HTMLDivElement | null>(null);
 
  const isLight = isLightTheme(theme);
  const themeClasses = getThemeClasses(theme);
+
+ // B7: move focus into the modal when it opens.
+ useEffect(() => {
+ if (!isOpen) return;
+ modalRef.current?.focus();
+ }, [isOpen]);
 
  // Keyboard shortcut listener: Escape and F
  useEffect(() => {
@@ -152,6 +161,31 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  const handleKeyDown = (e: KeyboardEvent) => {
  const activeTag = document.activeElement?.tagName.toLowerCase();
  const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+ // B7: simple focus trap. Tab cycles within the modal instead of moving
+ // focus to the canvas or header behind it.
+ if (e.key === 'Tab') {
+ const root = modalRef.current;
+ if (!root) return;
+ const focusables = Array.from(
+ root.querySelectorAll<HTMLElement>(
+ 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+ )
+ ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+ if (focusables.length === 0) {
+ e.preventDefault();
+ return;
+ }
+ const first = focusables[0];
+ const last = focusables[focusables.length - 1];
+ if (e.shiftKey && document.activeElement === first) {
+ e.preventDefault();
+ last.focus();
+ } else if (!e.shiftKey && document.activeElement === last) {
+ e.preventDefault();
+ first.focus();
+ }
+ return;
+ }
  if (e.key === 'Escape') {
  e.preventDefault();
  if (isFullscreen) {
@@ -194,6 +228,11 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  }`}
  >
  <div
+ ref={modalRef}
+ role="dialog"
+ aria-modal="true"
+ aria-label="FontCreator 説明書 & ガイド"
+ tabIndex={-1}
  className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
  isFullscreen
  ? 'w-screen h-screen rounded-none border-none shadow-none'

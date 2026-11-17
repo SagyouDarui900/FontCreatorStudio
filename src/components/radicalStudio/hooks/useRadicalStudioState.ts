@@ -102,10 +102,11 @@ export function useRadicalStudioState({
         localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(parts));
       } catch (err) {
         console.warn('Failed to save custom parts to localStorage:', err);
+        notify('カスタムパーツの保存に失敗しました', 'error');
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [parts]);
+  }, [parts, notify]);
 
   const activePart = useMemo(() => {
     const found = parts.find((p) => p && p.id === selectedPartId) || parts[0] || null;

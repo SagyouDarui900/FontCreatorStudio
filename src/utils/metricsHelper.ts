@@ -171,6 +171,7 @@ export interface SidebearingBatchOptions {
   rsb?: number; // target RSB or offset
   targetAdvance?: number; // uniform advance width (e.g. 1000 for fullwidth, 500 for halfwidth)
   offsetDelta?: number; // +/- delta for offsets
+  unitsPerEm?: number; // project UPM; passed to calculateOptimalSpacing so results match the project
 }
 
 /**
@@ -236,7 +237,7 @@ export function batchAdjustSidebearings(
 
     if (options.mode === 'smart-auto') {
       // スマート自動計算 (和文は全角中央揃え、欧文はプロポーショナル光学マージン)
-      const res = calculateOptimalSpacing(code, contours, 'smart');
+      const res = calculateOptimalSpacing(code, contours, 'smart', options.unitsPerEm ?? 1000);
       newAdvance = res.advanceWidth;
       newLsb = res.lsb;
       newContours = res.contours;

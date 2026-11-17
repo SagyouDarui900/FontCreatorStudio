@@ -16,8 +16,6 @@ import {
   duplicateContour,
   duplicateMultipleContours,
   unionContours,
-  booleanSubtractContours,
-  booleanIntersectContours,
   reverseContour,
   smoothStrokeContour,
   smoothContoursPreservingShape,
@@ -27,6 +25,10 @@ import {
   convertContourToSmooth,
   expandStrokeContours,
 } from '../../../utils/path';
+import {
+  tryBooleanSubtractContours,
+  tryBooleanIntersectContours,
+} from '../../../utils/vectorBoolean';
 import {
   alignContours,
   distributeContours,
@@ -283,15 +285,19 @@ export function useContourTransforms({
     const selected = contours.filter((c) => selectedContourIds.includes(c.id));
     const base = [selected[0]];
     const cutters = selected.slice(1);
-    const result = booleanSubtractContours(base, cutters);
-    if (result.length === 0) {
+    const result = tryBooleanSubtractContours(base, cutters);
+    if (!result.ok) {
+      showCanvasToast('型抜きに失敗しました');
+      return;
+    }
+    if (result.contours.length === 0) {
       showCanvasToast('型抜き結果が空になりました');
       return;
     }
     const other = contours.filter((c) => !selectedContourIds.includes(c.id));
-    const updated = [...other, ...result];
+    const updated = [...other, ...result.contours];
     onChangeContours(updated);
-    setSelectedContourIds(result.map((r) => r.id));
+    setSelectedContourIds(result.contours.map((r) => r.id));
     onCommitHistory?.();
     showCanvasToast('パスを型抜き（前面で背面を切り抜き）しました');
   }, [
@@ -314,15 +320,19 @@ export function useContourTransforms({
     const selected = contours.filter((c) => selectedContourIds.includes(c.id));
     const base = [selected[0]];
     const cutters = selected.slice(1);
-    const result = booleanIntersectContours(base, cutters);
-    if (result.length === 0) {
+    const result = tryBooleanIntersectContours(base, cutters);
+    if (!result.ok) {
+      showCanvasToast('交差の計算に失敗しました');
+      return;
+    }
+    if (result.contours.length === 0) {
       showCanvasToast('交差部分がありませんでした');
       return;
     }
     const other = contours.filter((c) => !selectedContourIds.includes(c.id));
-    const updated = [...other, ...result];
+    const updated = [...other, ...result.contours];
     onChangeContours(updated);
-    setSelectedContourIds(result.map((r) => r.id));
+    setSelectedContourIds(result.contours.map((r) => r.id));
     onCommitHistory?.();
     showCanvasToast('パスの交差重なり部分を抽出しました');
   }, [

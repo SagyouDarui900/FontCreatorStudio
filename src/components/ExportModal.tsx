@@ -293,7 +293,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleExport = async (action: 'download' | 'share') => {
     if (!validation.valid) {
-      onShowToast?.(validation.errors[0] || 'フォントデータにエラーがあるため書き出しできません', 'error');
+      const firstError = validation.errors[0] || 'フォントデータにエラーがあるため書き出しできません';
+      const remaining = validation.errors.length - 1;
+      onShowToast?.(
+        remaining > 0 ? `${firstError}（他 ${remaining}件のエラーがあります）` : firstError,
+        'error'
+      );
       return;
     }
     setIsExporting(true);
@@ -456,10 +461,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             >
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
               <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
-                <div className="font-bold">書き出し前の検証でエラーが検出されました</div>
+                <div className="font-bold">書き出し前の検証でエラーが検出されました（{validation.errors.length}件）</div>
                 <ul className="list-disc pl-4 space-y-0.5">
-                  {validation.errors.slice(0, 3).map((err, idx) => (
+                  {validation.errors.map((err, idx) => (
                     <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {validation.warnings.length > 0 && (
+            <div
+              className={`p-3 rounded-xl border flex items-start space-x-2 ${
+                isLight
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-amber-950/40 border-amber-800 text-amber-200'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
+                <div className="font-bold">書き出し前の検証で警告が検出されました（{validation.warnings.length}件）</div>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {validation.warnings.map((warn, idx) => (
+                    <li key={idx}>{warn}</li>
                   ))}
                 </ul>
               </div>

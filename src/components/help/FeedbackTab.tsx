@@ -18,6 +18,7 @@ interface FeedbackTabProps {
 export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedTemplate, setCopiedTemplate] = useState(false);
+  const [copyFailed, setCopyFailed] = useState<'url' | 'template' | null>(null);
 
   // GitHub Repository & Issue URLs
   const GITHUB_REPO_URL = 'https://github.com/SagyouDarui900/FontCreatorStudio';
@@ -43,13 +44,23 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
 - スクリーンショットやエラー画面の有無:`;
 
   const handleCopyTemplate = async () => {
-    await copyTextToClipboard(issueTemplateText);
+    const ok = await copyTextToClipboard(issueTemplateText);
+    if (!ok) {
+      setCopyFailed('template');
+      setTimeout(() => setCopyFailed((prev) => (prev === 'template' ? null : prev)), 2000);
+      return;
+    }
     setCopiedTemplate(true);
     setTimeout(() => setCopiedTemplate(false), 2000);
   };
 
   const handleCopyRepoUrl = async () => {
-    await copyTextToClipboard(GITHUB_REPO_URL);
+    const ok = await copyTextToClipboard(GITHUB_REPO_URL);
+    if (!ok) {
+      setCopyFailed('url');
+      setTimeout(() => setCopyFailed((prev) => (prev === 'url' ? null : prev)), 2000);
+      return;
+    }
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2000);
   };
@@ -109,7 +120,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
             title="リポジトリURLをコピー"
           >
             {copiedUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedUrl ? 'URLコピー完了' : 'URLコピー'}</span>
+            <span>{copyFailed === 'url' ? 'コピーに失敗しました' : copiedUrl ? 'URLコピー完了' : 'URLコピー'}</span>
           </button>
           <a
             href={GITHUB_REPO_URL}
@@ -165,7 +176,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({ isLight }) => {
             title="Issue投稿用の定型文をクリップボードにコピー"
           >
             {copiedTemplate ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedTemplate ? 'コピー完了' : '報告用テンプレートをコピー'}</span>
+            <span>{copyFailed === 'template' ? 'コピーに失敗しました' : copiedTemplate ? 'コピー完了' : '報告用テンプレートをコピー'}</span>
           </button>
         </div>
       </div>

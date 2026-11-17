@@ -53,6 +53,11 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
 
   return (
     <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       className={`fixed inset-0 z-[60] select-none anim-fade ${
         isFullscreen
           ? 'flex flex-col w-screen h-screen p-0 bg-black/90 overflow-hidden'

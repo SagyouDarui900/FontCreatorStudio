@@ -83,7 +83,12 @@ export function useGlyphActions({
         return;
       }
       commitHistory();
-      const res = calculateOptimalSpacing(selectedUnicode, contours, preset);
+      const res = calculateOptimalSpacing(
+        selectedUnicode,
+        contours,
+        preset,
+        project.metadata.unitsPerEm
+      );
 
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
@@ -124,7 +129,7 @@ export function useGlyphActions({
         'success'
       );
     },
-    [currentGlyph, selectedUnicode, selectedChar, commitHistory, setProject, onShowToast]
+    [currentGlyph, selectedUnicode, selectedChar, commitHistory, setProject, onShowToast, project.metadata.unitsPerEm]
   );
 
   // Clear Glyph

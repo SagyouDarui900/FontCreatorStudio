@@ -28,7 +28,7 @@ export function useCanvasEraser({
   setSelectedNodeId,
 }: UseCanvasEraserOptions) {
   const [eraserSize, setEraserSize] = useState<number>(36);
-  const [eraserMode, setEraserMode] = useState<'stroke' | 'cut' | 'node' | 'all'>('stroke');
+  const [eraserMode, setEraserMode] = useState<'stroke' | 'cut' | 'node'>('stroke');
 
   const isErasingRef = useRef<boolean>(false);
   const erasedAnyInSessionRef = useRef<boolean>(false);
@@ -64,10 +64,6 @@ export function useCanvasEraser({
 
   const handleEraserPointerDown = useCallback(
     (pos: Point, e: React.PointerEvent<SVGSVGElement>) => {
-      if (eraserMode === 'all') {
-        setEraserMode('stroke');
-        return false;
-      }
       try {
         (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
       } catch {}
@@ -117,7 +113,6 @@ export function useCanvasEraser({
   const handleEraserPointerMove = useCallback(
     (pos: Point) => {
       if (!isErasingRef.current) return false;
-      if (eraserMode === 'all') return true;
 
       const eraseRadius = Math.max(2, eraserSize / 2);
       const prevPos = lastErasePosRef.current || pos;

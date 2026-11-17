@@ -153,6 +153,13 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  // Add or update kerning pair
  const handleUpdateKerningValue = (val: number) => {
+ const parts = selectedPairKey.split(',');
+ const leftCode = parts[0]?.codePointAt(0);
+ const rightCode = parts[1]?.codePointAt(0);
+ if (!leftCode || !rightCode || !project.glyphs[leftCode] || !project.glyphs[rightCode]) {
+ notify('対象の文字がまだ作図されていないため、カーニングを追加できません', 'warning');
+ return;
+ }
  updateProject((prev) => ({
  ...prev,
  kerning: {
@@ -169,6 +176,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  const rightChar = Array.from(customRight.trim())[0];
  if (!leftChar || !rightChar) {
  notify('左文字と右文字の両方を入力してください', 'warning');
+ return;
+ }
+ const leftCode = leftChar.codePointAt(0);
+ const rightCode = rightChar.codePointAt(0);
+ if (!leftCode || !rightCode || !project.glyphs[leftCode] || !project.glyphs[rightCode]) {
+ notify('対象の文字がまだ作図されていないため、ペアを追加できません', 'warning');
  return;
  }
  const safeVal = Number.isFinite(customValue) ? Math.round(customValue) : 0;
@@ -203,9 +216,19 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  // Apply preset group
  const handleApplyPresetGroup = (group: (typeof KERNING_PRESET_GROUPS)[0]) => {
+ const existingPairs = group.pairs.filter((p) => {
+ const leftCode = p.left.codePointAt(0);
+ const rightCode = p.right.codePointAt(0);
+ return !!leftCode && !!rightCode && !!project.glyphs[leftCode] && !!project.glyphs[rightCode];
+ });
+ const skippedCount = group.pairs.length - existingPairs.length;
+ if (existingPairs.length === 0) {
+ notify('プリセットの対象文字がまだ作図されていないため、登録できません', 'warning');
+ return;
+ }
  updateProject((prev) => {
  const next = { ...(prev.kerning || {}) };
- for (const p of group.pairs) {
+ for (const p of existingPairs) {
  next[`${p.left},${p.right}`] = p.defaultVal;
  }
  return {
@@ -214,7 +237,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  updatedAt: Date.now(),
  };
  });
- notify(`プリセット「${group.name}」(${group.pairs.length}ペア) を一括登録しました`, 'success');
+ notify(
+ skippedCount > 0
+ ? `プリセット「${group.name}」(${existingPairs.length}ペア) を一括登録しました（作図されていない文字の${skippedCount}ペアを除外）`
+ : `プリセット「${group.name}」(${group.pairs.length}ペア) を一括登録しました`,
+ skippedCount > 0 ? 'warning' : 'success'
+ );
  };
 
  // FontForge AutoKern algorithm execution across glyphs
@@ -275,6 +303,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  rsb: sbRsb,
  targetAdvance: sbTargetAdvance,
  offsetDelta: sbOffsetDelta,
+ unitsPerEm: project.metadata.unitsPerEm,
  });
 
  if (modifiedCount === 0) {

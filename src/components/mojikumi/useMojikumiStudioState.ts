@@ -127,6 +127,7 @@ export function useMojikumiStudioState({
 
   const compiledBlobUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
+  const compileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [zoom, setZoom] = usePersistedField(
     persistedState,
@@ -195,9 +196,17 @@ export function useMojikumiStudioState({
     }
   }, []);
 
-  // Compile project font for live editorial preview with leak-free FontFace/URL lifecycle
+  // Compile project font for live editorial preview with leak-free FontFace/URL lifecycle.
+  // Debounced by 250ms (same as ExportModal and TestPreview) so continuous
+  // edits do not trigger a compile on every change. When the font source is
+  // a system font (mincho or gothic), the project font is not used for the
+  // preview, so no compile runs and no compile error is shown.
   useEffect(() => {
-    if (!isOpen) {
+    if (compileTimerRef.current) {
+      clearTimeout(compileTimerRef.current);
+      compileTimerRef.current = null;
+    }
+    if (!isOpen || fontSource !== 'custom') {
       releaseCompiledFont();
       setCompileError(null);
       return;
@@ -206,62 +215,69 @@ export function useMojikumiStudioState({
     let cancelled = false;
     let pendingBlobUrl: string | null = null;
 
-    try {
-      const validation = validateFontProject(project);
-      if (!validation.valid) {
-        throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
-      }
-      const { blobUrl } = compileFont(project, {
-        mergeOverlaps: true,
-        normalizeWinding: true,
-      });
-      pendingBlobUrl = blobUrl;
-      setCompileError(null);
+    compileTimerRef.current = setTimeout(() => {
+      compileTimerRef.current = null;
+      try {
+        const validation = validateFontProject(project);
+        if (!validation.valid) {
+          throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
+        }
+        const { blobUrl } = compileFont(project, {
+          mergeOverlaps: true,
+          normalizeWinding: true,
+        });
+        pendingBlobUrl = blobUrl;
+        setCompileError(null);
 
-      if (typeof FontFace !== 'undefined') {
-        const newFontName = `CustomMojikumiFont_${Date.now()}`;
-        const ff = new FontFace(newFontName, `url('${blobUrl}')`);
-        ff.load()
-          .then((loaded) => {
-            if (cancelled) {
+        if (typeof FontFace !== 'undefined') {
+          const newFontName = `CustomMojikumiFont_${Date.now()}`;
+          const ff = new FontFace(newFontName, `url('${blobUrl}')`);
+          ff.load()
+            .then((loaded) => {
+              if (cancelled) {
+                URL.revokeObjectURL(blobUrl);
+                return;
+              }
+              releaseCompiledFont();
+              document.fonts.add(loaded);
+              activeFontFaceRef.current = loaded;
+              compiledBlobUrlRef.current = blobUrl;
+              setCompiledFontName(newFontName);
+            })
+            .catch(() => {
               URL.revokeObjectURL(blobUrl);
-              return;
-            }
-            releaseCompiledFont();
-            document.fonts.add(loaded);
-            activeFontFaceRef.current = loaded;
-            compiledBlobUrlRef.current = blobUrl;
-            setCompiledFontName(newFontName);
-          })
-          .catch(() => {
-            URL.revokeObjectURL(blobUrl);
-            if (!cancelled) {
-              setCompileError('プレビュー用フォントの読み込みに失敗しました。');
-            }
-          });
-      } else {
-        URL.revokeObjectURL(blobUrl);
+              if (!cancelled) {
+                setCompileError('プレビュー用フォントの読み込みに失敗しました。');
+              }
+            });
+        } else {
+          URL.revokeObjectURL(blobUrl);
+        }
+      } catch (err) {
+        if (pendingBlobUrl) {
+          URL.revokeObjectURL(pendingBlobUrl);
+        }
+        // Remove the previous preview font so a failed compile never leaves
+        // stale glyphs on screen, and show the failure instead.
+        releaseCompiledFont();
+        if (!cancelled) {
+          setCompileError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'フォントの生成中にエラーが発生しました。パスの構造を確認してください。'
+          );
+        }
       }
-    } catch (err) {
-      if (pendingBlobUrl) {
-        URL.revokeObjectURL(pendingBlobUrl);
-      }
-      // Remove the previous preview font so a failed compile never leaves
-      // stale glyphs on screen, and show the failure instead.
-      releaseCompiledFont();
-      if (!cancelled) {
-        setCompileError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'フォントの生成中にエラーが発生しました。パスの構造を確認してください。'
-        );
-      }
-    }
+    }, 250);
 
     return () => {
       cancelled = true;
+      if (compileTimerRef.current) {
+        clearTimeout(compileTimerRef.current);
+        compileTimerRef.current = null;
+      }
     };
-  }, [isOpen, project.updatedAt, releaseCompiledFont]);
+  }, [isOpen, project.updatedAt, fontSource, releaseCompiledFont]);
 
   useEffect(() => {
     return () => {

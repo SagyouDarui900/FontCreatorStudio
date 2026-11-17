@@ -44,7 +44,7 @@ export interface UseCanvasPointerDispatcherOptions {
   // Tool Modes
   toolMode: ToolMode;
   isShapeTool: boolean;
-  eraserMode: 'stroke' | 'node' | 'all' | 'cut' | string;
+  eraserMode: 'stroke' | 'node' | 'cut' | string;
   penMode?: 'bezier' | 'corner' | 'tangent';
 
   // Stylus & Palm Rejection
@@ -118,6 +118,9 @@ export interface UseCanvasPointerDispatcherOptions {
   handleTransformPointerMove: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean;
   handleTransformPointerUp: () => boolean;
   setTransformSession: (session: any) => void;
+  // A2: cancels the transform session and clears pendingTransformContoursRef.
+  // Optional: when not wired, the dispatcher falls back to setTransformSession(null).
+  cancelTransformSession?: () => void;
 
   rulerMeasurement: RulerMeasurement | null;
   handleRulerPointerDown: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => void;
@@ -225,6 +228,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleTransformPointerMove,
     handleTransformPointerUp,
     setTransformSession,
+    cancelTransformSession,
     rulerMeasurement,
     handleRulerPointerDown,
     handleRulerPointerMove,
@@ -291,6 +295,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   const maxTouchCountRef = useRef<number>(0);
   const hasMovedSignificantRef = useRef<boolean>(false);
   const lastTapTimeRef = useRef<number>(0);
+  // A3: set when a pinch starts. A pinch starts when the 2nd finger arrives
+  // well after the 1st finger was already down, or when the fingers move
+  // during the gesture. While set, tap Undo/Redo does not fire.
+  const pinchStartedRef = useRef<boolean>(false);
+  // A9: last time the palm-rejection toast was shown, for throttling.
+  const lastPalmToastTimeRef = useRef<number>(0);
 
   // Trace drag refs
   const traceDragStartRef = useRef<{ clientX: number; clientY: number; initOffsetX: number; initOffsetY: number }>({
@@ -324,6 +334,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     touchPointersRef.current.clear();
     pointerTypesRef.current.clear();
     isTwoFingerGestureRef.current = false;
+    pinchStartedRef.current = false;
     activeTwoFingerIdsRef.current = null;
     isPenDrawingRef.current = false;
   }, [toolMode, setSvgGesturing]);
@@ -471,7 +482,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         } else {
           touchPointersRef.current.delete(e.pointerId);
           pointerTypesRef.current.delete(e.pointerId);
-          showCanvasToast('パームリジェクション', 'ペン先以外の接触を自動ブロック中');
+          // A9: show the palm-rejection toast at most once per 5 seconds.
+          const palmToastNow = Date.now();
+          if (palmToastNow - lastPalmToastTimeRef.current >= 5000) {
+            lastPalmToastTimeRef.current = palmToastNow;
+            showCanvasToast('パームリジェクション', 'ペン先以外の接触を自動ブロック中');
+          }
           return;
         }
       }
@@ -492,8 +508,28 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       activeTwoFingerIdsRef.current = [fingerTouches[0][0], fingerTouches[1][0]];
       activeDrawingPointerIdRef.current = null;
 
+      // A3: the 2nd finger arriving well after the 1st finger was already
+      // down means a pinch started, not a simultaneous 2/3-finger tap.
+      // After a pinch starts, tap Undo/Redo is disabled.
+      if (Date.now() - touchStartTimeRef.current > 150) {
+        pinchStartedRef.current = true;
+      }
+
+      // A2: end any in-progress node drag so its session does not survive
+      // the gesture. handleNodeDragEnd flushes pending contours first.
+      if (nodeDragSessionRef.current) {
+        handleNodeDragEnd();
+        nodeDragSessionRef.current = null;
+      }
+
       setTouchLoupeState((prev: any) => (prev.visible ? { ...prev, visible: false } : prev));
-      resetBrushDrawing?.();
+      // A4: when the brush is mid-stroke, finalize the stroke instead of
+      // discarding it, then start the pinch.
+      if (toolMode === 'brush' && brushStrokePointsRef.current.length > 0) {
+        handleBrushPointerUp(e);
+      } else {
+        resetBrushDrawing?.();
+      }
       brushStrokePointsRef.current = [];
       if (activeBrushPathRef.current) {
         activeBrushPathRef.current.setAttribute('d', '');
@@ -504,7 +540,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       setDraggingMetric(null);
       setDraggingGuidelineId(null);
       resetTraceDragState();
-      setTransformSession(null);
+      // A2: cancel the transform session so pendingTransformContoursRef is
+      // cleared the same way cancelTransformSession does. Falls back to
+      // setTransformSession(null) when the cancel callback is not wired.
+      if (cancelTransformSession) {
+        cancelTransformSession();
+      } else {
+        setTransformSession(null);
+      }
       isErasingRef.current = false;
       lastErasePosRef.current = null;
 
@@ -815,6 +858,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setDraggingGuidelineId,
     resetTraceDragState,
     setTransformSession,
+    cancelTransformSession,
     isErasingRef,
     lastErasePosRef,
     setActivePenContour,
@@ -831,7 +875,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleShapePointerDown,
     handleEraserPointerDown,
     handleBrushPointerDown,
+    handleBrushPointerUp,
     handleNodePointerDownOnCanvas,
+    handleNodeDragEnd,
     isGlyphLocked,
     isDrawingTool,
     invalidateContainerRect,
@@ -872,6 +918,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
           // Sub-pixel jitter deadband: skip minuscule finger trembling under 0.25px
           if (distDelta > 0.25 || centerDelta > 0.25) {
+            // A3: any pinch movement means this is a pinch, not a tap.
+            pinchStartedRef.current = true;
             // Use cached container rect to avoid synchronous layout reflow
             let cachedRect = twoFingerCachedContainerRectRef.current;
             if (!cachedRect) {
@@ -1025,10 +1073,13 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
-    // Update hover position
+    // Update hover position (A6: 0.5 canvas units threshold to reduce
+    // state updates and re-renders on pointer moves. The crosshair and
+    // reticles are positioned by direct DOM updates above, so their
+    // display does not depend on this state.)
     const needsHoverPos = gridSettings.showCursorCrosshair !== false;
     if (needsHoverPos) {
-      if (!hoverCanvasPos || Math.abs(hoverCanvasPos.x - pos.x) > 0.05 || Math.abs(hoverCanvasPos.y - pos.y) > 0.05) {
+      if (!hoverCanvasPos || Math.abs(hoverCanvasPos.x - pos.x) > 0.5 || Math.abs(hoverCanvasPos.y - pos.y) > 0.5) {
         setHoverCanvasPos(pos);
       }
     } else if (hoverCanvasPos !== null) {
@@ -1239,11 +1290,16 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       const duration = Date.now() - touchStartTimeRef.current;
       const touchCount = maxTouchCountRef.current;
       const didNotMove = !hasMovedSignificantRef.current;
+      // A3: tap Undo/Redo only fires when no pinch started. A pinch starts
+      // when the 2nd finger arrives after the 1st was already held, or when
+      // the fingers move during the gesture.
+      const wasPinch = pinchStartedRef.current;
 
       maxTouchCountRef.current = 0;
       hasMovedSignificantRef.current = false;
+      pinchStartedRef.current = false;
 
-      if (duration < 380 && didNotMove) {
+      if (duration < 380 && didNotMove && !wasPinch) {
         if (touchCount === 2 && onUndo) {
           onUndo();
           isTwoFingerGestureRef.current = false;
@@ -1273,6 +1329,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         twoFingerStartCenterRef.current = null;
       }
       if (touchPointersRef.current.size === 0) {
+        // A2: make sure no node drag session survives the gesture. The
+        // early return below skips the handleNodeDragEnd() at the end of
+        // this handler, so end it here.
+        if (nodeDragSessionRef.current) {
+          handleNodeDragEnd();
+          nodeDragSessionRef.current = null;
+        }
+        pinchStartedRef.current = false;
         isTwoFingerGestureRef.current = false;
         twoFingerCooldownUntilRef.current = Date.now() + 150;
         activeTwoFingerIdsRef.current = null;

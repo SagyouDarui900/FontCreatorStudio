@@ -15,6 +15,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { FontMetadata, FontProject, GlyphData } from '../types';
+import { DEFAULT_ASCENDER } from '../utils/font/constants';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { exportProjectJsonFile } from '../utils/storageManager';
 import { BundledFontsModal } from './BundledFontsModal';
@@ -150,7 +151,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       unitsPerEm: newUpmVal,
-      ascender: Math.round((prev.ascender ?? 800) * ratio),
+      ascender: Math.round((prev.ascender ?? DEFAULT_ASCENDER) * ratio),
       descender: Math.round((prev.descender ?? -200) * ratio),
     }));
   };

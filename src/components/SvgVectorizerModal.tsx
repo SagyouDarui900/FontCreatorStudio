@@ -109,10 +109,13 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
       setGeneratedSvgString(result.svgString);
     } catch (err: any) {
       console.error('Vectorization error:', err);
+      setVectorContours([]);
+      setGeneratedSvgString('');
+      onShowToast?.('ベクター化に失敗しました。画像を確認して再度お試しください', 'error');
     } finally {
       setIsProcessing(false);
     }
-  }, [rawImageSrc, threshold, smoothing, contrast, brightness, invert, minArea]);
+  }, [rawImageSrc, threshold, smoothing, contrast, brightness, invert, minArea, onShowToast]);
 
   useEffect(() => {
     if (rawImageSrc) {

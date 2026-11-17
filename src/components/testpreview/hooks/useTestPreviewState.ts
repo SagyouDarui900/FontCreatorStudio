@@ -423,6 +423,17 @@ const [testText, setTestText] = usePersistedField(
     }
 
     const compileVersion = ++fontVersionRef.current;
+    // Set when the effect is cleaned up (modal closed or deps changed) so a
+    // FontFace load that resolves afterwards is discarded instead of being
+    // added to document.fonts and leaking its blob URL and style tag.
+    let cancelled = false;
+    const removeStyleTagForUrl = (url: string) => {
+      if (typeof document === 'undefined') return;
+      const styleTag = document.getElementById('dynamic-preview-font-face');
+      if (styleTag && styleTag.textContent?.includes(url)) {
+        styleTag.remove();
+      }
+    };
     compileTimerRef.current = setTimeout(() => {
       compileTimerRef.current = null;
       try {
@@ -442,8 +453,9 @@ const [testText, setTestText] = usePersistedField(
           const ff = new FontFace(newFontName, `url('${blobUrl}')`);
           ff.load()
             .then((loadedFace) => {
-              if (compileVersion !== fontVersionRef.current) {
+              if (cancelled || compileVersion !== fontVersionRef.current) {
                 URL.revokeObjectURL(blobUrl);
+                removeStyleTagForUrl(blobUrl);
                 return;
               }
               // Delete old FontFace from document.fonts before adding the new face
@@ -464,7 +476,7 @@ const [testText, setTestText] = usePersistedField(
             })
             .catch(() => {
               URL.revokeObjectURL(blobUrl);
-              if (compileVersion === fontVersionRef.current) {
+              if (!cancelled && compileVersion === fontVersionRef.current) {
                 setErrorMsg('プレビュー用フォントの読み込みに失敗しました。');
               }
             });
@@ -494,6 +506,9 @@ const [testText, setTestText] = usePersistedField(
         setErrorMsg(null);
       } catch (err) {
         console.error('Error compiling test font:', err);
+        // Remove the previous preview font so a failed compile never leaves
+        // stale glyphs on screen.
+        cleanupActivePreviewFont();
         setErrorMsg(
           err instanceof Error && err.message
             ? err.message
@@ -503,6 +518,7 @@ const [testText, setTestText] = usePersistedField(
     }, 250);
 
     return () => {
+      cancelled = true;
       if (compileTimerRef.current) {
         clearTimeout(compileTimerRef.current);
         compileTimerRef.current = null;

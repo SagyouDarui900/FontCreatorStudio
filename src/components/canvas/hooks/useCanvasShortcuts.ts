@@ -164,7 +164,11 @@ export function useCanvasShortcuts({
       }
 
       // Spacebar panning key trigger
+      // B5: preventDefault stops a focused button from also being activated
+      // by Space while panning starts. Input focus already returns early
+      // above, so typing in inputs is unaffected.
       if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
         if (!e.repeat) {
           setIsSpacePressed(true);
         }

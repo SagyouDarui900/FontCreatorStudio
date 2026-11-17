@@ -531,8 +531,10 @@ export function subtractEraserStrokeVector(
  * High-precision vector Boolean Union (Join/Combine paths):
  * Merges overlapping closed contours using exact Bézier curve intersection.
  * Non-overlapping contours are left 100% bit-exact and untouched!
+ * Returns null when the operation fails, so the caller can tell failure
+ * apart from a successful result.
  */
-export function booleanUnionContours(contours: PathContour[]): PathContour[] {
+function booleanUnionContoursOrNull(contours: PathContour[]): PathContour[] | null {
   if (!contours || contours.length === 0) return [];
 
   const scope = getPaperScope();
@@ -683,8 +685,8 @@ export function booleanUnionContours(contours: PathContour[]): PathContour[] {
 
     return [...openContours, ...(unitedContours.length > 0 ? unitedContours : closedContours)];
   } catch (err) {
-    console.error('Boolean union error, returning original:', err);
-    return contours;
+    console.error('Boolean union error:', err);
+    return null;
   } finally {
     try {
       scope.project?.clear();
@@ -694,21 +696,42 @@ export function booleanUnionContours(contours: PathContour[]): PathContour[] {
   }
 }
 
+export interface BooleanOperationResult {
+  ok: boolean;
+  contours: PathContour[];
+}
+
+/**
+ * Legacy wrapper: on failure returns the input unchanged, as before.
+ * Use tryBooleanUnionContours when the caller needs to know whether
+ * the operation succeeded.
+ */
+export function booleanUnionContours(contours: PathContour[]): PathContour[] {
+  return booleanUnionContoursOrNull(contours) ?? contours;
+}
+
+export function tryBooleanUnionContours(contours: PathContour[]): BooleanOperationResult {
+  const result = booleanUnionContoursOrNull(contours);
+  return result === null ? { ok: false, contours } : { ok: true, contours: result };
+}
+
 /**
  * High-precision vector Boolean Subtraction (Subtract cutter from subject)
+ * Returns null when the operation fails.
  */
-export function booleanSubtractContours(
+function booleanSubtractContoursOrNull(
   subjectContours: PathContour[],
   cutterContours: PathContour[]
-): PathContour[] {
+): PathContour[] | null {
   if (!subjectContours || subjectContours.length === 0) return [];
   if (!cutterContours || cutterContours.length === 0) return subjectContours;
 
   const scope = getPaperScope();
 
   try {
-    const subjectItem = booleanUnionContours(subjectContours);
-    const cutterItem = booleanUnionContours(cutterContours);
+    const subjectItem = booleanUnionContoursOrNull(subjectContours);
+    const cutterItem = booleanUnionContoursOrNull(cutterContours);
+    if (subjectItem === null || cutterItem === null) return null;
 
     const paperSubject = new scope.CompoundPath({});
     for (const sc of subjectItem) {
@@ -730,17 +753,39 @@ export function booleanSubtractContours(
     return contours;
   } catch (err) {
     console.error('Boolean subtract error:', err);
-    return subjectContours;
+    return null;
   }
 }
 
 /**
- * High-precision vector Boolean Intersection (Keep only overlapping region)
+ * Legacy wrapper: on failure returns the subject unchanged, as before.
+ * Use tryBooleanSubtractContours when the caller needs to know whether
+ * the operation succeeded.
  */
-export function booleanIntersectContours(
+export function booleanSubtractContours(
   subjectContours: PathContour[],
   cutterContours: PathContour[]
 ): PathContour[] {
+  return booleanSubtractContoursOrNull(subjectContours, cutterContours) ?? subjectContours;
+}
+
+export function tryBooleanSubtractContours(
+  subjectContours: PathContour[],
+  cutterContours: PathContour[]
+): BooleanOperationResult {
+  const result = booleanSubtractContoursOrNull(subjectContours, cutterContours);
+  return result === null ? { ok: false, contours: subjectContours } : { ok: true, contours: result };
+}
+
+/**
+ * High-precision vector Boolean Intersection (Keep only overlapping region)
+ * Returns null when the operation fails. An empty array means the
+ * operation succeeded but the contours do not overlap.
+ */
+function booleanIntersectContoursOrNull(
+  subjectContours: PathContour[],
+  cutterContours: PathContour[]
+): PathContour[] | null {
   if (!subjectContours || subjectContours.length === 0 || !cutterContours || cutterContours.length === 0) {
     return [];
   }
@@ -768,6 +813,26 @@ export function booleanIntersectContours(
     return contours;
   } catch (err) {
     console.error('Boolean intersect error:', err);
-    return [];
+    return null;
   }
+}
+
+/**
+ * Legacy wrapper: on failure returns an empty array, as before.
+ * Use tryBooleanIntersectContours when the caller needs to know whether
+ * the operation succeeded.
+ */
+export function booleanIntersectContours(
+  subjectContours: PathContour[],
+  cutterContours: PathContour[]
+): PathContour[] {
+  return booleanIntersectContoursOrNull(subjectContours, cutterContours) ?? [];
+}
+
+export function tryBooleanIntersectContours(
+  subjectContours: PathContour[],
+  cutterContours: PathContour[]
+): BooleanOperationResult {
+  const result = booleanIntersectContoursOrNull(subjectContours, cutterContours);
+  return result === null ? { ok: false, contours: [] } : { ok: true, contours: result };
 }

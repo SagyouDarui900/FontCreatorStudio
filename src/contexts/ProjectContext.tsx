@@ -66,7 +66,7 @@ interface ProjectProviderProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
   projectRef: React.MutableRefObject<FontProject>;
-  saveProjectToIndexedDbWhenIdle: (p: FontProject) => Promise<void>;
+  saveProjectToIndexedDbWhenIdle: (p: FontProject) => Promise<boolean>;
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   setToolMode?: (mode: ToolMode) => void;
   children: React.ReactNode;
@@ -308,39 +308,52 @@ export function ProjectProvider({
   );
 
   const handleQuickSaveCurrentGlyph = useCallback(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
-      setLastAutoSaveTimestamp(Date.now());
-      void saveProjectToIndexedDbWhenIdle(projectRef.current);
-    } catch (e) {
-      console.warn('Immediate project save failed:', e);
-    }
+    void (async () => {
+      // Immediate LocalStorage save: record whether it actually succeeded
+      // (8-10) so a failure is not reported as a successful persist.
+      let localSaved = false;
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
+        setLastAutoSaveTimestamp(Date.now());
+        localSaved = true;
+      } catch (e) {
+        console.warn('Immediate project save failed:', e);
+      }
+      // The IndexedDB save runs on a separate path; wait for its result
+      // and take it into account as well.
+      const indexedDbSaved = await saveProjectToIndexedDbWhenIdle(projectRef.current);
 
-    const g = projectRef.current.glyphs?.[selectedUnicode] || {
-      unicode: selectedUnicode,
-      char: selectedChar,
-      advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
-      contours: [],
-      strokes: [],
-      anchors: [],
-    };
+      const g = projectRef.current.glyphs?.[selectedUnicode] || {
+        unicode: selectedUnicode,
+        char: selectedChar,
+        advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
+        contours: [],
+        strokes: [],
+        anchors: [],
+      };
 
-    const res = exportGlyphJsonFile(
-      g,
-      selectedUnicode,
-      selectedChar,
-      projectRef.current.metadata?.familyName || projectRef.current.name || '手書きフォント',
-      projectRef.current.metadata?.version || '1.0'
-    );
-
-    if (res.success) {
-      showToast(
-        `文字「${selectedChar}」(U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}) を即時保存し、『${res.filename}』をダウンロードしました`,
-        'success'
+      const res = exportGlyphJsonFile(
+        g,
+        selectedUnicode,
+        selectedChar,
+        projectRef.current.metadata?.familyName || projectRef.current.name || '手書きフォント',
+        projectRef.current.metadata?.version || '1.0'
       );
-    } else {
-      showToast(`文字「${selectedChar}」の変更をブラウザに即時永続化しました`, 'success');
-    }
+
+      if (res.success) {
+        showToast(
+          `文字「${selectedChar}」(U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}) を即時保存し、『${res.filename}』をダウンロードしました`,
+          'success'
+        );
+      } else if (localSaved || indexedDbSaved) {
+        showToast(`文字「${selectedChar}」の変更をブラウザに即時永続化しました`, 'success');
+      } else {
+        showToast(
+          `文字「${selectedChar}」の変更をブラウザに保存できませんでした。編集内容は保持されています。`,
+          'error'
+        );
+      }
+    })();
   }, [selectedUnicode, selectedChar, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
 
   const glyphActions = useGlyphActions({

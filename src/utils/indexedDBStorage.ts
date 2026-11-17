@@ -13,12 +13,30 @@ export interface IndexedDBAutoSaveEntry {
   project: FontProject;
 }
 
+export interface IndexedDBLoadResult {
+  status: 'ok' | 'empty' | 'error';
+  project: FontProject | null;
+  updatedAt: number;
+}
+
+// Shared IndexedDB connection (1-11): opening a new connection for every
+// save/load is wasteful and can hit connection limits. Keep one connection
+// per module and reconnect only after it closes or fails to open.
+let sharedDbPromise: Promise<IDBDatabase> | null = null;
+
+function forgetSharedDb(): void {
+  sharedDbPromise = null;
+}
+
 /**
  * Open or upgrade the IndexedDB database
  */
 export function openFontStudioDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (sharedDbPromise) return sharedDbPromise;
+
+  sharedDbPromise = new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
+      sharedDbPromise = null;
       reject(new Error('IndexedDB is not supported in this browser.'));
       return;
     }
@@ -41,61 +59,82 @@ export function openFontStudioDB(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => {
-      resolve(request.result);
+      const db = request.result;
+      // Drop the cached connection when it closes or another tab triggers
+      // a version change, so the next call opens a fresh one.
+      db.addEventListener('close', forgetSharedDb);
+      db.addEventListener('versionchange', () => {
+        db.close();
+        forgetSharedDb();
+      });
+      resolve(db);
     };
 
     request.onerror = () => {
+      sharedDbPromise = null;
       reject(request.error || new Error('Failed to open IndexedDB.'));
     };
   });
+
+  return sharedDbPromise;
 }
 
 /**
- * Save active FontProject to IndexedDB asynchronously
+ * Save active FontProject to IndexedDB asynchronously.
+ * The primary project save and the rolling autosave-history save use
+ * separate transactions (1-7): a history failure must not block the
+ * primary save. Returns true when the primary save succeeded.
  */
 export async function saveProjectToIndexedDB(project: FontProject): Promise<boolean> {
   try {
     const db = await openFontStudioDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_PROJECTS, STORE_AUTOSAVE], 'readwrite');
-      const projectStore = tx.objectStore(STORE_PROJECTS);
-      const autoStore = tx.objectStore(STORE_AUTOSAVE);
 
-      const now = Date.now();
-      const projectUpdatedAt =
-        typeof project.updatedAt === 'number' && Number.isFinite(project.updatedAt) && project.updatedAt > 0
-          ? project.updatedAt
-          : now;
-      const glyphCount = Object.keys(project.glyphs || {}).length;
+    const now = Date.now();
+    const projectUpdatedAt =
+      typeof project.updatedAt === 'number' && Number.isFinite(project.updatedAt) && project.updatedAt > 0
+        ? project.updatedAt
+        : now;
+    const glyphCount = Object.keys(project.glyphs || {}).length;
 
-      // 1. Put primary current project
-      projectStore.put({
+    // 1. Put primary current project (its own transaction).
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction([STORE_PROJECTS], 'readwrite');
+      tx.objectStore(STORE_PROJECTS).put({
         id: 'active_project',
         updatedAt: projectUpdatedAt,
         project,
       });
-
-      // 2. Put rolling autosave entry
-      const autoEntry: IndexedDBAutoSaveEntry = {
-        id: `auto_${now}_${Math.random().toString(36).substring(2, 6)}`,
-        timestamp: projectUpdatedAt,
-        projectName: project.name || project.metadata?.familyName || '無題フォント',
-        glyphCount,
-        project,
-      };
-
-      autoStore.put(autoEntry);
-
-      tx.oncomplete = () => {
-        // Keep only last 15 rolling autosave entries to prevent infinite growth
-        void cleanupOldAutosaves(db, 15);
-        resolve(true);
-      };
-
-      tx.onerror = () => {
-        reject(tx.error);
-      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error('Primary project save was aborted.'));
     });
+
+    // 2. Put rolling autosave entry (separate transaction, best effort).
+    // A failure here is logged and ignored: the primary save above
+    // already succeeded.
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction([STORE_AUTOSAVE], 'readwrite');
+        const autoStore = tx.objectStore(STORE_AUTOSAVE);
+        const autoEntry: IndexedDBAutoSaveEntry = {
+          id: `auto_${now}_${Math.random().toString(36).substring(2, 6)}`,
+          timestamp: projectUpdatedAt,
+          projectName: project.name || project.metadata?.familyName || '無題フォント',
+          glyphCount,
+          project,
+        };
+        autoStore.put(autoEntry);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error('Autosave history save was aborted.'));
+      });
+      // Keep only last 15 rolling autosave entries to prevent infinite growth
+      void cleanupOldAutosaves(db, 15);
+    } catch (historyErr) {
+      console.warn('IndexedDB autosave history save failed (primary save succeeded):', historyErr);
+    }
+
+    return true;
   } catch (err) {
     console.warn('IndexedDB auto-save failed:', err);
     return false;
@@ -103,9 +142,13 @@ export async function saveProjectToIndexedDB(project: FontProject): Promise<bool
 }
 
 /**
- * Load active FontProject from IndexedDB
+ * Load active FontProject from IndexedDB.
+ * The result distinguishes a read failure from "no data" (1-1):
+ * status 'ok' means a project was loaded, 'empty' means no project is
+ * stored, and 'error' means the read itself failed. Callers must not
+ * treat 'error' as 'empty'.
  */
-export async function loadProjectFromIndexedDB(): Promise<{ project: FontProject; updatedAt: number } | null> {
+export async function loadProjectFromIndexedDB(): Promise<IndexedDBLoadResult> {
   try {
     const db = await openFontStudioDB();
     return new Promise((resolve) => {
@@ -123,21 +166,23 @@ export async function loadProjectFromIndexedDB(): Promise<{ project: FontProject
                   ? request.result.updatedAt
                   : 0);
           resolve({
+            status: 'ok',
             project: rawProject,
             updatedAt: fallbackUpdatedAt,
           });
         } else {
-          resolve(null);
+          resolve({ status: 'empty', project: null, updatedAt: 0 });
         }
       };
 
       request.onerror = () => {
-        resolve(null);
+        console.warn('Failed to read project from IndexedDB:', request.error);
+        resolve({ status: 'error', project: null, updatedAt: 0 });
       };
     });
   } catch (err) {
     console.warn('Failed to read from IndexedDB:', err);
-    return null;
+    return { status: 'error', project: null, updatedAt: 0 };
   }
 }
 

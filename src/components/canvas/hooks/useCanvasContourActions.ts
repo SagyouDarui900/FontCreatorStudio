@@ -248,7 +248,11 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     };
     try {
       const existing = await loadCustomParts();
-      await saveCustomParts([newPart, ...(existing || [])]);
+      const saved = await saveCustomParts([newPart, ...(existing || [])]);
+      if (!saved) {
+        showCanvasToast('登録に失敗しました', 'ストレージエラー');
+        return;
+      }
       window.dispatchEvent(new CustomEvent('font_custom_parts_updated'));
       showCanvasToast('マイ部首パーツに登録しました', `「${partName}」を部首パレットに追加しました`);
     } catch {

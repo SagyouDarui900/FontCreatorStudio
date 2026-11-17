@@ -117,7 +117,11 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
       };
 
       const updated = [newPart, ...existingParts];
-      await saveCustomParts(updated);
+      const saved = await saveCustomParts(updated);
+      if (!saved) {
+        showCanvasToast('パーツの登録に失敗しました');
+        return;
+      }
       window.dispatchEvent(new CustomEvent('font_custom_parts_updated'));
       showCanvasToast(`「${partName}」を部首パーツに登録しました`, '右側の「部首」ドロワー＞「マイパーツ」からいつでも再利用・合成できます');
     } catch (e) {

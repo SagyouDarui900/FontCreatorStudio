@@ -53,6 +53,10 @@ export default defineConfig(() => {
           // ビルド時に列挙できない。オンライン時に取得したフォントは下の
           // CacheFirst の runtimeCaching で保持され、次回以降のオフラインで使える。
           // 初回オフラインで下絵フォントが使えない点は OfflineIndicator で表示する。
+          // 上限は 60 件。woff2 は unicode-range ごとに分割されるため、60 件で
+          // 5 書体 × 複数文字をまかなえる。1 件あたり数十 KB のため、合計は数 MB
+          // 程度で Workbox の制限を超えない。上限を超えた分はキャッシュから
+          // 削除され、オフラインで使えない場合がある。
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -60,7 +64,7 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'google-fonts-cache',
                 expiration: {
-                  maxEntries: 10,
+                  maxEntries: 60,
                   maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
@@ -74,7 +78,7 @@ export default defineConfig(() => {
               options: {
                 cacheName: 'gstatic-fonts-cache',
                 expiration: {
-                  maxEntries: 10,
+                  maxEntries: 60,
                   maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
                 },
                 cacheableResponse: {
@@ -85,7 +89,7 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),

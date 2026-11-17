@@ -161,9 +161,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
       p.id === workingPreset.id ? { ...workingPreset, name: workingPreset.name.trim() || p.name } : p
     );
     onUpdatePresets(next);
-    saveUserPenPresets(next);
+    const saved = saveUserPenPresets(next);
     onApplyPreset(workingPreset);
-    showToast(`「${workingPreset.name}」の設定を上書き保存しました`);
+    showToast(saved ? `「${workingPreset.name}」の設定を上書き保存しました` : 'プリセットの保存に失敗しました');
   };
 
   const handleSaveAsNewPreset = () => {
@@ -177,11 +177,11 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     };
     const next = [newP, ...presets];
     onUpdatePresets(next);
-    saveUserPenPresets(next);
+    const saved = saveUserPenPresets(next);
     onApplyPreset(newP);
     setWorkingPreset(newP);
     setRenameInput(name);
-    showToast(`「${name}」を新規プリセットとして保存し、作図ペンとして適用しました`);
+    showToast(saved ? `「${name}」を新規プリセットとして保存し、作図ペンとして適用しました` : 'プリセットの保存に失敗しました');
   };
 
   const handleApplyCurrentAndClose = () => {
@@ -203,8 +203,8 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     e.stopPropagation();
     const next = presets.filter((p) => p.id !== id);
     onUpdatePresets(next);
-    saveUserPenPresets(next);
-    showToast('プリセットを削除しました');
+    const saved = saveUserPenPresets(next);
+    showToast(saved ? 'プリセットを削除しました' : 'プリセットの削除を保存できませんでした');
   };
 
   const handleDuplicatePreset = (p: UserPenPreset, e: React.MouseEvent) => {
@@ -218,8 +218,8 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     };
     const next = [dup, ...presets];
     onUpdatePresets(next);
-    saveUserPenPresets(next);
-    showToast(`「${dup.name}」を複製しました`);
+    const saved = saveUserPenPresets(next);
+    showToast(saved ? `「${dup.name}」を複製しました` : 'プリセットの保存に失敗しました');
   };
 
   const handleExportPresets = () => {
@@ -244,8 +244,8 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         if (Array.isArray(parsed)) {
           const next = [...parsed, ...presets];
           onUpdatePresets(next);
-          saveUserPenPresets(next);
-          showToast(`${parsed.length} 個のプリセットを読み込みました`);
+          const saved = saveUserPenPresets(next);
+          showToast(saved ? `${parsed.length} 個のプリセットを読み込みました` : 'プリセットの保存に失敗しました');
         }
       } catch {
         showToast('JSONファイルの読み込みに失敗しました');
@@ -298,7 +298,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                       if (presets.some((p) => p.id === workingPreset.id)) {
                         const next = presets.map((p) => (p.id === workingPreset.id ? { ...p, name: newName } : p));
                         onUpdatePresets(next);
-                        saveUserPenPresets(next);
+                        if (!saveUserPenPresets(next)) {
+                          showToast('プリセット名の保存に失敗しました');
+                        }
                       }
                     }
                   }}
@@ -312,7 +314,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                     if (presets.some((p) => p.id === workingPreset.id)) {
                       const next = presets.map((p) => (p.id === workingPreset.id ? { ...p, name: newName } : p));
                       onUpdatePresets(next);
-                      saveUserPenPresets(next);
+                      if (!saveUserPenPresets(next)) {
+                        showToast('プリセット名の保存に失敗しました');
+                      }
                     }
                   }}
                   className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"

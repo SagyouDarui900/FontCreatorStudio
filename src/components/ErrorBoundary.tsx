@@ -13,6 +13,7 @@ interface State {
   error: Error | null;
   hasSavedBackup: boolean;
   resetError: string | null;
+  backupError: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -27,11 +28,12 @@ export class ErrorBoundary extends Component<Props, State> {
       error: null,
       hasSavedBackup: false,
       resetError: null,
+      backupError: null,
     };
   }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, hasSavedBackup: false, resetError: null };
+    return { hasError: true, error, hasSavedBackup: false, resetError: null, backupError: null };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -39,21 +41,53 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleExportBackup = async () => {
+    this.setState({ backupError: null });
     try {
-      let jsonString = localStorage.getItem(LOCAL_STORAGE_PROJECT_KEY);
-
-      if (!jsonString) {
-        try {
-          const result = await loadProjectFromIndexedDB();
-          if (result && result.project) {
-            jsonString = JSON.stringify(result.project, null, 2);
-          }
-        } catch {
-          // ignore
+      // Read both stores and use the newer copy by updatedAt (1-9).
+      // LocalStorage mirrors lag edits by 2 seconds, so an older
+      // LocalStorage copy must not win over a newer IndexedDB copy.
+      let localJson: string | null = null;
+      let localUpdatedAt = 0;
+      try {
+        localJson = localStorage.getItem(LOCAL_STORAGE_PROJECT_KEY);
+        if (localJson) {
+          const parsed = JSON.parse(localJson) as { updatedAt?: unknown };
+          localUpdatedAt =
+            typeof parsed?.updatedAt === 'number' && Number.isFinite(parsed.updatedAt) ? parsed.updatedAt : 0;
         }
+      } catch {
+        localJson = null;
+        localUpdatedAt = 0;
+      }
+
+      let indexedJson: string | null = null;
+      let indexedUpdatedAt = 0;
+      let indexedDbFailed = false;
+      try {
+        const result = await loadProjectFromIndexedDB();
+        if (result.status === 'ok' && result.project) {
+          indexedJson = JSON.stringify(result.project, null, 2);
+          indexedUpdatedAt = result.updatedAt;
+        } else if (result.status === 'error') {
+          indexedDbFailed = true;
+        }
+      } catch {
+        indexedDbFailed = true;
+      }
+
+      let jsonString: string | null = null;
+      if (indexedJson && localJson) {
+        jsonString = indexedUpdatedAt >= localUpdatedAt ? indexedJson : localJson;
+      } else {
+        jsonString = indexedJson ?? localJson;
       }
 
       if (!jsonString) {
+        this.setState({
+          backupError: indexedDbFailed
+            ? 'IndexedDBとLocalStorageのどちらからも保存データを取得できませんでした。IndexedDBの読み込みに失敗しました。'
+            : 'IndexedDBとLocalStorageのどちらにも保存データがありませんでした。',
+        });
         return;
       }
 
@@ -69,6 +103,7 @@ export class ErrorBoundary extends Component<Props, State> {
       this.setState({ hasSavedBackup: true });
     } catch (e) {
       console.error('Failed to export rescue backup:', e);
+      this.setState({ backupError: 'プロジェクトJSONの書き出しに失敗しました。' });
     }
   };
 
@@ -163,6 +198,11 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.resetError && (
               <div className="w-full p-2.5 text-left text-[11px] border border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 mb-5 break-all">
                 キャッシュ初期化に失敗しました。{this.state.resetError}
+              </div>
+            )}
+            {this.state.backupError && (
+              <div className="w-full p-2.5 text-left text-[11px] border border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 mb-5 break-all">
+                {this.state.backupError}
               </div>
             )}
 

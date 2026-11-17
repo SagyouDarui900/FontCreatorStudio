@@ -28,6 +28,7 @@ import { ThemeMode, isLightTheme, getThemeClasses, THEME_PRESETS, getThemePreset
 import { useToolState } from './hooks/useToolState';
 import { useTheme } from './hooks/useTheme';
 import { useProjectStorage } from './hooks/useProjectStorage';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useAppLayout } from './hooks/useAppLayout';
 import { useAppShortcuts } from './hooks/useAppShortcuts';
 import { AppMobileNav } from './components/navigation';
@@ -56,6 +57,15 @@ function AppMain({
   showToast,
   dismissToast,
 }: AppMainProps) {
+  // Service Worker update notice (PWA-2): with registerType 'autoUpdate'
+  // the new service worker activates on its own, but the open page keeps
+  // running the old JS until it reloads. Prompt the user to reload
+  // instead of reloading automatically, so editing data is not lost.
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW();
+
   const {
     project,
     setProject,
@@ -671,6 +681,30 @@ function AppMain({
 
       {/* Offline Connectivity Status Indicator */}
       <OfflineIndicator />
+
+      {/* Service Worker update notice: a new version is ready, reload to use it */}
+      {needRefresh && (
+        <div
+          role="alert"
+          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 right-4 z-[70] flex items-center gap-2 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-100 px-3 py-2 text-xs font-medium shadow-md"
+        >
+          <span>新しいバージョンが利用できます。再読み込みすると更新が反映されます。</span>
+          <button
+            type="button"
+            onClick={() => void updateServiceWorker(true)}
+            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold shrink-0 cursor-pointer"
+          >
+            再読み込み
+          </button>
+          <button
+            type="button"
+            onClick={() => setNeedRefresh(false)}
+            className="px-2 py-1 rounded text-slate-300 hover:bg-slate-800 shrink-0 cursor-pointer"
+          >
+            後で
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -732,7 +766,9 @@ function AppContent() {
   }, []);
 
   // Theme Mode
-  const { theme, changeTheme, isLight, themeClasses } = useTheme();
+  const { theme, changeTheme, isLight, themeClasses } = useTheme({
+    onSaveError: () => showToast('テーマ設定の保存に失敗しました', 'error'),
+  });
 
   // Project Storage Manager
   const { project, setProject, projectRef, saveProjectToIndexedDbWhenIdle, isStorageLoading, restoreFailed, restoreError, retryRestore, discardCorruptDataAndStartFresh, autoSaveFailed, autoSaveError, retryAutoSave } = useProjectStorage({

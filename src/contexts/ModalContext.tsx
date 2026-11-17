@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 
 export type ModalId =
   | 'mobileTheme'
@@ -103,6 +103,30 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
   });
   const [showMetricsDrawer, setShowMetricsDrawer] = useState(false);
 
+  // Viewport width, tracked the same way as useAppLayout, to tell overlay
+  // drawers apart from docked side panels (see isAnyModalOpen below).
+  const [viewportWidth, setViewportWidth] = useState<number>(() => {
+    return typeof window !== 'undefined'
+      ? Math.round(window.visualViewport ? window.visualViewport.width : window.innerWidth)
+      : 1280;
+  });
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+      setViewportWidth(Math.round(w));
+    };
+    window.addEventListener('resize', handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
   // Primary controllers
   const openModal = useCallback((id: ModalId) => {
     setActiveModal(id);
@@ -160,7 +184,20 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     [createModalSetter]
   );
 
-  const isAnyModalOpen = activeModal !== null;
+  // B7: an open overlay drawer also blocks canvas/app shortcuts, the same
+  // way an open modal does. Only overlay drawers count: the same breakpoints
+  // as useAppLayout.ts (grid < 1280, metrics/radicals < 1280 or < 1440 while
+  // the grid drawer is open). Docked panels do not count: showGridDrawer is
+  // open by default on wide screens as a docked panel, and counting it would
+  // disable the canvas (pointer-events-none) and every shortcut on desktop.
+  const isGridOverlay = viewportWidth < 1280;
+  const isMetricsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
+  const isRadicalsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
+  const isAnyModalOpen =
+    activeModal !== null ||
+    (showRadicals && isRadicalsOverlay) ||
+    (showGridDrawer && isGridOverlay) ||
+    (showMetricsDrawer && isMetricsOverlay);
 
   const value = useMemo<ModalContextType>(
     () => ({

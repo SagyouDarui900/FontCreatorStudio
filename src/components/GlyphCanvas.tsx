@@ -752,6 +752,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleTransformPointerMove,
     handleTransformPointerUp,
     setTransformSession,
+    cancelTransformSession,
     rulerMeasurement,
     handleRulerPointerDown,
     handleRulerPointerMove,

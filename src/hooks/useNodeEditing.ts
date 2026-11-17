@@ -156,6 +156,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   const pendingContoursRef = useRef<PathContour[] | null>(null);
   const nodeDragSessionRef = useRef<NodeDragSession | null>(null);
   const hasCommittedDragHistoryRef = useRef<boolean>(false);
+  // B9: coalesce rapid consecutive arrow-key nudges into one history entry.
+  const lastNudgeTimeRef = useRef<number>(0);
+  const lastNudgeTargetKeyRef = useRef<string>('');
 
   // External contour selection listener (e.g. from radical insertion)
   useEffect(() => {
@@ -874,8 +877,23 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       });
 
       if (changed) {
-        onChangeContours(updated);
-        onCommitHistory?.();
+        // B9: consecutive nudges of the same selection within 500 ms share
+        // one history entry. Only the first nudge records history (via
+        // onChangeContours without skipHistory); later nudges in the burst
+        // move only, with skipHistory and no extra commit. handleUpdateContours
+        // already supports skipHistory, so no ProjectContext change is needed.
+        const now = Date.now();
+        const targetKey = `${[...targetIds].sort().join(',')}|${selectedHandleType ?? 'none'}`;
+        const isContinuation =
+          now - lastNudgeTimeRef.current <= 500 && lastNudgeTargetKeyRef.current === targetKey;
+        lastNudgeTimeRef.current = now;
+        lastNudgeTargetKeyRef.current = targetKey;
+        if (isContinuation) {
+          onChangeContours(updated, { skipHistory: true });
+        } else {
+          onChangeContours(updated);
+          onCommitHistory?.();
+        }
         return true;
       }
       return false;

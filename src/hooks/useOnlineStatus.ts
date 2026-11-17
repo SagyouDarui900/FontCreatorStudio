@@ -46,9 +46,18 @@ export function useOnlineStatus() {
       void checkReachability();
     };
     const handleOffline = () => setIsOnline(false);
+    const handleVisibilityChange = () => {
+      // Run the reachability check immediately when the tab becomes
+      // visible again, instead of waiting up to 60 seconds for the
+      // next interval tick. checkReachability skips while hidden.
+      if (!document.hidden) {
+        void checkReachability();
+      }
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     void checkReachability();
     const intervalId = window.setInterval(() => {
       void checkReachability();
@@ -59,6 +68,7 @@ export function useOnlineStatus() {
       window.clearInterval(intervalId);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

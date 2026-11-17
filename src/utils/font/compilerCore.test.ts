@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { compileFont } from './compilerCore';
-import { validateFontProject } from './validation';
+import {
+  validateFontProject,
+  validateStoredFontProject,
+  validateStoredFontProjectWithReport,
+} from './validation';
 import { FontProject, PathContour } from '../../types';
 
 function createMockProject(overrides?: Partial<FontProject>): FontProject {
@@ -217,5 +221,220 @@ describe('Font Project Validation & Compilation', () => {
     const validation = validateFontProject(project);
     expect(validation.valid).toBe(false);
     expect(validation.errors.length).toBeGreaterThan(0);
+  });
+
+  it('includes removed counts in the validation result', () => {
+    const project = createMockProject();
+    const result = validateFontProject(project);
+    expect(result.removed).toEqual({
+      glyphs: 0,
+      nodes: 0,
+      contours: 0,
+      replacedAdvanceWidth: 0,
+      replacedLsb: 0,
+      removedPixelData: 0,
+    });
+  });
+
+  it('rejects pixelData whose length does not match width * height', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+          pixelData: { width: 2, height: 2, data: [1, 0, 1] },
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(false);
+    expect(validation.removed.removedPixelData).toBe(1);
+    expect(validation.errors.some((e) => e.includes('ピクセルデータ'))).toBe(true);
+  });
+
+  it('rejects out-of-range, zero and duplicate Unicode values', () => {
+    const rect = (id: string): PathContour => ({
+      id,
+      closed: true,
+      nodes: [
+        { id: `${id}n1`, x: 100, y: 100, type: 'corner' },
+        { id: `${id}n2`, x: 500, y: 100, type: 'corner' },
+        { id: `${id}n3`, x: 500, y: 600, type: 'corner' },
+        { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
+      ],
+    });
+    const project = createMockProject({
+      glyphs: {
+        65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect('c1')] },
+        66: { char: 'A', name: 'A2', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect('c2')] },
+        67: { char: '', name: 'bad', unicode: 0x110000, advanceWidth: 1000, lsb: 50, contours: [rect('c3')] },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(false);
+    expect(validation.removed.glyphs).toBe(2);
+  });
+
+  it('rejects a glyph whose storage key does not match its unicode', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'B',
+          name: 'B',
+          unicode: 66,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(false);
+    expect(validation.removed.glyphs).toBe(1);
+  });
+
+  it('warns on two-node and zero-area contours without stopping export', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [
+            {
+              id: 'c2',
+              closed: true,
+              nodes: [
+                { id: 'n1', x: 100, y: 100, type: 'corner' },
+                { id: 'n2', x: 500, y: 100, type: 'corner' },
+              ],
+            },
+            {
+              id: 'c3',
+              closed: true,
+              nodes: [
+                { id: 'n1', x: 200, y: 200, type: 'corner' },
+                { id: 'n2', x: 200, y: 200, type: 'corner' },
+                { id: 'n3', x: 200, y: 200, type: 'corner' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(true);
+    expect(validation.warnings.some((w) => w.includes('2つだけ'))).toBe(true);
+    expect(validation.warnings.some((w) => w.includes('同一座標'))).toBe(true);
+  });
+
+  it('warns on invalid advanceWidth and lsb and counts the replacements', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: NaN,
+          lsb: Infinity,
+          contours: [],
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(true);
+    expect(validation.removed.replacedAdvanceWidth).toBe(1);
+    expect(validation.removed.replacedLsb).toBe(1);
+  });
+
+  it('warns on kerning that references a missing glyph', () => {
+    const project = createMockProject({
+      kerning: { 'A,V': -100 },
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+        },
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(true);
+    expect(validation.warnings.some((w) => w.includes('A,V'))).toBe(true);
+  });
+
+  it('rejects a custom kerning pair with an invalid Unicode value in Japanese', () => {
+    const project = createMockProject({
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: { enabled: false, defaultVertAdvance: 1000, vertOriginY: 800, substitutions: [] },
+        ligatures: [],
+        customKerningPairs: [
+          { id: 'k1', firstUnicode: 0x110000, secondUnicode: 65, amount: -100, enabled: true },
+        ],
+      },
+    });
+    const validation = validateFontProject(project);
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.some((e) => e.includes('カーニングペア'))).toBe(true);
+    expect(() => compileFont(project, { skipBlobUrl: true })).toThrow(/フォントの検証に失敗しました/);
+    expect(() => compileFont(project, { skipBlobUrl: true })).not.toThrow(/RangeError/);
+  });
+
+  it('counts removed and replaced items when sanitizing a stored project', () => {
+    const report = validateStoredFontProjectWithReport({
+      metadata: {
+        familyName: 'Test',
+        styleName: 'Regular',
+        unitsPerEm: 1000,
+        ascender: 'bad',
+        descender: -200,
+        capHeight: 700,
+        xHeight: 500,
+        lineGap: 100,
+      },
+      glyphs: {
+        65: {
+          unicode: 65,
+          char: 'A',
+          name: 'A',
+          advanceWidth: 'bad',
+          lsb: 50,
+          contours: [
+            {
+              id: 'c1',
+              closed: true,
+              nodes: [
+                { id: 'n1', x: 100, y: 100, type: 'corner' },
+                { id: 'n2', x: NaN, y: 100, type: 'corner' },
+                { id: 'n3', x: 300, y: 300, type: 'corner' },
+              ],
+            },
+          ],
+          pixelData: { width: 2, height: 2, data: [1, 0, 1] },
+        },
+        bad: { unicode: 66, char: 'B', name: 'B', advanceWidth: 1000, lsb: 50, contours: [] },
+      },
+      kerning: { 'A,V': 'bad', 'A,T': -50 },
+    });
+    expect(report).not.toBeNull();
+    expect(report!.removed.glyphs).toBe(1);
+    expect(report!.removed.nodes).toBe(1);
+    expect(report!.removed.replacedAdvanceWidth).toBe(1);
+    expect(report!.removed.removedPixelData).toBe(1);
+    expect(report!.project.metadata.ascender).toBe(800);
+    expect(report!.project.kerning).toEqual({ 'A,T': -50 });
+    expect(report!.warnings.length).toBeGreaterThan(0);
+    // The plain entry point keeps the FontProject shape for existing callers.
+    expect(validateStoredFontProject(report!.project)).not.toBeNull();
   });
 });

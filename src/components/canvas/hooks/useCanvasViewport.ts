@@ -176,7 +176,10 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
     };
   }, [getContainerRectFast]);
 
-  // Invalidate cached container rect on window resize/orientation change or scrolling
+  // Invalidate cached container rect on window resize/orientation change or scrolling.
+  // A5: a resize keeps the current zoom and pan. Fit is only applied when
+  // the container has no size yet (initial layout); the initial mount
+  // effect below handles the first fit.
   useEffect(() => {
     const handleInvalidateContainerRect = () => {
       containerRectRef.current = null;
@@ -187,6 +190,13 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         const rect = containerRef.current.getBoundingClientRect();
         containerRectRef.current = rect;
         if (rect.width > 0 && rect.height > 0) {
+          containerDimensionsRef.current = { width: rect.width, height: rect.height };
+          const clamped = clampPan(panRef.current, zoomRef.current);
+          if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
+            panRef.current = clamped;
+            setPan(clamped);
+          }
+        } else {
           resetView('fit', rect.width, rect.height);
         }
       }
@@ -197,7 +207,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       window.removeEventListener('resize', handleWindowResize);
       window.removeEventListener('scroll', handleInvalidateContainerRect, { capture: true });
     };
-  }, [resetView]);
+  }, [resetView, clampPan]);
 
   // Auto-recenter and fit canvas whenever project UPM (canvas size) changes
   const prevUpmRef = useRef<number>(upm);
@@ -237,7 +247,10 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         if (width > 0 && height > 0) {
           const prev = containerDimensionsRef.current;
           containerDimensionsRef.current = { width, height };
-          if (prev.width === 0 || prev.height === 0 || Math.abs(prev.width - width) > 100) {
+          // A5: keep the current zoom and pan on resize. Fit only on the
+          // first layout (no previous size yet), e.g. when a drawer opens
+          // or closes the zoom and pan stay as they are.
+          if (prev.width === 0 || prev.height === 0) {
             resetView('fit', width, height);
           } else {
             const clamped = clampPan(panRef.current, zoomRef.current);

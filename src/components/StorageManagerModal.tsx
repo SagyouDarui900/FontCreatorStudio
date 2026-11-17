@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontProject } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
-import { validateStoredFontProject } from '../utils/font/validation';
+import { validateStoredFontProjectWithReport } from '../utils/font/validation';
 import {
  StorageUsageBreakdown,
  ProjectBackupSnapshot,
@@ -12,8 +12,9 @@ import {
  listAutosaveHistoryFromIndexedDB,
  loadAutosaveEntryFromIndexedDB,
  createLocalSnapshot,
- loadProjectFromSnapshot,
+ loadProjectFromSnapshotWithReport,
  deleteSnapshot,
+ deleteStorageBreakdownItem,
  clearAllSnapshots,
  clearNonEssentialCache,
  exportProjectJsonFile,
@@ -21,6 +22,10 @@ import {
  formatBytes,
  formatDateTime,
  formatRelativeTime,
+ SNAPSHOTS_INDEX_KEY,
+ SNAPSHOT_DATA_PREFIX,
+ normalizeValidatedProject,
+ formatRemovedDataNotice,
 } from '../utils/storageManager';
 import {
  HardDrive,
@@ -77,6 +82,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
  const [confirmClearAll, setConfirmClearAll] = useState(false);
+ const [confirmDeleteBreakdownItem, setConfirmDeleteBreakdownItem] = useState<{ key: string; label: string } | null>(null);
 
  // Refresh storage data
  const refreshStorageData = useCallback(() => {
@@ -159,10 +165,14 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  // Handle restoring project from snapshot
  const handleRestoreSnapshot = (snap: ProjectBackupSnapshot) => {
- const loaded = loadProjectFromSnapshot(snap.id);
+ const { project: loaded, removed } = loadProjectFromSnapshotWithReport(snap.id);
  if (loaded) {
  setProject(loaded);
  onShowToast(`スナップショット「${snap.formattedDate}」をキャンバスに復元しました`, 'success');
+ const removedNotice = formatRemovedDataNotice(removed);
+ if (removedNotice) {
+ onShowToast(removedNotice, 'warning');
+ }
  setConfirmRestoreId(null);
  refreshStorageData();
  } else {
@@ -173,16 +183,33 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  // Handle restoring project from IndexedDB autosave history entry
  const handleRestoreAutosaveEntry = (entry: IndexedDBAutoSaveEntry) => {
  if (entry.project) {
- const validated = validateStoredFontProject(entry.project);
+ const { project: validated, removed } = normalizeValidatedProject(validateStoredFontProjectWithReport(entry.project));
  if (validated) {
  setProject(validated);
  onShowToast(`IndexedDB自動バックアップ「${formatDateTime(entry.timestamp)}」を復元しました`, 'success');
+ const removedNotice = formatRemovedDataNotice(removed);
+ if (removedNotice) {
+ onShowToast(removedNotice, 'warning');
+ }
  refreshStorageData();
  } else {
  onShowToast('自動バックアップデータが無効なため、復元できませんでした', 'error');
  }
  } else {
  onShowToast('バックアップデータの復元に失敗しました', 'error');
+ }
+ };
+
+ // Handle deleting a single storage-breakdown item (1-12): the index and
+ // its data keys are deleted together by deleteStorageBreakdownItem.
+ const handleDeleteBreakdownItem = (key: string, label: string) => {
+ const res = deleteStorageBreakdownItem(key);
+ if (res.success) {
+ onShowToast(`「${label}」を削除し、${formatBytes(res.freedBytes)} を開放しました`, 'info');
+ setConfirmDeleteBreakdownItem(null);
+ refreshStorageData();
+ } else {
+ onShowToast('ストレージ項目の削除に失敗しました', 'error');
  }
  };
 
@@ -680,11 +707,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </span>
  {item.removable && (
  <button
- onClick={() => {
- localStorage.removeItem(item.key);
- onShowToast(`「${item.label}」を削除しました`, 'info');
- refreshStorageData();
- }}
+ onClick={() => setConfirmDeleteBreakdownItem({ key: item.key, label: item.label })}
  className="p-1 rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
  title="手動削除"
  >
@@ -824,6 +847,41 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </button>
  <button
  onClick={() => handleDeleteSnapshot(confirmDeleteId)}
+ className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+ >
+ 削除する
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+
+ {/* CONFIRM STORAGE-BREAKDOWN DELETE DIALOG */}
+ {confirmDeleteBreakdownItem && (
+ <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[70] anim-fade">
+ <div
+ className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${themeClasses.modalBg} ${themeClasses.border}`}
+ >
+ <div className="flex items-center space-x-2 text-rose-600">
+ <Trash2 className="w-5 h-5" />
+ <h3 className="font-extrabold text-sm">ストレージ項目の削除</h3>
+ </div>
+ <p className={`text-xs ${themeClasses.textMuted} leading-relaxed`}>
+ {confirmDeleteBreakdownItem.key === SNAPSHOTS_INDEX_KEY
+ ? 'スナップショット目録を削除します。目録に登録された全てのスナップショットデータも一緒に削除されます。削除されたデータは復元できません。よろしいですか？'
+ : confirmDeleteBreakdownItem.key.startsWith(SNAPSHOT_DATA_PREFIX)
+ ? `「${confirmDeleteBreakdownItem.label}」を削除します。スナップショット目録からも該当項目を除きます。削除されたデータは復元できません。よろしいですか？`
+ : `「${confirmDeleteBreakdownItem.label}」を削除します。削除されたデータは復元できません。よろしいですか？`}
+ </p>
+ <div className="flex items-center justify-end space-x-2 pt-2">
+ <button
+ onClick={() => setConfirmDeleteBreakdownItem(null)}
+ className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+ >
+ キャンセル
+ </button>
+ <button
+ onClick={() => handleDeleteBreakdownItem(confirmDeleteBreakdownItem.key, confirmDeleteBreakdownItem.label)}
  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
  >
  削除する

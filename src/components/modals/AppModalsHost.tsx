@@ -205,9 +205,18 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
     <Suspense
       fallback={
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" role="status" aria-label="読み込み中">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${themeClasses.modalBg} ${themeClasses.border}`}>
+          <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border ${themeClasses.modalBg} ${themeClasses.border}`}>
             <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs font-medium">読み込み中...</span>
+            <button
+              type="button"
+              onClick={closeModal}
+              className={`p-1 rounded-full cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              title="読み込みを中止して閉じる"
+              aria-label="閉じる"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       }

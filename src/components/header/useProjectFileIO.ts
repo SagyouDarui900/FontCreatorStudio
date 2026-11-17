@@ -1,8 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { FontProject } from '../../types';
 import { createDefaultProject } from '../../utils/font/projectDefaults';
-import { validateStoredFontProject } from '../../utils/font/validation';
-import { exportProjectJsonFile } from '../../utils/storageManager';
+import { validateStoredFontProjectWithReport } from '../../utils/font/validation';
+import {
+  exportProjectJsonFile,
+  normalizeValidatedProject,
+  formatRemovedDataNotice,
+} from '../../utils/storageManager';
 
 interface UseProjectFileIOProps {
   project: FontProject;
@@ -59,16 +63,27 @@ export function useProjectFileIO({
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        const validated = validateStoredFontProject(json);
+        const { project: validated, removed } = normalizeValidatedProject(validateStoredFontProjectWithReport(json));
         if (validated) {
           setProject(validated);
           notify('プロジェクトセーブデータを読み込みました', 'success');
+          const removedNotice = formatRemovedDataNotice(removed);
+          if (removedNotice) {
+            notify(removedNotice, 'warning');
+          }
         } else {
           notify('無効なセーブデータファイルです。データが破損しているため読み込みませんでした', 'error');
         }
       } catch (err) {
         notify('セーブデータファイルの読み込みに失敗しました', 'error');
       }
+    };
+    // Report read failures instead of silently doing nothing (1-8).
+    reader.onerror = () => {
+      notify('セーブデータファイルの読み込みに失敗しました', 'error');
+    };
+    reader.onabort = () => {
+      notify('セーブデータファイルの読み込みが中断されました', 'warning');
     };
     reader.readAsText(file);
     e.target.value = '';
