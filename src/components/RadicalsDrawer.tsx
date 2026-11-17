@@ -13,7 +13,16 @@ import {
   FontStyleOption,
 } from '../utils/radicalExtractor';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
-import { loadCustomParts, saveCustomParts } from '../utils/customPartsStorage';
+import {
+  loadCustomParts,
+  saveCustomParts,
+  buildDefaultCustomParts,
+  isCustomPartsInitialized,
+  sanitizeCustomParts,
+  SaveCustomPartsResult,
+} from '../utils/customPartsStorage';
+import { resolveBaselineY } from '../utils/font/constants';
+import { makeUniquePartName } from '../utils/customParts';
 import {
   RadicalsDrawerProps,
   DrawerTab,
@@ -40,7 +49,10 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   allGlyphs,
   theme,
   isOverlay,
+  ascender,
+  unitsPerEm,
 }) => {
+  const baselineY = resolveBaselineY(ascender, unitsPerEm);
   const effectiveIsOverlay = isOverlay !== undefined ? isOverlay : true;
   const {
     drawerWidth,
@@ -70,7 +82,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   const [extractFontFamily, setExtractFontFamily] = useState<string>(RADICAL_FONT_OPTIONS[0].fontFamily);
   const [extractWeight, setExtractWeight] = useState<number>(RADICAL_FONT_OPTIONS[0].fontWeight);
   const [extractRegion, setExtractRegion] = useState<'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi'>('full');
-  const [extractSmoothing] = useState<number>(2.0);
+  const [extractSmoothing, setExtractSmoothing] = useState<number>(0.5);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
   const [extractedContours, setExtractedContours] = useState<PathContour[]>([]);
 
@@ -82,7 +94,6 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
   // Kangxi Radicals Catalog State
   const [kangxiSearch, setKangxiSearch] = useState<string>('');
-  const [kangxiStrokeFilter, setKangxiStrokeFilter] = useState<number | 'all'>('all');
 
   // Custom Parts
   const [customParts, setCustomParts] = useState<CustomPart[]>(() => {
@@ -90,58 +101,26 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       const saved = localStorage.getItem(CUSTOM_PARTS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const sanitized = sanitizeCustomParts(parsed);
+        if (sanitized.length > 0) return sanitized;
       }
     } catch {
       // ignore
     }
-    return [
-      {
-        id: generateId(),
-        name: 'さんずい (氵)',
-        category: 'hen',
-        description: '三水・水に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_sanzui')?.contours || [],
-        createdAt: Date.now() - 5000,
-      },
-      {
-        id: generateId(),
-        name: 'きへん (木)',
-        category: 'hen',
-        description: '木偏・樹木に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_kihen')?.contours || [],
-        createdAt: Date.now() - 4000,
-      },
-      {
-        id: generateId(),
-        name: 'にんべん (亻)',
-        category: 'hen',
-        description: '人偏・人間に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_ninben')?.contours || [],
-        createdAt: Date.now() - 3000,
-      },
-      {
-        id: generateId(),
-        name: 'ごんべん (言)',
-        category: 'hen',
-        description: '言偏・言葉に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_gonben')?.contours || [],
-        createdAt: Date.now() - 2000,
-      },
-      {
-        id: generateId(),
-        name: 'くさかんむり (艹)',
-        category: 'kanmuri',
-        description: '草冠・植物に関する冠',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_kusakanmuri')?.contours || [],
-        createdAt: Date.now() - 1000,
-      },
-    ];
+    // 保存データが一度もない初回起動時にだけ既定パーツを表示する。
+    // ユーザーが全件削除した場合は初期化済みフラグが立っているため空のままにする。
+    if (isCustomPartsInitialized()) return [];
+    return buildDefaultCustomParts();
   });
   const [newPartName, setNewPartName] = useState<string>('');
   const [createOnlyFrame, setCreateOnlyFrame] = useState<boolean>(false);
   const [showSaveInput, setShowSaveInput] = useState<boolean>(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  // 同名パーツへの保存が要求された場合の確認待ち状態
+  const [pendingDuplicateSave, setPendingDuplicateSave] = useState<{
+    contours: PathContour[];
+    name: string;
+  } | null>(null);
 
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -179,16 +158,51 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   }, [isOpen, isLicenseModalOpen, batchModalTarget, onClose]);
 
   const lastSavedDrawerJsonRef = useRef<string>('');
+  // 初回読み込みが終わるまで同期 effect による保存を行わないためのフラグ。
+  // 読み込み前に既定パーツで IndexedDB を上書きしないようにする。
+  const initialLoadDoneRef = useRef<boolean>(false);
+  const customPartsRef = useRef<CustomPart[]>(customParts);
+  // 保存処理の実行中に外部変更の読み込みで編集中の内容を上書きしないためのフラグ
+  const saveInFlightRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    customPartsRef.current = customParts;
+  }, [customParts]);
+
+  // 保存中の読み込み上書きを防ぐため、保存処理はこの経路に集約する
+  const savePartsNow = useCallback(async (next: CustomPart[]) => {
+    saveInFlightRef.current = true;
+    try {
+      return await saveCustomParts(next);
+    } finally {
+      saveInFlightRef.current = false;
+    }
+  }, []);
 
   // Reload custom parts from IndexedDB
   const reloadCustomParts = useCallback(async () => {
     try {
       const loaded = await loadCustomParts();
+      if (saveInFlightRef.current) {
+        // 自身の保存が完了すれば保存成功時にイベントが届き、改めて読み込む
+        return;
+      }
       if (Array.isArray(loaded) && loaded.length > 0) {
+        lastSavedDrawerJsonRef.current = JSON.stringify(loaded);
         setCustomParts(loaded);
+      } else if (isCustomPartsInitialized()) {
+        // ユーザーが全件削除した状態。既定パーツを復元しない。
+        lastSavedDrawerJsonRef.current = '[]';
+        setCustomParts([]);
+      } else {
+        // 初回起動。現在の表示内容（既定パーツ）を保存済みとみなし、
+        // 読み込み直後の不要な書き戻しを行わない。
+        lastSavedDrawerJsonRef.current = JSON.stringify(customPartsRef.current);
       }
     } catch {
       // ignore
+    } finally {
+      initialLoadDoneRef.current = true;
     }
   }, []);
 
@@ -208,19 +222,32 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     };
   }, [reloadCustomParts]);
 
-  // Sync custom parts to IndexedDB when customParts state updates
+  // Sync custom parts to IndexedDB when customParts state updates.
+  // id 一覧ではなく輪郭を含む内容全体を比較するため、同名パーツへの上書きも保存される。
+  // 空の目録も保存し、全件削除を永続化する。
   useEffect(() => {
-    if (!customParts || customParts.length === 0) return;
-    const jsonStr = JSON.stringify(customParts.map((p) => p.id));
+    if (!initialLoadDoneRef.current) return;
+    const jsonStr = JSON.stringify(customParts);
     if (jsonStr === lastSavedDrawerJsonRef.current) return;
     lastSavedDrawerJsonRef.current = jsonStr;
-    saveCustomParts(customParts);
-  }, [customParts]);
+    savePartsNow(customParts).then((result: SaveCustomPartsResult) => {
+      if (!result.ok) {
+        showNotice(`パーツの保存に失敗しました（${result.fallbackDroppedCount}件を保存できませんでした）`);
+      } else if (result.fallbackSavedCount > 0) {
+        showNotice('パーツをブラウザ保存に退避しました');
+      }
+    });
+  }, [customParts, showNotice, savePartsNow]);
+
+  // Latest extraction request id. Results from older requests are discarded
+  // so a slow earlier extraction cannot overwrite a newer one.
+  const extractionRequestIdRef = useRef(0);
 
   // Perform font extraction
   const performExtraction = useCallback(
     async (charToExtract: string, regionToExtract: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi') => {
       if (!charToExtract || charToExtract.trim().length === 0) return;
+      const requestId = ++extractionRequestIdRef.current;
       setIsExtracting(true);
       try {
         const contours = await extractRadicalFromFont({
@@ -230,23 +257,36 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           region: regionToExtract,
           smoothing: extractSmoothing,
           fitMargin: 70,
+          baselineY,
         });
+        // Discard results from an older request that finished after a newer one started.
+        if (requestId !== extractionRequestIdRef.current) return;
         setExtractedContours(contours);
+        if (contours.length === 0) {
+          showNotice('輪郭が見つかりませんでした');
+        }
       } catch (err) {
+        if (requestId !== extractionRequestIdRef.current) return;
         console.error('Extraction failed:', err);
         setExtractedContours([]);
         showNotice('抽出に失敗しました。フォントまたは文字を確認してください');
       } finally {
-        setIsExtracting(false);
+        if (requestId === extractionRequestIdRef.current) {
+          setIsExtracting(false);
+        }
       }
     },
-    [extractFontFamily, extractWeight, extractSmoothing, showNotice]
+    [extractFontFamily, extractWeight, extractSmoothing, showNotice, baselineY]
   );
 
-  // Trigger extraction when options change in extract tab
+  // Trigger extraction when options change in extract tab (debounced so
+  // rapid edits to char, font, weight, or region start only one extraction).
   useEffect(() => {
     if (isOpen && activeTab === 'extract') {
-      performExtraction(extractChar, extractRegion);
+      const timer = setTimeout(() => {
+        performExtraction(extractChar, extractRegion);
+      }, 200);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, activeTab, extractChar, extractFontFamily, extractWeight, extractRegion, extractSmoothing, performExtraction]);
 
@@ -271,7 +311,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(clonedContours, placement, defaultCategory);
+    const positioned = transformContoursForPlacement(clonedContours, placement, defaultCategory, { baselineY });
     onInsertRadical(positioned);
     showNotice(partName ? `「${partName}」をキャンバスに挿入しました` : '部首をキャンバスに挿入しました');
   };
@@ -283,7 +323,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         radical.char || radical.name,
         'full',
         selectedFontStyle.fontFamily,
-        selectedFontStyle.fontWeight
+        selectedFontStyle.fontWeight,
+        baselineY
       );
       if (contours && contours.length > 0) {
         handleInsertWithPlacement(contours, `${radical.name} (${selectedFontStyle.label})`, radical.category);
@@ -303,7 +344,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           radical.char || radical.name,
           'full',
           selectedFontStyle.fontFamily,
-          selectedFontStyle.fontWeight
+          selectedFontStyle.fontWeight,
+          baselineY
         );
         if (extracted && extracted.length > 0) {
           contours = extracted;
@@ -338,7 +380,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             charToUse,
             'full',
             selectedFontStyle.fontFamily,
-            selectedFontStyle.fontWeight
+            selectedFontStyle.fontWeight,
+            baselineY
           );
           if (extracted && extracted.length > 0) {
             contours = extracted;
@@ -374,17 +417,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     });
   }, []);
 
-  // Save contours as custom part
-  const handleSaveContoursAsPart = (contoursToSave: PathContour[], defaultName: string) => {
-    const name = newPartName.trim() || defaultName;
-    if (!name) return;
-
-    const existingIndex = customParts.findIndex((p) => p.name === name);
+  // Save contours as custom part (applies the save once the name is decided)
+  const applySaveContoursAsPart = async (contoursToSave: PathContour[], name: string) => {
+    // 保存前に IndexedDB から最新の一覧を読み、読み込み前に表示していた
+    // 古い一覧で保存済みデータを上書きしないようにする。
+    const stored = await loadCustomParts();
+    const base =
+      stored.length > 0 ? stored : isCustomPartsInitialized() ? [] : customParts;
+    const existingIndex = base.findIndex((p) => p.name === name);
     let updated: CustomPart[];
     if (existingIndex >= 0) {
-      updated = customParts.map((p, idx) =>
+      updated = base.map((p, idx) =>
         idx === existingIndex
-          ? { ...p, contours: JSON.parse(JSON.stringify(contoursToSave || [])) }
+          ? { ...p, contours: JSON.parse(JSON.stringify(contoursToSave || [])), updatedAt: Date.now() }
           : p
       );
     } else {
@@ -393,55 +438,86 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         name,
         contours: JSON.parse(JSON.stringify(contoursToSave || [])),
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
-      updated = [newPart, ...customParts];
+      updated = [newPart, ...base];
     }
 
     setCustomParts(updated);
-    let saved = true;
-    try {
-      localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      saved = false;
-    }
+    lastSavedDrawerJsonRef.current = JSON.stringify(updated);
+    const result = await savePartsNow(updated);
     setNewPartName('');
     setShowSaveInput(false);
-    if (saved) {
-      showNotice(`「${name}」を保存しました`);
+    if (result.ok) {
+      showNotice(
+        result.fallbackSavedCount > 0
+          ? `「${name}」を保存しました（ブラウザ保存に退避）`
+          : `「${name}」を保存しました`
+      );
     } else {
-      showNotice(`「${name}」の保存に失敗しました`);
+      showNotice(`「${name}」の保存に失敗しました（${result.fallbackDroppedCount}件を保存できませんでした）`);
     }
   };
 
+  // Save contours as custom part. When a part with the same name already
+  // exists, ask whether to overwrite it or save under a different name.
+  // The `overwriteExisting` option skips the dialog for flows where the
+  // target part is chosen explicitly (assigning contours to a name frame).
+  const handleSaveContoursAsPart = (
+    contoursToSave: PathContour[],
+    defaultName: string,
+    options?: { overwriteExisting?: boolean }
+  ) => {
+    const name = newPartName.trim() || defaultName;
+    if (!name) return;
+
+    const existingIndex = customParts.findIndex((p) => p.name === name);
+    if (existingIndex >= 0 && !options?.overwriteExisting) {
+      setPendingDuplicateSave({ contours: contoursToSave, name });
+      return;
+    }
+    applySaveContoursAsPart(contoursToSave, name);
+  };
+
   // Create clean name-only frame without contours
-  const handleCreateNameFrame = (frameName?: string) => {
-    const name = (frameName || newPartName).trim() || '新規パーツ枠';
+  const handleCreateNameFrame = async (frameName?: string) => {
+    const stored = await loadCustomParts();
+    const base =
+      stored.length > 0 ? stored : isCustomPartsInitialized() ? [] : customParts;
+    const name = makeUniquePartName(
+      (frameName || newPartName).trim() || '新規パーツ枠',
+      base.map((p) => p.name)
+    );
     const newPart: CustomPart = {
       id: generateId(),
       name,
       contours: [],
       createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
-    const updated = [newPart, ...customParts];
+    const updated = [newPart, ...base];
     setCustomParts(updated);
-    let saved = true;
-    try {
-      localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      saved = false;
-    }
+    lastSavedDrawerJsonRef.current = JSON.stringify(updated);
+    const result = await savePartsNow(updated);
     setNewPartName('');
     setShowSaveInput(false);
-    if (saved) {
-      showNotice(`名前枠「${name}」を作成しました`);
+    if (result.ok) {
+      showNotice(
+        result.fallbackSavedCount > 0
+          ? `名前枠「${name}」を作成しました（ブラウザ保存に退避）`
+          : `名前枠「${name}」を作成しました`
+      );
     } else {
-      showNotice(`名前枠「${name}」の保存に失敗しました`);
+      showNotice(`名前枠「${name}」の保存に失敗しました（${result.fallbackDroppedCount}件を保存できませんでした）`);
     }
   };
 
   // Import all high-quality standard radicals into custom parts
   const handleImportAllPresetRadicals = async () => {
-    const existingNames = new Set(customParts.map((p) => p.name));
+    const stored = await loadCustomParts();
+    const base =
+      stored.length > 0 ? stored : isCustomPartsInitialized() ? [] : customParts;
+    const existingNames = new Set(base.map((p) => p.name));
     const toAdd: CustomPart[] = [];
 
     showNotice('定番部首の高品質ベクターを取り込み中...');
@@ -453,7 +529,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             rad.char || rad.name,
             'full',
             selectedFontStyle.fontFamily,
-            selectedFontStyle.fontWeight
+            selectedFontStyle.fontWeight,
+            baselineY
           );
           if (extracted && extracted.length > 0) {
             contours = extracted;
@@ -478,8 +555,21 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       return;
     }
 
-    setCustomParts((prev) => [...toAdd, ...prev]);
-    showNotice(`${toAdd.length} 件の定番部首を高精度ベクターでマイパーツに取り込みました`);
+    const merged = [...toAdd, ...base];
+    setCustomParts(merged);
+    lastSavedDrawerJsonRef.current = JSON.stringify(merged);
+    const result = await savePartsNow(merged);
+    if (result.ok) {
+      showNotice(
+        result.fallbackSavedCount > 0
+          ? `${toAdd.length} 件の定番部首を高精度ベクターでマイパーツに取り込みました（ブラウザ保存に退避）`
+          : `${toAdd.length} 件の定番部首を高精度ベクターでマイパーツに取り込みました`
+      );
+    } else {
+      showNotice(
+        `定番部首の取り込みを保存できませんでした（${result.fallbackDroppedCount}件を保存できませんでした）`
+      );
+    }
   };
 
   // Filter preset radicals
@@ -723,12 +813,20 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
                           targetChar,
                           'full',
                           selectedFontStyle.fontFamily,
-                          selectedFontStyle.fontWeight
-                        ).then((contours) => {
-                          if (contours && contours.length > 0) {
-                            handleInsertWithPlacement(contours, rad.name, rad.category);
-                          }
-                        });
+                          selectedFontStyle.fontWeight,
+                          baselineY
+                        )
+                          .then((contours) => {
+                            if (contours && contours.length > 0) {
+                              handleInsertWithPlacement(contours, rad.name, rad.category);
+                            } else {
+                              showNotice('輪郭が見つかりませんでした');
+                            }
+                          })
+                          .catch((err) => {
+                            console.error('Suggested radical extraction failed:', err);
+                            showNotice('抽出に失敗しました。フォントまたは文字を確認してください');
+                          });
                       }
                     }}
                     className={`px-2 py-0.5 rounded text-[10.5px] font-bold border transition-colors flex items-center gap-1 shrink-0 cursor-pointer overflow-hidden ${
@@ -856,6 +954,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             setExtractWeight={setExtractWeight}
             extractRegion={extractRegion}
             setExtractRegion={setExtractRegion}
+            extractSmoothing={extractSmoothing}
+            setExtractSmoothing={setExtractSmoothing}
             isExtracting={isExtracting}
             extractedContours={extractedContours}
             placement={placement}
@@ -864,6 +964,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             onPerformExtraction={performExtraction}
             onInsertWithPlacement={handleInsertWithPlacement}
             onSaveContoursAsPart={handleSaveContoursAsPart}
+            baselineY={baselineY}
           />
         )}
 
@@ -873,8 +974,6 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             isLight={isLight}
             kangxiSearch={kangxiSearch}
             setKangxiSearch={setKangxiSearch}
-            kangxiStrokeFilter={kangxiStrokeFilter}
-            setKangxiStrokeFilter={setKangxiStrokeFilter}
             selectedFontStyle={selectedFontStyle}
             gridDensity={gridDensity}
             extractingKangxiNum={extractingKangxiNum}
@@ -884,6 +983,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             setExtractChar={setExtractChar}
             setActiveTab={setActiveTab}
             showNotice={showNotice}
+            baselineY={baselineY}
           />
         )}
 
@@ -938,6 +1038,59 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         theme={theme}
       />
 
+      {/* Duplicate name confirmation: overwrite or save under a different name */}
+      {pendingDuplicateSave && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setPendingDuplicateSave(null)}
+        >
+          <div
+            className={`w-full max-w-xs rounded-lg border p-3 space-y-2 shadow-xl ${themeClasses.cardBg} ${themeClasses.border}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className={`text-xs font-bold ${themeClasses.textPrimary}`}>
+              「{pendingDuplicateSave.name}」は既に存在します
+            </p>
+            <p className={`text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
+              上書きすると、既存のパーツの輪郭が置き換わります。別名で保存すると、末尾に番号を付けた新しいパーツとして保存します。
+            </p>
+            <div className="flex flex-col gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  applySaveContoursAsPart(pendingDuplicateSave.contours, pendingDuplicateSave.name);
+                  setPendingDuplicateSave(null);
+                }}
+                className="px-3 py-1.5 rounded text-[11px] bg-emerald-800 text-white font-bold hover:bg-emerald-900 cursor-pointer"
+              >
+                上書き保存する
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const uniqueName = makeUniquePartName(
+                    pendingDuplicateSave.name,
+                    customParts.map((p) => p.name)
+                  );
+                  applySaveContoursAsPart(pendingDuplicateSave.contours, uniqueName);
+                  setPendingDuplicateSave(null);
+                }}
+                className={`px-3 py-1.5 rounded text-[11px] font-bold border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              >
+                別名で保存する
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingDuplicateSave(null)}
+                className={`px-3 py-1.5 rounded text-[11px] cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {batchModalTarget && (
         <BatchRadicalModal
           isOpen={true}
@@ -951,6 +1104,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             showNotice(`${chars.length}文字へ部首パーツを一括流し込みしました`);
           }}
           theme={theme}
+          baselineY={baselineY}
         />
       )}
     </>

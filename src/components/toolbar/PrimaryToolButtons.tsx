@@ -137,12 +137,29 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
               setShowBrushMenu(true);
             }
           }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            const rect = e.currentTarget.getBoundingClientRect();
+            if (onSetBrushAnchor) {
+              onSetBrushAnchor(rect);
+            } else {
+              setBrushAnchorTop(Math.max(40, rect.bottom + 4));
+            }
+            setShowShapeMenu(false);
+            setShowGridMenu(false);
+            if (toolMode === 'brush') {
+              setShowBrushMenu((prev) => !prev);
+            } else {
+              setToolMode('brush');
+              setShowBrushMenu(true);
+            }
+          }}
           className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
             toolMode === 'brush' || showBrushMenu
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
           }`}
-          title={`手書きペン (${currentPenPreset.name})${isCustomPen ? ' [カスタムペン]' : ''} (B) - クリックでペンの種類を変更`}
+          title={`手書きペン (${currentPenPreset.name})${isCustomPen ? ' [カスタムペン]' : ''} (B) - クリックでペンの種類を変更 (右クリックでもブラシ設定を開閉可能)`}
         >
           <CurrentPenIcon className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
           {isCustomPen && (
@@ -187,7 +204,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
             }
             setShowBrushMenu(false);
             setShowGridMenu(false);
-            setShowShapeMenu(true);
+            setShowShapeMenu((prev) => !prev);
           }}
           className={`group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-xl flex items-center justify-center relative shrink-0 cursor-pointer ${
             isCurrentToolShape || showShapeMenu

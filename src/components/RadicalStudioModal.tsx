@@ -166,10 +166,21 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     handleCreateNewPart,
     handleDuplicatePart,
     handleDeletePart,
+    pendingDeletePart,
+    confirmDeletePart,
+    cancelDeletePart,
+    flushSaveParts,
   } = useRadicalStudioState({
     selectedChar,
     onShowToast,
   });
+
+  // Close the studio, flushing any pending debounced save first so that
+  // edits made just before closing are not lost.
+  const handleCloseStudio = useCallback(() => {
+    void flushSaveParts();
+    onClose();
+  }, [flushSaveParts, onClose]);
 
   const {
     svgCanvasRef,
@@ -306,7 +317,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     setLeftSidebarTab,
     onInsertToCurrentGlyph,
     onBatchInsertToGlyphs,
-    onClose,
+    onClose: handleCloseStudio,
     project,
   });
 
@@ -471,7 +482,9 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
           }
         } else if (e.key === 'Escape') {
           e.preventDefault();
-          if (activePenContour) {
+          if (pendingDeletePart) {
+            cancelDeletePart();
+          } else if (activePenContour) {
             handleResetPartPenContour();
           } else {
             setSelectedNodeId(null);
@@ -514,6 +527,8 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     setSelectedContourId,
     setSelectedNodeId,
     notify,
+    pendingDeletePart,
+    cancelDeletePart,
   ]);
 
   const hasUpgradedDefaultsRef = useRef(false);
@@ -679,7 +694,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleCloseStudio}
               className={`p-1.5 rounded-md transition-colors cursor-pointer ${
                 isLight ? 'text-stone-600 hover:bg-emerald-100' : 'text-stone-400 hover:bg-[#223126]'
               }`}
@@ -977,6 +992,36 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         onClose={() => setShowPenShortcutsHelp(false)}
         isLight={isLight}
       />
+      {pendingDeletePart && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+          <div
+            className={`w-full max-w-xs rounded-xl border p-4 shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`}
+            role="alertdialog"
+            aria-label="パーツの削除確認"
+          >
+            <p className="text-sm font-bold">「{pendingDeletePart.name}」を削除しますか？</p>
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+              削除後はトーストの「取り消す」ボタンで復元できます。
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={cancelDeletePart}
+                className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePart}
+                className="px-3 py-1.5 rounded-lg bg-rose-700 text-white text-xs font-bold hover:bg-rose-800 cursor-pointer"
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <RadicalExtractContoursModal
         isOpen={showExtractModal}
         onClose={() => setShowExtractModal(false)}

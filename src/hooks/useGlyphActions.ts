@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
-import { createSmallKanaContours, generateId, simplifyGlyphContours } from '../utils/path';
+import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates } from '../utils/path';
 import { createDakutenContours, createHandakutenContours, cloneContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
 import { KANA_PAIRS } from '../data/unicodeTables';
@@ -214,6 +214,56 @@ export function useGlyphActions({
     [project.glyphs, clipboardContours, commitHistory, setProject, onShowToast]
   );
 
+  // Copy only the selected contours into the shared clipboard. This uses
+  // the same clipboardContours state as the glyph-level Ctrl+C handler
+  // (handleCopyGlyph), so the glyph grid paste item and the canvas menu
+  // paste item read the same clipboard.
+  const handleCopySelectedContours = useCallback(
+    (contourIds: string[]) => {
+      const selected = (currentGlyph.contours || []).filter((c) =>
+        contourIds.includes(c.id)
+      );
+      if (selected.length === 0) {
+        onShowToast('コピーする輪郭が選択されていません', 'warning');
+        return;
+      }
+      setClipboardContours(JSON.parse(JSON.stringify(selected)));
+      onShowToast(
+        `選択した輪郭 (${selected.length}パス) をコピーしました`,
+        'success'
+      );
+    },
+    [currentGlyph, onShowToast]
+  );
+
+  // Paste the shared clipboard contours into the current glyph. The
+  // clipboard contours are appended with fresh ids, so the current glyph
+  // contours are kept. The glyph-level handlePasteGlyph replaces the whole
+  // glyph, which is not what a contour paste should do.
+  const handlePasteClipboardContours = useCallback(() => {
+    if (currentGlyph.locked) {
+      onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
+      return;
+    }
+    if (!clipboardContours || clipboardContours.length === 0) {
+      onShowToast('クリップボードに字形がありません', 'warning');
+      return;
+    }
+    commitHistory();
+    const pasted = clipboardContours.map((c) => ({
+      ...c,
+      id: generateId(),
+      nodes: c.nodes.map((n) => ({
+        ...n,
+        id: generateId(),
+        handleIn: n.handleIn ? { ...n.handleIn } : null,
+        handleOut: n.handleOut ? { ...n.handleOut } : null,
+      })),
+    }));
+    handleUpdateContours([...(currentGlyph.contours || []), ...pasted]);
+    onShowToast(`輪郭 (${pasted.length}パス) を貼り付けました`, 'success');
+  }, [currentGlyph, clipboardContours, commitHistory, handleUpdateContours, onShowToast]);
+
   // Duplicate Normal Kana to Small Kana automatically
   const handleDuplicateAsSmallKana = useCallback(
     (sourceUnicode: number) => {
@@ -262,9 +312,14 @@ export function useGlyphActions({
     [project.glyphs, commitHistory, setProject, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
-  // Generate Dakuten / Handakuten from Current Glyph Automatically
+  // Generate Dakuten / Handakuten from a source glyph.
+  // sourceChar is the right-clicked seion character when the generation is
+  // started from the glyph grid context menu. Its contours are used as the
+  // base, so generating from a non-selected glyph no longer takes the
+  // contours of the previously selected glyph. When sourceChar is omitted
+  // (for example from the canvas sub-toolbar), the current glyph is used.
   const handleGenerateDakutenTarget = useCallback(
-    (targetChar: string, isHandakuten?: boolean) => {
+    (targetChar: string, isHandakuten?: boolean, sourceChar?: string) => {
       const targetUnicode = targetChar.codePointAt(0);
       if (!targetUnicode) return;
       if (project.glyphs[targetUnicode]?.locked) {
@@ -272,7 +327,16 @@ export function useGlyphActions({
         return;
       }
 
-      const baseContours = currentGlyph.contours || [];
+      const sourceGlyph = sourceChar
+        ? project.glyphs[sourceChar.codePointAt(0) || 0]
+        : undefined;
+      const baseGlyph = sourceGlyph ?? currentGlyph;
+      const baseChar = sourceChar ?? selectedChar;
+      const baseContours = baseGlyph.contours || [];
+      if (baseContours.length === 0) {
+        onShowToast(`「${baseChar}」にはまだ字形が作図されていません`, 'warning');
+        return;
+      }
       const cloned = cloneContours(baseContours);
       const accentContours = isHandakuten
         ? createHandakutenContours()
@@ -286,8 +350,8 @@ export function useGlyphActions({
           unicode: targetUnicode,
           char: targetChar,
           name: `uni${targetUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: currentGlyph.advanceWidth || 1000,
-          lsb: currentGlyph.lsb ?? 50,
+          advanceWidth: baseGlyph.advanceWidth || 1000,
+          lsb: baseGlyph.lsb ?? 50,
         };
 
         return {
@@ -297,8 +361,8 @@ export function useGlyphActions({
             [targetUnicode]: {
               ...existing,
               contours: combinedContours,
-              advanceWidth: currentGlyph.advanceWidth || 1000,
-              lsb: currentGlyph.lsb ?? 50,
+              advanceWidth: baseGlyph.advanceWidth || 1000,
+              lsb: baseGlyph.lsb ?? 50,
               modified: true,
             },
           },
@@ -309,7 +373,7 @@ export function useGlyphActions({
       setSelectedUnicode(targetUnicode);
       setSelectedChar(targetChar);
       onShowToast(
-        `「${selectedChar}」から${isHandakuten ? '半濁音' : '濁音'}「${targetChar}」を自動生成しました！`,
+        `「${baseChar}」から${isHandakuten ? '半濁音' : '濁音'}「${targetChar}」を自動生成しました！`,
         'success'
       );
     },
@@ -349,6 +413,10 @@ export function useGlyphActions({
         onShowToast('挿入する輪郭データがありません', 'warning');
         return;
       }
+      if (!contoursHaveFiniteCoordinates(radicalContours)) {
+        onShowToast('無効な座標を含む輪郭があるため挿入できません', 'warning');
+        return;
+      }
       commitHistory();
       const base = currentGlyphRef.current?.contours || [];
       const uniqueRadicals = radicalContours.map((c) => ({
@@ -377,6 +445,14 @@ export function useGlyphActions({
   // Batch Insert Radical Contours to multiple kanji glyphs
   const handleBatchInsertRadical = useCallback(
     (radicalContours: PathContour[], targetChars: string[]) => {
+      if (!radicalContours || radicalContours.length === 0) {
+        onShowToast('挿入する輪郭データがありません', 'warning');
+        return;
+      }
+      if (!contoursHaveFiniteCoordinates(radicalContours)) {
+        onShowToast('無効な座標を含む輪郭があるため挿入できません', 'warning');
+        return;
+      }
       const unlockedChars = targetChars.filter((char) => {
         const unicode = char.codePointAt(0) || 0;
         return unicode > 0 && !project.glyphs?.[unicode]?.locked;
@@ -444,6 +520,8 @@ export function useGlyphActions({
     handleClearGlyph,
     handleCopyGlyph,
     handlePasteGlyph,
+    handleCopySelectedContours,
+    handlePasteClipboardContours,
     handleDuplicateAsSmallKana,
     handleGenerateDakutenTarget,
     handleCopyFromChar,

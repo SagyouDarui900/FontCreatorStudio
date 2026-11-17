@@ -13,8 +13,6 @@ interface KangxiRadicalsTabProps {
   isLight: boolean;
   kangxiSearch: string;
   setKangxiSearch: (s: string) => void;
-  kangxiStrokeFilter: number | 'all';
-  setKangxiStrokeFilter: (f: number | 'all') => void;
   selectedFontStyle: FontStyleOption;
   gridDensity?: RadicalsDensity;
   extractingKangxiNum: number | null;
@@ -24,6 +22,8 @@ interface KangxiRadicalsTabProps {
   setExtractChar: (c: string) => void;
   setActiveTab: (t: 'extract') => void;
   showNotice: (msg: string) => void;
+  /** Baseline Y in screen coordinates. Extracted contours never extend below it. */
+  baselineY?: number;
 }
 
 const CATEGORY_ITEMS: { id: string; label: string }[] = [
@@ -61,6 +61,7 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
   setExtractChar,
   setActiveTab,
   showNotice,
+  baselineY,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStrokeRange, setSelectedStrokeRange] = useState<string>('all');
@@ -118,7 +119,8 @@ export const KangxiRadicalsTab: React.FC<KangxiRadicalsTabProps> = ({
         charToInsert,
         'full',
         selectedFontStyle.fontFamily,
-        selectedFontStyle.fontWeight
+        selectedFontStyle.fontWeight,
+        baselineY
       );
       if (contours && contours.length > 0) {
         onInsertWithPlacement(

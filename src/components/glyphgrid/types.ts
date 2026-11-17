@@ -24,7 +24,7 @@ export interface GlyphGridProps {
   onCopyGlyph: (unicode: number) => void;
   onPasteGlyph: (unicode: number) => void;
   onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
-  onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean) => void;
+  onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean, sourceChar?: string) => void;
   onOpenGlyphSynthesisModal?: () => void;
   onOpenKerningModal?: () => void;
   onOpenQualityModal?: () => void;

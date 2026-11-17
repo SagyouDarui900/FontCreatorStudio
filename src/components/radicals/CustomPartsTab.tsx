@@ -1,8 +1,16 @@
-import React from 'react';
-import { BookmarkPlus, Plus, Trash2, Sparkles, Layers } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BookmarkPlus, Plus, Trash2, Sparkles, Layers, Search, Undo2 } from 'lucide-react';
 import { CustomPart, PathContour } from '../../types';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 import { RadicalsDensity } from './types';
+
+type CustomPartsSortKey = 'name' | 'updated' | 'created';
+
+const SORT_OPTIONS: { id: CustomPartsSortKey; label: string }[] = [
+  { id: 'updated', label: '更新日時順' },
+  { id: 'created', label: '作成日時順' },
+  { id: 'name', label: '名前順' },
+];
 
 interface CustomPartsTabProps {
   isLight: boolean;
@@ -18,7 +26,11 @@ interface CustomPartsTabProps {
   customParts: CustomPart[];
   setCustomParts: React.Dispatch<React.SetStateAction<CustomPart[]>>;
   handleCreateNameFrame: (name?: string) => void;
-  handleSaveContoursAsPart: (contours: PathContour[], defaultName: string) => void;
+  handleSaveContoursAsPart: (
+    contours: PathContour[],
+    defaultName: string,
+    options?: { overwriteExisting?: boolean }
+  ) => void;
   handleInsertWithPlacement: (contours: PathContour[], name?: string) => void;
   onBatchInsertCustomPart?: (part: CustomPart) => void;
   showNotice: (msg: string) => void;
@@ -43,6 +55,82 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
   onBatchInsertCustomPart,
   showNotice,
 }) => {
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortKey, setSortKey] = useState<CustomPartsSortKey>('updated');
+  const [pendingDelete, setPendingDelete] = useState<CustomPart | null>(null);
+  const [deletedPart, setDeletedPart] = useState<{ part: CustomPart; index: number } | null>(null);
+  const deletedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (deletedTimerRef.current !== null) {
+        clearTimeout(deletedTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!deletedPart) return;
+    deletedTimerRef.current = setTimeout(() => {
+      setDeletedPart(null);
+      deletedTimerRef.current = null;
+    }, 10000);
+    return () => {
+      if (deletedTimerRef.current !== null) {
+        clearTimeout(deletedTimerRef.current);
+        deletedTimerRef.current = null;
+      }
+    };
+  }, [deletedPart]);
+
+  const filteredParts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const matched = q
+      ? customParts.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            (p.description || '').toLowerCase().includes(q)
+        )
+      : [...customParts];
+    const updatedOf = (p: CustomPart) => p.updatedAt ?? p.createdAt;
+    if (sortKey === 'name') {
+      matched.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    } else if (sortKey === 'created') {
+      matched.sort((a, b) => b.createdAt - a.createdAt);
+    } else {
+      matched.sort((a, b) => updatedOf(b) - updatedOf(a));
+    }
+    return matched;
+  }, [customParts, searchQuery, sortKey]);
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    const index = customParts.findIndex((p) => p.id === target.id);
+    setPendingDelete(null);
+    if (index < 0) return;
+    setDeletedPart({ part: target, index });
+    setCustomParts((prev) => prev.filter((p) => p.id !== target.id));
+    showNotice(`「${target.name}」をマイパーツから削除しました`);
+  };
+
+  const restoreDeletedPart = () => {
+    if (!deletedPart) return;
+    const { part, index } = deletedPart;
+    if (deletedTimerRef.current !== null) {
+      clearTimeout(deletedTimerRef.current);
+      deletedTimerRef.current = null;
+    }
+    setDeletedPart(null);
+    setCustomParts((prev) => {
+      if (prev.some((p) => p.id === part.id)) return prev;
+      const next = [...prev];
+      next.splice(Math.min(index, next.length), 0, part);
+      return next;
+    });
+    showNotice(`「${part.name}」を復元しました`);
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0 p-2 space-y-2">
       {/* Informational Guidance Banner */}
@@ -172,6 +260,77 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
         </div>
       )}
 
+      {/* Search, Count & Sort */}
+      {customParts.length > 0 && (
+        <div className="space-y-1.5 shrink-0">
+          <div className="flex gap-1.5 min-w-0">
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-stone-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="パーツ名で検索..."
+                className={`w-full pl-8 pr-3 py-1.5 rounded-md border text-xs ${
+                  isLight
+                    ? 'bg-white border-stone-300 text-stone-800 focus:border-emerald-600'
+                    : 'bg-[#1a261f] border-[#25362b] text-emerald-100 focus:border-emerald-500'
+                }`}
+              />
+            </div>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as CustomPartsSortKey)}
+              className={`px-1.5 py-1.5 rounded-md border text-[11px] shrink-0 cursor-pointer ${
+                isLight ? 'bg-white border-stone-300 text-stone-800' : 'bg-[#1a261f] border-[#25362b] text-emerald-100'
+              }`}
+              title="並び替え"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center justify-between gap-1 text-[10px] text-stone-500 dark:text-stone-400 px-0.5">
+            <span className="tabular-nums">
+              表示 {filteredParts.length} / {customParts.length} 件
+            </span>
+            {searchQuery.trim() && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-emerald-700 dark:text-emerald-400 underline cursor-pointer whitespace-nowrap"
+              >
+                検索を解除
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Deleted Part Undo Bar */}
+      {deletedPart && (
+        <div
+          className={`px-2 py-1.5 rounded border text-[11px] flex items-center justify-between gap-2 shrink-0 ${
+            isLight
+              ? 'bg-amber-50 border-amber-300 text-amber-950'
+              : 'bg-amber-950/60 border-amber-700 text-amber-200'
+          }`}
+        >
+          <span className="truncate">「{deletedPart.part.name}」を削除しました</span>
+          <button
+            type="button"
+            onClick={restoreDeletedPart}
+            className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-800 text-white hover:bg-emerald-900 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+          >
+            <Undo2 className="w-3 h-3" />
+            <span>取り消す</span>
+          </button>
+        </div>
+      )}
+
       {/* Saved Parts Grid / Name Frame Cards */}
       {customParts.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-stone-500 space-y-2">
@@ -180,6 +339,21 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
           <p className="text-[10px] leading-relaxed max-w-xs text-stone-500">
             キャンバス上で偏や旁のパスを選択し、上部ツールバーの「★ 部首パーツに登録」をクリックすると、ここに1クリックで保存されます。
           </p>
+        </div>
+      ) : filteredParts.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-stone-500 space-y-2">
+          <Search className="w-8 h-8 opacity-30 text-emerald-600" />
+          <p className="text-xs font-bold text-stone-700 dark:text-stone-300">条件に一致するパーツがありません</p>
+          <p className="text-[10px] leading-relaxed max-w-xs text-stone-500">
+            検索語句を変えるか、検索を解除してください。
+          </p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="px-2.5 py-1 rounded text-[11px] bg-emerald-800 text-white font-bold hover:bg-emerald-900 cursor-pointer"
+          >
+            検索を解除
+          </button>
         </div>
       ) : (
         <div
@@ -190,7 +364,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
             }px, 1fr))`,
           }}
         >
-          {customParts.map((part) => {
+          {filteredParts.map((part) => {
             const hasContours = part.contours && part.contours.length > 0;
 
             return (
@@ -240,8 +414,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setCustomParts((prev) => prev.filter((p) => p.id !== part.id));
-                      showNotice(`「${part.name}」をマイパーツから削除しました`);
+                      setPendingDelete(part);
                     }}
                     className="p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-950/50 text-stone-400 hover:text-red-600 transition-colors cursor-pointer shrink-0"
                     title="パーツを削除"
@@ -285,7 +458,9 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSaveContoursAsPart(currentContours, part.name);
+                            handleSaveContoursAsPart(currentContours, part.name, {
+                              overwriteExisting: true,
+                            });
                           }}
                           className="w-full min-w-0 text-[9.5px] font-bold py-1 px-1 rounded bg-emerald-800 text-white hover:bg-emerald-900 transition-colors text-center shadow-xs cursor-pointer whitespace-nowrap truncate"
                           title="現在のキャンバスの文字をこの名前枠に保存"
@@ -303,6 +478,44 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className={`w-full max-w-xs rounded-lg border p-3 space-y-2 shadow-xl ${
+              isLight ? 'bg-white border-stone-300' : 'bg-[#1a261f] border-[#25362b]'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-bold text-stone-800 dark:text-emerald-100">
+              「{pendingDelete.name}」を削除しますか
+            </p>
+            <p className="text-[11px] leading-relaxed text-stone-500 dark:text-stone-400">
+              削除したパーツは、表示される「取り消す」ボタンで10秒以内であれば復元できます。
+            </p>
+            <div className="flex justify-end gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="px-2.5 py-1 rounded text-[11px] border border-stone-300 dark:border-stone-700 cursor-pointer whitespace-nowrap"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-3 py-1 rounded text-[11px] bg-red-600 text-white font-bold hover:bg-red-700 cursor-pointer whitespace-nowrap"
+              >
+                削除する
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

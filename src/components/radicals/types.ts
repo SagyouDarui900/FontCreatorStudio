@@ -17,4 +17,8 @@ export interface RadicalsDrawerProps {
   theme: ThemeMode;
   isOverlay?: boolean;
   onOpenRadicalStudio?: () => void;
+  /** Project ascender, used to resolve the baseline for placement and extraction. */
+  ascender?: number;
+  /** Project unitsPerEm, used with ascender to resolve the baseline. */
+  unitsPerEm?: number;
 }

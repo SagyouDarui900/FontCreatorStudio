@@ -24,6 +24,7 @@ import { ToolMode, PathContour, CustomPart } from '../../../types';
 import { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 import { generateId } from '../../../utils/path';
 import { loadCustomParts, saveCustomParts } from '../../../utils/customPartsStorage';
+import { makeUniquePartName } from '../../../utils/customParts';
 
 interface SelectionSubToolbarProps {
   toolMode: ToolMode;
@@ -108,7 +109,10 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
 
     try {
       const existingParts = await loadCustomParts();
-      const partName = activeChar ? `「${activeChar}」のパーツ` : `自作パーツ_${existingParts.length + 1}`;
+      const partName = makeUniquePartName(
+        activeChar ? `「${activeChar}」のパーツ` : '自作パーツ',
+        (existingParts || []).map((p) => p.name)
+      );
       const newPart: CustomPart = {
         id: generateId(),
         name: partName,
@@ -118,7 +122,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
 
       const updated = [newPart, ...existingParts];
       const saved = await saveCustomParts(updated);
-      if (!saved) {
+      if (!saved.ok) {
         showCanvasToast('パーツの登録に失敗しました');
         return;
       }

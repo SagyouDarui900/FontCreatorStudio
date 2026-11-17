@@ -23,7 +23,7 @@ import { GlyphCanvas } from './components/GlyphCanvas';
 import { MetricsPanel } from './components/MetricsPanel';
 import { RadicalsDrawer } from './components/RadicalsDrawer';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { Toast, ToastMessage } from './components/Toast';
+import { Toast, ToastMessage, ToastAction } from './components/Toast';
 import { ThemeMode, isLightTheme, getThemeClasses, THEME_PRESETS, getThemePreset } from './utils/theme';
 import { useToolState } from './hooks/useToolState';
 import { useTheme } from './hooks/useTheme';
@@ -94,6 +94,8 @@ function AppMain({
     handleClearGlyph,
     handleCopyGlyph,
     handlePasteGlyph,
+    handleCopySelectedContours,
+    handlePasteClipboardContours,
     handleDuplicateAsSmallKana,
     handleGenerateDakutenTarget,
     handleInsertRadical,
@@ -546,6 +548,9 @@ function AppMain({
               onCommitHistory={commitHistory}
               onCopyFromChar={(char) => handleCopyGlyph(char.charCodeAt(0))}
               onGenerateDakutenTarget={handleGenerateDakutenTarget}
+              onCopySelectedContours={handleCopySelectedContours}
+              onPasteSelectedContours={handlePasteClipboardContours}
+              hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
               onToggleGridDrawer={toggleGridDrawer}
               showGridDrawer={showGridDrawer}
               onToggleMetricsDrawer={toggleMetricsDrawer}
@@ -581,6 +586,8 @@ function AppMain({
           allGlyphs={project.glyphs || {}}
           theme={theme}
           isOverlay={isRadicalsOverlay}
+          ascender={project.metadata?.ascender}
+          unitsPerEm={project.metadata?.unitsPerEm}
           onOpenRadicalStudio={handleOpenRadicalStudioFromDrawer}
         />
 
@@ -725,7 +732,7 @@ function AppContent() {
     };
   }, []);
 
-  const showToast = useCallback((text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
+  const showToast = useCallback((text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info', action?: ToastAction) => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     const existingId = toastTextToIdRef.current.get(text);
@@ -741,9 +748,9 @@ function AppContent() {
     setToasts((prev) => {
       const exists = prev.some((t) => t.text === text);
       if (exists) {
-        return prev.map((t) => (t.text === text ? { id, text, type } : t));
+        return prev.map((t) => (t.text === text ? { id, text, type, action } : t));
       }
-      return [...prev.slice(-2), { id, text, type }];
+      return [...prev.slice(-2), { id, text, type, action }];
     });
 
     const timerId = setTimeout(() => {

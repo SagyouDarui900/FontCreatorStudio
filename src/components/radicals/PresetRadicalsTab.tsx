@@ -83,6 +83,25 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
       </div>
 
       {/* Grid of Typographic Radicals */}
+      {filteredRadicals.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-stone-500 space-y-2">
+          <Search className="w-8 h-8 opacity-30 text-emerald-600" />
+          <p className="text-xs font-bold text-stone-700 dark:text-stone-300">条件に一致する部首がありません</p>
+          <p className="text-[10px] leading-relaxed max-w-xs text-stone-500">
+            検索語句や分類フィルターを変えてください。
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setPresetSearch('');
+              setCategoryFilter('all');
+            }}
+            className="px-2.5 py-1 rounded text-[11px] bg-emerald-800 text-white font-bold hover:bg-emerald-900 cursor-pointer"
+          >
+            検索とフィルターを解除
+          </button>
+        </div>
+      ) : (
       <div
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 pb-28 sm:pb-8 grid gap-1.5 content-start"
         style={{
@@ -162,6 +181,7 @@ export const PresetRadicalsTab: React.FC<PresetRadicalsTabProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* Footer action to import to My Parts */}
       <div className={`p-2 border-t shrink-0 flex flex-wrap items-center justify-between gap-2 text-xs ${isLight ? 'bg-white' : 'bg-[#18231c]'}`}>

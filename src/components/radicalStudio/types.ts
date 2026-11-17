@@ -1,7 +1,11 @@
 import { CustomPart, PartCategory, PathContour, FontProject } from '../../types';
-import { generateId } from '../../utils/path';
 import { ThemeMode } from '../../utils/theme';
+import type { ToastAction } from '../Toast';
 import { KANGXI_214_RADICALS } from '../../data/kangxi214Radicals';
+
+// Single implementation of custom-part validation lives in customPartsStorage;
+// this re-export keeps the existing import path working for radicalStudio.
+export { sanitizeCustomParts } from '../../utils/customPartsStorage';
 
 export const CUSTOM_PARTS_STORAGE_KEY = 'font_editor_custom_parts_v1';
 
@@ -76,7 +80,7 @@ export interface RadicalStudioModalProps {
   onInsertToCurrentGlyph: (contours: PathContour[]) => void;
   onBatchInsertToGlyphs?: (contours: PathContour[], targetChars: string[]) => void;
   theme: ThemeMode;
-  onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error', action?: ToastAction) => void;
 }
 
 export const CATEGORY_TABS: { id: PartCategory; label: string; icon?: string }[] = [
@@ -103,36 +107,3 @@ export const KANJI_PRESETS_BY_CATEGORY: Record<string, string[]> = {
   stroke: ['一', '二', '三', '十', '大', '小', '中', '人', '日', '月', '年', '本'],
   other: ['愛', '和', '光', '福', '幸', '夢', '心', '創', '美', '知', '新', '生'],
 };
-
-export function sanitizeCustomParts(rawParts: unknown): CustomPart[] {
-  if (!Array.isArray(rawParts)) return [];
-  return rawParts
-    .filter((p) => p && typeof p === 'object')
-    .map((p: any) => ({
-      id: String(p.id || generateId()),
-      name: String(p.name || 'パーツ'),
-      category: (p.category || 'other') as PartCategory,
-      description: typeof p.description === 'string' ? p.description : '',
-      contours: Array.isArray(p.contours)
-        ? p.contours
-            .filter((c: any) => c && Array.isArray(c.nodes))
-            .map((c: any) => ({
-              id: String(c.id || generateId()),
-              closed: Boolean(c.closed),
-              nodes: Array.isArray(c.nodes)
-                ? c.nodes
-                    .filter((n: any) => n && typeof n.x === 'number' && typeof n.y === 'number')
-                    .map((n: any) => ({
-                      id: String(n.id || generateId()),
-                      x: n.x,
-                      y: n.y,
-                      handleIn: n.handleIn ? { x: n.handleIn.x, y: n.handleIn.y } : null,
-                      handleOut: n.handleOut ? { x: n.handleOut.x, y: n.handleOut.y } : null,
-                      type: n.type || 'corner',
-                    }))
-                : [],
-            }))
-        : [],
-      createdAt: typeof p.createdAt === 'number' ? p.createdAt : Date.now(),
-    }));
-}

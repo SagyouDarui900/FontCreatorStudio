@@ -21,6 +21,8 @@ interface FontExtractionTabProps {
   setExtractWeight: (w: number) => void;
   extractRegion: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi';
   setExtractRegion: (r: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi') => void;
+  extractSmoothing: number;
+  setExtractSmoothing: (v: number) => void;
   isExtracting: boolean;
   extractedContours: PathContour[];
   placement: RadicalPlacement;
@@ -29,6 +31,8 @@ interface FontExtractionTabProps {
   onPerformExtraction: (char: string, region: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi') => void;
   onInsertWithPlacement: (contours: PathContour[], name?: string, category?: string) => void;
   onSaveContoursAsPart: (contours: PathContour[], name: string) => void;
+  /** Baseline Y in screen coordinates. Placed contours never extend below it. */
+  baselineY?: number;
 }
 
 export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
@@ -41,6 +45,8 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
   setExtractWeight,
   extractRegion,
   setExtractRegion,
+  extractSmoothing,
+  setExtractSmoothing,
   isExtracting,
   extractedContours,
   placement,
@@ -49,6 +55,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
   onPerformExtraction,
   onInsertWithPlacement,
   onSaveContoursAsPart,
+  baselineY,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 p-3 pb-28 sm:pb-8 space-y-3 overflow-y-auto">
@@ -201,6 +208,28 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
         </div>
       </div>
 
+      {/* Smoothing */}
+      <div className="space-y-1">
+        <label className="text-[10px] font-bold text-stone-500 flex items-center justify-between">
+          <span>平滑化 (輪郭のなめらかさ):</span>
+          <span className="tabular-nums">{extractSmoothing.toFixed(2)}</span>
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={0.85}
+          step={0.05}
+          value={extractSmoothing}
+          onChange={(e) => setExtractSmoothing(Number(e.target.value))}
+          className="w-full accent-emerald-700 cursor-pointer"
+          title="0 (平滑化なし) から 0.85 (強め) の範囲で抽出時の平滑化を調整します"
+        />
+        <div className="flex justify-between text-[9px] text-stone-400">
+          <span>0 (なし)</span>
+          <span>0.85 (強め)</span>
+        </div>
+      </div>
+
       {/* Extracted Vector Preview */}
       <div
         className={`p-3 rounded-lg border flex flex-col items-center justify-center space-y-2 ${
@@ -217,7 +246,8 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
                 transformContoursForPlacement(
                   extractedContours,
                   placement,
-                  extractRegion !== 'full' ? extractRegion : categoryFilter !== 'all' ? categoryFilter : 'other'
+                  extractRegion !== 'full' ? extractRegion : categoryFilter !== 'all' ? categoryFilter : 'other',
+                  { baselineY }
                 )
               ).map((group) => (
                 <path

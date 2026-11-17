@@ -17,7 +17,7 @@ interface GlyphGridContextMenuProps {
   onCopyGlyph: (code: number) => void;
   onPasteGlyph: (code: number) => void;
   onClearGlyph: (code: number) => void;
-  onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean) => void;
+  onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean, sourceChar?: string) => void;
   onDuplicateAsSmallKana?: (code: number) => void;
 }
 
@@ -140,7 +140,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
                   <button
                     onClick={() => {
                       onSelectGlyph(item.code, item.char);
-                      onGenerateDakutenTarget(dakuInfo.daku!, false);
+                      onGenerateDakutenTarget(dakuInfo.daku!, false, item.char);
                       onClose();
                     }}
                     className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer"
@@ -153,7 +153,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
                   <button
                     onClick={() => {
                       onSelectGlyph(item.code, item.char);
-                      onGenerateDakutenTarget(dakuInfo.handaku!, true);
+                      onGenerateDakutenTarget(dakuInfo.handaku!, true, item.char);
                       onClose();
                     }}
                     className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer"

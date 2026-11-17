@@ -11,6 +11,23 @@ import {
   normalizeGlyphContoursWinding,
 } from "./bounds";
 import { optimizeContourNodes } from "./stroke";
+import { SCREEN_BASELINE_Y } from "../font/constants";
+
+export interface PlacementTransformOptions {
+  /** Baseline Y in screen coordinates. Placed contours never extend below it. Defaults to 800. */
+  baselineY?: number;
+}
+
+/** Placement categories that map directly to a placement position. */
+const PLACEMENT_CATEGORIES = new Set([
+  'hen',
+  'tsukuri',
+  'kanmuri',
+  'ashi',
+  'tare',
+  'nyo',
+  'kamae',
+]);
 
 export function smoothAndFixTransformedContours(contours: PathContour[]): PathContour[] {
   return contours.map((contour) => {
@@ -566,29 +583,48 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
 
 /**
  * Transform contours according to placement position (Hen, Tsukuri, Kanmuri, Ashi, etc.)
+ *
+ * `placement === 'auto'` resolves through `defaultCategory`. When the category
+ * does not identify one of hen / tsukuri / kanmuri / ashi / tare / nyo / kamae
+ * (for example 'other', 'stroke', 'geometric', 'kana', 'basic', 'all', or an
+ * absent value), the placement defaults to 'hen' (left side) instead of
+ * returning the contours unchanged at full size.
+ *
+ * The placed contours never extend below `options.baselineY` (default 800):
+ * each placement target box is clamped so its bottom edge is at most the
+ * baseline, and the contours are scaled to fit the clamped box.
  */
 export function transformContoursForPlacement(
   contours: PathContour[],
   placement: RadicalPlacement,
-  defaultCategory?: string
+  defaultCategory?: string,
+  options?: PlacementTransformOptions
 ): PathContour[] {
   if (!contours || contours.length === 0 || placement === 'original') {
+    return contours;
+  }
+  // 'full' is not a RadicalPlacement value; treat it as 'original' so a
+  // stale caller can never scale full-size contours by accident.
+  if ((placement as string) === 'full') {
     return contours;
   }
 
   // Resolve 'auto' placement using defaultCategory if provided
   let effectivePlacement: string = placement;
   if (placement === 'auto') {
-    if (defaultCategory && defaultCategory !== 'all' && defaultCategory !== 'basic') {
-      effectivePlacement = defaultCategory;
-    } else {
-      effectivePlacement = 'original';
-      return contours;
-    }
+    effectivePlacement =
+      defaultCategory && PLACEMENT_CATEGORIES.has(defaultCategory)
+        ? defaultCategory
+        : 'hen';
   }
 
   const bbox = getContoursBoundingBox(contours);
   if (bbox.width <= 0 || bbox.height <= 0) return contours;
+
+  const baselineY =
+    options?.baselineY !== undefined && Number.isFinite(options.baselineY)
+      ? options.baselineY
+      : SCREEN_BASELINE_Y;
 
   let targetX = 80;
   let targetY = 160;
@@ -652,7 +688,21 @@ export function transformContoursForPlacement(
       targetW = 600;
       targetH = 520;
       break;
+    default:
+      // Unknown placement: fall back to the hen (left side) target box.
+      targetX = 80;
+      targetY = 160;
+      targetW = 380;
+      targetH = 660;
+      break;
   }
+
+  // Clamp the target box so the placed contours never extend below the
+  // baseline (for example ashi ends at 860 and nyo at 860 with the
+  // unclamped boxes, while the default baseline is 800).
+  const clampedTargetH = Math.min(targetH, baselineY - targetY);
+  if (clampedTargetH <= 0) return contours;
+  targetH = clampedTargetH;
 
   const scaleX = targetW / bbox.width;
   const scaleY = targetH / bbox.height;

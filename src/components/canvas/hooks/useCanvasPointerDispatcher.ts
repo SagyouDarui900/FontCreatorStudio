@@ -154,6 +154,10 @@ export interface UseCanvasPointerDispatcherOptions {
   onRedo?: () => void;
   showCanvasToast: (msg: string, desc?: string) => void;
   isGlyphLocked?: boolean;
+  // C3: while the canvas context menu is open, pointerdown only closes the
+  // menu instead of starting a draw or selection action.
+  isContextMenuOpen?: boolean;
+  onCloseContextMenu?: () => void;
 }
 
 export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptions) {
@@ -252,6 +256,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     onRedo,
     showCanvasToast,
     isGlyphLocked = false,
+    isContextMenuOpen = false,
+    onCloseContextMenu,
   } = opts;
 
   // Active pointer isolation to prevent concurrent pointer collisions
@@ -389,6 +395,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   });
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    // C3: pointerdown fires before mousedown, so a left click meant to close
+    // the context menu would otherwise start drawing or selecting first.
+    // While the menu is open, pointerdown only closes the menu.
+    if (isContextMenuOpen) {
+      onCloseContextMenu?.();
+      return;
+    }
+
     // If an existing drawing pointer is already active, reject secondary pointerdown unless 2-finger gesture
     if (activeDrawingPointerIdRef.current !== null && activeDrawingPointerIdRef.current !== e.pointerId) {
       if (e.pointerType === 'touch' && touchPointersRef.current.size >= 1) {
@@ -880,6 +894,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleNodeDragEnd,
     isGlyphLocked,
     isDrawingTool,
+    isContextMenuOpen,
+    onCloseContextMenu,
     invalidateContainerRect,
     getContainerRectFast,
     containerRef,

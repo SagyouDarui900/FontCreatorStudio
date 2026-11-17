@@ -53,6 +53,9 @@ export function getContoursBoundingBox(contours: PathContour[]): {
   let hasPoints = false;
 
   const expandPoint = (x: number, y: number) => {
+    // Ignore non-finite coordinates so one invalid node cannot poison
+    // the whole bounding box with NaN.
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
     hasPoints = true;
     if (x < minX) minX = x;
     if (x > maxX) maxX = x;
@@ -109,6 +112,33 @@ export function getContoursBoundingBox(contours: PathContour[]): {
 
 export function getContourBoundingBox(contour: PathContour) {
   return getContoursBoundingBox([contour]);
+}
+
+/**
+ * Check that every node coordinate and every Bézier handle coordinate in
+ * the given contours is a finite number. Returns false when any contour
+ * is missing a node list, any node coordinate is not finite, or any
+ * handle coordinate is not finite. Use before inserting contours into a
+ * glyph so invalid data never reaches the canvas.
+ */
+export function contoursHaveFiniteCoordinates(
+  contours: PathContour[] | null | undefined
+): boolean {
+  if (!contours || contours.length === 0) return false;
+  for (const contour of contours) {
+    if (!contour || !Array.isArray(contour.nodes)) return false;
+    for (const node of contour.nodes) {
+      if (!node || !Number.isFinite(node.x) || !Number.isFinite(node.y)) {
+        return false;
+      }
+      for (const handle of [node.handleIn, node.handleOut]) {
+        if (handle && (!Number.isFinite(handle.x) || !Number.isFinite(handle.y))) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 /**

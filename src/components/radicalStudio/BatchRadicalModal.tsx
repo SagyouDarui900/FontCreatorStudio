@@ -23,6 +23,8 @@ export interface BatchRadicalModalProps {
   allGlyphs: Record<number, GlyphData>;
   onBatchInsert: (contours: PathContour[], targetChars: string[]) => void;
   theme: ThemeMode;
+  /** Baseline Y in screen coordinates. Placed contours never extend below it. */
+  baselineY?: number;
 }
 
 export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
@@ -34,6 +36,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   allGlyphs,
   onBatchInsert,
   theme,
+  baselineY,
 }) => {
   const themeClasses = getThemeClasses(theme);
 
@@ -52,8 +55,8 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
 
   // Transformed contours preview
   const transformedContours = useMemo(() => {
-    return transformContoursForPlacement(sourceContours, placement);
-  }, [sourceContours, placement]);
+    return transformContoursForPlacement(sourceContours, placement, undefined, { baselineY });
+  }, [sourceContours, placement, baselineY]);
 
   const previewSvgPath = useMemo(() => {
     return contoursToSvgPath(transformedContours);
@@ -171,7 +174,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
                   { id: 'tare', label: '垂 (左上)' },
                   { id: 'nyo', label: '繞 (左下)' },
                   { id: 'kamae', label: '構 (囲み)' },
-                  { id: 'full', label: '原寸' },
+                  { id: 'original', label: '原寸' },
                 ].map((item) => (
                   <button
                     key={item.id}

@@ -4,6 +4,7 @@ import {
   FlipVertical,
   RotateCw,
   Copy,
+  Clipboard,
   Trash2,
   Sparkles,
   ArrowLeft,
@@ -24,6 +25,10 @@ export interface CanvasContextMenuProps {
   theme: ThemeMode;
   hasSelection: boolean;
   selectedContourCount: number;
+  contourCount?: number;
+  hasClipboard?: boolean;
+  onCopySelected?: () => void;
+  onPasteSelected?: () => void;
   onFlipH?: () => void;
   onFlipV?: () => void;
   onRotate?: () => void;
@@ -47,6 +52,10 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   theme,
   hasSelection,
   selectedContourCount,
+  contourCount = 0,
+  hasClipboard = false,
+  onCopySelected,
+  onPasteSelected,
   onFlipH,
   onFlipV,
   onRotate,
@@ -68,7 +77,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePointerDownOutside = (e: MouseEvent | TouchEvent) => {
+    const handlePointerDownOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -80,11 +89,26 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
       }
     };
 
-    window.addEventListener('mousedown', handlePointerDownOutside);
+    // Close on scroll or resize instead of leaving the menu at a stale
+    // position. Scrolling inside the menu itself does not close it.
+    const handleDismiss = (e: Event) => {
+      if (e.type === 'scroll' && menuRef.current?.contains(e.target as Node)) {
+        return;
+      }
+      onClose();
+    };
+
+    window.addEventListener('pointerdown', handlePointerDownOutside);
+    window.addEventListener('touchstart', handlePointerDownOutside);
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleDismiss, true);
+    window.addEventListener('resize', handleDismiss);
     return () => {
-      window.removeEventListener('mousedown', handlePointerDownOutside);
+      window.removeEventListener('pointerdown', handlePointerDownOutside);
+      window.removeEventListener('touchstart', handlePointerDownOutside);
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleDismiss, true);
+      window.removeEventListener('resize', handleDismiss);
     };
   }, [isOpen, onClose]);
 
@@ -115,7 +139,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
     }
     nextTop = Math.max(pad, Math.min(nextTop, maxTop));
     setPos({ left: nextLeft, top: nextTop });
-  }, [isOpen, x, y, hasSelection, selectedContourCount]);
+  }, [isOpen, x, y, hasSelection, selectedContourCount, contourCount, hasClipboard]);
 
   if (!isOpen) return null;
 
@@ -151,14 +175,33 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
         <>
           {onRegisterRadical && (
             <button
+              disabled={isGlyphLocked}
               onClick={() => {
+                if (isGlyphLocked) return;
                 onRegisterRadical();
                 onClose();
               }}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer transition-colors`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left font-bold text-emerald-600 dark:text-emerald-400 transition-colors ${
+                isGlyphLocked
+                  ? 'opacity-45 cursor-not-allowed'
+                  : 'hover:bg-emerald-500/10 cursor-pointer'
+              }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>部首パーツに登録</span>
+            </button>
+          )}
+
+          {onCopySelected && (
+            <button
+              onClick={() => {
+                onCopySelected();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
+            >
+              <Copy className="w-3.5 h-3.5 text-stone-500" />
+              <span>選択輪郭をコピー</span>
             </button>
           )}
 
@@ -318,7 +361,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
         </>
       ) : (
         <>
-          {onSelectAllNodes && (
+          {onSelectAllNodes && contourCount > 0 && (
             <button
               onClick={() => {
                 onSelectAllNodes();
@@ -331,6 +374,25 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             </button>
           )}
         </>
+      )}
+
+      {hasClipboard && onPasteSelected && (
+        <button
+          disabled={isGlyphLocked}
+          onClick={() => {
+            if (isGlyphLocked) return;
+            onPasteSelected();
+            onClose();
+          }}
+          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+            isGlyphLocked
+              ? 'opacity-45 cursor-not-allowed'
+              : `${themeClasses.activeToolHover} cursor-pointer`
+          }`}
+        >
+          <Clipboard className="w-3.5 h-3.5 text-emerald-600" />
+          <span>コピーした輪郭を貼り付け</span>
+        </button>
       )}
 
       {/* Glyph Navigation Items */}

@@ -27,6 +27,7 @@ import {
 } from '../../utils/path';
 import { KANJI_RADICALS } from '../../data/kanjiRadicals';
 import { RADICAL_KANJI_DATABASE } from '../../data/kanjiRadicalDatabase';
+import { resolveBaselineY } from '../../utils/font/constants';
 
 export interface RadicalRightSidebarProps {
   isRightSidebarOpen: boolean;
@@ -103,12 +104,15 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
   selectedUnicode,
   notify,
 }) => {
+  // Baseline from the project ascender; placement previews never extend below it.
+  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+
   const previewGroups = useMemo(() => {
     if (!activePart || !activePart.contours || activePart.contours.length === 0) return [];
     return groupContoursForRendering(
-      transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category)
+      transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category, { baselineY })
     );
-  }, [activePart?.contours, insertPlacement, activePart?.category]);
+  }, [activePart?.contours, insertPlacement, activePart?.category, baselineY]);
 
   return (
     <>
@@ -594,7 +598,9 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  d={contoursToSvgPath(
  transformContoursForPlacement(
  KANJI_RADICALS.find((r) => r.id === 'rad_kihen')?.contours || [],
- 'tsukuri'
+ 'tsukuri',
+ undefined,
+ { baselineY }
  )
  )}
  fill={isLight ? '#475569' : '#94a3b8'}
@@ -607,7 +613,9 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  d={contoursToSvgPath(
  transformContoursForPlacement(
  KANJI_RADICALS.find((r) => r.id === 'rad_ninben')?.contours || [],
- 'hen'
+ 'hen',
+ undefined,
+ { baselineY }
  )
  )}
  fill={isLight ? '#475569' : '#94a3b8'}

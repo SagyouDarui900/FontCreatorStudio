@@ -2,10 +2,16 @@ import React from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { ThemeMode, isLightTheme } from '../utils/theme';
 
+export interface ToastAction {
+  label: string;
+  onAction: () => void;
+}
+
 export interface ToastMessage {
   id: string;
   text: string;
   type?: 'success' | 'info' | 'warning' | 'error';
+  action?: ToastAction;
 }
 
 interface ToastProps {
@@ -56,6 +62,18 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
               <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
             )}
             <span className="leading-tight truncate max-w-[70vw] sm:max-w-none">{toast.text}</span>
+            {toast.action && (
+              <button
+                onClick={() => {
+                  toast.action?.onAction();
+                  onDismiss(toast.id);
+                }}
+                className="px-1.5 py-0.5 rounded-full font-bold underline shrink-0 cursor-pointer"
+                title={toast.action.label}
+              >
+                {toast.action.label}
+              </button>
+            )}
             <button
               onClick={() => onDismiss(toast.id)}
               className="p-0.5 rounded-full hover:opacity-75 shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"

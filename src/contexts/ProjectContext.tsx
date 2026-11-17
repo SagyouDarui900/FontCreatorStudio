@@ -53,8 +53,10 @@ export interface ProjectContextType {
   handleClearGlyph: (unicode: number) => void;
   handleCopyGlyph: (unicode: number) => void;
   handlePasteGlyph: (unicode: number) => void;
+  handleCopySelectedContours: (contourIds: string[]) => void;
+  handlePasteClipboardContours: () => void;
   handleDuplicateAsSmallKana: (sourceUnicode: number) => void;
-  handleGenerateDakutenTarget: (targetChar: string, isHandakuten?: boolean) => void;
+  handleGenerateDakutenTarget: (targetChar: string, isHandakuten?: boolean, sourceChar?: string) => void;
   handleCopyFromChar: (sourceChar: string) => void;
   handleInsertRadical: (radicalContours: PathContour[]) => void;
   handleBatchInsertRadical: (radicalContours: PathContour[], targetChars: string[]) => void;
@@ -408,6 +410,8 @@ export function ProjectProvider({
       handleClearGlyph: glyphActions.handleClearGlyph,
       handleCopyGlyph: glyphActions.handleCopyGlyph,
       handlePasteGlyph: glyphActions.handlePasteGlyph,
+      handleCopySelectedContours: glyphActions.handleCopySelectedContours,
+      handlePasteClipboardContours: glyphActions.handlePasteClipboardContours,
       handleDuplicateAsSmallKana: glyphActions.handleDuplicateAsSmallKana,
       handleGenerateDakutenTarget: glyphActions.handleGenerateDakutenTarget,
       handleCopyFromChar: glyphActions.handleCopyFromChar,

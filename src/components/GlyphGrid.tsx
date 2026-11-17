@@ -42,17 +42,48 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  // Timestamp of the pointerdown on the overlay backdrop that closed the
+  // context menu. The click that follows that pointerdown must not also
+  // close the drawer (C5). The timestamp expires so a later unrelated
+  // backdrop click still closes the drawer.
+  const backdropMenuCloseAtRef = useRef(0);
 
-  // Close context menu on outside click
+  // Close context menu on outside pointerdown / touch, on Escape, and on
+  // scroll or resize (the menu position is not updated, so it closes).
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handlePointerDownOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        if (backdropRef.current?.contains(e.target as Node)) {
+          backdropMenuCloseAtRef.current = Date.now();
+        }
         setContextMenu(null);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+      }
+    };
+    const handleDismiss = (e: Event) => {
+      if (e.type === 'scroll' && contextMenuRef.current?.contains(e.target as Node)) {
+        return;
+      }
+      setContextMenu(null);
+    };
     if (contextMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handlePointerDownOutside);
+      document.addEventListener('touchstart', handlePointerDownOutside);
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('scroll', handleDismiss, true);
+      window.addEventListener('resize', handleDismiss);
+      return () => {
+        document.removeEventListener('pointerdown', handlePointerDownOutside);
+        document.removeEventListener('touchstart', handlePointerDownOutside);
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('scroll', handleDismiss, true);
+        window.removeEventListener('resize', handleDismiss);
+      };
     }
   }, [contextMenu]);
 
@@ -106,8 +137,8 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       e.preventDefault();
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setContextMenu({
-        x: Math.max(8, rect.left),
-        y: rect.bottom + 4,
+        x: e.clientX,
+        y: e.clientY,
         anchorTop: rect.top - 4,
         item,
       });
@@ -163,7 +194,20 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
       {/* Mobile/Overlay Click-Outside Dismiss Backdrop */}
       {effectiveIsOverlay && (
         <div
-          onClick={onClose}
+          ref={backdropRef}
+          onClick={() => {
+            // C5: when this click follows the pointerdown that closed the
+            // context menu, only the menu closes and the drawer stays open.
+            if (
+              backdropMenuCloseAtRef.current > 0 &&
+              Date.now() - backdropMenuCloseAtRef.current < 1000
+            ) {
+              backdropMenuCloseAtRef.current = 0;
+              return;
+            }
+            backdropMenuCloseAtRef.current = 0;
+            onClose();
+          }}
           className="fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 bg-black/40 z-30 pointer-events-auto"
         />
       )}

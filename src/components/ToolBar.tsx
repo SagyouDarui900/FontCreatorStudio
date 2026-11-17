@@ -160,9 +160,11 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       }
     };
     document.addEventListener('pointerdown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showShapeMenu, showBrushMenu, showGridMenu]);
@@ -241,6 +243,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       right: 'top',
     };
     onPositionChange(next[effectivePosition]);
+    setShowPositionMenu(false);
   }, [effectivePosition, onPositionChange]);
 
   const isCurrentToolShape = SHAPE_TOOLS.some((s) => s.id === toolMode);

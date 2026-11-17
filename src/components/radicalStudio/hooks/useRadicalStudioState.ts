@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   CustomPart,
   PartCategory,
@@ -9,11 +9,18 @@ import {
   Point,
 } from '../../../types';
 import { generateId } from '../../../utils/path';
-import { KANJI_RADICALS } from '../../../data/kanjiRadicals';
+import { makeUniquePartName } from '../../../utils/customParts';
 import {
   RADICAL_FONT_OPTIONS,
   FontStyleOption,
 } from '../../../utils/radicalExtractor';
+import {
+  loadCustomParts,
+  saveCustomParts,
+  buildDefaultCustomParts,
+  isCustomPartsInitialized,
+} from '../../../utils/customPartsStorage';
+import type { ToastAction } from '../../../components/Toast';
 import {
   CUSTOM_PARTS_STORAGE_KEY,
   sanitizeCustomParts,
@@ -22,7 +29,7 @@ import { MobileSheetTab, MobileSheetSnap } from '../RadicalMobileDrawer';
 
 interface UseRadicalStudioStateProps {
   selectedChar: string;
-  onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error', action?: ToastAction) => void;
 }
 
 export function useRadicalStudioState({
@@ -31,13 +38,13 @@ export function useRadicalStudioState({
 }: UseRadicalStudioStateProps) {
   // Notification helper
   const notify = useCallback(
-    (text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
-      onShowToast?.(text, type);
+    (text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info', action?: ToastAction) => {
+      onShowToast?.(text, type, action);
     },
     [onShowToast]
   );
 
-  // Custom parts library loaded from storage
+  // Custom parts library loaded from storage (IndexedDB, with migration from LocalStorage)
   const [parts, setParts] = useState<CustomPart[]>(() => {
     try {
       const saved = localStorage.getItem(CUSTOM_PARTS_STORAGE_KEY);
@@ -49,64 +56,149 @@ export function useRadicalStudioState({
     } catch {
       // ignore
     }
-    return [
-      {
-        id: generateId(),
-        name: 'さんずい (氵)',
-        category: 'hen',
-        description: '三水・水に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_sanzui')?.contours || [],
-        createdAt: Date.now() - 5000,
-      },
-      {
-        id: generateId(),
-        name: 'きへん (木)',
-        category: 'hen',
-        description: '木偏・樹木に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_kihen')?.contours || [],
-        createdAt: Date.now() - 4000,
-      },
-      {
-        id: generateId(),
-        name: 'にんべん (亻)',
-        category: 'hen',
-        description: '人偏・人間に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_ninben')?.contours || [],
-        createdAt: Date.now() - 3000,
-      },
-      {
-        id: generateId(),
-        name: 'ごんべん (言)',
-        category: 'hen',
-        description: '言偏・言葉に関する偏',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_gonben')?.contours || [],
-        createdAt: Date.now() - 2000,
-      },
-      {
-        id: generateId(),
-        name: 'くさかんむり (艹)',
-        category: 'kanmuri',
-        description: '草冠・植物に関する冠',
-        contours: KANJI_RADICALS.find((r) => r.id === 'rad_kusakanmuri')?.contours || [],
-        createdAt: Date.now() - 1000,
-      },
-    ];
+    // 保存データが一度もない初回起動時にだけ既定パーツを表示する。
+    // ユーザーが全件削除した場合は初期化済みフラグが立っているため空のままにする。
+    if (isCustomPartsInitialized()) return [];
+    return buildDefaultCustomParts();
   });
 
   const [selectedPartId, setSelectedPartId] = useState<string>(() => parts[0]?.id || '');
 
-  // Persist parts to localStorage with debouncing to avoid sync disk I/O on rapid edits
+  // 最新の parts を常に参照するための ref（遅延保存と閉じる時の即時保存で使う）
+  const partsRef = useRef<CustomPart[]>(parts);
+  const lastSavedStudioJsonRef = useRef<string>('');
+  // 初回読み込みが終わるまで保存を行わないためのフラグ。
+  // 読み込み前に既定パーツで IndexedDB を上書きしないようにする。
+  const initialLoadDoneRef = useRef<boolean>(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveInFlightRef = useRef<boolean>(false);
+  const deletedPartRef = useRef<{ part: CustomPart; index: number } | null>(null);
+  const deletedPartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(CUSTOM_PARTS_STORAGE_KEY, JSON.stringify(parts));
-      } catch (err) {
-        console.warn('Failed to save custom parts to localStorage:', err);
-        notify('カスタムパーツの保存に失敗しました', 'error');
+    partsRef.current = parts;
+  }, [parts]);
+
+  // Load custom parts from IndexedDB (with migration from LocalStorage-only data)
+  const loadPartsFromStorage = useCallback(async () => {
+    try {
+      const loaded = await loadCustomParts();
+      if (saveTimerRef.current !== null || saveInFlightRef.current) {
+        // 未保存の編集がある場合は読み込みで上書きしない。
+        // 遅延保存が完了すれば保存成功時にイベントが届き、改めて読み込む。
+        return;
       }
+      if (Array.isArray(loaded) && loaded.length > 0) {
+        lastSavedStudioJsonRef.current = JSON.stringify(loaded);
+        setParts(loaded);
+        setSelectedPartId((curr) =>
+          loaded.some((p) => p.id === curr) ? curr : loaded[0]?.id || ''
+        );
+      } else if (isCustomPartsInitialized()) {
+        // ユーザーが全件削除した状態。既定パーツを復元しない。
+        lastSavedStudioJsonRef.current = '[]';
+        setParts([]);
+        setSelectedPartId('');
+      } else {
+        // 初回起動。現在の表示内容（既定パーツ）を保存済みとみなし、
+        // 読み込み直後の不要な書き戻しを行わない。
+        lastSavedStudioJsonRef.current = JSON.stringify(partsRef.current);
+      }
+    } catch {
+      // ignore
+    } finally {
+      initialLoadDoneRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPartsFromStorage();
+  }, [loadPartsFromStorage]);
+
+  // Reload when custom parts change elsewhere (drawer, canvas toolbar)
+  useEffect(() => {
+    const handleSync = () => {
+      loadPartsFromStorage();
+    };
+    window.addEventListener('font_custom_parts_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('font_custom_parts_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [loadPartsFromStorage]);
+
+  const persistParts = useCallback(
+    async (nextParts: CustomPart[]) => {
+      saveInFlightRef.current = true;
+      try {
+        const result = await saveCustomParts(nextParts);
+        if (!result.ok) {
+          notify(
+            `カスタムパーツの保存に失敗しました（${result.fallbackDroppedCount}件を保存できませんでした）`,
+            'error'
+          );
+        } else if (result.fallbackSavedCount > 0) {
+          notify('カスタムパーツをブラウザ保存に退避しました', 'warning');
+        }
+      } finally {
+        saveInFlightRef.current = false;
+      }
+    },
+    [notify]
+  );
+
+  // Persist parts to IndexedDB with debouncing to avoid disk I/O on rapid edits
+  useEffect(() => {
+    if (!initialLoadDoneRef.current) return;
+    const json = JSON.stringify(parts);
+    if (json === lastSavedStudioJsonRef.current) return;
+    lastSavedStudioJsonRef.current = json;
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      void persistParts(parts);
     }, 500);
-    return () => clearTimeout(timer);
-  }, [parts, notify]);
+    return () => {
+      if (saveTimerRef.current !== null) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [parts, persistParts]);
+
+  // Save immediately, cancelling any pending debounced save.
+  // Called when the modal closes and when this hook unmounts.
+  const flushSaveParts = useCallback(async () => {
+    if (!initialLoadDoneRef.current) return;
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const current = partsRef.current;
+    lastSavedStudioJsonRef.current = JSON.stringify(current);
+    await persistParts(current);
+  }, [persistParts]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current !== null) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (deletedPartTimerRef.current !== null) {
+        clearTimeout(deletedPartTimerRef.current);
+        deletedPartTimerRef.current = null;
+      }
+      // アンマウント時に遅延中の保存が残っていれば即座に保存する
+      if (initialLoadDoneRef.current) {
+        void saveCustomParts(partsRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activePart = useMemo(() => {
     const found = parts.find((p) => p && p.id === selectedPartId) || parts[0] || null;
@@ -242,7 +334,7 @@ export function useRadicalStudioState({
     setParts((prev) => {
       const newPart: CustomPart = {
         id: newId,
-        name: `新規パーツ_${prev.length + 1}`,
+        name: makeUniquePartName('新規パーツ', prev.map((p) => p.name)),
         category: category === 'all' ? 'hen' : category,
         description: '',
         contours: [],
@@ -273,32 +365,85 @@ export function useRadicalStudioState({
     const cloned: CustomPart = {
       ...part,
       id: newId,
-      name: `${part.name} (コピー)`,
+      name: '',
       contours: clonedContours,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    setParts((prev) => [cloned, ...prev]);
+    setParts((prev) => {
+      const named: CustomPart = {
+        ...cloned,
+        name: makeUniquePartName(`${part.name} (コピー)`, prev.map((p) => p.name)),
+      };
+      return [named, ...prev];
+    });
     setSelectedPartId(newId);
     notify(`「${part.name}」を複製しました`, 'success');
   }, [notify]);
 
-  // Delete Part
+  // Part pending deletion confirmation (shown in a confirm dialog by the modal)
+  const [pendingDeletePart, setPendingDeletePart] = useState<CustomPart | null>(null);
+
+  const restoreDeletedPart = useCallback(() => {
+    const deleted = deletedPartRef.current;
+    if (!deleted) return;
+    deletedPartRef.current = null;
+    if (deletedPartTimerRef.current !== null) {
+      clearTimeout(deletedPartTimerRef.current);
+      deletedPartTimerRef.current = null;
+    }
+    setParts((prev) => {
+      if (prev.some((p) => p.id === deleted.part.id)) return prev;
+      const next = [...prev];
+      next.splice(Math.min(deleted.index, next.length), 0, deleted.part);
+      return next;
+    });
+    setSelectedPartId(deleted.part.id);
+    notify(`「${deleted.part.name}」を復元しました`, 'success');
+  }, [notify]);
+
+  // Request Part deletion: show a confirmation dialog instead of deleting immediately.
+  // The last remaining part cannot be deleted.
   const handleDeletePart = useCallback((id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setParts((prev) => {
-      const target = prev.find((p) => p.id === id);
-      if (!target) return prev;
-      if (prev.length <= 1) {
-        notify('最後のパーツは削除できません', 'warning');
-        return prev;
-      }
-      const remaining = prev.filter((p) => p.id !== id);
-      setSelectedPartId((curr) => (curr === id ? remaining[0]?.id || '' : curr));
-      notify(`「${target.name}」を削除しました`, 'info');
-      return remaining;
+    const target = parts.find((p) => p.id === id);
+    if (!target) return;
+    if (parts.length <= 1) {
+      notify('最後のパーツは削除できません', 'warning');
+      return;
+    }
+    setPendingDeletePart(target);
+  }, [parts, notify]);
+
+  const cancelDeletePart = useCallback(() => {
+    setPendingDeletePart(null);
+  }, []);
+
+  // Confirm Part deletion. All side effects run outside the setParts updater.
+  const confirmDeletePart = useCallback(() => {
+    const target = pendingDeletePart;
+    if (!target) return;
+    setPendingDeletePart(null);
+    const index = parts.findIndex((p) => p.id === target.id);
+    const removedIndex = index >= 0 ? index : 0;
+    const remaining = parts.filter((p) => p.id !== target.id);
+    setParts(remaining);
+    if (selectedPartId === target.id) {
+      setSelectedPartId(remaining[0]?.id || '');
+    }
+    deletedPartRef.current = { part: target, index: removedIndex };
+    if (deletedPartTimerRef.current !== null) {
+      clearTimeout(deletedPartTimerRef.current);
+    }
+    deletedPartTimerRef.current = setTimeout(() => {
+      deletedPartRef.current = null;
+      deletedPartTimerRef.current = null;
+    }, 5000);
+    notify(`「${target.name}」を削除しました`, 'info', {
+      label: '取り消す',
+      onAction: () => restoreDeletedPart(),
     });
-  }, [notify]);
+  }, [pendingDeletePart, parts, selectedPartId, notify, restoreDeletedPart]);
 
   // Magnetic guide & grid snapping helper
   const snapToGuides = useCallback(
@@ -479,6 +624,10 @@ export function useRadicalStudioState({
     handleCreateNewPart,
     handleDuplicatePart,
     handleDeletePart,
+    pendingDeletePart,
+    confirmDeletePart,
+    cancelDeletePart,
+    flushSaveParts,
     snapToGuides,
   };
 }

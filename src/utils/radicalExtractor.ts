@@ -9,6 +9,8 @@ export interface ExtractRadicalOptions {
   region?: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi';
   smoothing?: number;
   fitMargin?: number;
+  /** Baseline Y in screen coordinates. Normalized contours never extend below it. Defaults to 800. */
+  baselineY?: number;
 }
 
 export interface KangxiRadicalItem {
@@ -85,6 +87,7 @@ export async function extractRadicalFromFont(
     region = 'full',
     smoothing = 0.8,
     fitMargin = 80,
+    baselineY = 800,
   } = options;
 
   if (!char || char.trim().length === 0) {
@@ -165,11 +168,16 @@ export async function extractRadicalFromFont(
     return result.contours;
   }
 
-  // Target standard kanji glyph box (800x740 inside 1000x1000)
+  // Target standard kanji glyph box (800 wide inside 1000x1000). The height
+  // is clamped so the normalized contours never extend below the baseline:
+  // with the default baseline of 800 and targetY 130, the box is 800x670
+  // instead of 800x740 (which ended at 870, below the baseline).
+  const resolvedBaselineY =
+    Number.isFinite(baselineY) && baselineY > 0 ? baselineY : 800;
   const targetX = 100;
   const targetY = 130;
   const targetW = 800;
-  const targetH = 740;
+  const targetH = Math.max(1, Math.min(740, resolvedBaselineY - targetY));
 
   // Scale to target box strictly proportionally to guarantee zero aspect ratio distortion
   const scale = Math.min(targetW / bbox.width, targetH / bbox.height);
@@ -191,11 +199,16 @@ export async function getOrExtractRadicalContours(
   char: string,
   region: 'full' | 'hen' | 'tsukuri' | 'kanmuri' | 'ashi' = 'full',
   fontFamily: string = DEFAULT_RADICAL_FONT_FAMILY,
-  fontWeight: number | string = DEFAULT_RADICAL_FONT_WEIGHT
+  fontWeight: number | string = DEFAULT_RADICAL_FONT_WEIGHT,
+  baselineY?: number
 ): Promise<PathContour[]> {
   if (!char || char.trim().length === 0) return [];
   const cleanChar = char.trim()[0];
-  const cacheKey = `${cleanChar}_${region}_${fontFamily}_${fontWeight}`;
+  const resolvedBaselineY =
+    baselineY !== undefined && Number.isFinite(baselineY) && baselineY > 0
+      ? baselineY
+      : 800;
+  const cacheKey = `${cleanChar}_${region}_${fontFamily}_${fontWeight}_${resolvedBaselineY}`;
   if (radicalContoursCache.has(cacheKey)) {
     return JSON.parse(JSON.stringify(radicalContoursCache.get(cacheKey)!));
   }
@@ -211,6 +224,7 @@ export async function getOrExtractRadicalContours(
     region: effectiveRegion,
     smoothing: 1.3,
     fitMargin: 70,
+    baselineY: resolvedBaselineY,
   });
 
   if (contours && contours.length > 0) {

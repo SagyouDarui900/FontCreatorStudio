@@ -3,6 +3,7 @@ import { PathContour, RulerMeasurement, CustomPart, ToolMode } from '../../../ty
 import { createLineContour, generateId } from '../../../utils/path';
 import { convertContourToQuadratic, convertContourToCubic } from '../../../utils/bezierConversion';
 import { loadCustomParts, saveCustomParts } from '../../../utils/customPartsStorage';
+import { makeUniquePartName } from '../../../utils/customParts';
 
 export interface UseCanvasContourActionsOptions {
   contours: PathContour[];
@@ -226,9 +227,22 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
   }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
 
   const handleRegisterSelectedAsCustomPart = useCallback(async () => {
+    if (isGlyphLocked) {
+      showCanvasToast('この文字は編集ロックされています', '解除してから登録してください');
+      return;
+    }
     const selected = contours.filter((c) => selectedContourIds.includes(c.id));
     if (selected.length === 0) return;
-    const partName = `${activeChar || '字形'}パーツ`;
+    let existing: CustomPart[] = [];
+    try {
+      existing = (await loadCustomParts()) || [];
+    } catch {
+      // 読み込みに失敗した場合は空の一覧として登録を試みる
+    }
+    const partName = makeUniquePartName(
+      `${activeChar || '字形'}パーツ`,
+      existing.map((p) => p.name)
+    );
     const newPart: CustomPart = {
       id: generateId(),
       name: partName,
@@ -247,9 +261,8 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       createdAt: Date.now(),
     };
     try {
-      const existing = await loadCustomParts();
-      const saved = await saveCustomParts([newPart, ...(existing || [])]);
-      if (!saved) {
+      const saved = await saveCustomParts([newPart, ...existing]);
+      if (!saved.ok) {
         showCanvasToast('登録に失敗しました', 'ストレージエラー');
         return;
       }
@@ -258,7 +271,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     } catch {
       showCanvasToast('登録に失敗しました', 'ストレージエラー');
     }
-  }, [contours, selectedContourIds, activeChar, showCanvasToast]);
+  }, [contours, selectedContourIds, activeChar, isGlyphLocked, showCanvasToast]);
 
   const handleSelectAllNodes = useCallback(() => {
     if (contours.length === 0) return;

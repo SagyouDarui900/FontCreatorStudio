@@ -38,8 +38,11 @@ import {
 import {
   StudioRadicalPresetItem,
   STUDIO_RADICAL_PRESETS,
+  sanitizeCustomParts,
 } from '../types';
+import { resolveBaselineY } from '../../../utils/font/constants';
 import { RadicalEntry } from '../../../data/kanjiRadicalDatabase';
+import { makeUniquePartName } from '../../../utils/customParts';
 
 interface UseRadicalOperationsProps {
   activePart: CustomPart | null;
@@ -105,6 +108,10 @@ export function useRadicalOperations({
   onClose,
   project,
 }: UseRadicalOperationsProps) {
+  // Baseline from the project ascender; placement and extraction never
+  // extend contours below it.
+  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+
   const svgFileInputRef = useRef<HTMLInputElement>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -247,17 +254,21 @@ export function useRadicalOperations({
       })),
     }));
 
-    const newPart: CustomPart = {
-      id: newId,
-      name: `パーツ_${glyph.char || glyph.name}`,
-      category: 'other',
-      description: `文字「${glyph.char}」から取り込んだ作字パーツ`,
-      contours: clonedContours,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    setParts((prev) => [newPart, ...prev]);
+    setParts((prev) => {
+      const newPart: CustomPart = {
+        id: newId,
+        name: makeUniquePartName(
+          `パーツ_${glyph.char || glyph.name}`,
+          prev.map((p) => p.name)
+        ),
+        category: 'other',
+        description: `文字「${glyph.char}」から取り込んだ作字パーツ`,
+        contours: clonedContours,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return [newPart, ...prev];
+    });
     setSelectedPartId(newId);
     setShowExtractModal(false);
     notify(`文字「${glyph.char}」からパーツを作成しました`, 'success');
@@ -279,7 +290,7 @@ export function useRadicalOperations({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category);
+    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY });
     if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, [targetChar]);
     } else {
@@ -316,7 +327,7 @@ export function useRadicalOperations({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category);
+    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY });
 
     if (onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, allTargetChars);
@@ -349,7 +360,8 @@ export function useRadicalOperations({
           radical.char,
           'full',
           selectedFontStyle.fontFamily,
-          selectedFontStyle.fontWeight
+          selectedFontStyle.fontWeight,
+          baselineY
         );
         if (extracted && extracted.length > 0) {
           contoursToUse = JSON.parse(JSON.stringify(extracted));
@@ -385,7 +397,8 @@ export function useRadicalOperations({
     const positioned = transformContoursForPlacement(
       cloned,
       placement,
-      radical.category === 'basic' ? 'other' : (radical.category as PartCategory)
+      radical.category === 'basic' ? 'other' : (radical.category as PartCategory),
+      { baselineY }
     );
 
     if (onBatchInsertToGlyphs) {
@@ -422,17 +435,21 @@ export function useRadicalOperations({
       })),
     }));
 
-    const newPart: CustomPart = {
-      id: newId,
-      name: `パーツ_${selectedChar || currentGlyph.name || '文字'}`,
-      category: 'other',
-      description: `文字「${selectedChar}」から取り込んだ作字パーツ`,
-      contours: clonedContours,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    setParts((prev) => [newPart, ...prev]);
+    setParts((prev) => {
+      const newPart: CustomPart = {
+        id: newId,
+        name: makeUniquePartName(
+          `パーツ_${selectedChar || currentGlyph.name || '文字'}`,
+          prev.map((p) => p.name)
+        ),
+        category: 'other',
+        description: `文字「${selectedChar}」から取り込んだ作字パーツ`,
+        contours: clonedContours,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return [newPart, ...prev];
+    });
     setSelectedPartId(newId);
     setLeftSidebarTab('custom');
     notify(`編集中文字「${selectedChar}」の輪郭（${clonedContours.length}本）をパーツとして取り込みました`, 'success');
@@ -445,7 +462,8 @@ export function useRadicalOperations({
         item.char,
         'full',
         selectedFontStyle.fontFamily,
-        selectedFontStyle.fontWeight
+        selectedFontStyle.fontWeight,
+        baselineY
       );
       if (!contours || contours.length === 0) {
         const fallbackRad = KANJI_RADICALS.find((r) => r.name === item.name || r.char === item.char);
@@ -498,14 +516,15 @@ export function useRadicalOperations({
         item.char,
         'full',
         selectedFontStyle.fontFamily,
-        selectedFontStyle.fontWeight
+        selectedFontStyle.fontWeight,
+        baselineY
       );
       if (!contours || contours.length === 0) {
         const fallbackRad = KANJI_RADICALS.find((r) => r.name === item.name || r.char === item.char);
         contours = fallbackRad?.contours || [];
       }
 
-      const positioned = transformContoursForPlacement(contours, placement, item.category);
+      const positioned = transformContoursForPlacement(contours, placement, item.category, { baselineY });
       if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
         onBatchInsertToGlyphs(positioned, [targetChar]);
       } else {
@@ -528,7 +547,7 @@ export function useRadicalOperations({
       return;
     }
     const cloned: PathContour[] = JSON.parse(JSON.stringify(activePart.contours));
-    const positioned = transformContoursForPlacement(cloned, placement, activePart.category);
+    const positioned = transformContoursForPlacement(cloned, placement, activePart.category, { baselineY });
     if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, [targetChar]);
     } else {
@@ -568,7 +587,8 @@ export function useRadicalOperations({
           def.char,
           'full',
           fontStyle.fontFamily,
-          fontStyle.fontWeight
+          fontStyle.fontWeight,
+          baselineY
         );
         if (contours && contours.length > 0) {
           const idx = updatedParts.findIndex(
@@ -630,7 +650,8 @@ export function useRadicalOperations({
                 item.char,
                 'full',
                 selectedFontStyle.fontFamily,
-                selectedFontStyle.fontWeight
+                selectedFontStyle.fontWeight,
+                baselineY
               );
             } catch {
               // fallback
@@ -686,8 +707,20 @@ export function useRadicalOperations({
       try {
         const json = JSON.parse(event.target?.result as string);
         if (Array.isArray(json)) {
-          setParts((prev) => [...json, ...prev]);
-          notify(`${json.length}件のパーツをライブラリに読み込みました`, 'success');
+          const sanitized = sanitizeCustomParts(json);
+          if (sanitized.length === 0) {
+            notify('有効なパーツが含まれていません', 'error');
+            return;
+          }
+          if (sanitized.length < json.length) {
+            notify(
+              `${sanitized.length}件のパーツをライブラリに読み込みました（${json.length - sanitized.length}件の無効なパーツを除外）`,
+              'success'
+            );
+          } else {
+            notify(`${sanitized.length}件のパーツをライブラリに読み込みました`, 'success');
+          }
+          setParts((prev) => [...sanitized, ...prev]);
         } else {
           notify('無効なパーツJSONファイルです', 'error');
         }
@@ -807,7 +840,7 @@ export function useRadicalOperations({
 
   const handleFitToPlacement = (place: RadicalPlacement) => {
     if (!activePart) return;
-    const positioned = transformContoursForPlacement(activePart.contours, place, activePart.category);
+    const positioned = transformContoursForPlacement(activePart.contours, place, activePart.category, { baselineY });
     commitPartChange(positioned);
     notify(`配置を「${place}」基準に自動フィットしました`, 'info');
   };

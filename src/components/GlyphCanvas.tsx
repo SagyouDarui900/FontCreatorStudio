@@ -54,6 +54,7 @@ import {
   HIGH_CONTRAST_CROSSHAIR_CURSOR,
 } from './canvas/cursors';
 import { GlyphCanvasProps } from './canvas/glyphCanvasTypes';
+import { hitTestContours } from './canvas/canvasHitTest';
 import { getInkColors } from './canvas/glyphCanvasConstants';
 export type { GlyphCanvasProps };
 
@@ -90,6 +91,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   isGlyphLocked = false,
   onCopyFromChar,
   onGenerateDakutenTarget,
+  onCopySelectedContours,
+  onPasteSelectedContours,
+  hasClipboard = false,
   onToggleGridDrawer,
   showGridDrawer,
   onToggleMetricsDrawer,
@@ -658,6 +662,36 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     return 'default';
   }, [gridSettings.highContrastCursor, gridSettings.showCursorCrosshair, toolMode, eraserMode, isPanning, isSpacePressed, isShapeTool]);
 
+  // Canvas right-click context menu state
+  const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number } | null>(null);
+
+  // C2: right-click hit-tests the cursor position before opening the menu.
+  // A hit contour becomes the selection; when several contours are already
+  // selected, the selection is kept only when it contains the hit contour.
+  // A blank area clears the selection so the no-selection menu opens.
+  const handleCanvasContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const pos = screenToCanvas(e.clientX, e.clientY);
+      const hitId = hitTestContours(contours, pos, Math.max(6, 10 / zoom));
+      if (hitId) {
+        setSelectedContourIds((prev) =>
+          prev.length > 1 && prev.includes(hitId) ? prev : [hitId]
+        );
+        setSelectedContourId(hitId);
+        setSelectedNodeId(null);
+        setSelectedNodeIds([]);
+      } else {
+        setSelectedContourIds([]);
+        setSelectedContourId(null);
+        setSelectedNodeId(null);
+        setSelectedNodeIds([]);
+      }
+      setContextMenuState({ x: e.clientX, y: e.clientY });
+    },
+    [screenToCanvas, contours, zoom, setSelectedContourIds, setSelectedContourId, setSelectedNodeId, setSelectedNodeIds]
+  );
+
   // ---------------- POINTER EVENT DISPATCHER ----------------
   const {
     handlePointerDown,
@@ -779,6 +813,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     onRedo,
     showCanvasToast,
     isGlyphLocked,
+    isContextMenuOpen: contextMenuState !== null,
+    onCloseContextMenu: () => setContextMenuState(null),
   });
 
   const handlePointerCancel = handlePointerUp;
@@ -962,9 +998,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     });
   }, [selectedContourIds, selectedNodeId, selectedHandleType, onSelectionChange]);
 
-  // Canvas right-click context menu state
-  const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number } | null>(null);
-
   return (
     <div className={`w-full h-full flex flex-col min-h-0 relative overflow-hidden select-none ${themeClasses.canvasOuterBg} ${isAnyModalOpen ? 'pointer-events-none' : ''}`}>
       {/* Universal Docked Sub-Toolbar */}
@@ -1090,10 +1123,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
             e.preventDefault();
           }
         }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setContextMenuState({ x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={handleCanvasContextMenu}
       >
         {/* Floating Overlays & Mobile Sheets */}
         <CanvasFloatingOverlays
@@ -1282,7 +1312,15 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           theme={theme}
           hasSelection={selectedContourIds.length > 0}
           selectedContourCount={selectedContourIds.length}
+          contourCount={contours.length}
           isGlyphLocked={isGlyphLocked}
+          hasClipboard={hasClipboard}
+          onCopySelected={
+            onCopySelectedContours
+              ? () => onCopySelectedContours(selectedContourIds)
+              : undefined
+          }
+          onPasteSelected={onPasteSelectedContours}
           onFlipH={handleFlipHSelected}
           onFlipV={handleFlipVSelected}
           onRotate={() => handleRotateSelected(90)}
@@ -1383,6 +1421,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.activePenPreset !== next.activePenPreset) return false;
   if (prev.pressureCurve !== next.pressureCurve) return false;
   if (prev.isGlyphLocked !== next.isGlyphLocked) return false;
+  if (prev.hasClipboard !== next.hasClipboard) return false;
+  if (prev.onCopySelectedContours !== next.onCopySelectedContours) return false;
+  if (prev.onPasteSelectedContours !== next.onPasteSelectedContours) return false;
   if (prev.project?.metadata?.unitsPerEm !== next.project?.metadata?.unitsPerEm) return false;
   return true;
 });
