@@ -33,6 +33,8 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   activeChar,
   selectedUnicode,
   onGenerateDakutenTarget,
+  onDuplicateAsSmallKana,
+  onOpenGlyphSynthesisModal,
   showCanvasToast,
   showNodes,
   setShowNodes,
@@ -258,7 +260,10 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 onSelectNextGlyph={onSelectNextGlyph}
                 activeChar={activeChar}
                 selectedUnicode={selectedUnicode}
+                hasContours={contours.length > 0}
                 onGenerateDakutenTarget={onGenerateDakutenTarget}
+                onDuplicateAsSmallKana={onDuplicateAsSmallKana}
+                onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
                 showCanvasToast={showCanvasToast}
                 showNodes={showNodes}
                 setShowNodes={setShowNodes}

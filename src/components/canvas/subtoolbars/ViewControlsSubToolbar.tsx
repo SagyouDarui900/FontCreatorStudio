@@ -1,11 +1,14 @@
 import React from 'react';
 import {
+  ArrowRightLeft,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
+  Sparkles,
   Square,
 } from 'lucide-react';
+import { KANA_PAIRS } from '../../../data/unicodeTables';
 import { DAKUTEN_MAPPINGS } from '../../../utils/dakutenHelper';
 
 interface ViewControlsSubToolbarProps {
@@ -13,7 +16,10 @@ interface ViewControlsSubToolbarProps {
   onSelectNextGlyph?: () => void;
   activeChar: string;
   selectedUnicode?: number;
+  hasContours?: boolean;
   onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean) => void;
+  onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
+  onOpenGlyphSynthesisModal?: () => void;
   showCanvasToast: (msg: string, sub?: string) => void;
   showNodes: boolean;
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
@@ -27,7 +33,10 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
   onSelectNextGlyph,
   activeChar,
   selectedUnicode,
+  hasContours = true,
   onGenerateDakutenTarget,
+  onDuplicateAsSmallKana,
+  onOpenGlyphSynthesisModal,
   showCanvasToast,
   showNodes,
   setShowNodes,
@@ -36,6 +45,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
   isLight,
 }) => {
   const dInfo = DAKUTEN_MAPPINGS[activeChar];
+  const smallPair = KANA_PAIRS[activeChar];
 
   return (
     <>
@@ -68,33 +78,73 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         </button>
       )}
 
-      {/* Quick Dakuten / Handakuten button if Kana */}
-      {dInfo && (
+      {/* Quick Dakuten / Handakuten / Small Kana buttons */}
+      {(dInfo || smallPair) && (
         <div className="flex items-center space-x-1 ml-1">
-          {dInfo.type === 'seion' && dInfo.daku && onGenerateDakutenTarget && (
+          {dInfo?.type === 'seion' && dInfo.daku && onGenerateDakutenTarget && (
             <button
               type="button"
               onClick={() => {
+                if (!hasContours) {
+                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
+                  return;
+                }
                 onGenerateDakutenTarget(dInfo.daku!, false);
-                showCanvasToast(`濁音「${dInfo.daku}」を自動生成しました！`);
               }}
-              className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 cursor-pointer"
+              className={`px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 cursor-pointer ${
+                !hasContours ? 'opacity-50' : ''
+              }`}
               title={`濁音「${dInfo.daku}」を自動合成`}
             >
               ＋濁点「{dInfo.daku}」
             </button>
           )}
-          {dInfo.type === 'seion' && dInfo.handaku && onGenerateDakutenTarget && (
+          {dInfo?.type === 'seion' && dInfo.handaku && onGenerateDakutenTarget && (
             <button
               type="button"
               onClick={() => {
+                if (!hasContours) {
+                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
+                  return;
+                }
                 onGenerateDakutenTarget(dInfo.handaku!, true);
-                showCanvasToast(`半濁音「${dInfo.handaku}」を自動生成しました！`);
               }}
-              className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 cursor-pointer"
+              className={`px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 cursor-pointer ${
+                !hasContours ? 'opacity-50' : ''
+              }`}
               title={`半濁音「${dInfo.handaku}」を自動合成`}
             >
               ＋半濁点「{dInfo.handaku}」
+            </button>
+          )}
+          {smallPair && onDuplicateAsSmallKana && selectedUnicode !== undefined && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!hasContours) {
+                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
+                  return;
+                }
+                onDuplicateAsSmallKana(selectedUnicode);
+              }}
+              className={`px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-indigo-200 flex items-center gap-0.5 cursor-pointer ${
+                !hasContours ? 'opacity-50' : ''
+              }`}
+              title={`小書き文字「${smallPair.smallChar}」を自動生成`}
+            >
+              <ArrowRightLeft className="w-2.5 h-2.5" />
+              <span>小書き「{smallPair.smallChar}」</span>
+            </button>
+          )}
+          {onOpenGlyphSynthesisModal && (
+            <button
+              type="button"
+              onClick={onOpenGlyphSynthesisModal}
+              className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-emerald-200 flex items-center gap-0.5 cursor-pointer"
+              title="濁点・小書き一括合成スタジオを開く"
+            >
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>一括合成</span>
             </button>
           )}
         </div>

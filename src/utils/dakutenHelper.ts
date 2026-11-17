@@ -1,4 +1,6 @@
 import { PathContour, GlyphData } from '../types';
+import { generateId } from './path/id';
+import { normalizeGlyphContoursWinding } from './path/bounds';
 
 /**
  * 日本語の清音・濁音・半濁音の対応マップ
@@ -132,7 +134,7 @@ export type DakutenStyle = 'standard' | 'brush' | 'round' | 'square';
 export type HandakutenStyle = 'standard' | 'brush' | 'solid';
 
 /**
- * 標準濁点「゛」の2本ストローク輪郭を生成 (スタイル対応)
+ * 標準濁点「゛」の2本ストローク輪郭を生成 (全スタイルでスケール・オフセット対応)
  */
 export function createDakutenContours(
   customOffsetX = 0,
@@ -140,47 +142,95 @@ export function createDakutenContours(
   style: DakutenStyle = 'standard',
   scale = 1
 ): PathContour[] {
-  const time = Date.now();
-  const baseScale = scale;
+  const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const anchorX = 835;
+  const anchorY = 220;
+
+  const transformPt = (x: number, y: number) => ({
+    x: Math.round((anchorX + (x - anchorX) * safeScale + customOffsetX) * 100) / 100,
+    y: Math.round((anchorY + (y - anchorY) * safeScale + customOffsetY) * 100) / 100,
+  });
 
   if (style === 'round') {
     // 丸みのある小丸（丸文字・ポップ手書き向け）
-    const makeCircle = (cx: number, cy: number, r: number, id: string): PathContour => ({
-      id: `${id}-${time}`,
-      closed: true,
-      nodes: [
-        { id: `${id}-0-${time}`, x: cx, y: cy - r, handleIn: { x: cx - r * 0.552, y: cy - r }, handleOut: { x: cx + r * 0.552, y: cy - r }, type: 'smooth' },
-        { id: `${id}-1-${time}`, x: cx + r, y: cy, handleIn: { x: cx + r, y: cy - r * 0.552 }, handleOut: { x: cx + r, y: cy + r * 0.552 }, type: 'smooth' },
-        { id: `${id}-2-${time}`, x: cx, y: cy + r, handleIn: { x: cx + r * 0.552, y: cy + r }, handleOut: { x: cx - r * 0.552, y: cy + r }, type: 'smooth' },
-        { id: `${id}-3-${time}`, x: cx - r, y: cy, handleIn: { x: cx - r, y: cy + r * 0.552 }, handleOut: { x: cx - r, y: cy - r * 0.552 }, type: 'smooth' },
-      ],
-    });
+    const makeCircle = (cx: number, cy: number, r: number): PathContour => {
+      const top = transformPt(cx, cy - r);
+      const topIn = transformPt(cx - r * 0.552, cy - r);
+      const topOut = transformPt(cx + r * 0.552, cy - r);
+
+      const right = transformPt(cx + r, cy);
+      const rightIn = transformPt(cx + r, cy - r * 0.552);
+      const rightOut = transformPt(cx + r, cy + r * 0.552);
+
+      const bottom = transformPt(cx, cy + r);
+      const bottomIn = transformPt(cx + r * 0.552, cy + r);
+      const bottomOut = transformPt(cx - r * 0.552, cy + r);
+
+      const left = transformPt(cx - r, cy);
+      const leftIn = transformPt(cx - r, cy + r * 0.552);
+      const leftOut = transformPt(cx - r, cy - r * 0.552);
+
+      return {
+        id: generateId(),
+        closed: true,
+        nodes: [
+          { id: generateId(), ...top, handleIn: topIn, handleOut: topOut, type: 'smooth' },
+          { id: generateId(), ...right, handleIn: rightIn, handleOut: rightOut, type: 'smooth' },
+          { id: generateId(), ...bottom, handleIn: bottomIn, handleOut: bottomOut, type: 'smooth' },
+          { id: generateId(), ...left, handleIn: leftIn, handleOut: leftOut, type: 'smooth' },
+        ],
+      };
+    };
     return [
-      makeCircle(780 + customOffsetX, 195 + customOffsetY, 35 * baseScale, 'daku-c1'),
-      makeCircle(855 + customOffsetX, 235 + customOffsetY, 35 * baseScale, 'daku-c2'),
+      makeCircle(780, 195, 35),
+      makeCircle(855, 235, 35),
     ];
   }
 
   if (style === 'brush') {
     // 書道・筆風（入りが細く、腹が出て、鋭く払う形状）
     const stroke1: PathContour = {
-      id: `daku-brush-1-${time}`,
+      id: generateId(),
       closed: true,
       nodes: [
-        { id: `db1-0-${time}`, x: 755 + customOffsetX, y: 155 + customOffsetY, type: 'corner' },
-        { id: `db1-1-${time}`, x: 825 + customOffsetX, y: 180 + customOffsetY, handleIn: { x: 810 + customOffsetX, y: 165 + customOffsetY }, handleOut: { x: 835 + customOffsetX, y: 195 + customOffsetY }, type: 'smooth' },
-        { id: `db1-2-${time}`, x: 800 + customOffsetX, y: 255 + customOffsetY, type: 'corner' },
-        { id: `db1-3-${time}`, x: 735 + customOffsetX, y: 215 + customOffsetY, handleIn: { x: 760 + customOffsetX, y: 245 + customOffsetY }, handleOut: { x: 730 + customOffsetX, y: 180 + customOffsetY }, type: 'smooth' },
+        { id: generateId(), ...transformPt(755, 155), handleIn: null, handleOut: null, type: 'corner' },
+        {
+          id: generateId(),
+          ...transformPt(825, 180),
+          handleIn: transformPt(810, 165),
+          handleOut: transformPt(835, 195),
+          type: 'smooth',
+        },
+        { id: generateId(), ...transformPt(800, 255), handleIn: null, handleOut: null, type: 'corner' },
+        {
+          id: generateId(),
+          ...transformPt(735, 215),
+          handleIn: transformPt(760, 245),
+          handleOut: transformPt(730, 180),
+          type: 'smooth',
+        },
       ],
     };
     const stroke2: PathContour = {
-      id: `daku-brush-2-${time}`,
+      id: generateId(),
       closed: true,
       nodes: [
-        { id: `db2-0-${time}`, x: 830 + customOffsetX, y: 190 + customOffsetY, type: 'corner' },
-        { id: `db2-1-${time}`, x: 900 + customOffsetX, y: 220 + customOffsetY, handleIn: { x: 885 + customOffsetX, y: 205 + customOffsetY }, handleOut: { x: 910 + customOffsetX, y: 235 + customOffsetY }, type: 'smooth' },
-        { id: `db2-2-${time}`, x: 875 + customOffsetX, y: 295 + customOffsetY, type: 'corner' },
-        { id: `db2-3-${time}`, x: 810 + customOffsetX, y: 255 + customOffsetY, handleIn: { x: 835 + customOffsetX, y: 285 + customOffsetY }, handleOut: { x: 805 + customOffsetX, y: 220 + customOffsetY }, type: 'smooth' },
+        { id: generateId(), ...transformPt(830, 190), handleIn: null, handleOut: null, type: 'corner' },
+        {
+          id: generateId(),
+          ...transformPt(900, 220),
+          handleIn: transformPt(885, 205),
+          handleOut: transformPt(910, 235),
+          type: 'smooth',
+        },
+        { id: generateId(), ...transformPt(875, 295), handleIn: null, handleOut: null, type: 'corner' },
+        {
+          id: generateId(),
+          ...transformPt(810, 255),
+          handleIn: transformPt(835, 285),
+          handleOut: transformPt(805, 220),
+          type: 'smooth',
+        },
       ],
     };
     return [stroke1, stroke2];
@@ -190,24 +240,24 @@ export function createDakutenContours(
   const isSquare = style === 'square';
   const slant = isSquare ? 15 : 25;
   const stroke1: PathContour = {
-    id: `daku-1-${time}`,
+    id: generateId(),
     closed: true,
     nodes: [
-      { id: `d1-0-${time}`, x: 770 + customOffsetX, y: 155 + customOffsetY, type: 'corner' },
-      { id: `d1-1-${time}`, x: 825 + customOffsetX, y: 180 + customOffsetY, type: 'corner' },
-      { id: `d1-2-${time}`, x: (825 - slant) + customOffsetX, y: 245 + customOffsetY, type: 'corner' },
-      { id: `d1-3-${time}`, x: (770 - slant) + customOffsetX, y: 220 + customOffsetY, type: 'corner' },
+      { id: generateId(), ...transformPt(770, 155), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(825, 180), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(825 - slant, 245), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(770 - slant, 220), handleIn: null, handleOut: null, type: 'corner' },
     ],
   };
 
   const stroke2: PathContour = {
-    id: `daku-2-${time}`,
+    id: generateId(),
     closed: true,
     nodes: [
-      { id: `d2-0-${time}`, x: 845 + customOffsetX, y: 195 + customOffsetY, type: 'corner' },
-      { id: `d2-1-${time}`, x: 900 + customOffsetX, y: 220 + customOffsetY, type: 'corner' },
-      { id: `d2-2-${time}`, x: (900 - slant) + customOffsetX, y: 285 + customOffsetY, type: 'corner' },
-      { id: `d2-3-${time}`, x: (845 - slant) + customOffsetX, y: 260 + customOffsetY, type: 'corner' },
+      { id: generateId(), ...transformPt(845, 195), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(900, 220), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(900 - slant, 285), handleIn: null, handleOut: null, type: 'corner' },
+      { id: generateId(), ...transformPt(845 - slant, 260), handleIn: null, handleOut: null, type: 'corner' },
     ],
   };
 
@@ -215,7 +265,7 @@ export function createDakutenContours(
 }
 
 /**
- * 標準半濁点「゜」の輪郭を生成 (スタイル対応)
+ * 標準半濁点「゜」の輪郭を生成 (スタイル対応・ベジェハンドル補正済)
  */
 export function createHandakutenContours(
   customOffsetX = 0,
@@ -223,47 +273,52 @@ export function createHandakutenContours(
   style: HandakutenStyle = 'standard',
   scale = 1
 ): PathContour[] {
-  const time = Date.now();
+  const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
   const cx = 835 + customOffsetX;
   const cy = 215 + customOffsetY;
-  const outerR = Math.round(60 * scale);
-  const innerR = style === 'solid' ? 0 : Math.round(30 * scale);
 
-  // 外側円 (時計回り)
+  const outerRx = Math.round((style === 'brush' ? 64 : 60) * safeScale);
+  const outerRy = Math.round((style === 'brush' ? 56 : 60) * safeScale);
+  const innerRx = style === 'solid' ? 0 : Math.round((style === 'brush' ? 28 : 30) * safeScale);
+  const innerRy = style === 'solid' ? 0 : Math.round((style === 'brush' ? 25 : 30) * safeScale);
+  const innerCx = style === 'brush' ? cx - Math.round(2 * safeScale) : cx;
+  const innerCy = style === 'brush' ? cy + Math.round(2 * safeScale) : cy;
+
+  // 外側楕円 (時計回り)
   const outerCircle: PathContour = {
-    id: `handaku-outer-${time}`,
+    id: generateId(),
     closed: true,
     nodes: [
       {
-        id: `ho-0-${time}`,
+        id: generateId(),
         x: cx,
-        y: cy - outerR,
-        handleIn: { x: cx - outerR * 0.552, y: cy - outerR },
-        handleOut: { x: cx + outerR * 0.552, y: cy - outerR },
+        y: cy - outerRy,
+        handleIn: { x: cx - outerRx * 0.552, y: cy - outerRy },
+        handleOut: { x: cx + outerRx * 0.552, y: cy - outerRy },
         type: 'smooth',
       },
       {
-        id: `ho-1-${time}`,
-        x: cx + outerR,
+        id: generateId(),
+        x: cx + outerRx,
         y: cy,
-        handleIn: { x: cx + outerR, y: cy - outerR * 0.552 },
-        handleOut: { x: cx + outerR, y: cy + outerR * 0.552 },
+        handleIn: { x: cx + outerRx, y: cy - outerRy * 0.552 },
+        handleOut: { x: cx + outerRx, y: cy + outerRy * 0.552 },
         type: 'smooth',
       },
       {
-        id: `ho-2-${time}`,
+        id: generateId(),
         x: cx,
-        y: cy + outerR,
-        handleIn: { x: cx + outerR * 0.552, y: cy + outerR },
-        handleOut: { x: cx - outerR * 0.552, y: cy + outerR },
+        y: cy + outerRy,
+        handleIn: { x: cx + outerRx * 0.552, y: cy + outerRy },
+        handleOut: { x: cx - outerRx * 0.552, y: cy + outerRy },
         type: 'smooth',
       },
       {
-        id: `ho-3-${time}`,
-        x: cx - outerR,
+        id: generateId(),
+        x: cx - outerRx,
         y: cy,
-        handleIn: { x: cx - outerR, y: cy + outerR * 0.552 },
-        handleOut: { x: cx - outerR, y: cy - outerR * 0.552 },
+        handleIn: { x: cx - outerRx, y: cy + outerRy * 0.552 },
+        handleOut: { x: cx - outerRx, y: cy - outerRy * 0.552 },
         type: 'smooth',
       },
     ],
@@ -273,41 +328,41 @@ export function createHandakutenContours(
     return [outerCircle];
   }
 
-  // 内側円 (中抜き用・反時計回り)
+  // 内側楕円 (中抜き用・反時計回り)
   const innerCircle: PathContour = {
-    id: `handaku-inner-${time}`,
+    id: generateId(),
     closed: true,
     nodes: [
       {
-        id: `hi-0-${time}`,
-        x: cx,
-        y: cy - innerR,
-        handleIn: { x: cx + innerR * 0.552, y: cy - innerR },
-        handleOut: { x: cx - innerR * 0.552, y: cy - innerR },
+        id: generateId(),
+        x: innerCx,
+        y: innerCy - innerRy,
+        handleIn: { x: innerCx + innerRx * 0.552, y: innerCy - innerRy },
+        handleOut: { x: innerCx - innerRx * 0.552, y: innerCy - innerRy },
         type: 'smooth',
       },
       {
-        id: `hi-1-${time}`,
-        x: cx - innerR,
-        y: cy,
-        handleIn: { x: cx - innerR, y: cy - innerR * 0.552 },
-        handleOut: { x: cx + innerR, y: cy + innerR * 0.552 },
+        id: generateId(),
+        x: innerCx - innerRx,
+        y: innerCy,
+        handleIn: { x: innerCx - innerRx, y: innerCy - innerRy * 0.552 },
+        handleOut: { x: innerCx - innerRx, y: innerCy + innerRy * 0.552 },
         type: 'smooth',
       },
       {
-        id: `hi-2-${time}`,
-        x: cx,
-        y: cy + innerR,
-        handleIn: { x: cx - innerR * 0.552, y: cy + innerR },
-        handleOut: { x: cx + innerR, y: cy + innerR * 0.552 },
+        id: generateId(),
+        x: innerCx,
+        y: innerCy + innerRy,
+        handleIn: { x: innerCx - innerRx * 0.552, y: innerCy + innerRy },
+        handleOut: { x: innerCx + innerRx * 0.552, y: innerCy + innerRy },
         type: 'smooth',
       },
       {
-        id: `hi-3-${time}`,
-        x: cx + innerR,
-        y: cy,
-        handleIn: { x: cx + innerR, y: cy + innerR * 0.552 },
-        handleOut: { x: cx - innerR, y: cy - innerR * 0.552 },
+        id: generateId(),
+        x: innerCx + innerRx,
+        y: innerCy,
+        handleIn: { x: innerCx + innerRx, y: innerCy + innerRy * 0.552 },
+        handleOut: { x: innerCx + innerRx, y: innerCy - innerRy * 0.552 },
         type: 'smooth',
       },
     ],
@@ -320,12 +375,11 @@ export function createHandakutenContours(
  * 輪郭ディープコピー（新しいユニークIDを採番）
  */
 export function cloneContours(contours: PathContour[]): PathContour[] {
-  const time = Date.now();
-  return contours.map((c, cIdx) => ({
-    id: `cloned-${time}-${cIdx}`,
+  return contours.map((c) => ({
+    id: generateId(),
     closed: c.closed,
-    nodes: c.nodes.map((n, nIdx) => ({
-      id: `n-${time}-${cIdx}-${nIdx}`,
+    nodes: c.nodes.map((n) => ({
+      id: generateId(),
       x: n.x,
       y: n.y,
       type: n.type,
@@ -358,7 +412,7 @@ export function synthesizeDakutenContours(
     ? createHandakutenContours(ox, oy, options?.handakuStyle ?? 'standard', scale)
     : createDakutenContours(ox, oy, options?.dakuStyle ?? 'standard', scale);
 
-  return [...cloned, ...accent];
+  return normalizeGlyphContoursWinding([...cloned, ...accent]);
 }
 
 /**
@@ -411,20 +465,23 @@ export function batchSynthesizeDakuten(
       const targetCode = targetChar.codePointAt(0);
       if (targetCode) {
         const existing = glyphs[targetCode];
-        const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
-        if (!hasExistingContours || overwrite) {
-          const combined = synthesizeDakutenContours(sourceGlyph.contours, false, options);
-          updatedGlyphs[targetCode] = {
-            unicode: targetCode,
-            char: targetChar,
-            name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-            advanceWidth: sourceGlyph.advanceWidth || 1000,
-            lsb: sourceGlyph.lsb ?? 50,
-            contours: combined,
-            modified: true,
-          };
-          generatedCount++;
-          details.push({ sourceChar: char, targetChar, isHandakuten: false });
+        if (!existing?.locked) {
+          const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
+          if (!hasExistingContours || overwrite) {
+            const combined = synthesizeDakutenContours(sourceGlyph.contours, false, options);
+            updatedGlyphs[targetCode] = {
+              ...(existing || {}),
+              unicode: targetCode,
+              char: targetChar,
+              name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
+              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || 1000,
+              lsb: sourceGlyph.lsb ?? existing?.lsb ?? 50,
+              contours: combined,
+              modified: true,
+            };
+            generatedCount++;
+            details.push({ sourceChar: char, targetChar, isHandakuten: false });
+          }
         }
       }
     }
@@ -435,20 +492,23 @@ export function batchSynthesizeDakuten(
       const targetCode = targetChar.codePointAt(0);
       if (targetCode) {
         const existing = glyphs[targetCode];
-        const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
-        if (!hasExistingContours || overwrite) {
-          const combined = synthesizeDakutenContours(sourceGlyph.contours, true, options);
-          updatedGlyphs[targetCode] = {
-            unicode: targetCode,
-            char: targetChar,
-            name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-            advanceWidth: sourceGlyph.advanceWidth || 1000,
-            lsb: sourceGlyph.lsb ?? 50,
-            contours: combined,
-            modified: true,
-          };
-          generatedCount++;
-          details.push({ sourceChar: char, targetChar, isHandakuten: true });
+        if (!existing?.locked) {
+          const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
+          if (!hasExistingContours || overwrite) {
+            const combined = synthesizeDakutenContours(sourceGlyph.contours, true, options);
+            updatedGlyphs[targetCode] = {
+              ...(existing || {}),
+              unicode: targetCode,
+              char: targetChar,
+              name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
+              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || 1000,
+              lsb: sourceGlyph.lsb ?? existing?.lsb ?? 50,
+              contours: combined,
+              modified: true,
+            };
+            generatedCount++;
+            details.push({ sourceChar: char, targetChar, isHandakuten: true });
+          }
         }
       }
     }

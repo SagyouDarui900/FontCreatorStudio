@@ -1,6 +1,6 @@
-import { GlyphData, PathContour } from '../types';
+import { GlyphData } from '../types';
 import { KANA_PAIRS } from '../data/unicodeTables';
-import { createSmallKanaContours, SmallKanaOptions } from './pathUtils';
+import { createSmallKanaContours, getContoursBoundingBox, SmallKanaOptions } from './pathUtils';
 
 export interface BatchSmallKanaOptions extends SmallKanaOptions {
   overwriteExisting?: boolean;
@@ -43,17 +43,21 @@ export function batchGenerateSmallKana(
 
     const targetUnicode = pair.smallUnicode;
     const existing = glyphs[targetUnicode];
+    if (existing?.locked) continue;
+
     const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
 
     if (!hasExistingContours || overwrite) {
       const smallContours = createSmallKanaContours(sourceGlyph.contours, options);
+      const bbox = getContoursBoundingBox(smallContours);
 
       updatedGlyphs[targetUnicode] = {
+        ...(existing || {}),
         unicode: targetUnicode,
         char: pair.smallChar,
         name: `uni${targetUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-        advanceWidth: sourceGlyph.advanceWidth || 1000,
-        lsb: 80,
+        advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || 1000,
+        lsb: Math.max(0, Math.round(bbox.minX)),
         contours: smallContours,
         modified: true,
       };

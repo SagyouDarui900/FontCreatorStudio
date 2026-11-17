@@ -61,6 +61,8 @@ export interface GlyphCanvasProps {
   theme: ThemeMode;
   onCopyFromChar?: (char: string) => void;
   onGenerateDakutenTarget?: (char: string, isHandaku?: boolean) => void;
+  onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
+  onOpenGlyphSynthesisModal?: () => void;
   onCopySelectedContours?: (contourIds: string[]) => void;
   onPasteSelectedContours?: () => void;
   hasClipboard?: boolean;

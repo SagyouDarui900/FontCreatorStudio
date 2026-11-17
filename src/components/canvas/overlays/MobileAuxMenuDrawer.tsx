@@ -17,9 +17,13 @@ import {
   EyeOff,
   RotateCcw,
   ArrowRightLeft,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
 import { GridSettings, TraceSettings, GlyphOverlaySettings, PathContour, ToolMode } from '../../../types';
 import { ThemeMode, getThemeClasses } from '../../../utils/theme';
+import { DAKUTEN_MAPPINGS } from '../../../utils/dakutenHelper';
+import { KANA_PAIRS } from '../../../data/unicodeTables';
 
 export interface MobileAuxMenuDrawerProps {
   isOpen: boolean;
@@ -52,6 +56,11 @@ export interface MobileAuxMenuDrawerProps {
   overlaySettings?: GlyphOverlaySettings;
   contours: PathContour[];
   handleClearAllContours: () => void;
+  activeChar?: string;
+  selectedUnicode?: number;
+  onGenerateDakutenTarget?: (targetChar: string, isHandakuten?: boolean) => void;
+  onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
+  onOpenGlyphSynthesisModal?: () => void;
 }
 
 export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.memo(
@@ -86,12 +95,20 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     overlaySettings,
     contours,
     handleClearAllContours,
+    activeChar,
+    selectedUnicode,
+    onGenerateDakutenTarget,
+    onDuplicateAsSmallKana,
+    onOpenGlyphSynthesisModal,
   }) => {
     if (!isOpen) return null;
 
     const themeClasses = getThemeClasses(theme || (isLight ? 'light' : 'dark'));
     const selectedNodeCount =
       selectedNodeIds && selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0;
+    const dakuInfo = activeChar ? DAKUTEN_MAPPINGS[activeChar] : undefined;
+    const smallPair = activeChar ? KANA_PAIRS[activeChar] : undefined;
+    const hasContours = contours.length > 0;
 
     return (
       <div
@@ -534,6 +551,85 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
               )}
             </div>
           </div>
+
+          {/* Group 4: かな合成 (濁音・半濁音・小書き文字) */}
+          {(onOpenGlyphSynthesisModal ||
+            (dakuInfo?.type === 'seion' && onGenerateDakutenTarget) ||
+            (smallPair && onDuplicateAsSmallKana && selectedUnicode !== undefined)) && (
+            <div className="space-y-2 pt-1 border-t border-stone-200 dark:border-[#25382c]">
+              <div className="text-xs font-bold text-stone-600 dark:text-emerald-400">
+                かな自動合成（濁点・小書き）
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {dakuInfo?.type === 'seion' && dakuInfo.daku && onGenerateDakutenTarget && (
+                  <button
+                    type="button"
+                    disabled={!hasContours}
+                    onClick={() => {
+                      onGenerateDakutenTarget(dakuInfo.daku!, false);
+                      onClose();
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-amber-50 text-amber-900 dark:bg-amber-950/70 dark:text-amber-200 border-amber-300 dark:border-amber-800 ${
+                      !hasContours ? 'opacity-45 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>＋濁点「{dakuInfo.daku}」</span>
+                  </button>
+                )}
+
+                {dakuInfo?.type === 'seion' && dakuInfo.handaku && onGenerateDakutenTarget && (
+                  <button
+                    type="button"
+                    disabled={!hasContours}
+                    onClick={() => {
+                      onGenerateDakutenTarget(dakuInfo.handaku!, true);
+                      onClose();
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-rose-50 text-rose-900 dark:bg-rose-950/70 dark:text-rose-200 border-rose-300 dark:border-rose-800 ${
+                      !hasContours ? 'opacity-45 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    <span>＋半濁点「{dakuInfo.handaku}」</span>
+                  </button>
+                )}
+
+                {smallPair && onDuplicateAsSmallKana && selectedUnicode !== undefined && (
+                  <button
+                    type="button"
+                    disabled={!hasContours}
+                    onClick={() => {
+                      onDuplicateAsSmallKana(selectedUnicode);
+                      onClose();
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/70 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800 ${
+                      !hasContours ? 'opacity-45 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>小書き「{smallPair.smallChar}」生成</span>
+                  </button>
+                )}
+
+                {onOpenGlyphSynthesisModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenGlyphSynthesisModal();
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/70 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 ${
+                      !(dakuInfo?.type === 'seion' || smallPair) ? 'col-span-2' : ''
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>濁点・小書き一括合成</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Close button */}
           <div className="pt-2">

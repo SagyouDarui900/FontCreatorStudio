@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { FontProject } from '../../types';
 import {
@@ -28,11 +28,18 @@ interface UseGlyphSynthesisStateParams {
   project: FontProject;
   setProject?: React.Dispatch<React.SetStateAction<FontProject>>;
   onUpdateProject?: (updater: (prev: FontProject) => FontProject) => void;
+  commitHistory?: () => void;
   showToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   onShowToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 const noopUpdateProject = (_updater: (prev: FontProject) => FontProject): void => {};
+
+const matchesKanaScope = (code: number, scope: KanaScope): boolean => {
+  if (scope === 'hiragana') return code >= 0x3041 && code <= 0x3096;
+  if (scope === 'katakana') return code >= 0x30a1 && code <= 0x30fa;
+  return true;
+};
 
 export function useGlyphSynthesisState({
   isOpen,
@@ -40,6 +47,7 @@ export function useGlyphSynthesisState({
   project,
   setProject,
   onUpdateProject,
+  commitHistory,
   showToast,
   onShowToast,
 }: UseGlyphSynthesisStateParams) {
@@ -55,6 +63,7 @@ export function useGlyphSynthesisState({
   const [dakuScale, setDakuScale] = useState<number>(1.0);
   const [dakuOverwrite, setDakuOverwrite] = useState<boolean>(false);
   const [dakuPreviewChar, setDakuPreviewChar] = useState<string>('か');
+  const [dakuPreviewKind, setDakuPreviewKind] = useState<'daku' | 'handaku'>('daku');
 
   // Small Kana State
   const [smallScope, setSmallScope] = useState<KanaScope>('all');
@@ -125,49 +134,110 @@ export function useGlyphSynthesisState({
           handaku: info.handaku,
           hasContours,
         };
-      });
-  }, [project.glyphs]);
+      })
+      .filter((item) => matchesKanaScope(item.code, dakuScope));
+  }, [project.glyphs, dakuScope]);
 
   const availableSmallSources = useMemo<SmallKanaSourceItem[]>(() => {
-    return Object.entries(KANA_PAIRS).map(([char, pair]) => {
-      const code = char.codePointAt(0) || 0;
-      const glyph = project.glyphs[code];
-      const hasContours = !!(glyph && glyph.contours && glyph.contours.length > 0);
-      return {
-        char,
-        code,
-        smallChar: pair.smallChar,
-        smallUnicode: pair.smallUnicode,
-        hasContours,
-      };
-    });
-  }, [project.glyphs]);
+    return Object.entries(KANA_PAIRS)
+      .map(([char, pair]) => {
+        const code = char.codePointAt(0) || 0;
+        const glyph = project.glyphs[code];
+        const hasContours = !!(glyph && glyph.contours && glyph.contours.length > 0);
+        return {
+          char,
+          code,
+          smallChar: pair.smallChar,
+          smallUnicode: pair.smallUnicode,
+          hasContours,
+        };
+      })
+      .filter((item) => matchesKanaScope(item.code, smallScope));
+  }, [project.glyphs, smallScope]);
 
-  // Pick a drawn preview glyph automatically on open if default char is empty
+  // Only auto-pick a drawn preview glyph on modal open or scope change (never override manual clicks)
+  const prevOpenRef = useRef(false);
+  const prevDakuScopeRef = useRef(dakuScope);
+  const prevSmallScopeRef = useRef(smallScope);
+
   useEffect(() => {
+    const justOpened = isOpen && !prevOpenRef.current;
+    const dakuScopeChanged = dakuScope !== prevDakuScopeRef.current;
+    const smallScopeChanged = smallScope !== prevSmallScopeRef.current;
+
+    prevOpenRef.current = isOpen;
+    prevDakuScopeRef.current = dakuScope;
+    prevSmallScopeRef.current = smallScope;
+
     if (!isOpen) return;
+
     const currentDaku = availableDakutenSources.find((s) => s.char === dakuPreviewChar);
-    if (!currentDaku?.hasContours) {
-      const firstDrawnDaku = availableDakutenSources.find((s) => s.hasContours);
-      if (firstDrawnDaku) {
-        setDakuPreviewChar(firstDrawnDaku.char);
+    if (justOpened || dakuScopeChanged || !currentDaku) {
+      if (!currentDaku?.hasContours) {
+        const firstDrawnDaku = availableDakutenSources.find((s) => s.hasContours);
+        if (firstDrawnDaku) {
+          setDakuPreviewChar(firstDrawnDaku.char);
+        } else if (!currentDaku && availableDakutenSources[0]) {
+          setDakuPreviewChar(availableDakutenSources[0].char);
+        }
       }
     }
 
     const currentSmall = availableSmallSources.find((s) => s.char === smallPreviewChar);
-    if (!currentSmall?.hasContours) {
-      const firstDrawnSmall = availableSmallSources.find((s) => s.hasContours);
-      if (firstDrawnSmall) {
-        setSmallPreviewChar(firstDrawnSmall.char);
+    if (justOpened || smallScopeChanged || !currentSmall) {
+      if (!currentSmall?.hasContours) {
+        const firstDrawnSmall = availableSmallSources.find((s) => s.hasContours);
+        if (firstDrawnSmall) {
+          setSmallPreviewChar(firstDrawnSmall.char);
+        } else if (!currentSmall && availableSmallSources[0]) {
+          setSmallPreviewChar(availableSmallSources[0].char);
+        }
       }
     }
   }, [
     isOpen,
+    dakuScope,
+    smallScope,
     availableDakutenSources,
     availableSmallSources,
     dakuPreviewChar,
     smallPreviewChar,
   ]);
+
+  // Keep preview mark kind valid for the selected character
+  useEffect(() => {
+    const info = DAKUTEN_MAPPINGS[dakuPreviewChar];
+    if (!info) return;
+    if (dakuPreviewKind === 'handaku' && !info.handaku && info.daku) {
+      setDakuPreviewKind('daku');
+    } else if (dakuPreviewKind === 'daku' && !info.daku && info.handaku) {
+      setDakuPreviewKind('handaku');
+    }
+  }, [dakuPreviewChar, dakuPreviewKind]);
+
+  // When switching dakuten/handakuten styles, auto-switch preview so user sees immediate feedback
+  const handleSelectDakuStyle = useCallback((style: DakutenStyle) => {
+    setDakuStyle(style);
+    setDakuPreviewKind('daku');
+  }, []);
+
+  const handleSelectHandakuStyle = useCallback(
+    (style: HandakutenStyle) => {
+      setHandakuStyle(style);
+      setDakuPreviewKind('handaku');
+      const currentInfo = DAKUTEN_MAPPINGS[dakuPreviewChar];
+      if (!currentInfo?.handaku) {
+        const drawnHandaku = availableDakutenSources.find((s) => s.handaku && s.hasContours);
+        const anyHandaku = availableDakutenSources.find((s) => s.handaku);
+        if (drawnHandaku) {
+          setDakuPreviewChar(drawnHandaku.char);
+        } else if (anyHandaku) {
+          setDakuPreviewChar(anyHandaku.char);
+        }
+      }
+    },
+    [availableDakutenSources, dakuPreviewChar]
+  );
 
   const dakutenPreviewSvgPath = useMemo(() => {
     const code = dakuPreviewChar.codePointAt(0);
@@ -177,7 +247,9 @@ export function useGlyphSynthesisState({
     if (baseContours.length === 0) return '';
 
     const info = DAKUTEN_MAPPINGS[dakuPreviewChar];
-    const isHandaku = !!(!info?.daku && info?.handaku);
+    const isHandaku = Boolean(
+      info?.handaku && (dakuPreviewKind === 'handaku' || !info?.daku)
+    );
 
     const synthesized = synthesizeDakutenContours(baseContours, isHandaku, {
       offsetX: dakuOffsetX,
@@ -189,6 +261,7 @@ export function useGlyphSynthesisState({
     return contoursToSvgPath(normalizeGlyphContoursWinding(synthesized));
   }, [
     dakuPreviewChar,
+    dakuPreviewKind,
     project.glyphs,
     dakuOffsetX,
     dakuOffsetY,
@@ -210,6 +283,7 @@ export function useGlyphSynthesisState({
       offsetX: smallOffsetX,
       offsetY: smallOffsetY,
       weightDelta: smallWeightBoost,
+      unitsPerEm: project.metadata?.unitsPerEm || 1000,
     });
 
     return {
@@ -219,6 +293,7 @@ export function useGlyphSynthesisState({
   }, [
     smallPreviewChar,
     project.glyphs,
+    project.metadata?.unitsPerEm,
     smallScale,
     smallPlacement,
     smallOffsetX,
@@ -226,10 +301,47 @@ export function useGlyphSynthesisState({
     smallWeightBoost,
   ]);
 
+  const dakutenTargetCount = useMemo(() => {
+    let count = 0;
+    for (const item of availableDakutenSources) {
+      if (!item.hasContours) continue;
+      for (const targetChar of [item.daku, item.handaku]) {
+        if (!targetChar) continue;
+        const targetCode = targetChar.codePointAt(0);
+        if (!targetCode) continue;
+        const existing = project.glyphs[targetCode];
+        if (existing?.locked) continue;
+        const hasExisting = Boolean(existing?.contours && existing.contours.length > 0);
+        if (!hasExisting || dakuOverwrite) count++;
+      }
+    }
+    return count;
+  }, [availableDakutenSources, project.glyphs, dakuOverwrite]);
+
+  const smallKanaTargetCount = useMemo(() => {
+    let count = 0;
+    for (const item of availableSmallSources) {
+      if (!item.hasContours) continue;
+      const existing = project.glyphs[item.smallUnicode];
+      if (existing?.locked) continue;
+      const hasExisting = Boolean(existing?.contours && existing.contours.length > 0);
+      if (!hasExisting || smallOverwrite) count++;
+    }
+    return count;
+  }, [availableSmallSources, project.glyphs, smallOverwrite]);
+
   const resetDakutenOffsets = useCallback(() => {
     setDakuOffsetX(0);
     setDakuOffsetY(0);
     setDakuScale(1.0);
+  }, []);
+
+  const resetSmallKanaOffsets = useCallback(() => {
+    setSmallScale(0.72);
+    setSmallWeightBoost(4);
+    setSmallPlacement('bottom-left');
+    setSmallOffsetX(0);
+    setSmallOffsetY(0);
   }, []);
 
   const handleExecuteDakutenBatch = useCallback(() => {
@@ -245,12 +357,13 @@ export function useGlyphSynthesisState({
 
     if (generatedCount === 0) {
       notify(
-        '合成対象の親文字（清音）がまだ作成されていないか、既に全文字作成済みです',
+        '合成対象の親文字（清音）が未作成、または生成先が既に作成済/ロック中です',
         'warning'
       );
       return;
     }
 
+    commitHistory?.();
     updateProject((prev) => ({
       ...prev,
       glyphs: updatedGlyphs,
@@ -260,6 +373,7 @@ export function useGlyphSynthesisState({
     notify(`濁音・半濁音 ${generatedCount} 文字を一括自動合成しました！`, 'success');
     onClose();
   }, [
+    commitHistory,
     dakuOffsetX,
     dakuOffsetY,
     dakuOverwrite,
@@ -282,16 +396,18 @@ export function useGlyphSynthesisState({
       offsetX: smallOffsetX,
       offsetY: smallOffsetY,
       weightDelta: smallWeightBoost,
+      unitsPerEm: project.metadata?.unitsPerEm || 1000,
     });
 
     if (generatedCount === 0) {
       notify(
-        '生成対象の親文字（通常かな）がまだ作成されていないか、既に全文字作成済みです',
+        '生成対象の親文字（通常かな）が未作成、または生成先が既に作成済/ロック中です',
         'warning'
       );
       return;
     }
 
+    commitHistory?.();
     updateProject((prev) => ({
       ...prev,
       glyphs: updatedGlyphs,
@@ -301,9 +417,11 @@ export function useGlyphSynthesisState({
     notify(`小書き文字 ${generatedCount} 文字を一括自動スケール生成しました！`, 'success');
     onClose();
   }, [
+    commitHistory,
     notify,
     onClose,
     project.glyphs,
+    project.metadata?.unitsPerEm,
     smallOffsetX,
     smallOffsetY,
     smallOverwrite,
@@ -322,9 +440,9 @@ export function useGlyphSynthesisState({
     dakuScope,
     setDakuScope,
     dakuStyle,
-    setDakuStyle,
+    setDakuStyle: handleSelectDakuStyle,
     handakuStyle,
-    setHandakuStyle,
+    setHandakuStyle: handleSelectHandakuStyle,
     dakuOffsetX,
     setDakuOffsetX,
     dakuOffsetY,
@@ -335,8 +453,11 @@ export function useGlyphSynthesisState({
     setDakuOverwrite,
     dakuPreviewChar,
     setDakuPreviewChar,
+    dakuPreviewKind,
+    setDakuPreviewKind,
     availableDakutenSources,
     dakutenPreviewSvgPath,
+    dakutenTargetCount,
     resetDakutenOffsets,
     handleExecuteDakutenBatch,
     smallScope,
@@ -357,6 +478,8 @@ export function useGlyphSynthesisState({
     setSmallPreviewChar,
     availableSmallSources,
     smallKanaPreviewPaths,
+    smallKanaTargetCount,
+    resetSmallKanaOffsets,
     handleExecuteSmallKanaBatch,
   };
 }

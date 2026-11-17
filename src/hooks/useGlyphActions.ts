@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
-import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates } from '../utils/path';
-import { createDakutenContours, createHandakutenContours, cloneContours } from '../utils/dakutenHelper';
+import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates, getContoursBoundingBox } from '../utils/path';
+import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
 import { KANA_PAIRS } from '../data/unicodeTables';
 
@@ -268,7 +268,11 @@ export function useGlyphActions({
   const handleDuplicateAsSmallKana = useCallback(
     (sourceUnicode: number) => {
       const sourceGlyph = project.glyphs[sourceUnicode];
-      if (!sourceGlyph || !sourceGlyph.contours || sourceGlyph.contours.length === 0) return;
+      if (!sourceGlyph || !sourceGlyph.contours || sourceGlyph.contours.length === 0) {
+        const fallbackChar = sourceGlyph?.char || String.fromCodePoint(sourceUnicode);
+        onShowToast(`「${fallbackChar}」にはまだ字形が作図されていません`, 'warning');
+        return;
+      }
 
       const sourceChar = sourceGlyph.char || String.fromCodePoint(sourceUnicode);
       const pair = KANA_PAIRS[sourceChar];
@@ -279,7 +283,14 @@ export function useGlyphActions({
         onShowToast(`小文字「${pair.smallChar}」は編集ロックされています`, 'warning');
         return;
       }
-      const smallContours = createSmallKanaContours(sourceGlyph.contours);
+      const upm = project.metadata?.unitsPerEm || 1000;
+      const smallContours = createSmallKanaContours(sourceGlyph.contours, {
+        scale: 0.72,
+        placement: 'bottom-left',
+        weightDelta: 4,
+        unitsPerEm: upm,
+      });
+      const bbox = getContoursBoundingBox(smallContours);
 
       commitHistory(targetUnicode);
       setProject((prev) => {
@@ -287,8 +298,8 @@ export function useGlyphActions({
           unicode: targetUnicode,
           char: pair.smallChar,
           name: `uni${targetUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: 1000,
-          lsb: 60,
+          advanceWidth: sourceGlyph.advanceWidth || upm,
+          lsb: Math.max(0, Math.round(bbox.minX)),
         };
 
         return {
@@ -297,6 +308,8 @@ export function useGlyphActions({
             ...prev.glyphs,
             [targetUnicode]: {
               ...existing,
+              advanceWidth: sourceGlyph.advanceWidth || existing.advanceWidth || upm,
+              lsb: Math.max(0, Math.round(bbox.minX)),
               contours: smallContours,
               modified: true,
             },
@@ -309,7 +322,7 @@ export function useGlyphActions({
       setSelectedChar(pair.smallChar);
       onShowToast(`「${sourceChar}」から小文字「${pair.smallChar}」を自動生成しました`, 'success');
     },
-    [project.glyphs, commitHistory, setProject, setSelectedUnicode, setSelectedChar, onShowToast]
+    [project.glyphs, project.metadata?.unitsPerEm, commitHistory, setProject, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
   // Generate Dakuten / Handakuten from a source glyph.
@@ -337,20 +350,16 @@ export function useGlyphActions({
         onShowToast(`「${baseChar}」にはまだ字形が作図されていません`, 'warning');
         return;
       }
-      const cloned = cloneContours(baseContours);
-      const accentContours = isHandakuten
-        ? createHandakutenContours()
-        : createDakutenContours();
-
-      const combinedContours = [...cloned, ...accentContours];
+      const combinedContours = synthesizeDakutenContours(baseContours, Boolean(isHandakuten));
 
       commitHistory(targetUnicode);
       setProject((prev) => {
+        const upm = prev.metadata?.unitsPerEm || 1000;
         const existing = prev.glyphs[targetUnicode] || {
           unicode: targetUnicode,
           char: targetChar,
           name: `uni${targetUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: baseGlyph.advanceWidth || 1000,
+          advanceWidth: baseGlyph.advanceWidth || upm,
           lsb: baseGlyph.lsb ?? 50,
         };
 
@@ -361,8 +370,8 @@ export function useGlyphActions({
             [targetUnicode]: {
               ...existing,
               contours: combinedContours,
-              advanceWidth: baseGlyph.advanceWidth || 1000,
-              lsb: baseGlyph.lsb ?? 50,
+              advanceWidth: baseGlyph.advanceWidth || existing.advanceWidth || upm,
+              lsb: baseGlyph.lsb ?? existing.lsb ?? 50,
               modified: true,
             },
           },

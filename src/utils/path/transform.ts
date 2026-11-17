@@ -9,6 +9,8 @@ import {
   getContoursBoundingBox,
   reverseContour,
   normalizeGlyphContoursWinding,
+  getContourSignedArea,
+  isContourContained,
 } from "./bounds";
 import { optimizeContourNodes } from "./stroke";
 import { SCREEN_BASELINE_Y } from "../font/constants";
@@ -429,6 +431,7 @@ export interface SmallKanaOptions {
   offsetX?: number;
   offsetY?: number;
   weightDelta?: number; // 光学補正（線の太さ加減算）
+  unitsPerEm?: number;
 }
 
 /**
@@ -445,58 +448,83 @@ export function createSmallKanaContours(
   const offsetX = options?.offsetX ?? 0;
   const offsetY = options?.offsetY ?? 0;
   const weightDelta = options?.weightDelta ?? 0;
+  const upm = options?.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
+  const emScale = upm / 1000;
+
+  // Normalize winding first so additive overlapping strokes and counter holes behave consistently
+  let working = normalizeGlyphContoursWinding(contours);
 
   // Scale down
-  let scaled = scaleContours(contours, scale, scale);
+  working = scaleContours(working, scale, scale);
 
   // Optional optical weight boost to prevent small kana strokes from looking too thin
   if (weightDelta !== 0) {
-    scaled = adjustContoursWeight(scaled, weightDelta);
+    working = adjustContoursWeight(working, weightDelta);
   }
 
-  const newBbox = getContoursBoundingBox(scaled);
+  const newBbox = getContoursBoundingBox(working);
 
   let dx = 0;
   let dy = 0;
+  const targetBaselineY = 780 * emScale;
 
   switch (placement) {
     case 'bottom-left':
-      // Traditional Japanese Kana typesetting: bottom-left offset (LSB around 100, baseline 780)
-      dx = 110 - newBbox.minX;
-      dy = 780 - newBbox.maxY;
+      // Traditional Japanese Kana typesetting: bottom-left offset (LSB ~110, baseline 780)
+      dx = 110 * emScale - newBbox.minX;
+      dy = targetBaselineY - newBbox.maxY;
       break;
     case 'center':
-      // Centered inside 1000x1000 em box
-      dx = 500 - (newBbox.minX + newBbox.width / 2);
-      dy = 500 - (newBbox.minY + newBbox.height / 2);
+      // Centered inside em box
+      dx = 500 * emScale - (newBbox.minX + newBbox.width / 2);
+      dy = 500 * emScale - (newBbox.minY + newBbox.height / 2);
       break;
     case 'bottom-center':
-      dx = 500 - (newBbox.minX + newBbox.width / 2);
-      dy = 780 - newBbox.maxY;
+      dx = 500 * emScale - (newBbox.minX + newBbox.width / 2);
+      dy = targetBaselineY - newBbox.maxY;
       break;
     case 'baseline':
       // Aligned with normal baseline, LSB 140
-      dx = 140 - newBbox.minX;
-      dy = 780 - newBbox.maxY;
+      dx = 140 * emScale - newBbox.minX;
+      dy = targetBaselineY - newBbox.maxY;
       break;
   }
 
   dx += offsetX;
   dy += offsetY;
 
-  return transformContours(scaled, (p) => ({
+  const shifted = transformContours(working, (p) => ({
     x: Math.round(p.x + dx),
     y: Math.round(p.y + dy),
+  }));
+
+  // Ensure fresh unique IDs even when weightDelta === 0
+  return shifted.map((contour) => ({
+    ...contour,
+    id: generateId(),
+    nodes: contour.nodes.map((node) => ({
+      ...node,
+      id: generateId(),
+    })),
   }));
 }
 
 /**
  * 輪郭の線の太さ（ウェイト）を一括で太く(+)/細く(-)補正するアルゴリズム
+ * 独立した重なりストロークはすべて外側へ太らせ、囲まれた中抜き穴のみ内側へ縮めて黒味を増す。
  * @param contours 補正対象の輪郭リスト
  * @param delta 太さオフセットピクセル (正: ボールド化, 負: スリム化)
  */
 export function adjustContoursWeight(contours: PathContour[], delta: number): PathContour[] {
   if (!contours || contours.length === 0 || delta === 0) return contours;
+
+  const contourCount = contours.length;
+  const bboxes = contours.map((c) =>
+    c.closed && c.nodes && c.nodes.length >= 3 ? getContoursBoundingBox([c]) : null
+  );
+  const signedAreas = contours.map((c) =>
+    c.closed && c.nodes && c.nodes.length >= 3 ? getContourSignedArea(c) : 0
+  );
 
   return contours.map((contour, cIdx) => {
     if (!contour.nodes || contour.nodes.length < 3) {
@@ -504,32 +532,65 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
     }
 
     const n = contour.nodes.length;
+    const bboxI = bboxes[cIdx];
+    const signedArea = signedAreas[cIdx];
 
-    // 計算用ポリゴン座標
-    // y軸下向き系での符号付き面積を計算 (外輪郭 vs 穴)
-    let area = 0;
-    for (let i = 0; i < n; i++) {
-      const curr = contour.nodes[i];
-      const next = contour.nodes[(i + 1) % n];
-      area += curr.x * next.y - next.x * curr.y;
+    // True hole detection via containment parity rather than raw sign of area
+    let enclosingCount = 0;
+    if (bboxI) {
+      for (let j = 0; j < contourCount; j++) {
+        if (cIdx === j) continue;
+        const bboxJ = bboxes[j];
+        if (!bboxJ) continue;
+        if (
+          bboxI.minX < bboxJ.minX - 2 ||
+          bboxI.maxX > bboxJ.maxX + 2 ||
+          bboxI.minY < bboxJ.minY - 2 ||
+          bboxI.maxY > bboxJ.maxY + 2
+        ) {
+          continue;
+        }
+        if (isContourContained(contour, contours[j])) {
+          enclosingCount++;
+        }
+      }
     }
-    // area > 0: 時計回り（y下向きの場合は左回り/外回り判定）
-    const isOuter = area > 0;
-    // 外輪郭は外側へ、穴（中抜き）は内側（穴を小さくする＝線の黒味が増す向き）へ
-    const directionSign = isOuter ? 1 : -1;
-    const effectiveDelta = delta * directionSign;
+
+    const isHole = enclosingCount % 2 === 1;
+    // In screen Y-down coords:
+    // - CW contour (signedArea >= 0): right-hand normal (vy, -vx) points OUTWARD.
+    // - CCW contour (signedArea < 0): right-hand normal (vy, -vx) points INWARD.
+    const normalToOutwardSign = signedArea >= 0 ? 1 : -1;
+    const glyphExpandSign = isHole ? -1 : 1;
+    const effectiveDelta = delta * normalToOutwardSign * glyphExpandSign;
+
+    const findDistinctNeighbor = (startIdx: number, step: 1 | -1): BezierNode => {
+      const origin = contour.nodes[startIdx];
+      for (let offset = 1; offset < n; offset++) {
+        const cand = contour.nodes[(startIdx + step * offset + n) % n];
+        if (Math.hypot(cand.x - origin.x, cand.y - origin.y) > 0.05) {
+          return cand;
+        }
+      }
+      return contour.nodes[(startIdx + step + n) % n];
+    };
 
     const shiftedNodes = contour.nodes.map((node, i) => {
-      const prev = contour.nodes[(i - 1 + n) % n];
-      const next = contour.nodes[(i + 1) % n];
+      const prev = findDistinctNeighbor(i, -1);
+      const next = findDistinctNeighbor(i, 1);
 
-      // 前後のセグメントベクトル
-      const v1x = node.x - prev.x;
-      const v1y = node.y - prev.y;
+      // Prefer Bezier handle tangent when present so curved strokes expand smoothly
+      const hasInHandle =
+        node.handleIn && Math.hypot(node.x - node.handleIn.x, node.y - node.handleIn.y) > 0.05;
+      const hasOutHandle =
+        node.handleOut && Math.hypot(node.handleOut.x - node.x, node.handleOut.y - node.y) > 0.05;
+
+      const v1x = hasInHandle ? node.x - node.handleIn!.x : node.x - prev.x;
+      const v1y = hasInHandle ? node.y - node.handleIn!.y : node.y - prev.y;
       const len1 = Math.hypot(v1x, v1y) || 1;
 
-      const v2x = next.x - node.x;
-      const v2y = next.y - node.y;
+      const v2x = hasOutHandle ? node.handleOut!.x - node.x : next.x - node.x;
+      const v2y = hasOutHandle ? node.handleOut!.y - node.y : next.y - node.y;
       const len2 = Math.hypot(v2x, v2y) || 1;
 
       // セグメントの法線 (90度右回転: normal = (vy, -vx))
@@ -539,32 +600,39 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
       const n2x = v2y / len2;
       const n2y = -v2x / len2;
 
-      // 平均法線
       let avgNx = (n1x + n2x) / 2;
       let avgNy = (n1y + n2y) / 2;
-      const avgLen = Math.hypot(avgNx, avgNy) || 1;
-      avgNx /= avgLen;
-      avgNy /= avgLen;
+      const avgLen = Math.hypot(avgNx, avgNy);
+      if (avgLen < 1e-4) {
+        avgNx = n1x;
+        avgNy = n1y;
+      } else {
+        avgNx /= avgLen;
+        avgNy /= avgLen;
+      }
 
-      // オフセット変位
-      const shiftX = Math.round(avgNx * effectiveDelta);
-      const shiftY = Math.round(avgNy * effectiveDelta);
+      // Clamped miter factor keeps right-angle edges accurate without spiking acute corners
+      const dot = avgNx * n1x + avgNy * n1y;
+      const miterScale = dot > 0.35 ? Math.min(1.5, 1 / dot) : 1;
+
+      const shiftX = avgNx * effectiveDelta * miterScale;
+      const shiftY = avgNy * effectiveDelta * miterScale;
 
       const newNode: BezierNode = {
         ...node,
-        id: `w-${Date.now()}-${cIdx}-${i}`,
-        x: Math.round(node.x + shiftX),
-        y: Math.round(node.y + shiftY),
+        id: generateId(),
+        x: Math.round((node.x + shiftX) * 100) / 100,
+        y: Math.round((node.y + shiftY) * 100) / 100,
         handleIn: node.handleIn
           ? {
-              x: Math.round(node.handleIn.x + shiftX),
-              y: Math.round(node.handleIn.y + shiftY),
+              x: Math.round((node.handleIn.x + shiftX) * 100) / 100,
+              y: Math.round((node.handleIn.y + shiftY) * 100) / 100,
             }
           : null,
         handleOut: node.handleOut
           ? {
-              x: Math.round(node.handleOut.x + shiftX),
-              y: Math.round(node.handleOut.y + shiftY),
+              x: Math.round((node.handleOut.x + shiftX) * 100) / 100,
+              y: Math.round((node.handleOut.y + shiftY) * 100) / 100,
             }
           : null,
       };
@@ -574,7 +642,7 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
 
     return {
       ...contour,
-      id: `w-contour-${Date.now()}-${cIdx}`,
+      id: generateId(),
       nodes: shiftedNodes,
     };
   });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRightLeft, Maximize2, Minimize2, Sparkles, X } from 'lucide-react';
+import { ArrowRightLeft, Maximize2, Minimize2, Sparkles, Wand2, X } from 'lucide-react';
 import { getThemeClasses, isLightTheme } from '../utils/theme';
 import {
   DakutenSynthesisPanel,
@@ -16,6 +16,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
   project,
   setProject,
   onUpdateProject,
+  commitHistory,
   showToast,
   onShowToast,
   theme,
@@ -29,6 +30,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
     project,
     setProject,
     onUpdateProject,
+    commitHistory,
     showToast,
     onShowToast,
   });
@@ -77,6 +79,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
           </div>
           <div className="flex items-center space-x-1.5 shrink-0">
             <button
+              type="button"
               onClick={() => state.setIsFullscreen(!state.isFullscreen)}
               className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 state.isFullscreen
@@ -98,9 +101,11 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
               className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
+              aria-label="閉じる"
             >
               <X className="w-5 h-5" />
             </button>
@@ -112,6 +117,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
           className={`flex border-b px-3 sm:px-5 pt-1.5 gap-1.5 text-xs font-bold shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
+            type="button"
             onClick={() => state.setActiveTab('dakuten')}
             className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors cursor-pointer ${
               state.activeTab === 'dakuten'
@@ -124,6 +130,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => state.setActiveTab('smallKana')}
             className={`flex items-center gap-1.5 px-3.5 py-2 border-b-2 transition-colors cursor-pointer ${
               state.activeTab === 'smallKana'
@@ -160,7 +167,10 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               availableDakutenSources={state.availableDakutenSources}
               dakuPreviewChar={state.dakuPreviewChar}
               onSelectPreviewChar={state.setDakuPreviewChar}
+              dakuPreviewKind={state.dakuPreviewKind}
+              onChangeDakuPreviewKind={state.setDakuPreviewKind}
               dakutenPreviewSvgPath={state.dakutenPreviewSvgPath}
+              dakutenTargetCount={state.dakutenTargetCount}
               onExecuteBatch={state.handleExecuteDakutenBatch}
             />
           ) : (
@@ -181,12 +191,39 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               onChangeSmallOffsetX={state.setSmallOffsetX}
               smallOffsetY={state.smallOffsetY}
               onChangeSmallOffsetY={state.setSmallOffsetY}
+              onResetOffsets={state.resetSmallKanaOffsets}
               availableSmallSources={state.availableSmallSources}
               smallPreviewChar={state.smallPreviewChar}
               onSelectPreviewChar={state.setSmallPreviewChar}
               smallKanaPreviewPaths={state.smallKanaPreviewPaths}
+              smallKanaTargetCount={state.smallKanaTargetCount}
               onExecuteBatch={state.handleExecuteSmallKanaBatch}
             />
+          )}
+        </div>
+
+        {/* Sticky Mobile Bottom Execute Bar */}
+        <div
+          className={`lg:hidden shrink-0 px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] border-t ${themeClasses.headerBg} ${themeClasses.border}`}
+        >
+          {state.activeTab === 'dakuten' ? (
+            <button
+              type="button"
+              onClick={state.handleExecuteDakutenBatch}
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+            >
+              <Wand2 className="w-4 h-4 shrink-0" />
+              <span>濁音・半濁点を一括合成 ({state.dakutenTargetCount}字)</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={state.handleExecuteSmallKanaBatch}
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+            >
+              <Wand2 className="w-4 h-4 shrink-0" />
+              <span>小書き文字を一括生成 ({state.smallKanaTargetCount}字)</span>
+            </button>
           )}
         </div>
       </div>

@@ -100,6 +100,11 @@ export interface CanvasFloatingOverlaysProps {
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>>;
   lockGuidelines: boolean;
   setLockGuidelines: (val: boolean) => void;
+  activeChar?: string;
+  selectedUnicode?: number;
+  onGenerateDakutenTarget?: (targetChar: string, isHandakuten?: boolean) => void;
+  onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
+  onOpenGlyphSynthesisModal?: () => void;
 }
 
 export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = React.memo(({
@@ -182,6 +187,11 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   setCustomGuidelines,
   lockGuidelines,
   setLockGuidelines,
+  activeChar,
+  selectedUnicode,
+  onGenerateDakutenTarget,
+  onDuplicateAsSmallKana,
+  onOpenGlyphSynthesisModal,
 }) => {
   const effectiveTraceSettings: TraceSettings = traceSettings || {
     enabled: false,
@@ -310,6 +320,11 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         overlaySettings={overlaySettings}
         contours={contours}
         handleClearAllContours={handleClearAllContours}
+        activeChar={activeChar}
+        selectedUnicode={selectedUnicode}
+        onGenerateDakutenTarget={onGenerateDakutenTarget}
+        onDuplicateAsSmallKana={onDuplicateAsSmallKana}
+        onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
       />
 
       {/* Mobile Selected Contour Quick Action Bar */}

@@ -21,6 +21,8 @@ export interface CanvasSubToolbarProps {
   activeChar: string;
   selectedUnicode?: number;
   onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean) => void;
+  onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
+  onOpenGlyphSynthesisModal?: () => void;
   showCanvasToast: (msg: string, sub?: string) => void;
   showNodes: boolean;
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;

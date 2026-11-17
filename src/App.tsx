@@ -580,6 +580,9 @@ function AppMain({
             onPasteGlyph={handlePasteGlyph}
             onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
             onGenerateDakutenTarget={handleGenerateDakutenTarget}
+            onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
+            onOpenKerningModal={handleOpenKerningModal}
+            onOpenQualityModal={handleOpenQualityModal}
             hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
             isOpen={showGridDrawer}
             onClose={handleCloseGridDrawer}
@@ -669,6 +672,8 @@ function AppMain({
               onCommitHistory={commitHistory}
               onCopyFromChar={(char) => handleCopyGlyph(char.charCodeAt(0))}
               onGenerateDakutenTarget={handleGenerateDakutenTarget}
+              onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
+              onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
               onCopySelectedContours={handleCopySelectedContours}
               onPasteSelectedContours={handlePasteClipboardContours}
               hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}

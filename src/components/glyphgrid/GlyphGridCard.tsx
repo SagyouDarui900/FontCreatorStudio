@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Lock, MoreHorizontal } from 'lucide-react';
 import { GlyphData } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -61,13 +61,77 @@ export const GlyphGridCard = memo(
         ? 'text-2xl'
         : 'text-lg';
 
+    const longPressTimerRef = useRef<number | null>(null);
+    const longPressTriggeredRef = useRef(false);
+    const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+    const clearLongPress = useCallback(() => {
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      touchStartPosRef.current = null;
+    }, []);
+
+    useEffect(() => clearLongPress, [clearLongPress]);
+
+    const handleTouchStart = useCallback(
+      (e: React.TouchEvent<HTMLDivElement>) => {
+        if (e.touches.length !== 1) return;
+        const targetEl = e.target as HTMLElement;
+        if (targetEl.closest('button')) return;
+        const touch = e.touches[0];
+        const cardEl = e.currentTarget;
+        const clientX = touch.clientX;
+        const clientY = touch.clientY;
+        longPressTriggeredRef.current = false;
+        touchStartPosRef.current = { x: clientX, y: clientY };
+        clearLongPress();
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressTriggeredRef.current = true;
+          const syntheticEvent = {
+            preventDefault: () => {},
+            stopPropagation: () => {},
+            clientX,
+            clientY,
+            currentTarget: cardEl,
+          } as unknown as React.MouseEvent;
+          onContextMenu(syntheticEvent, item);
+        }, 480);
+      },
+      [clearLongPress, item, onContextMenu]
+    );
+
+    const handleTouchMove = useCallback(
+      (e: React.TouchEvent<HTMLDivElement>) => {
+        if (!touchStartPosRef.current || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+        const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+        if (dx > 10 || dy > 10) {
+          clearLongPress();
+        }
+      },
+      [clearLongPress]
+    );
+
     return (
       <div
-        onClick={() => onSelectGlyph(item.code, item.char)}
+        onClick={() => {
+          if (longPressTriggeredRef.current) {
+            longPressTriggeredRef.current = false;
+            return;
+          }
+          onSelectGlyph(item.code, item.char);
+        }}
         onContextMenu={(e) => onContextMenu(e, item)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={clearLongPress}
+        onTouchCancel={clearLongPress}
         title={`「${item.char}」 U+${item.code.toString(16).toUpperCase().padStart(4, '0')} (${item.code})${
           hasContours ? ` · 作成済 (${strokeCount}画)` : ' · 未作成'
-        } - 右クリックでメニュー`}
+        } - 右クリック・長押しでメニュー`}
         className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
           isSelected
             ? isLight
@@ -220,16 +284,18 @@ export const GlyphGridCard = memo(
             <span />
           )}
 
-          {/* Context menu hint on hover */}
+          {/* Context menu button (visible on touch/mobile, hover-revealed on desktop) */}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onContextMenu(e, item);
             }}
             title="メニューを開く"
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
+            aria-label={`「${item.char}」のメニューを開く`}
+            className="opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 p-1 -m-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
           >
-            <MoreHorizontal className="w-2.5 h-2.5" />
+            <MoreHorizontal className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
           </button>
         </div>
       </div>

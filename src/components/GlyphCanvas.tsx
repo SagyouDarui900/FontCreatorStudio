@@ -101,6 +101,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   isGlyphLocked = false,
   onCopyFromChar,
   onGenerateDakutenTarget,
+  onDuplicateAsSmallKana,
+  onOpenGlyphSynthesisModal,
   onCopySelectedContours,
   onPasteSelectedContours,
   hasClipboard = false,
@@ -1069,6 +1071,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         activeChar={activeChar}
         selectedUnicode={selectedUnicode}
         onGenerateDakutenTarget={onGenerateDakutenTarget}
+        onDuplicateAsSmallKana={onDuplicateAsSmallKana}
+        onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
         showCanvasToast={showCanvasToast}
         showNodes={showNodes}
         setShowNodes={setShowNodes}
@@ -1263,6 +1267,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           setCustomGuidelines={setCustomGuidelines}
           lockGuidelines={lockGuidelines}
           setLockGuidelines={setLockGuidelines}
+          activeChar={activeChar}
+          selectedUnicode={selectedUnicode}
+          onGenerateDakutenTarget={onGenerateDakutenTarget}
+          onDuplicateAsSmallKana={onDuplicateAsSmallKana}
+          onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
         />
 
         {/* SVG Canvas Stage */}
