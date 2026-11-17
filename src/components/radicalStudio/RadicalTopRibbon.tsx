@@ -21,7 +21,7 @@ export const RadicalTopRibbon: React.FC<RadicalTopRibbonProps> = React.memo(({
 
   return (
     <div
-      className={`px-3 py-1.5 border-b flex items-center justify-between gap-2 shrink-0 overflow-x-auto scrollbar-none z-20 ${
+      className={`px-3 py-1.5 border-b flex items-center justify-between gap-2 shrink-0 overflow-x-auto scrollbar-none z-20 max-sm:flex-wrap ${
         isLight
           ? 'bg-white border-stone-200/60 text-stone-800'
           : 'bg-[#141d16] border-stone-800/60 text-emerald-100'

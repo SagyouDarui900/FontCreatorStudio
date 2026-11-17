@@ -231,9 +231,9 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
                         : 'bg-stone-900/60 hover:bg-[#1f2f24] border-stone-800 text-emerald-300'
                     }`}
                   >
-                    <div className="font-bold text-xs flex items-center justify-between">
-                      <span>{preset.name}</span>
-                      {isSelected && <span className="text-[10px] text-emerald-600 dark:text-emerald-400">✓ 選択中</span>}
+                    <div className="font-bold text-xs flex items-center justify-between gap-1">
+                      <span className="min-w-0 truncate">{preset.name}</span>
+                      {isSelected && <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400">✓ 選択中</span>}
                     </div>
                     <div className="text-[10px] opacity-75 mt-0.5 truncate">{preset.description}</div>
                   </button>

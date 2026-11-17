@@ -220,7 +220,7 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  ? { left: `${penHudPos.x}px`, top: `${penHudPos.y}px` }
  : { left: '50%', transform: 'translateX(-50%)', top: '20px' }
  }
- className="absolute z-30 pointer-events-auto select-none anim-pop"
+ className="absolute z-30 pointer-events-auto select-none anim-pop max-sm:max-w-[calc(100%-16px)] max-sm:overflow-x-auto"
  onPointerDown={(e) => e.stopPropagation()}
  >
  <div
@@ -422,11 +422,11 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  {/* Floating Path / Node Direct Editing Mini Toolbar Overlay */}
  {toolMode === 'select' && (selectedContourId || selectedNodeId) && activePart && (
  <div
- className="absolute z-20 top-4 left-1/2 -translate-x-1/2 pointer-events-auto select-none anim-pop"
+ className="absolute z-20 top-4 left-1/2 -translate-x-1/2 max-sm:left-2 max-sm:right-2 max-sm:translate-x-0 max-sm:overflow-x-auto pointer-events-auto select-none anim-pop"
  onPointerDown={(e) => e.stopPropagation()}
  >
  <div
- className={`px-2.5 py-1.5 rounded-full border shadow-xl flex items-center space-x-1.5 text-xs ${
+ className={`px-2.5 py-1.5 rounded-full border shadow-xl flex items-center space-x-1.5 text-xs max-sm:w-max ${
  isLight
  ? 'bg-white/95 border-emerald-300 text-stone-800 '
  : 'bg-[#121c15]/95 border-emerald-700 text-emerald-100 '
@@ -1063,7 +1063,7 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  </svg>
 
  {/* Mobile Floating Canvas Quick Controls (Zoom, Fit, Undo, Redo) */}
- <div className="md:hidden absolute top-3 right-3 z-30 flex items-center space-x-1 bg-white/95 dark:bg-[#152019]/95 px-2 py-1 rounded-full border border-stone-200 dark:border-stone-700 shadow-lg text-xs">
+ <div className="md:hidden absolute top-3 right-3 z-30 flex items-center space-x-1 bg-white/95 dark:bg-[#152019]/95 px-2 py-1 rounded-full border border-stone-200 dark:border-stone-700 shadow-lg text-xs max-sm:top-16">
  <button
  onClick={handleUndo}
  disabled={undoStack.length === 0}

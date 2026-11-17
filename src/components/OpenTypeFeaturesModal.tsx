@@ -281,7 +281,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
             isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#141e17] border-[#223326]'
           }`}
         >
-          <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400">
+          <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400 max-sm:hidden">
             <Sparkles className="w-4 h-4 text-emerald-500" />
             <span>フォント出力（TTF/OTF/WOFF/WOFF2）時に OpenType 機能テーブルが自動バインドされます</span>
           </div>

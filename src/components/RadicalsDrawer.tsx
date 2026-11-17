@@ -850,7 +850,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex items-center overflow-x-auto no-scrollbar touch-scroll-x p-1 gap-1 border-b text-[10.5px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`flex items-center overflow-x-auto no-scrollbar touch-scroll-x p-1 gap-1 border-b text-[10.5px] font-semibold shrink-0 max-sm:grid max-sm:grid-cols-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {[
             { id: 'preset', label: '定番部首' },
@@ -864,7 +864,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as DrawerTab)}
-              className={`flex-1 shrink-0 min-w-fit px-2 py-1 rounded text-center whitespace-nowrap transition-colors cursor-pointer ${
+              className={`flex-1 shrink-0 min-w-fit max-sm:min-w-0 px-2 py-1 rounded text-center whitespace-nowrap transition-colors cursor-pointer ${
                 activeTab === tab.id
                   ? `${themeClasses.activeTool} border`
                   : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`

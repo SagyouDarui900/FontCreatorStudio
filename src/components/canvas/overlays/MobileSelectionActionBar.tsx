@@ -50,7 +50,7 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
             title="選択したパスを合体"
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>合体</span>
+            <span className="max-sm:hidden">合体</span>
           </button>
         )}
         <button

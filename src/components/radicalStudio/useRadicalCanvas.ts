@@ -1332,7 +1332,8 @@ export function useRadicalCanvas({
  let newX = e.clientX - penHudDragOffsetRef.current.x;
  let newY = e.clientY - penHudDragOffsetRef.current.y;
 
- newX = Math.max(8, Math.min(containerRect.width - 260, newX));
+ const hudWidth = containerRect.width < 640 ? 300 : 260;
+ newX = Math.max(8, Math.min(containerRect.width - hudWidth, newX));
  newY = Math.max(8, Math.min(containerRect.height - 44, newY));
 
  setPenHudPos({ x: newX, y: newY });

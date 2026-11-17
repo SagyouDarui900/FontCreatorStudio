@@ -134,6 +134,11 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
 }) => {
   return (
             <div
+          className={`px-2 sm:px-2.5 py-1 border-b shrink-0 min-w-0 relative z-10 max-sm:z-40 ${
+            isLight ? "bg-white border-stone-200/60" : "bg-[#141d16] border-stone-800/60"
+          }`}
+        >
+        <div
           onWheel={(e) => {
             if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
               if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
@@ -142,9 +147,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
               }
             }
           }}
-          className={`px-2 sm:px-2.5 py-1 border-b flex items-center justify-between gap-1 sm:gap-1.5 shrink-0 overflow-x-auto touch-scroll-x custom-scrollbar scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 min-w-0 relative z-10 ${
-            isLight ? "bg-white border-stone-200/60" : "bg-[#141d16] border-stone-800/60"
-          }`}
+          className="flex items-center justify-between gap-1 sm:gap-1.5 min-w-0 overflow-x-auto touch-scroll-x custom-scrollbar scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700"
         >
  {/* Primary Tool Buttons */}
  <div className="flex items-center space-x-1 shrink-0">
@@ -273,7 +276,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  {/* Dropdown Menu for Shapes */}
  {showShapeMenu && (
  <div
- className={`absolute top-full left-0 mt-1.5 p-1 rounded-lg border shadow-xl z-50 grid grid-cols-4 sm:grid-cols-6 gap-1 anim-pop ${
+ className={`absolute top-full left-0 mt-1.5 p-1 rounded-lg border shadow-xl z-50 grid grid-cols-4 sm:grid-cols-6 gap-1 anim-pop max-sm:hidden ${
  isLight
  ? 'bg-white/95 border-stone-200 '
  : 'bg-[#152219]/95 border-[#283e2f] '
@@ -652,7 +655,7 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
                 {/* Floating Watermark Related Kanji Picker Panel */}
                 {showWatermarkPicker && (
                   <div
-                    className={`absolute top-full right-0 mt-1.5 z-40 p-3 rounded-xl border shadow-2xl w-72 sm:w-80 space-y-2.5 anim-pop ${
+                    className={`absolute top-full right-0 mt-1.5 z-40 p-3 rounded-xl border shadow-2xl w-72 sm:w-80 space-y-2.5 anim-pop max-sm:hidden ${
                       isLight
                         ? 'bg-white/95 border-emerald-300 text-stone-800 '
                         : 'bg-[#121d15]/95 border-emerald-700 text-emerald-100 '
@@ -762,6 +765,151 @@ export const RadicalCanvasToolbar: React.FC<RadicalCanvasToolbarProps> = React.m
  <Trash2 className="w-3.5 h-3.5" />
  </button>
  </div>
+        </div>
+        {/* Mobile-only menus: rendered outside the horizontal scroll container so they are not clipped (below 640px) */}
+        {showShapeMenu && (
+        <div
+        className={`absolute top-full left-2 mt-1.5 p-1 rounded-lg border shadow-xl z-50 grid grid-cols-4 gap-1 anim-pop sm:hidden ${
+        isLight
+        ? 'bg-white/95 border-stone-200 '
+        : 'bg-[#152219]/95 border-[#283e2f] '
+        }`}
+        >
+        {[
+        { id: 'rect' as ShapeType, label: '四角形 (Rect)', icon: <Square className="w-3.5 h-3.5" /> },
+        { id: 'square' as ShapeType, label: '正方形 (Square)', icon: <Square className="w-3.5 h-3.5" /> },
+        { id: 'ellipse' as ShapeType, label: '楕円 (Ellipse)', icon: <Circle className="w-3.5 h-3.5" /> },
+        { id: 'circle' as ShapeType, label: '正円 (Circle)', icon: <Circle className="w-3.5 h-3.5" /> },
+        { id: 'pill' as ShapeType, label: 'カプセル (Pill)', icon: <CircleDot className="w-3.5 h-3.5" /> },
+        { id: 'triangle' as ShapeType, label: '三角形 (Triangle)', icon: <Triangle className="w-3.5 h-3.5" /> },
+        { id: 'right_triangle' as ShapeType, label: '直角三角形', icon: <Triangle className="w-3.5 h-3.5" /> },
+        { id: 'semicircle' as ShapeType, label: '半円 (Semicircle)', icon: <Circle className="w-3.5 h-3.5" /> },
+        { id: 'ring' as ShapeType, label: 'ドーナツ (Ring)', icon: <Disc className="w-3.5 h-3.5" /> },
+        { id: 'parallelogram' as ShapeType, label: '平行四辺形', icon: <Slash className="w-3.5 h-3.5" /> },
+        { id: 'diamond' as ShapeType, label: '菱形 (Diamond)', icon: <Diamond className="w-3.5 h-3.5" /> },
+        { id: 'polygon' as ShapeType, label: '六角形 (Hexagon)', icon: <Hexagon className="w-3.5 h-3.5" /> },
+        { id: 'star' as ShapeType, label: '星型 (Star)', icon: <Star className="w-3.5 h-3.5" /> },
+        { id: 'sparkle' as ShapeType, label: '4芒星 (Sparkle)', icon: <Sparkles className="w-3.5 h-3.5" /> },
+        { id: 'starburst' as ShapeType, label: '8芒星 (Starburst)', icon: <Sparkles className="w-3.5 h-3.5" /> },
+        { id: 'heart' as ShapeType, label: 'ハート (Heart)', icon: <Heart className="w-3.5 h-3.5" /> },
+        { id: 'crescent' as ShapeType, label: '三日月 (Crescent)', icon: <Moon className="w-3.5 h-3.5" /> },
+        ].map((s) => (
+        <button
+        key={s.id}
+        onClick={(e) => {
+        e.stopPropagation();
+        setActiveShapeType(s.id);
+        setToolMode(s.id);
+        setShowShapeMenu(false);
+        }}
+        className={`p-1.5 rounded flex items-center justify-center transition-colors ${
+        toolMode === s.id
+        ? 'bg-emerald-800 text-white '
+        : isLight
+        ? 'hover:bg-emerald-100 text-stone-700'
+        : 'hover:bg-[#203225] text-emerald-200'
+        }`}
+        title={s.label}
+        >
+        {s.icon}
+        </button>
+        ))}
+        </div>
+        )}
+        {showWatermarkPicker && (
+          <div
+            className={`absolute top-full right-2 mt-1.5 z-40 p-3 rounded-xl border shadow-2xl w-72 max-w-[calc(100vw-1rem)] space-y-2.5 anim-pop sm:hidden ${
+              isLight
+                ? 'bg-white/95 border-emerald-300 text-stone-800 '
+                : 'bg-[#121d15]/95 border-emerald-700 text-emerald-100 '
+            }`}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-1.5 border-stone-200 dark:border-stone-800">
+              <span className="text-xs font-bold flex items-center space-x-1 text-emerald-800 dark:text-emerald-300">
+                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                <span>参照下絵（透かし漢字）の調整</span>
+              </span>
+              <button
+                onClick={() => setShowWatermarkPicker(false)}
+                className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-0.5 rounded"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-[10.5px] font-bold block mb-1 text-stone-600 dark:text-stone-300">
+                「{activePart?.name || '部首'}」を含む漢字から選択:
+              </label>
+              <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-lg border bg-stone-50 dark:bg-[#0c140e] border-stone-200 dark:border-stone-800">
+                {relatedKanjiList.map((kanji, idx) => (
+                  <button
+                    key={`wm_kanji_${kanji}_${idx}`}
+                    onClick={() => {
+                      setWatermarkChar(kanji);
+                      setShowWatermark(true);
+                      notify(`下絵ガイドを「${kanji}」に設定しました`, 'info');
+                    }}
+                    className={`w-7 h-7 rounded-md font-bold text-xs flex items-center justify-center transition-colors ${
+                      watermarkChar === kanji
+                        ? 'bg-emerald-700 text-white scale-105 ring-2 ring-emerald-400 font-extrabold'
+                        : isLight
+                        ? 'bg-white border border-stone-200 text-stone-800 hover:border-emerald-400'
+                        : 'bg-[#1a2820] border border-stone-800 text-stone-200 hover:border-emerald-600'
+                    }`}
+                    title={`「${kanji}」を下絵文字に設定`}
+                  >
+                    {kanji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-200 dark:border-stone-800 text-[11px]">
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 dark:text-stone-400 mb-0.5">
+                  下絵不透明度: <span className="font-mono tabular-nums">{Math.round(watermarkOpacity * 100)}%</span>
+                </label>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.6}
+                  step={0.05}
+                  value={watermarkOpacity}
+                  onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-600 h-1.5 cursor-pointer"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 dark:text-stone-400 mb-0.5">
+                  倍率: <span className="font-mono tabular-nums">{Math.round(watermarkScale * 100)}%</span>
+                </label>
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setWatermarkScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(1))))}
+                    className="px-1.5 py-0.5 rounded border text-[10px] font-bold bg-stone-100 dark:bg-[#1a2820] hover:bg-emerald-100 dark:hover:bg-[#253a2c]"
+                    title="倍率縮小 (-10%)"
+                  >
+                    <Minus className="w-2.5 h-2.5" />
+                  </button>
+                  <span className="font-mono tabular-nums text-[11px] px-1 text-center font-bold min-w-[34px]">
+                    {Math.round(watermarkScale * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setWatermarkScale((s) => Math.min(1.8, Number((s + 0.1).toFixed(1))))}
+                    className="px-1.5 py-0.5 rounded border text-[10px] font-bold bg-stone-100 dark:bg-[#1a2820] hover:bg-emerald-100 dark:hover:bg-[#253a2c]"
+                    title="倍率拡大 (+10%)"
+                  >
+                    <Plus className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
  </div>
   );
 });

@@ -778,7 +778,7 @@ function AppMain({
       {needRefresh && (
         <div
           role="alert"
-          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 right-4 z-[70] flex items-center gap-2 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-100 px-3 py-2 text-xs font-medium shadow-md"
+          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 right-4 z-[70] flex items-center gap-2 max-sm:left-4 max-sm:max-w-[calc(100vw-32px)] max-sm:flex-wrap rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-100 px-3 py-2 text-xs font-medium shadow-md"
         >
           <span>新しいバージョンが利用できます。再読み込みすると更新が反映されます。</span>
           <button

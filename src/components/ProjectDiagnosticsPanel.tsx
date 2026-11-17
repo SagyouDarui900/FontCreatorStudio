@@ -314,7 +314,8 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
             <Layers className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>スコープ:</span>
           </div>
-          <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
+          <div className="relative flex-1 min-w-0">
+            <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
             {[
               { id: 'standard_japanese', label: '基本和文 (かな・英数)' },
               { id: 'registered_only', label: '登録済みのみ' },
@@ -340,6 +341,12 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                 {sc.label}
               </button>
             ))}
+            </div>
+            <div
+              className={`pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l to-transparent sm:hidden ${
+                isLight ? 'from-amber-50' : 'from-[#1a2016]'
+              }`}
+            />
           </div>
         </div>
 
@@ -619,12 +626,12 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
 
       {/* Filter, Search & Sort Toolbar */}
       <div
-        className={`px-5 py-2.5 border-b flex flex-wrap items-center justify-between gap-2.5 text-xs ${
+        className={`px-5 max-sm:px-3 py-2.5 border-b flex flex-wrap items-center justify-between gap-2.5 text-xs ${
           isLight ? 'bg-white border-stone-200' : 'bg-[#131b15] border-[#25362b]'
         }`}
       >
         {/* Left: Search & Status Filters */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px] max-sm:min-w-0">
           <div className="relative min-w-[160px] max-w-xs flex-1">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
@@ -733,7 +740,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
               <span>
                 抽出文字: <strong className="text-stone-900 dark:text-white font-mono">{filteredItems.length}</strong> 件
               </span>
-              <span className="text-[11px]">
+              <span className="text-[11px] max-sm:hidden">
                 各行の「エディタで開く」または「空グリフ追加」をクリックして制作を続行できます
               </span>
             </div>

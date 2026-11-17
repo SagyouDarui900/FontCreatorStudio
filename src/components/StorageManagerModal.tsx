@@ -265,12 +265,12 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
           </div>
           <div>
             <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
-              <span>保存・バックアップ管理</span>
-              <span className={`text-[11px] font-normal px-2 py-0.5 rounded-full border font-mono ${themeClasses.accentBadge}`}>
+              <span className="max-sm:truncate">保存・バックアップ管理</span>
+              <span className={`text-[11px] font-normal px-2 py-0.5 rounded-full border font-mono max-sm:shrink-0 ${themeClasses.accentBadge}`}>
                 容量と履歴
               </span>
             </h2>
-            <p className={`text-[11px] ${themeClasses.textMuted}`}>
+            <p className={`text-[11px] max-sm:hidden ${themeClasses.textMuted}`}>
               ブラウザ保存容量の確認、スナップショット履歴の復元、JSON入出力を行います
             </p>
           </div>
@@ -400,7 +400,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  >
  <button
  onClick={() => setActiveTab('snapshots')}
- className={`px-3 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
  activeTab === 'snapshots'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
  : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
@@ -412,7 +412,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setActiveTab('autosave')}
- className={`px-3 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
  activeTab === 'autosave'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
  : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
@@ -424,7 +424,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setActiveTab('breakdown')}
- className={`px-3 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
  activeTab === 'breakdown'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
  : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
@@ -436,7 +436,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setActiveTab('guide')}
- className={`px-3 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
  activeTab === 'guide'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
  : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
@@ -777,7 +777,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <div
  className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 ${themeClasses.headerBg}`}
  >
- <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1.5`}>
+ <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1.5 max-sm:hidden`}>
  <Clock className="w-3.5 h-3.5" />
  <span>自動保存: 編集時に常時バックグラウンド実行中</span>
  </div>

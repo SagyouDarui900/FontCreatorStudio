@@ -455,7 +455,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
       >
         {/* Header */}
         <div className="px-3 py-1.5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-[#121c16] shrink-0">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 max-sm:min-w-0 max-sm:flex-1">
             <button
               type="button"
               onClick={() => setShowPresetDrawer((prev) => !prev)}
@@ -492,8 +492,8 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{workingPreset.name}</span>
+              <div className="flex items-center space-x-1.5 max-sm:min-w-0">
+                <span className="text-xs font-bold text-stone-900 dark:text-stone-100 max-sm:truncate max-sm:max-w-[120px]">{workingPreset.name}</span>
                 {!isDefaultPreset && (
                   <button
                     type="button"
@@ -590,7 +590,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 shrink-0 min-w-[60px] sm:min-w-[72px] py-1.5 px-2 flex flex-row items-center justify-center gap-1.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                className={`flex-1 shrink-0 min-w-[60px] max-sm:min-w-[44px] sm:min-w-[72px] py-1.5 px-2 flex flex-row items-center justify-center gap-1.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#18231c]'
                     : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100/50 dark:hover:bg-stone-800/40'
@@ -680,7 +680,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-3 py-2 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#121c16] flex items-center justify-between shrink-0">
+        <div className="px-3 py-2 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#121c16] flex items-center justify-between shrink-0 max-sm:flex-wrap max-sm:gap-2">
           <button
             type="button"
             onClick={() => {
@@ -736,7 +736,8 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center space-x-1.5 cursor-pointer border border-emerald-500"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>このペンを適用して閉じる</span>
+              <span className="max-sm:hidden">このペンを適用して閉じる</span>
+              <span className="hidden max-sm:inline">適用して閉じる</span>
             </button>
           </div>
         </div>

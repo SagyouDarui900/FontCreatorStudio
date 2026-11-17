@@ -187,7 +187,7 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           isLight ? 'bg-stone-50 text-stone-900' : 'bg-[#0c130f] text-emerald-100'
         }`}
       >
-        <div className="w-full min-w-[320px] sm:min-w-[360px] max-w-2xl mx-auto space-y-3.5">
+        <div className="w-full min-w-[320px] max-sm:min-w-0 sm:min-w-[360px] max-w-2xl mx-auto space-y-3.5">
           {/* Top Quick Status & Return to Canvas Bar */}
           <div
             className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 shrink-0 ${

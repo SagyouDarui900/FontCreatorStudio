@@ -133,7 +133,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
         {/* Toolbar: PPEM Selector & View Controls */}
         <div
-          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap scrollbar-none ${themeClasses.subtoolbarBg}`}
+          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap scrollbar-none max-sm:flex-wrap ${themeClasses.subtoolbarBg}`}
         >
           <div className="flex items-center space-x-1.5 shrink-0">
             <span className={`shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs ${themeClasses.textMuted}`}>
@@ -146,7 +146,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                 <button
                   key={sz}
                   onClick={() => setSelectedPpem(sz)}
-                  className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors font-mono text-[10px] sm:text-[11px] cursor-pointer ${
+                  className={`px-2 max-sm:px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors font-mono text-[10px] sm:text-[11px] cursor-pointer ${
                     selectedPpem === sz
                       ? 'bg-amber-600 text-white border-amber-600 font-black'
                       : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`

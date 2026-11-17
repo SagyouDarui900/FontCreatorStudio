@@ -307,14 +307,14 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
           }`}
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 max-sm:min-w-0 max-sm:flex-1">
             <Wand2 className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
             <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 max-sm:min-w-0 ${
                 isLight ? 'text-emerald-950' : 'text-emerald-200'
               }`}
             >
-              <span>SVGインポート & 画像ベクター化スタジオ</span>
+              <span className="max-sm:truncate">SVGインポート & 画像ベクター化スタジオ</span>
               {isFullscreen && (
                 <span className="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-medium">
                   全画面モード
@@ -351,7 +351,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 border transition-colors ${
+              className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center border transition-colors ${
                 isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
               }`}
               title="閉じる (Esc)"
@@ -378,7 +378,8 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             }`}
           >
             <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="truncate">手書き画像 → SVG変換</span>
+            <span className="truncate max-sm:hidden">手書き画像 → SVG変換</span>
+            <span className="hidden max-sm:inline">画像 → SVG</span>
           </button>
 
           <button
@@ -392,7 +393,8 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             }`}
           >
             <FileCode className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="truncate">SVGファイル / コード読込</span>
+            <span className="truncate max-sm:hidden">SVGファイル / コード読込</span>
+            <span className="hidden max-sm:inline">SVG読込</span>
           </button>
         </div>
 

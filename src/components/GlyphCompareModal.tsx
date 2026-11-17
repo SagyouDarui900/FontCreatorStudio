@@ -376,9 +376,9 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'outline', label: '輪郭線 (破線)' },
-                  { id: 'fill', label: '半透明塗り' },
-                  { id: 'difference', label: '差分強調' },
+                  { id: 'outline', label: '輪郭線 (破線)', short: '輪郭線' },
+                  { id: 'fill', label: '半透明塗り', short: '塗り' },
+                  { id: 'difference', label: '差分強調', short: '差分' },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -393,7 +393,8 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                         : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
-                    {m.label}
+                    <span className="sm:hidden">{m.short}</span>
+                    <span className="hidden sm:inline">{m.label}</span>
                   </button>
                 ))}
               </div>

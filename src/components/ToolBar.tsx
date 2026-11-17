@@ -301,7 +301,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           ? `flex flex-col items-center justify-start gap-1 sm:gap-1.5 px-1 py-2 ${
               effectivePosition === 'left' ? 'border-r' : 'border-l'
             } shrink-0 z-20 select-none h-full w-12 sm:w-11 overflow-y-auto overflow-x-hidden no-scrollbar`
-          : 'flex flex-row items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none w-full h-auto overflow-x-auto no-scrollbar'
+          : 'flex flex-row items-center justify-center max-sm:justify-start gap-1 sm:gap-1.5 px-2 py-1 border-b shrink-0 z-20 select-none w-full h-auto overflow-x-auto no-scrollbar'
       } ${themeClasses.toolbarBg}`}
     >
       {/* Primary Drawing and Editing Tools */}

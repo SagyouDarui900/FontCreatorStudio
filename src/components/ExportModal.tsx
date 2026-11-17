@@ -669,20 +669,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 type="button"
                 onClick={() => handleExport('share')}
                 disabled={isExporting || !validation.valid}
-                className={`flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
+                className={`flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 disabled:opacity-50 max-sm:min-w-0 max-sm:shrink sm:whitespace-nowrap sm:shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <Share2 className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">{primaryActionLabel}</span>
+                <span className="max-sm:truncate sm:whitespace-nowrap">{primaryActionLabel}</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handleExport('download')}
                 disabled={isExporting || !validation.valid}
-                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 max-sm:min-w-0 max-sm:shrink sm:whitespace-nowrap sm:shrink-0 cursor-pointer"
               >
                 <Download className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">{primaryActionLabel}</span>
+                <span className="max-sm:truncate sm:whitespace-nowrap">{primaryActionLabel}</span>
               </button>
             )}
           </div>

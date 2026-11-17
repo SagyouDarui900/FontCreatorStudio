@@ -64,7 +64,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
-        className={`px-2 py-1 rounded-full border shadow-xl flex items-center space-x-1.5 text-xs whitespace-nowrap ${
+        className={`px-2 py-1 rounded-full border shadow-xl flex items-center space-x-1.5 text-xs whitespace-nowrap max-sm:max-w-[calc(100vw-16px)] max-sm:overflow-x-auto ${
           isLight
             ? 'bg-white/98 border-emerald-300/80 text-stone-800'
             : 'bg-[#121c15]/98 border-emerald-700/60 text-emerald-100'
@@ -101,7 +101,7 @@ export const ActivePenDrawingHud: React.FC<ActivePenDrawingHudProps> = React.mem
           title="直前の頂点を取り消す (Backspace / ⌫ または Ctrl+Z)"
         >
           <RotateCcw className="w-3 h-3 text-stone-500 dark:text-stone-300 shrink-0" />
-          <span>1点戻す</span>
+          <span className="max-sm:hidden">1点戻す</span>
           <span className="text-[9px] opacity-60 font-mono hidden sm:inline">⌫</span>
         </button>
 

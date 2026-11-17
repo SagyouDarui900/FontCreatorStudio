@@ -61,7 +61,7 @@ export const PixelToolbar: React.FC<PixelToolbarProps> = ({
       <div className="flex md:hidden flex-col w-full gap-1 pt-1 z-10">
         {/* Row 1: Primary Drawing Tools Strip */}
         <div
-          className={`flex items-center justify-between px-1 py-1 border overflow-x-auto no-scrollbar gap-1 ${
+          className={`flex items-center justify-between px-1 py-1 border overflow-x-auto no-scrollbar gap-1 max-sm:grid max-sm:grid-cols-4 ${
             isLight ? 'bg-white/98 border-stone-300' : 'bg-[#101812]/98 border-[#294232]'
           }`}
         >

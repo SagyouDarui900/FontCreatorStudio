@@ -105,7 +105,8 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               title="ベタ組み・ツメ組み・アケ組み比較やJISアキ量・禁則スタジオを開く"
             >
               <Type className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-              <span>文字組みスタジオ (ベタ/ツメ/アケ)</span>
+              <span className="max-sm:hidden">文字組みスタジオ (ベタ/ツメ/アケ)</span>
+              <span className="hidden max-sm:inline">文字組み</span>
             </button>
           )}
 

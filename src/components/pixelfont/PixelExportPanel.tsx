@@ -214,7 +214,7 @@ export const PixelExportPanel: React.FC<PixelExportPanelProps> = ({
           isLight ? 'bg-stone-50 text-stone-900' : 'bg-[#0c130f] text-emerald-100'
         }`}
       >
-        <div className="w-full min-w-[320px] sm:min-w-[360px] max-w-2xl mx-auto space-y-4">
+        <div className="w-full min-w-[320px] max-sm:min-w-0 sm:min-w-[360px] max-w-2xl mx-auto space-y-4">
           {/* Real-time Typing Sandbox */}
           <div
             className={`p-3 border space-y-2.5 ${

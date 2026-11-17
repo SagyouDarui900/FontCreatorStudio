@@ -214,7 +214,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -814,14 +814,14 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t flex items-center justify-between ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t flex items-center justify-between max-sm:flex-col max-sm:items-stretch max-sm:gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <span className={`text-[11px] ${themeClasses.textMuted}`}>
             ※キャンバス上で「下絵移動」モードでも直接ドラッグ移動できます
           </span>
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+            className={`px-4 py-1.5 max-sm:min-h-[40px] rounded-lg text-xs font-semibold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
           >
             完了
           </button>

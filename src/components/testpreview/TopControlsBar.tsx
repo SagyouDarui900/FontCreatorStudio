@@ -67,7 +67,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className={`text-[11px] ${isLight ? 'text-stone-500' : 'text-emerald-400'}`}>
+          <span className={`text-[11px] max-sm:hidden ${isLight ? 'text-stone-500' : 'text-emerald-400'}`}>
             （文字プレビュー集中モード中）
           </span>
           <button

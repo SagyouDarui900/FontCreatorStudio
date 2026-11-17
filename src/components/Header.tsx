@@ -372,8 +372,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           onToggleFullscreen={toggleFullscreen}
         />
 
-        {/* In-App PWA Install Button (always visible, including mobile) */}
-        <div className="flex items-center">
+        {/* In-App PWA Install Button (hidden on mobile; available in the tools menu) */}
+        <div className="flex items-center max-sm:hidden">
           <PWAInstallButton isLight={isLight} />
         </div>
 

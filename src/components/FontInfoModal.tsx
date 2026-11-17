@@ -273,7 +273,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -288,7 +288,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] max-sm:min-w-0 sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'info'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -301,7 +301,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('license')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] max-sm:min-w-0 sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'license'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -314,7 +314,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('opentype')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] max-sm:min-w-0 sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'opentype'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -327,7 +327,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('guide')}
-            className={`flex-1 min-w-[90px] sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
+            className={`flex-1 min-w-[90px] max-sm:min-w-0 sm:min-w-[120px] py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none text-[11px] sm:text-xs ${
               activeTab === 'guide'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`

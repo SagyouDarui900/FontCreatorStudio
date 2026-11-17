@@ -353,7 +353,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
             </div>
 
             {/* Center: Selected Part Actions / Quick Transform Strip */}
-            <div className="flex items-center space-x-1 shrink-0">
+            <div className="flex items-center space-x-1 shrink-0 max-sm:hidden">
               <SelectionSubToolbar
                 toolMode={toolMode}
                 selectedContourIds={selectedContourIds}

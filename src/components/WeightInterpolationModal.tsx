@@ -500,7 +500,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             }`}
           >
             <Layers className="w-3.5 h-3.5 shrink-0" />
-            <span>ウェイトファミリー展開 (自動太さ補正)</span>
+            <span className="sm:hidden">ファミリー展開</span>
+            <span className="hidden sm:inline">ウェイトファミリー展開 (自動太さ補正)</span>
           </button>
           <button
             type="button"
@@ -512,7 +513,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>2マスター間 線形補間 (Morphing)</span>
+            <span className="sm:hidden">2マスター補間</span>
+            <span className="hidden sm:inline">2マスター間 線形補間 (Morphing)</span>
           </button>
         </div>
 

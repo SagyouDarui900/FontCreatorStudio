@@ -342,20 +342,20 @@ export const KerningModal: React.FC<KerningModalProps> = ({
       <div
         className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
- <div className="flex items-center gap-2.5">
+ <div className="flex items-center gap-2.5 max-sm:min-w-0 max-sm:flex-1">
  <div className={`p-1.5 rounded-lg ${themeClasses.accentBtn}`}>
  <MoveHorizontal className="w-5 h-5" />
  </div>
- <div>
- <h2 className="text-base font-bold flex items-center gap-2">
- <span>カーニング & サイドベアリング調整スタジオ</span>
+ <div className="max-sm:min-w-0">
+ <h2 className="text-base font-bold flex items-center gap-2 max-sm:min-w-0">
+ <span className="max-sm:truncate">カーニング & サイドベアリング調整スタジオ</span>
  {isFullscreen && (
  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${themeClasses.accentBtn}`}>
  全画面モード
  </span>
  )}
  </h2>
- <p className={`text-xs ${themeClasses.textMuted}`}>
+ <p className={`text-xs max-sm:hidden ${themeClasses.textMuted}`}>
  文字間のすきま（ペアカーニング）と左右余白（サイドベアリング）を一括調整します
  </p>
  </div>
@@ -418,7 +418,8 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  }`}
  >
  <AlignHorizontalDistributeCenter className="w-3.5 h-3.5" />
- <span>サイドベアリング（左右余白・送り幅）一括調整</span>
+ <span className="max-sm:hidden">サイドベアリング（左右余白・送り幅）一括調整</span>
+ <span className="hidden max-sm:inline">サイドベアリング一括調整</span>
  </button>
  </div>
 
@@ -479,7 +480,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <Plus className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>自由なペアを追加</span>
  </span>
- <div className="flex items-center gap-2 text-xs">
+ <div className="flex items-center gap-2 text-xs max-sm:flex-wrap">
  <input
  type="text"
  maxLength={1}
@@ -908,7 +909,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  {sbMode === 'uniform-advance' && (
  <div className={`pt-2 border-t text-xs ${themeClasses.border}`}>
  <span className={`block mb-1 ${themeClasses.textMuted}`}>送り幅 (Advance Width):</span>
- <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2 max-sm:flex-wrap">
  <input
  type="number"
  step={50}
@@ -953,7 +954,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  {/* Preview Char Selector */}
  <div
- className={`p-3 rounded-lg border flex items-center justify-between text-xs ${themeClasses.subtoolbarBg}`}
+ className={`p-3 rounded-lg border flex items-center justify-between text-xs max-sm:flex-wrap max-sm:gap-2 ${themeClasses.subtoolbarBg}`}
  >
  <span className={`font-bold ${themeClasses.textMuted}`}>
  プレビューする文字:

@@ -1011,7 +1011,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           >
             {/* Top Transform & Quick FX Toolbar */}
             <div
-              className={`w-full z-10 flex items-center justify-between p-1 sm:p-1.5 border overflow-x-auto no-scrollbar gap-1 ${
+              className={`w-full z-10 flex items-center justify-between p-1 sm:p-1.5 border overflow-x-auto no-scrollbar gap-1 max-sm:flex-wrap ${
                 isLight ? 'bg-white/95 border-stone-300 text-stone-800' : 'bg-[#101812]/95 border-[#294232] text-emerald-200'
               }`}
             >

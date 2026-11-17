@@ -72,7 +72,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 max-sm:p-2 rounded-xl text-xs max-sm:text-[11px] font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -108,7 +108,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 max-sm:p-2 rounded-xl text-xs max-sm:text-[11px] font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '
@@ -144,7 +144,7 @@ export const MobileShapeMenuSheet: React.FC<MobileShapeMenuSheetProps> = React.m
  setToolMode(shape.id);
  onClose();
  }}
- className={`flex items-center space-x-2.5 p-3 rounded-xl text-xs font-medium cursor-pointer ${
+ className={`flex items-center space-x-2.5 p-3 max-sm:p-2 rounded-xl text-xs max-sm:text-[11px] font-medium cursor-pointer ${
  isSelected
  ? isLight
  ? 'bg-emerald-800 text-white font-bold '

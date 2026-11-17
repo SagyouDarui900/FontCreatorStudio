@@ -388,7 +388,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
       >
         {/* Modal Header */}
         <div
-          className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-5 max-sm:px-3 py-3.5 border-b flex items-center justify-between gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-md shrink-0">
@@ -398,7 +398,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
               <div className="flex items-center space-x-2">
                 <h3 className="text-base font-bold truncate">輪郭密度ヒートマップ診断 & 単純化</h3>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold max-sm:hidden ${
                     isLight ? 'bg-amber-100 text-amber-900' : 'bg-amber-950/80 text-amber-300 border border-amber-800'
                   }`}
                 >
@@ -427,7 +427,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className={`text-[11px] px-1 font-mono ${themeClasses.textMuted}`}>
+                <span className={`text-[11px] px-1 font-mono max-sm:hidden ${themeClasses.textMuted}`}>
                   {currentIndexInProblems + 1}/{allProblemUnicodes.length}
                 </span>
                 <button

@@ -27,12 +27,12 @@ import { useMojikumiStudioState, type MojikumiPersistedState } from './mojikumi/
 
 export type { EditorialLayoutMode, MojikumiStudioModalProps } from './mojikumi/types';
 
-const LAYOUT_MODES: { id: EditorialLayoutMode; label: string; icon: typeof BookOpen }[] = [
-  { id: 'book_spread', label: '文庫見開き', icon: BookOpen },
-  { id: 'manuscript', label: '400字原稿用紙', icon: Grid },
-  { id: 'magazine', label: '雑誌・段組', icon: Columns },
-  { id: 'poetry', label: '短冊・詩歌', icon: Feather },
-  { id: 'compare3', label: '3様式アキ量比較', icon: Eye },
+const LAYOUT_MODES: { id: EditorialLayoutMode; label: string; short: string; icon: typeof BookOpen }[] = [
+  { id: 'book_spread', label: '文庫見開き', short: '文庫', icon: BookOpen },
+  { id: 'manuscript', label: '400字原稿用紙', short: '原稿', icon: Grid },
+  { id: 'magazine', label: '雑誌・段組', short: '雑誌', icon: Columns },
+  { id: 'poetry', label: '短冊・詩歌', short: '短冊', icon: Feather },
+  { id: 'compare3', label: '3様式アキ量比較', short: '比較', icon: Eye },
 ];
 
 export interface MojikumiStudioModalWithPersistedProps extends MojikumiStudioModalProps {
@@ -201,7 +201,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  <span>{m.label}</span>
+                  <span className="max-sm:hidden">{m.label}</span>
+                  <span className="hidden max-sm:inline">{m.short}</span>
                 </button>
               );
             })}
@@ -387,7 +388,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <div
-              className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between text-xs font-mono shrink-0 ${
+              className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between text-xs font-mono shrink-0 max-sm:flex-col max-sm:items-start max-sm:gap-1 ${
                 isLight ? 'bg-white/80 border-stone-200 text-stone-500' : 'bg-black/20 border-white/10 text-stone-300'
               }`}
             >

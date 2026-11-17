@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import {
   Sliders,
+  Smartphone,
   X,
   Download,
   SlidersHorizontal,
@@ -28,6 +29,8 @@ import {
 } from 'lucide-react';
 import { ThemeMode, getThemePreset, getThemeClasses } from '../../utils/theme';
 import { useModalContext } from '../../contexts/ModalContext';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { PWAInstallButton } from '../PWAInstallButton';
 
 interface ToolsMenuDropdownProps {
   isOpen: boolean;
@@ -103,6 +106,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
   onToggleFullscreen,
 }) => {
   const { openModal } = useModalContext();
+  const { isInstalled } = usePWAInstall();
   const themeClasses = getThemeClasses(theme);
   const toolItemClass = `text-left p-2 rounded-xl border flex items-start space-x-2 group cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
   const smallItemClass = `text-left p-2 rounded-xl border flex items-center space-x-2 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
@@ -656,6 +660,19 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     </div>
                   </div>
                 </button>
+                {/* PWA install entry (the header install button is hidden below 640px) */}
+                {!isInstalled && (
+                  <div className={`${smallItemClass} col-span-2`}>
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">アプリとしてインストール</div>
+                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                        ホーム画面に追加してオフラインで使う
+                      </div>
+                    </div>
+                    <PWAInstallButton isLight={isLight} />
+                  </div>
+                )}
                 {onToggleFullscreen && (
                   <button
                     onClick={() => {

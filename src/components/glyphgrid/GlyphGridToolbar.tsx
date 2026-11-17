@@ -333,7 +333,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
             <button
               onClick={onClose}
-              className={`p-1.5 sm:px-2 sm:py-1 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors ${themeClasses.accentBtn}`}
+              className={`p-1.5 sm:px-2 sm:py-1 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors max-sm:hidden ${themeClasses.accentBtn}`}
               title="文字一覧を収納して作図キャンバスを広げる"
             >
               <span className="hidden sm:inline">収納</span>
@@ -450,7 +450,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                     onClick={() => {
                       quickTabsRef.current?.scrollBy({ left: -140, behavior: 'smooth' });
                     }}
-                    className={`shrink-0 w-5 h-6 rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                    className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                     title="左へスクロール"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -487,7 +487,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                     onClick={() => {
                       quickTabsRef.current?.scrollBy({ left: 140, behavior: 'smooth' });
                     }}
-                    className={`shrink-0 w-5 h-6 rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                    className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                     title="右へスクロール"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />

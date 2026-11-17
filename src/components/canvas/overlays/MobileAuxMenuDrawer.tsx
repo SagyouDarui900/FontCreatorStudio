@@ -513,7 +513,8 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                   }`}
                 >
                   <ArrowRightLeft className="w-4 h-4" />
-                  <span>グリフ重ね合わせ比較</span>
+                  <span className="max-sm:hidden">グリフ重ね合わせ比較</span>
+                  <span className="hidden max-sm:inline">重ね合わせ比較</span>
                 </button>
               )}
 
@@ -527,7 +528,8 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                   }`}
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-                  <span>全パス消去 (Ctrl+Z可)</span>
+                  <span className="max-sm:hidden">全パス消去 (Ctrl+Z可)</span>
+                  <span className="hidden max-sm:inline">全パス消去</span>
                 </button>
               )}
             </div>

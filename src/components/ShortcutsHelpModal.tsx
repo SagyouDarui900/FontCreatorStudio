@@ -370,7 +370,8 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  }`}
  >
  <Github className="w-4 h-4 shrink-0" />
- <span>フィードバック & 不具合報告 (GitHub)</span>
+ <span className="max-sm:hidden">フィードバック & 不具合報告 (GitHub)</span>
+ <span className="hidden max-sm:inline">フィードバック</span>
  </button>
  </div>
 
@@ -799,7 +800,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div
  className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
  >
- <div className={`flex items-center space-x-2 ${themeClasses.textMuted}`}>
+ <div className={`flex items-center space-x-2 max-sm:hidden ${themeClasses.textMuted}`}>
  <span>キーボードショートカットはいつでも</span>
  <kbd className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] border ${themeClasses.cardBg}`}>
  ?

@@ -400,7 +400,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           <button
             type="button"
             onClick={() => setActiveTab('metrics')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-colors cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 max-sm:px-1 rounded text-xs max-sm:text-[11px] font-bold transition-colors cursor-pointer ${
               activeTab === 'metrics'
                 ? `${themeClasses.activeTool} shadow-sm`
                 : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
@@ -412,7 +412,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           <button
             type="button"
             onClick={() => setActiveTab('precision')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 rounded text-xs font-bold transition-colors cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 px-2 max-sm:px-1 rounded text-xs max-sm:text-[11px] font-bold transition-colors cursor-pointer ${
               activeTab === 'precision'
                 ? `${themeClasses.activeTool} shadow-sm`
                 : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
