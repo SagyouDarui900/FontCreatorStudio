@@ -13,6 +13,7 @@ import {
 } from './types';
 import { findContourIntersections } from './intersectionResolver';
 import { analyzeGlyphContourDensity } from './densityAnalyzer';
+import { resolveBaselineY } from '../font/constants';
 
 export const DEFAULT_BASELINE_Y = 800;
 const DEFAULT_MAX_NODES_PER_CONTOUR = 90;
@@ -64,7 +65,8 @@ export function checkFontQuality(
   project: FontProject,
   options: QualityCheckOptions = {}
 ): FontQualityReport {
-  const baselineY = options.baselineY ?? DEFAULT_BASELINE_Y;
+  const baselineY =
+    options.baselineY ?? resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
   const maxNodesContour = options.maxNodesPerContour ?? DEFAULT_MAX_NODES_PER_CONTOUR;
   const maxNodesGlyph = options.maxNodesPerGlyph ?? DEFAULT_MAX_NODES_PER_GLYPH;
   const checkDuplicates = options.checkDuplicates ?? true;

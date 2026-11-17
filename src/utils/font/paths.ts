@@ -4,7 +4,13 @@ import { generateId, optimizeContourNodes } from '../path';
 import { SCREEN_BASELINE_Y } from './constants';
 
 /**
- * Convert screen coordinate contours into opentype.Path
+ * Convert screen coordinate contours into opentype.Path.
+ * The default baseline is SCREEN_BASELINE_Y (800), the fallback for
+ * callers without project metadata. Callers that have a project should
+ * pass resolveBaselineY(project.metadata.ascender, project.metadata.unitsPerEm)
+ * so the conversion uses the same baseline as the compile-time baseline
+ * in compilerCore; otherwise an ascender changed from 800 shifts the
+ * exported glyph vertically relative to the screen position.
  */
 export function contoursToOpenTypePath(
   contours: PathContour[],
@@ -62,7 +68,10 @@ export function contoursToOpenTypePath(
 }
 
 /**
- * Convert opentype.Path commands back to PathContour[] for editor
+ * Convert opentype.Path commands back to PathContour[] for editor.
+ * The default baseline is SCREEN_BASELINE_Y (800), the fallback for
+ * callers without project metadata. Callers that have a project should
+ * pass resolveBaselineY(project.metadata.ascender, project.metadata.unitsPerEm).
  */
 export function openTypePathToContours(
   otPath: opentype.Path,

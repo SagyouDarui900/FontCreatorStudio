@@ -4,7 +4,28 @@ export const DEFAULT_UPM = 1000;
 // project metadata, so the compile-time baseline and the screen baseline
 // use the same value for a new project.
 export const DEFAULT_ASCENDER = 800;
-export const DEFAULT_DESCENDER = -120;
+// Default descender matches projectDefaults.ts and the TTF import in io.ts
+// (SCREEN_BASELINE_Y - 1000 = -200), so the compile-time fallback and the
+// default project metadata use the same value for a new project.
+export const DEFAULT_DESCENDER = -200;
+
+/**
+ * Resolve the baseline Y (in screen coordinates) from project metadata.
+ * The compile-time baseline uses metadata.ascender, so screen rendering
+ * must use the same value for the exported glyph position to match the
+ * position shown on screen. Falls back to 80% of unitsPerEm (800 for the
+ * default UPM of 1000) when ascender is missing, non-finite, or <= 0.
+ */
+export function resolveBaselineY(ascender: unknown, unitsPerEm?: number): number {
+  if (typeof ascender === 'number' && Number.isFinite(ascender) && ascender > 0) {
+    return ascender;
+  }
+  const upm =
+    typeof unitsPerEm === 'number' && Number.isFinite(unitsPerEm) && unitsPerEm > 0
+      ? unitsPerEm
+      : DEFAULT_UPM;
+  return Math.round(upm * 0.8);
+}
 
 // Small Hiragana & Katakana unicodes (should remain in their natural position, not centered)
 export const SMALL_KANA_UNICODES = new Set<number>([

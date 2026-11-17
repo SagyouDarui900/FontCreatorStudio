@@ -2,6 +2,7 @@ import React from 'react';
 import { Database } from 'lucide-react';
 import { FontMetadata } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
+import { DEFAULT_DESCENDER } from '../../utils/font/constants';
 
 export interface OpenTypeMetricsSectionProps {
   formData: FontMetadata;
@@ -105,7 +106,7 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
           </label>
           <input
             type="number"
-            value={formData.typoDescender ?? formData.descender ?? -120}
+            value={formData.typoDescender ?? formData.descender ?? DEFAULT_DESCENDER}
             onChange={(e) => setFormData({ ...formData, typoDescender: Number(e.target.value) })}
             className={inputCls}
           />
@@ -131,7 +132,7 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
           </label>
           <input
             type="number"
-            value={formData.winDescent ?? Math.abs(formData.descender ?? -120)}
+            value={formData.winDescent ?? Math.abs(formData.descender ?? DEFAULT_DESCENDER)}
             onChange={(e) => setFormData({ ...formData, winDescent: Number(e.target.value) })}
             className={inputCls}
           />

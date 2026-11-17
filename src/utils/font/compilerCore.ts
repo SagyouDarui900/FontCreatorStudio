@@ -13,6 +13,7 @@ import {
   DEFAULT_ASCENDER,
   DEFAULT_DESCENDER,
   isAsymmetricOrPunctuationGlyph,
+  resolveBaselineY,
 } from './constants';
 import { validateFontProject } from './validation';
 import { contoursToOpenTypePath } from './paths';
@@ -126,7 +127,7 @@ export function compileFont(
   const rawUpm = project.metadata?.unitsPerEm;
   const upm = Number.isFinite(rawUpm) && (rawUpm as number) > 0 ? (rawUpm as number) : DEFAULT_UPM;
   const rawAscender = project.metadata?.ascender;
-  const baselineY = Number.isFinite(rawAscender) ? (rawAscender as number) : Math.round(upm * 0.8);
+  const baselineY = resolveBaselineY(rawAscender, upm);
   const featureConfig = project.openTypeFeatures;
   const openTypeFeaturesEnabled = featureConfig?.enabled !== false;
   const verticalWritingEnabled = openTypeFeaturesEnabled && featureConfig?.verticalWriting?.enabled !== false;

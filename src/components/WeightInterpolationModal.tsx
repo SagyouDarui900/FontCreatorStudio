@@ -26,6 +26,7 @@ import {
   groupContoursForRendering,
 } from '../utils/path';
 import { compileFont } from '../utils/font';
+import { resolveBaselineY } from '../utils/font/constants';
 
 interface WeightInterpolationModalProps {
   isOpen: boolean;
@@ -73,6 +74,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  // Preview baseline follows the project ascender so the position shown
+  // here matches the exported glyph position (compile uses ascender).
+  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
 
   // Mode: 'family' (Weight expansion / variation) or 'master' (Master-to-master morphing)
   const [activeTab, setActiveTab] = useState<'family' | 'master'>('family');
@@ -572,7 +576,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <rect x={0} y={0} width={1000} height={1000} fill="none" stroke="#94a3b8" strokeDasharray="6 6" strokeWidth={5} opacity={0.3} />
                       <line x1={0} y1={500} x2={1000} y2={500} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
                       <line x1={500} y1={0} x2={500} y2={1000} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
-                      <line x1={0} y1={800} x2={1000} y2={800} stroke="#f87171" strokeDasharray="8 8" strokeWidth={4} opacity={0.45} />
+                      <line x1={0} y1={baselineY} x2={1000} y2={baselineY} stroke="#f87171" strokeDasharray="8 8" strokeWidth={4} opacity={0.45} />
 
                       {/* Original Shape (Ghost Outline) */}
                       {showOriginalOverlay && previewOriginalContours.length > 0 && (

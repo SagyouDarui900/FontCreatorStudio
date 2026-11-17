@@ -23,7 +23,7 @@ import {
   getContoursBoundingBox,
   groupContoursForRendering,
 } from '../../utils/path';
-import { SCREEN_BASELINE_Y } from '../../utils/font';
+import { resolveBaselineY } from '../../utils/font';
 import { computeTraceCharMetrics } from '../canvas/traceCharMetrics';
 
 export interface RadicalCanvasAreaProps {
@@ -163,6 +163,10 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
   undoStack,
   redoStack,
 }) => {
+  // Screen baseline follows the project ascender so the position shown
+  // here matches the exported glyph position (compile uses ascender).
+  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+
   const getSelectedNodeType = (): NodeType | null => {
     if (!activePart || !selectedContourId || !selectedNodeId) return null;
     const contour = activePart.contours.find((c) => c.id === selectedContourId);
@@ -669,20 +673,20 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  <g opacity={0.7}>
  <line
  x1={0}
- y1={SCREEN_BASELINE_Y}
+ y1={baselineY}
  x2={1000}
- y2={SCREEN_BASELINE_Y}
+ y2={baselineY}
  stroke="#ef4444"
  strokeWidth={1.5}
  />
  <text
  x={10}
- y={SCREEN_BASELINE_Y - 8}
+ y={baselineY - 8}
  fill="#ef4444"
  fontSize={22}
  fontWeight="bold"
  >
- Baseline (y=800)
+ Baseline (y={baselineY})
  </text>
  </g>
  )}

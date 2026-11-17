@@ -8,6 +8,7 @@ import {
 import { FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
+import { resolveBaselineY } from '../utils/font/constants';
 import {
   AlignHorizontal,
   AlignVertical,
@@ -40,6 +41,9 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  // Normalization baseline follows the project ascender so the aligned
+  // position matches the exported glyph position (compile uses ascender).
+  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
 
   const [scope, setScope] = useState<TargetScope>('all');
   const [sizePreset, setSizePreset] = useState<SizePreset>('standard');
@@ -171,7 +175,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
       alignVertical: alignV,
       targetCenterX: 500,
       targetCenterY: 500,
-      targetBaselineY: 800,
+      targetBaselineY: baselineY,
       unifyAdvanceWidth: unifyAdvance,
       targetAdvanceWidth: advanceWidth,
       optimizePoints,
@@ -181,6 +185,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     return res.contours;
   }, [
     previewGlyph,
+    baselineY,
     targetWidth,
     targetHeight,
     alignH,
@@ -216,7 +221,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         alignVertical: alignV,
         targetCenterX: 500,
         targetCenterY: 500,
-        targetBaselineY: 800,
+        targetBaselineY: baselineY,
         unifyAdvanceWidth: unifyAdvance,
         targetAdvanceWidth: advanceWidth,
         optimizePoints,
