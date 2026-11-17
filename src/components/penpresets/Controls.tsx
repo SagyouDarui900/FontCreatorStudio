@@ -21,15 +21,16 @@ export const SliderControl: React.FC<SliderControlProps> = ({
   onChange,
   desc,
 }) => {
-  const handleDec = () => onChange(Math.max(min, Math.round((value - step) * 100) / 100));
-  const handleInc = () => onChange(Math.min(max, Math.round((value + step) * 100) / 100));
+  const safeValue = typeof value === 'number' && Number.isFinite(value) ? value : min;
+  const handleDec = () => onChange(Math.max(min, Math.round((safeValue - step) * 100) / 100));
+  const handleInc = () => onChange(Math.min(max, Math.round((safeValue + step) * 100) / 100));
 
   return (
     <div className="flex flex-col space-y-1 py-1 border-b border-stone-200/60 dark:border-stone-800/60 last:border-0">
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-stone-700 dark:text-stone-300">{label}</span>
         <span className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-          {value}
+          {safeValue}
           {unit}
         </span>
       </div>
@@ -47,7 +48,7 @@ export const SliderControl: React.FC<SliderControlProps> = ({
           min={min}
           max={max}
           step={step}
-          value={value}
+          value={safeValue}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className="flex-1 accent-emerald-600 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg cursor-pointer"
         />

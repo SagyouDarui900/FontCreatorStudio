@@ -330,3 +330,117 @@ describe('parseSvgStringToContours document handling (S-C1)', () => {
     expect(() => parseSvgStringToContours('<svg><path d="M0 0"></svg>', false)).toThrow();
   });
 });
+
+describe('parseSvgStringToContours compact numbers, hidden elements, containers, and rounded rects', () => {
+  it('parses compact polygon and polyline points without whitespace around signs', () => {
+    const poly = parseSvgStringToContours(
+      wrap('<polygon points="0,0 10-10 20+15"/>'),
+      false
+    );
+    expect(poly.contours).toHaveLength(1);
+    expect(poly.contours[0].closed).toBe(true);
+    expect(poly.contours[0].nodes.map((n) => [n.x, n.y])).toEqual([
+      [0, 0],
+      [10, -10],
+      [20, 15],
+    ]);
+
+    const line = parseSvgStringToContours(
+      wrap('<polyline points="+5-5+25+15"/>'),
+      false
+    );
+    expect(line.contours).toHaveLength(1);
+    expect(line.contours[0].closed).toBe(false);
+    expect(line.contours[0].nodes.map((n) => [n.x, n.y])).toEqual([
+      [5, -5],
+      [25, 15],
+    ]);
+  });
+
+  it('parses unary plus coordinates in path data and arc arguments', () => {
+    const pathContours = parseSvgPathData('M+10+20 L+40+20');
+    expect(pathContours).toHaveLength(1);
+    expect(pathContours[0].nodes.map((n) => [n.x, n.y])).toEqual([
+      [10, 20],
+      [40, 20],
+    ]);
+
+    const arcContours = parseSvgPathData('M+100 +100 A30 50 0 01+162.55 +162.45');
+    expect(arcContours).toHaveLength(1);
+    const nodes = arcContours[0].nodes;
+    expect(nodes.length).toBeGreaterThan(1);
+    const last = nodes[nodes.length - 1];
+    expect(last.x).toBeCloseTo(162.55, 2);
+    expect(last.y).toBeCloseTo(162.45, 2);
+  });
+
+  it('skips <symbol>, <clipPath>, <mask>, <pattern>, and <marker> directly, while resolving <symbol> via <use>', () => {
+    const standaloneContainers = parseSvgStringToContours(
+      wrap(
+        '<symbol id="sym"><rect x="0" y="0" width="20" height="20"/></symbol>' +
+          '<clipPath id="clip"><rect x="0" y="0" width="10" height="10"/></clipPath>' +
+          '<mask id="m"><circle cx="5" cy="5" r="5"/></mask>' +
+          '<pattern id="pat" width="10" height="10"><rect x="0" y="0" width="5" height="5"/></pattern>' +
+          '<marker id="mk"><path d="M0 0 L5 5 L0 10 Z"/></marker>'
+      ),
+      false
+    );
+    expect(standaloneContainers.contours).toHaveLength(0);
+
+    const usedSymbol = parseSvgStringToContours(
+      wrap(
+        '<symbol id="sym"><rect x="0" y="0" width="20" height="20"/></symbol>' +
+          '<use href="#sym" x="15" y="25"/>'
+      ),
+      false
+    );
+    expect(usedSymbol.contours).toHaveLength(1);
+    const bbox = getContoursBoundingBox(usedSymbol.contours);
+    expect(bbox.minX).toBe(15);
+    expect(bbox.minY).toBe(25);
+    expect(bbox.width).toBe(20);
+    expect(bbox.height).toBe(20);
+  });
+
+  it('skips elements hidden by display="none" or visibility="hidden"', () => {
+    const res = parseSvgStringToContours(
+      wrap(
+        '<rect x="0" y="0" width="10" height="10" display="none"/>' +
+          '<g style="display: none"><rect x="0" y="0" width="10" height="10" style="display: block"/></g>' +
+          '<g visibility="hidden"><rect x="0" y="0" width="10" height="10"/><rect x="20" y="20" width="10" height="10" visibility="visible"/></g>' +
+          '<rect x="50" y="50" width="10" height="10" visibility="collapse"/>'
+      ),
+      false
+    );
+    expect(res.contours).toHaveLength(1);
+    const bbox = getContoursBoundingBox(res.contours);
+    expect(bbox.minX).toBe(20);
+    expect(bbox.minY).toBe(20);
+  });
+
+  it('generates Bezier rounded corners for <rect> with rx and/or ry and clamps to half dimensions', () => {
+    const rounded = parseSvgStringToContours(
+      wrap('<rect x="10" y="20" width="100" height="60" rx="10"/>'),
+      false
+    );
+    expect(rounded.contours).toHaveLength(1);
+    expect(rounded.contours[0].closed).toBe(true);
+    expect(rounded.contours[0].nodes).toHaveLength(8);
+    expect(rounded.contours[0].nodes.some((n) => n.handleIn || n.handleOut)).toBe(true);
+    const bbox = getContoursBoundingBox(rounded.contours);
+    expect(bbox.minX).toBe(10);
+    expect(bbox.minY).toBe(20);
+    expect(bbox.maxX).toBe(110);
+    expect(bbox.maxY).toBe(80);
+
+    // Oversized radii clamp cleanly to half width / height
+    const clamped = parseSvgStringToContours(
+      wrap('<rect x="0" y="0" width="40" height="20" rx="100" ry="50"/>'),
+      false
+    );
+    expect(clamped.contours).toHaveLength(1);
+    expect(clamped.contours[0].nodes[0].x).toBe(20);
+    expect(clamped.contours[0].nodes[2].y).toBe(10);
+  });
+});
+

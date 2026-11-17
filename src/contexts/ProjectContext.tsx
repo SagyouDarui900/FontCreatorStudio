@@ -74,6 +74,8 @@ interface ProjectProviderProps {
   children: React.ReactNode;
 }
 
+const EMPTY_CONTOURS: PathContour[] = [];
+
 export function ProjectProvider({
   project,
   setProject,
@@ -94,7 +96,7 @@ export function ProjectProvider({
         name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
         advanceWidth: project.metadata?.unitsPerEm || 1000,
         lsb: 50,
-        contours: [],
+        contours: EMPTY_CONTOURS,
         modified: false,
       }
     );

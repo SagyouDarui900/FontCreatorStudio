@@ -234,12 +234,12 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
                 min={20}
                 max={140}
                 step={5}
-                value={strokeOutlineWidth}
+                value={Number.isFinite(strokeOutlineWidth) ? strokeOutlineWidth : 60}
                 onChange={(e) => setStrokeOutlineWidth(Number(e.target.value))}
                 className="flex-1 accent-emerald-700 h-2"
               />
               <span className={`text-xs font-mono font-bold w-12 text-right ${themeClasses.textPrimary}`}>
-                {strokeOutlineWidth}px
+                {Number.isFinite(strokeOutlineWidth) ? strokeOutlineWidth : 60}px
               </span>
             </div>
             <button

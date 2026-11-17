@@ -123,7 +123,13 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     setSelectedContourIds((prev) => {
       const current = prev.length > 0 ? prev[0] : null;
       const next = typeof idOrUpdater === 'function' ? (idOrUpdater as (prev: string | null) => string | null)(current) : idOrUpdater;
-      return next ? [next] : [];
+      if (!next) {
+        return prev.length === 0 ? prev : [];
+      }
+      if (prev.length === 1 && prev[0] === next) {
+        return prev;
+      }
+      return [next];
     });
   }, []);
 
@@ -133,7 +139,13 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     setSelectedNodeIds((prev) => {
       const current = prev.length > 0 ? prev[prev.length - 1] : null;
       const next = typeof idOrUpdater === 'function' ? (idOrUpdater as (prev: string | null) => string | null)(current) : idOrUpdater;
-      return next ? [next] : [];
+      if (!next) {
+        return prev.length === 0 ? prev : [];
+      }
+      if (prev.length === 1 && prev[0] === next) {
+        return prev;
+      }
+      return [next];
     });
   }, []);
   const [selectedHandleType, setSelectedHandleType] = useState<'node' | 'handleIn' | 'handleOut' | null>(null);
@@ -171,9 +183,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
     };
     const handleDeselectAll = () => {
-      setSelectedContourIds([]);
-      setSelectedNodeIds([]);
-      setSelectedHandleType(null);
+      setSelectedContourIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedNodeIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedHandleType((prev) => (prev === null ? prev : null));
     };
     window.addEventListener('font_editor_select_contours', handleExternalSelect);
     window.addEventListener('font_editor_deselect_all', handleDeselectAll);
@@ -186,9 +198,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   // When switching tool modes away from selection / node editing, automatically clear contour selections
   useEffect(() => {
     if (toolMode !== 'select' && toolMode !== 'node') {
-      setSelectedContourIds([]);
-      setSelectedNodeIds([]);
-      setSelectedHandleType(null);
+      setSelectedContourIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedNodeIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedHandleType((prev) => (prev === null ? prev : null));
     }
   }, [toolMode]);
 
@@ -647,8 +659,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
       hasCommittedDragHistoryRef.current = false;
       nodeDragSessionRef.current = null;
-      setSelectedHandleType(null);
-      setActiveSnapGuides?.([]);
+      setSelectedHandleType((prev) => (prev === null ? prev : null));
+      setActiveSnapGuides?.((prev) => (prev.length === 0 ? prev : []));
       return true;
     }
     hasCommittedDragHistoryRef.current = false;
@@ -903,9 +915,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
   // Clear all node & contour selection
   const clearNodeSelection = useCallback(() => {
-    setSelectedContourIds([]);
-    setSelectedNodeIds([]);
-    setSelectedHandleType(null);
+    setSelectedContourIds((prev) => (prev.length === 0 ? prev : []));
+    setSelectedNodeIds((prev) => (prev.length === 0 ? prev : []));
+    setSelectedHandleType((prev) => (prev === null ? prev : null));
   }, []);
 
   return {

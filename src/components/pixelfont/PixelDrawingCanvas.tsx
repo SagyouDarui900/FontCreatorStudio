@@ -90,10 +90,9 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
         fitH = availH;
         fitW = fitH * ratio;
       }
-      setBoxSize({
-        w: Math.max(64, Math.floor(fitW)),
-        h: Math.max(64, Math.floor(fitH)),
-      });
+      const nextW = Math.max(64, Math.floor(fitW));
+      const nextH = Math.max(64, Math.floor(fitH));
+      setBoxSize((prev) => (prev.w === nextW && prev.h === nextH ? prev : { w: nextW, h: nextH }));
     };
 
     updateSize();

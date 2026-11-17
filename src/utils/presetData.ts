@@ -204,7 +204,20 @@ export function loadStickyBrushConfigs(): Record<BrushStyle, StickyBrushConfig> 
     const stored = localStorage.getItem(STICKY_BRUSH_MEMORY_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { ...DEFAULT_BRUSH_CONFIGS, ...parsed };
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const merged = { ...DEFAULT_BRUSH_CONFIGS } as Record<BrushStyle, StickyBrushConfig>;
+        for (const style of Object.keys(DEFAULT_BRUSH_CONFIGS) as BrushStyle[]) {
+          const entry = parsed[style];
+          if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+            merged[style] = {
+              ...DEFAULT_BRUSH_CONFIGS[style],
+              ...entry,
+              brushWidth: clampBrushWidth(entry.brushWidth ?? DEFAULT_BRUSH_CONFIGS[style].brushWidth),
+            };
+          }
+        }
+        return merged;
+      }
     }
   } catch (e) {
     console.warn('Failed to load sticky brush configs from localStorage', e);
@@ -313,7 +326,9 @@ export function loadUserPenPresets(): UserPenPreset[] {
     }
     // 保存された空配列は空の一覧として維持する。キーが存在しない場合だけ
     // 既定プリセットを返す。
-    return parsed.filter((item): item is UserPenPreset => isValidPenPresetShape(item));
+    return parsed
+      .map((item) => sanitizeImportedPenPreset(item))
+      .filter((item): item is UserPenPreset => item !== null);
   } catch (e) {
     console.warn('Failed to load pen presets from localStorage', e);
   }

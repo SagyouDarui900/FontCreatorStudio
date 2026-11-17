@@ -55,7 +55,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
           min="0"
           max="1"
           step="0.05"
-          value={config.snapStrength}
+          value={Number.isFinite(config.snapStrength) ? config.snapStrength : 1}
           onChange={(e) =>
             setConfig((prev) => ({ ...prev, snapStrength: parseFloat(e.target.value) }))
           }
@@ -95,7 +95,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
           <span>垂直ステム (縦線) スナップ</span>
           <input
             type="checkbox"
-            checked={config.snapVertical}
+            checked={Boolean(config.snapVertical)}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, snapVertical: e.target.checked }))
             }
@@ -107,7 +107,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
           <span>水平ステム (横線) スナップ</span>
           <input
             type="checkbox"
-            checked={config.snapHorizontal}
+            checked={Boolean(config.snapHorizontal)}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, snapHorizontal: e.target.checked }))
             }
@@ -119,7 +119,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
           <span>ベースライン・CapHeight吸着</span>
           <input
             type="checkbox"
-            checked={config.snapMetrics}
+            checked={Boolean(config.snapMetrics)}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, snapMetrics: e.target.checked }))
             }
@@ -131,7 +131,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
           <span>ベジェハンドルの追従補正</span>
           <input
             type="checkbox"
-            checked={config.adjustHandles}
+            checked={Boolean(config.adjustHandles)}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, adjustHandles: e.target.checked }))
             }

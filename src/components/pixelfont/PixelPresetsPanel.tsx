@@ -88,16 +88,17 @@ function CustomSizeInput({
   onCommit: (value: number) => void;
   className?: string;
 }) {
-  const [text, setText] = useState(String(value));
+  const safeValue = Number.isFinite(value) ? value : 16;
+  const [text, setText] = useState(String(safeValue));
   useEffect(() => {
-    setText(String(value));
-  }, [value]);
+    setText(String(safeValue));
+  }, [safeValue]);
   const commit = () => {
     const parsed = parseInt(text, 10);
     if (Number.isFinite(parsed)) {
       onCommit(Math.max(3, Math.min(128, parsed)));
     } else {
-      setText(String(value));
+      setText(String(safeValue));
     }
   };
   return (

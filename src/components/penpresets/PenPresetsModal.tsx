@@ -175,14 +175,14 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     if (isOpen && !prevIsOpenRef.current) {
       setWorkingPreset((prev) => ({
         ...prev,
-        brushStyle: currentParams.brushStyle,
+        brushStyle: currentParams.brushStyle ?? prev.brushStyle,
         brushWidth: clampBrushWidth(currentParams.brushWidth),
-        pressureSensitivity: currentParams.pressureSensitivity,
+        pressureSensitivity: currentParams.pressureSensitivity ?? prev.pressureSensitivity,
         pressureCurve: currentParams.pressureCurve || prev.pressureCurve,
-        autoSmoothBrush: currentParams.autoSmoothBrush,
-        smoothStrength: currentParams.smoothStrength,
-        smoothPreserveCorners: currentParams.smoothPreserveCorners,
-        autoUnionBrush: currentParams.autoUnionBrush,
+        autoSmoothBrush: currentParams.autoSmoothBrush ?? prev.autoSmoothBrush,
+        smoothStrength: currentParams.smoothStrength ?? prev.smoothStrength,
+        smoothPreserveCorners: currentParams.smoothPreserveCorners ?? prev.smoothPreserveCorners,
+        autoUnionBrush: currentParams.autoUnionBrush ?? prev.autoUnionBrush,
         smoothingIntensity: currentParams.smoothingIntensity ?? prev.smoothingIntensity,
         taperStartLength: currentParams.taperStartLength ?? prev.taperStartLength,
         taperEndLength: currentParams.taperEndLength ?? prev.taperEndLength,
@@ -308,12 +308,15 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   };
 
   const handleSelectPreset = (p: UserPenPreset) => {
+    const base = createCleanDefaultPreset();
     setWorkingPreset({
+      ...base,
       ...p,
-      name: p.name,
+      name: p.name || base.name,
       brushWidth: clampBrushWidth(p.brushWidth),
+      pressureCurve: p.pressureCurve || base.pressureCurve,
     });
-    setRenameInput(p.name);
+    setRenameInput(p.name || base.name);
     showToast(`「${p.name}」をロードしました`);
   };
 
@@ -338,8 +341,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
       onClearActivePenPreset?.();
     }
     if (workingPreset.id === target.id) {
-      const fallback = next[0] ?? createCleanDefaultPreset();
-      setWorkingPreset({ ...fallback });
+      const base = createCleanDefaultPreset();
+      const fallback = next[0] ? { ...base, ...next[0], brushWidth: clampBrushWidth(next[0].brushWidth) } : base;
+      setWorkingPreset(fallback);
       setRenameInput(fallback.name);
     }
     showToast('プリセットを削除しました');
@@ -473,7 +477,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <div className="flex items-center space-x-1">
                 <input
                   type="text"
-                  value={renameInput}
+                  value={renameInput ?? ''}
                   onChange={(e) => setRenameInput(e.target.value)}
                   className="px-2 py-0.5 text-xs bg-white dark:bg-stone-900 border border-emerald-500 rounded-sm text-stone-900 dark:text-stone-100 font-bold focus:outline-none"
                   autoFocus

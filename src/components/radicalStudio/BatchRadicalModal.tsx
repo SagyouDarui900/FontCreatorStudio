@@ -27,12 +27,14 @@ export interface BatchRadicalModalProps {
   baselineY?: number;
 }
 
+const EMPTY_KANJI_LIST: string[] = [];
+
 export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   isOpen,
   onClose,
   radicalName,
   sourceContours,
-  defaultKanjiList = [],
+  defaultKanjiList = EMPTY_KANJI_LIST,
   allGlyphs,
   onBatchInsert,
   theme,
@@ -46,12 +48,14 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   });
   const [customInput, setCustomInput] = useState('');
 
+  const defaultKanjiKey = defaultKanjiList.join('\u0000');
   React.useEffect(() => {
     if (isOpen) {
       setSelectedChars(new Set(defaultKanjiList.slice(0, 30)));
       setCustomInput('');
     }
-  }, [isOpen, defaultKanjiList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, defaultKanjiKey]);
 
   // Transformed contours preview
   const transformedContours = useMemo(() => {

@@ -213,7 +213,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
 
           {autoSmoothBrush && (
             <select
-              value={smoothStrength}
+              value={smoothStrength || 'standard'}
               onChange={(e) => {
                 const val = e.target.value as 'mild' | 'standard' | 'strong';
                 setSmoothStrength(val);

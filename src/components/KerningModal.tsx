@@ -104,7 +104,8 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  // Find or calculate current pair kerning value
  const currentPairValue = useMemo(() => {
  if (selectedPairKey in kerningPairs) {
- return kerningPairs[selectedPairKey];
+ const v = kerningPairs[selectedPairKey];
+ return typeof v === 'number' && Number.isFinite(v) ? v : 0;
  }
  // Check if preset default exists
  for (const group of KERNING_PRESET_GROUPS) {
@@ -485,7 +486,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  type="text"
  maxLength={1}
  placeholder="左 (A)"
- value={customLeft}
+ value={customLeft ?? ''}
  onChange={(e) => setCustomLeft(e.target.value)}
  className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
@@ -494,7 +495,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  type="text"
  maxLength={1}
  placeholder="右 (V)"
- value={customRight}
+ value={customRight ?? ''}
  onChange={(e) => setCustomRight(e.target.value)}
  className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
@@ -502,8 +503,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  type="number"
  step={10}
  placeholder="-100"
- value={customValue}
- onChange={(e) => setCustomValue(Number(e.target.value))}
+ value={Number.isFinite(customValue) ? customValue : 0}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ setCustomValue(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className={`w-20 p-1.5 rounded-lg border text-center font-mono font-bold ${themeClasses.cardBg}`}
  />
  <button
@@ -619,7 +623,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <input
  type="number"
  step={5}
- value={currentPairValue}
+ value={Number.isFinite(currentPairValue) ? currentPairValue : 0}
  onChange={(e) => {
  const parsed = Number(e.target.value);
  handleUpdateKerningValue(Number.isFinite(parsed) ? parsed : 0);
@@ -634,8 +638,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  min="-300"
  max="150"
  step="5"
- value={currentPairValue}
- onChange={(e) => handleUpdateKerningValue(Number(e.target.value))}
+ value={Number.isFinite(currentPairValue) ? currentPairValue : 0}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ handleUpdateKerningValue(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className="w-full h-2 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
  />
  <div className={`flex justify-between text-[10px] ${themeClasses.textMuted}`}>
@@ -727,7 +734,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
  <input
  type="text"
- value={sampleText}
+ value={sampleText ?? ''}
  onChange={(e) => setSampleText(e.target.value)}
  className={`w-full p-2 text-xs rounded border ${themeClasses.cardBg}`}
  placeholder="テスト組版テキスト"
@@ -889,8 +896,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span className={`block mb-1 ${themeClasses.textMuted}`}>目標 左余白 (LSB):</span>
  <input
  type="number"
- value={sbLsb}
- onChange={(e) => setSbLsb(Number(e.target.value))}
+ value={Number.isFinite(sbLsb) ? sbLsb : 60}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ setSbLsb(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className={`w-full p-1.5 font-mono font-bold rounded border ${themeClasses.cardBg}`}
  />
  </div>
@@ -898,8 +908,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span className={`block mb-1 ${themeClasses.textMuted}`}>目標 右余白 (RSB):</span>
  <input
  type="number"
- value={sbRsb}
- onChange={(e) => setSbRsb(Number(e.target.value))}
+ value={Number.isFinite(sbRsb) ? sbRsb : 60}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ setSbRsb(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className={`w-full p-1.5 font-mono font-bold rounded border ${themeClasses.cardBg}`}
  />
  </div>
@@ -913,8 +926,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <input
  type="number"
  step={50}
- value={sbTargetAdvance}
- onChange={(e) => setSbTargetAdvance(Number(e.target.value))}
+ value={Number.isFinite(sbTargetAdvance) ? sbTargetAdvance : 1000}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ setSbTargetAdvance(Number.isFinite(parsed) ? parsed : 1000);
+ }}
  className={`w-32 p-1.5 font-mono font-bold rounded border ${themeClasses.cardBg}`}
  />
  <button
@@ -944,8 +960,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  min="-150"
  max="150"
  step="5"
- value={sbOffsetDelta}
- onChange={(e) => setSbOffsetDelta(Number(e.target.value))}
+ value={Number.isFinite(sbOffsetDelta) ? sbOffsetDelta : 0}
+ onChange={(e) => {
+ const parsed = Number(e.target.value);
+ setSbOffsetDelta(Number.isFinite(parsed) ? parsed : 0);
+ }}
  className="w-full h-2 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
  />
  </div>

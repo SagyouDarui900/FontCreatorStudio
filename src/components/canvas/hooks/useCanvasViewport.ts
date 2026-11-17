@@ -89,8 +89,8 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         };
         zoomRef.current = 1.0;
         panRef.current = nextPan;
-        setZoom(1.0);
-        setPan(nextPan);
+        setZoom((prev) => (prev === 1.0 ? prev : 1.0));
+        setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
@@ -103,8 +103,8 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         };
         zoomRef.current = widthZoom;
         panRef.current = nextPan;
-        setZoom(widthZoom);
-        setPan(nextPan);
+        setZoom((prev) => (prev === widthZoom ? prev : widthZoom));
+        setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
@@ -121,8 +121,8 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       };
       zoomRef.current = clampedZoom;
       panRef.current = nextPan;
-      setZoom(clampedZoom);
-      setPan(nextPan);
+      setZoom((prev) => (prev === clampedZoom ? prev : clampedZoom));
+      setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
     },
     [upm]
   );

@@ -46,3 +46,16 @@ export function sanitizeStoredTraceSettings(raw: unknown): StoredTraceSettings |
     flipV: Boolean(s.flipV),
   };
 }
+
+export function areStoredTraceSettingsEqual(
+  a?: StoredTraceSettings | null,
+  b?: StoredTraceSettings | null
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof StoredTraceSettings>;
+  for (const key of keys) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}

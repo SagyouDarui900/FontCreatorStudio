@@ -181,20 +181,29 @@ function getElementTransformMatrix(
   return result;
 }
 
-function isInDefs(el: Element): boolean {
+const NON_RENDERING_CONTAINERS = new Set([
+  'defs',
+  'symbol',
+  'clippath',
+  'mask',
+  'pattern',
+  'marker',
+]);
+
+function isInNonRenderingContainer(el: Element): boolean {
   let current: Element | null = el.parentElement;
   while (current) {
-    if (current.tagName.toLowerCase() === 'defs') return true;
+    if (NON_RENDERING_CONTAINERS.has(current.tagName.toLowerCase())) return true;
     current = current.parentElement;
   }
   return false;
 }
 
-/** True when a <defs> element sits between `el` and `stopExclusive`. */
-function hasDefsAncestorBelow(el: Element, stopExclusive: Element): boolean {
+/** True when a non-rendering container (<defs>, <symbol>, <clipPath>, etc.) sits between `el` and `stopExclusive`. */
+function hasNonRenderingAncestorBelow(el: Element, stopExclusive: Element): boolean {
   let current: Element | null = el.parentElement;
   while (current && current !== stopExclusive) {
-    if (current.tagName.toLowerCase() === 'defs') return true;
+    if (NON_RENDERING_CONTAINERS.has(current.tagName.toLowerCase())) return true;
     current = current.parentElement;
   }
   return false;
@@ -212,6 +221,24 @@ function parseStyleDeclarations(style: string | null): Record<string, string> {
   return out;
 }
 
+function getOwnPresentationAttr(el: Element, name: string): string | null {
+  const fromStyle = parseStyleDeclarations(el.getAttribute('style'))[name];
+  if (fromStyle !== undefined && fromStyle !== '') return fromStyle;
+  const attr = el.getAttribute(name);
+  if (attr !== null && attr.trim() !== '') return attr.trim();
+  return null;
+}
+
+function hasDisplayNoneInChain(el: Element): boolean {
+  let current: Element | null = el;
+  while (current) {
+    const val = getOwnPresentationAttr(current, 'display');
+    if (val !== null && val.toLowerCase() === 'none') return true;
+    current = current.parentElement;
+  }
+  return false;
+}
+
 /**
  * Effective presentation attribute, following SVG inheritance: the element
  * itself first, then its ancestors. `fallbackEl` (the <use> element that
@@ -219,7 +246,7 @@ function parseStyleDeclarations(style: string | null): Record<string, string> {
  */
 function getEffectivePresentationAttr(
   el: Element,
-  name: 'fill' | 'stroke',
+  name: 'fill' | 'stroke' | 'visibility',
   fallbackEl?: Element | null
 ): string | null {
   let current: Element | null = el;
@@ -234,6 +261,17 @@ function getEffectivePresentationAttr(
     return getEffectivePresentationAttr(fallbackEl, name);
   }
   return null;
+}
+
+function isElementHidden(el: Element, useEl?: Element | null): boolean {
+  if (hasDisplayNoneInChain(el)) return true;
+  if (useEl && hasDisplayNoneInChain(useEl)) return true;
+  const visibility = getEffectivePresentationAttr(el, 'visibility', useEl);
+  if (visibility !== null) {
+    const v = visibility.toLowerCase();
+    if (v === 'hidden' || v === 'collapse') return true;
+  }
+  return false;
 }
 
 function isNoneValue(value: string | null): boolean {
@@ -303,6 +341,9 @@ export function parseSvgStringToContours(
       warnings.push('非有限の数値を含む transform があるため、その要素を除外しました。');
       return;
     }
+    if (isElementHidden(el, useEl)) {
+      return;
+    }
     const fill = getEffectivePresentationAttr(el, 'fill', useEl);
     if (isNoneValue(fill)) {
       const stroke = getEffectivePresentationAttr(el, 'stroke', useEl);
@@ -343,8 +384,9 @@ export function parseSvgStringToContours(
       );
       shapes.forEach((child) => {
         // Definitions nested below the referenced group are not visible.
-        if (hasDefsAncestorBelow(child, root)) return;
+        if (hasNonRenderingAncestorBelow(child, root)) return;
         if (child.tagName.toLowerCase() === 'use') {
+          if (hasDisplayNoneInChain(child)) return;
           resolveUseElement(child, baseMatrix, depth, warnings, contours, true, (el, matrix) =>
             collectShape(el, matrix, child as Element)
           );
@@ -376,6 +418,9 @@ export function parseSvgStringToContours(
     fromDefs: boolean,
     emit: (el: Element, matrix: SvgMatrix | null) => void
   ) => {
+    if (hasDisplayNoneInChain(useEl)) {
+      return;
+    }
     const href =
       useEl.getAttribute('href') || useEl.getAttribute('xlink:href');
     if (!href || !href.startsWith('#')) {
@@ -425,11 +470,12 @@ export function parseSvgStringToContours(
     warningsArg.push(`<use> 要素の参照先 "${href}" は図形ではないため除外しました。`);
   };
 
-  // Collect visible shapes in document order. Elements inside <defs> are
-  // definitions, not visible shapes, and are skipped here (<use> resolves them).
+  // Collect visible shapes in document order. Elements inside <defs>,
+  // <symbol>, <clipPath>, <mask>, <pattern>, or <marker> are definitions, not
+  // directly visible shapes, and are skipped here (<use> resolves symbols/defs).
   const elements = doc.querySelectorAll('path, rect, circle, ellipse, polygon, polyline, use');
   elements.forEach((el) => {
-    if (isInDefs(el)) return;
+    if (isInNonRenderingContainer(el)) return;
     const tag = el.tagName.toLowerCase();
     if (tag === 'use') {
       resolveUseElement(el, [...IDENTITY_MATRIX] as SvgMatrix, 0, warnings, contours, false, (targetEl, matrix) =>
@@ -532,12 +578,29 @@ function parseShapeElement(el: Element, warnings: string[]): PathContour[] | nul
       const y = parseFloat(el.getAttribute('y') || '0');
       const width = parseFloat(el.getAttribute('width') || '0');
       const height = parseFloat(el.getAttribute('height') || '0');
-      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+      const rxAttr = el.getAttribute('rx');
+      const ryAttr = el.getAttribute('ry');
+      const parsedRx = rxAttr !== null ? parseFloat(rxAttr) : null;
+      const parsedRy = ryAttr !== null ? parseFloat(ryAttr) : null;
+      if (
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
+        !Number.isFinite(width) ||
+        !Number.isFinite(height) ||
+        (parsedRx !== null && !Number.isFinite(parsedRx)) ||
+        (parsedRy !== null && !Number.isFinite(parsedRy))
+      ) {
         warnings.push('非有限の数値を含む rect 要素を除外しました。');
         return null;
       }
       if (width > 0 && height > 0) {
-        return [createRectContourDirect(x, y, width, height)];
+        let rx = parsedRx ?? parsedRy ?? 0;
+        let ry = parsedRy ?? parsedRx ?? 0;
+        if (rx < 0) rx = 0;
+        if (ry < 0) ry = 0;
+        rx = Math.min(rx, width / 2);
+        ry = Math.min(ry, height / 2);
+        return [createRectContourDirect(x, y, width, height, rx, ry)];
       }
       return null;
     }
@@ -572,7 +635,8 @@ function parseShapeElement(el: Element, warnings: string[]): PathContour[] | nul
     case 'polyline': {
       const pointsAttr = el.getAttribute('points');
       if (!pointsAttr) return null;
-      const nums = pointsAttr.trim().split(/[\s,]+/).map(Number);
+      const nums = parseNumbers(pointsAttr);
+      if (nums.length === 0) return null;
       if (nums.some((v) => !Number.isFinite(v))) {
         warnings.push(`非有限の数値を含む ${tag} 要素を除外しました。`);
         return null;
@@ -1054,7 +1118,7 @@ export function parseSvgPathData(d: string, warnings?: string[]): PathContour[] 
 
 function parseNumbers(str: string): number[] {
   if (!str) return [];
-  const matches = str.match(/-?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+  const matches = str.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
   return matches ? matches.map(Number) : [];
 }
 
@@ -1068,7 +1132,7 @@ function parseArcArgs(argStr: string): number[] {
   const values: number[] = [];
   let i = 0;
   const n = argStr.length;
-  const numberRegex = /-?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/y;
+  const numberRegex = /[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/y;
   const skipSeparators = () => {
     while (i < n) {
       const ch = argStr[i];
@@ -1118,15 +1182,89 @@ function parseArcArgs(argStr: string): number[] {
   return values;
 }
 
-function createRectContourDirect(x: number, y: number, w: number, h: number): PathContour {
+function createRectContourDirect(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rx = 0,
+  ry = 0
+): PathContour {
+  if (rx <= 0 || ry <= 0) {
+    return {
+      id: generateId(),
+      closed: true,
+      nodes: [
+        { id: generateId(), x, y, type: 'corner' },
+        { id: generateId(), x: x + w, y, type: 'corner' },
+        { id: generateId(), x: x + w, y: y + h, type: 'corner' },
+        { id: generateId(), x, y: y + h, type: 'corner' },
+      ],
+    };
+  }
+  const k = 0.5522847498;
+  const kx = rx * k;
+  const ky = ry * k;
   return {
     id: generateId(),
     closed: true,
     nodes: [
-      { id: generateId(), x, y, type: 'corner' },
-      { id: generateId(), x: x + w, y, type: 'corner' },
-      { id: generateId(), x: x + w, y: y + h, type: 'corner' },
-      { id: generateId(), x, y: y + h, type: 'corner' },
+      {
+        id: generateId(),
+        x: x + rx,
+        y,
+        type: 'corner',
+        handleIn: { x: x + rx - kx, y },
+      },
+      {
+        id: generateId(),
+        x: x + w - rx,
+        y,
+        type: 'corner',
+        handleOut: { x: x + w - rx + kx, y },
+      },
+      {
+        id: generateId(),
+        x: x + w,
+        y: y + ry,
+        type: 'corner',
+        handleIn: { x: x + w, y: y + ry - ky },
+      },
+      {
+        id: generateId(),
+        x: x + w,
+        y: y + h - ry,
+        type: 'corner',
+        handleOut: { x: x + w, y: y + h - ry + ky },
+      },
+      {
+        id: generateId(),
+        x: x + w - rx,
+        y: y + h,
+        type: 'corner',
+        handleIn: { x: x + w - rx + kx, y: y + h },
+      },
+      {
+        id: generateId(),
+        x: x + rx,
+        y: y + h,
+        type: 'corner',
+        handleOut: { x: x + rx - kx, y: y + h },
+      },
+      {
+        id: generateId(),
+        x,
+        y: y + h - ry,
+        type: 'corner',
+        handleIn: { x, y: y + h - ry + ky },
+      },
+      {
+        id: generateId(),
+        x,
+        y: y + ry,
+        type: 'corner',
+        handleOut: { x, y: y + ry - ky },
+      },
     ],
   };
 }

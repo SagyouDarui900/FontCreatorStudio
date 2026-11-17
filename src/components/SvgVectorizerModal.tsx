@@ -813,7 +813,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   }`}
                 >
                   {svgParsedContours.length > 0 ? (
-                    <svg viewBox="0 0 1000 1000" className="w-full h-full">
+                    <svg viewBox={getSafeGlyphViewBox(svgParsedContours, 1000)} className="w-full h-full">
                       <path
                         d={contoursToSvgPath(svgParsedContours)}
                         fill={isLight ? '#064e3b' : '#34d399'}

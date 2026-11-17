@@ -63,13 +63,24 @@ export function useOpenTypeFeaturesState({
   }, [isOpen, onClose]);
 
   const config: OpenTypeFeaturesConfig = useMemo(() => {
-    return (
-      project.openTypeFeatures ||
-      buildDefaultOpenTypeFeaturesConfig(
-        project.metadata.unitsPerEm || 1000,
-        project.metadata.ascender || 880
-      )
+    const defaults = buildDefaultOpenTypeFeaturesConfig(
+      project.metadata.unitsPerEm || 1000,
+      project.metadata.ascender || 880
     );
+    if (!project.openTypeFeatures) {
+      return defaults;
+    }
+    return {
+      ...defaults,
+      ...project.openTypeFeatures,
+      verticalWriting: {
+        ...defaults.verticalWriting,
+        ...(project.openTypeFeatures.verticalWriting || {}),
+        substitutions:
+          project.openTypeFeatures.verticalWriting?.substitutions ?? defaults.verticalWriting.substitutions,
+      },
+      ligatures: project.openTypeFeatures.ligatures ?? defaults.ligatures,
+    };
   }, [project.openTypeFeatures, project.metadata]);
 
   const updateFeatures = useCallback(

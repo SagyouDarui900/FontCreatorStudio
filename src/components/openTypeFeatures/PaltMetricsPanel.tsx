@@ -22,6 +22,10 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
   onTogglePaltGlobal,
   onTogglePaltItem,
 }) => {
+  const safePercent =
+    typeof opticalSideBearingPercent === 'number' && Number.isFinite(opticalSideBearingPercent)
+      ? opticalSideBearingPercent
+      : 5;
   const paltList = paltConfig?.paltList || [];
 
   return (
@@ -90,12 +94,12 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
               min="1"
               max="15"
               step="1"
-              value={opticalSideBearingPercent}
+              value={safePercent}
               onChange={(e) => onChangeOpticalSideBearingPercent(Number(e.target.value))}
               className="w-32 accent-emerald-600"
             />
             <span className={`font-mono font-bold w-12 text-right ${themeClasses.accentText}`}>
-              {opticalSideBearingPercent}%
+              {safePercent}%
             </span>
           </div>
         </div>

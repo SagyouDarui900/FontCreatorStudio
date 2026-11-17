@@ -637,13 +637,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   // Keep selection state strictly in-sync with current contours
   useEffect(() => {
     contoursRef.current = contours;
-    const validContourIds = new Set(contours.map((c) => c.id));
-    const validNodeIds = new Set(contours.flatMap((c) => c.nodes.map((n) => n.id)));
-    setSelectedContourIds((prev) => prev.filter((id) => validContourIds.has(id)));
-    setSelectedContourId((prev) => (prev && validContourIds.has(prev) ? prev : null));
-    setSelectedNodeIds((prev) => prev.filter((id) => validNodeIds.has(id)));
-    setSelectedNodeId((prev) => (prev && validNodeIds.has(prev) ? prev : null));
-
     if (!contours || contours.length === 0) {
       if (activeBrushPathRef.current) {
         activeBrushPathRef.current.setAttribute('d', '');
@@ -651,13 +644,25 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       activeBrushSvgDRef.current = '';
       resetEraserVisuals();
       brushStrokePointsRef.current = [];
-      setSelectedContourIds([]);
-      setSelectedContourId(null);
-      setSelectedNodeIds([]);
-      setSelectedNodeId(null);
-      setSelectedHandleType(null);
+      setSelectedContourIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedNodeIds((prev) => (prev.length === 0 ? prev : []));
+      setSelectedHandleType((prev) => (prev === null ? prev : null));
+      return;
     }
-  }, [contours, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedHandleType, setSelectedNodeId, setSelectedNodeIds, activeBrushPathRef, activeBrushSvgDRef, brushStrokePointsRef]);
+
+    const validContourIds = new Set(contours.map((c) => c.id));
+    const validNodeIds = new Set(contours.flatMap((c) => c.nodes.map((n) => n.id)));
+    setSelectedContourIds((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter((id) => validContourIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+    setSelectedNodeIds((prev) => {
+      if (prev.length === 0) return prev;
+      const next = prev.filter((id) => validNodeIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [contours, resetEraserVisuals, setSelectedContourIds, setSelectedHandleType, setSelectedNodeIds, activeBrushPathRef, activeBrushSvgDRef, brushStrokePointsRef]);
 
 
 
@@ -1023,12 +1028,31 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isGlyphLocked,
   });
 
+  const lastNotifiedSelectionRef = useRef<{
+    contourIds: string[];
+    nodeId: string | null;
+    handleType: 'node' | 'handleIn' | 'handleOut' | null;
+  } | null>(null);
+
   useEffect(() => {
-    onSelectionChange?.({
+    if (!onSelectionChange) return;
+    const prev = lastNotifiedSelectionRef.current;
+    if (
+      prev &&
+      prev.nodeId === selectedNodeId &&
+      prev.handleType === selectedHandleType &&
+      prev.contourIds.length === selectedContourIds.length &&
+      prev.contourIds.every((id, idx) => id === selectedContourIds[idx])
+    ) {
+      return;
+    }
+    const next = {
       contourIds: selectedContourIds,
       nodeId: selectedNodeId,
       handleType: selectedHandleType,
-    });
+    };
+    lastNotifiedSelectionRef.current = next;
+    onSelectionChange(next);
   }, [selectedContourIds, selectedNodeId, selectedHandleType, onSelectionChange]);
 
   return (

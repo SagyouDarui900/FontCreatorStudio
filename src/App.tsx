@@ -38,7 +38,9 @@ import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
 import { contoursHaveFiniteCoordinates } from './utils/path';
 import { AppModalsHost } from './components/modals/AppModalsHost';
-import { toStoredTraceSettings } from './utils/traceSettings';
+import { toStoredTraceSettings, areStoredTraceSettingsEqual } from './utils/traceSettings';
+
+const EMPTY_CONTOURS: PathContour[] = [];
 
 interface AppMainProps {
   theme: ThemeMode;
@@ -179,11 +181,11 @@ function AppMain({
   // Persist trace settings in the project, without image data (data URLs
   // are large and stay in memory only). Restoring applies stored settings
   // once per stored value; later edits write back through this effect.
-  const appliedTraceSettingsRef = useRef<string | null>(null);
+  const appliedTraceSettingsRef = useRef<import('./types').StoredTraceSettings | null>(null);
   useEffect(() => {
     const stored = toStoredTraceSettings(traceSettings);
     setProject((prev) => {
-      if (JSON.stringify(prev.traceSettings ?? null) === JSON.stringify(stored)) return prev;
+      if (areStoredTraceSettingsEqual(prev.traceSettings ?? null, stored)) return prev;
       return { ...prev, traceSettings: stored, updatedAt: Date.now() };
     });
   }, [traceSettings, setProject]);
@@ -191,13 +193,12 @@ function AppMain({
   useEffect(() => {
     const stored = project.traceSettings;
     if (!stored) return;
-    const key = JSON.stringify(stored);
-    if (key === appliedTraceSettingsRef.current) return;
-    if (key === JSON.stringify(toStoredTraceSettings(traceSettings))) {
-      appliedTraceSettingsRef.current = key;
+    if (areStoredTraceSettingsEqual(stored, appliedTraceSettingsRef.current)) return;
+    if (areStoredTraceSettingsEqual(stored, toStoredTraceSettings(traceSettings))) {
+      appliedTraceSettingsRef.current = stored;
       return;
     }
-    appliedTraceSettingsRef.current = key;
+    appliedTraceSettingsRef.current = stored;
     setTraceSettings((prev) => ({ ...prev, ...stored }));
   }, [project.traceSettings]);
 
@@ -375,6 +376,27 @@ function AppMain({
     nodeId: null,
     handleType: null,
   });
+
+  const handleCanvasSelectionChange = useCallback(
+    (next: {
+      contourIds: string[];
+      nodeId: string | null;
+      handleType: 'node' | 'handleIn' | 'handleOut' | null;
+    }) => {
+      setCanvasSelection((prev) => {
+        if (
+          prev.nodeId === next.nodeId &&
+          prev.handleType === next.handleType &&
+          prev.contourIds.length === next.contourIds.length &&
+          prev.contourIds.every((id, idx) => id === next.contourIds[idx])
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   // Toolbar Dock Position (top / left / right)
   const [toolbarPosition, setToolbarPosition] = useState<ToolbarPosition>(() => {
@@ -603,7 +625,7 @@ function AppMain({
 
           <div className="flex-1 min-h-0 h-full w-full relative overflow-hidden">
             <GlyphCanvas
-              contours={currentGlyph.contours || []}
+              contours={currentGlyph.contours || EMPTY_CONTOURS}
               onChangeContours={handleUpdateContours}
               advanceWidth={currentGlyph.advanceWidth || 1000}
               lsb={currentGlyph.lsb ?? 50}
@@ -666,7 +688,7 @@ function AppMain({
               activePenPreset={activePenPreset}
               isAnyModalOpen={isAnyModalOpen}
               onOpenGlyphCompareModal={handleOpenGlyphCompareModal}
-              onSelectionChange={setCanvasSelection}
+              onSelectionChange={handleCanvasSelectionChange}
             />
           </div>
         </div>
@@ -680,7 +702,7 @@ function AppMain({
             if (viewportWidth < 1024) handleCloseRadicalsDrawer();
           }}
           onBatchInsertRadical={handleBatchInsertRadical}
-          currentContours={currentGlyph.contours || []}
+          currentContours={currentGlyph.contours || EMPTY_CONTOURS}
           selectedChar={selectedChar}
           allGlyphs={project.glyphs || {}}
           theme={theme}
@@ -704,7 +726,7 @@ function AppMain({
               lsb={currentGlyph.lsb ?? 50}
               onChangeAdvanceWidth={handleUpdateAdvanceWidth}
               onChangeLsb={handleUpdateLsb}
-              contours={currentGlyph.contours || []}
+              contours={currentGlyph.contours || EMPTY_CONTOURS}
               onChangeContours={handleUpdateContours}
               onCommitHistory={commitHistory}
               selectedChar={selectedChar}

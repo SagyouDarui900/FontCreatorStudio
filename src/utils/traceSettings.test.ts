@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeStoredTraceSettings, toStoredTraceSettings } from './traceSettings';
+import { areStoredTraceSettingsEqual, sanitizeStoredTraceSettings, toStoredTraceSettings } from './traceSettings';
 import { TraceSettings } from '../types';
 import {
   TRACE_FONT_OPTIONS,
@@ -95,5 +95,14 @@ describe('trace scale limits', () => {
     expect(TRACE_FONT_OPTIONS).toHaveLength(8);
     expect(TRACE_FONT_OPTIONS.map((o) => o.value)).toContain("'Noto Sans JP', sans-serif");
     expect(TRACE_FONT_OPTIONS.map((o) => o.value)).toContain('cursive');
+  });
+});
+
+describe('areStoredTraceSettingsEqual', () => {
+  it('treats identical values with different key insertion order as equal', () => {
+    const a = { enabled: true, type: 'char' as const, opacity: 0.18, scale: 1 };
+    const b = { scale: 1, opacity: 0.18, type: 'char' as const, enabled: true };
+    expect(areStoredTraceSettingsEqual(a as any, b as any)).toBe(true);
+    expect(areStoredTraceSettingsEqual(a as any, { ...b, scale: 1.5 } as any)).toBe(false);
   });
 });

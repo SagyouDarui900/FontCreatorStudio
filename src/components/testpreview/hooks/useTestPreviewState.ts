@@ -25,20 +25,23 @@ function usePersistedField<S extends object, K extends keyof S>(
   const [internal, setInternal] = useState<S[K]>(initial);
   const setPersisted = useCallback(
     (action: React.SetStateAction<S[K]>) => {
-      persistedOnChange?.((prev) => ({
-        ...prev,
-        [key]:
-          typeof action === 'function'
-            ? (action as (prevValue: S[K]) => S[K])(prev[key])
-            : action,
-      }));
+      persistedOnChange?.((prev) => {
+        const currentVal = prev[key] ?? initial;
+        return {
+          ...prev,
+          [key]:
+            typeof action === 'function'
+              ? (action as (prevValue: S[K]) => S[K])(currentVal)
+              : action,
+        };
+      });
     },
-    [persistedOnChange, key]
+    [persistedOnChange, key, initial]
   );
   if (persistedValue === undefined || persistedOnChange === undefined) {
     return [internal, setInternal];
   }
-  return [persistedValue[key], setPersisted];
+  return [persistedValue[key] ?? initial, setPersisted];
 }
 
 export function useTestPreviewState(

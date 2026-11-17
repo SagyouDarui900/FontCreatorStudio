@@ -29,6 +29,16 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
   onUpdateVerticalMetricField,
   onToggleVertSub,
 }) => {
+  const defaultVertAdvance =
+    typeof verticalWriting?.defaultVertAdvance === 'number' && Number.isFinite(verticalWriting.defaultVertAdvance)
+      ? verticalWriting.defaultVertAdvance
+      : 1000;
+  const vertOriginY =
+    typeof verticalWriting?.vertOriginY === 'number' && Number.isFinite(verticalWriting.vertOriginY)
+      ? verticalWriting.vertOriginY
+      : 880;
+  const substitutions = verticalWriting?.substitutions ?? [];
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Vertical Writing Main Controls Card */}
@@ -39,7 +49,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
           <div className="flex items-center space-x-3">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
-                verticalWriting.enabled
+                verticalWriting?.enabled
                   ? themeClasses.accentBadge
                   : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
               }`}
@@ -68,12 +78,12 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
             <button
               onClick={onToggleVerticalWriting}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                verticalWriting.enabled
+                verticalWriting?.enabled
                   ? themeClasses.accentBtn
                   : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted}`
               }`}
             >
-              {verticalWriting.enabled ? '縦書き機能 ON' : '縦書き機能 OFF'}
+              {verticalWriting?.enabled ? '縦書き機能 ON' : '縦書き機能 OFF'}
             </button>
           </div>
         </div>
@@ -84,7 +94,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
             <label className="text-xs font-bold flex items-center justify-between">
               <span>デフォルト縦向き全角送り幅 (`vertAdvanceHeight`)</span>
               <span className={`font-mono ${themeClasses.accentText}`}>
-                {verticalWriting.defaultVertAdvance} units
+                {defaultVertAdvance} units
               </span>
             </label>
             <input
@@ -92,7 +102,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
               min={500}
               max={2000}
               step={10}
-              value={verticalWriting.defaultVertAdvance}
+              value={defaultVertAdvance}
               onChange={(e) =>
                 onUpdateVerticalMetricField('defaultVertAdvance', Number(e.target.value))
               }
@@ -104,7 +114,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
             <label className="text-xs font-bold flex items-center justify-between">
               <span>縦書きY原点 (`VORG` Table Origin)</span>
               <span className={`font-mono ${themeClasses.accentText}`}>
-                {verticalWriting.vertOriginY} units
+                {vertOriginY} units
               </span>
             </label>
             <input
@@ -112,7 +122,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
               min={0}
               max={1200}
               step={10}
-              value={verticalWriting.vertOriginY}
+              value={vertOriginY}
               onChange={(e) => onUpdateVerticalMetricField('vertOriginY', Number(e.target.value))}
               className="w-full accent-emerald-600"
             />
@@ -130,13 +140,13 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
             <span>標準縦書き置換ルール一覧 (`vert` GSUB Table)</span>
           </h4>
           <span className={`text-xs ${themeClasses.textMuted}`}>
-            有効: {verticalWriting.substitutions.filter((s) => s.enabled).length} /{' '}
-            {verticalWriting.substitutions.length} 件
+            有効: {substitutions.filter((s) => s.enabled).length} /{' '}
+            {substitutions.length} 件
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {verticalWriting.substitutions.map((sub, idx) => {
+          {substitutions.map((sub, idx) => {
             const presetInfo = findVertPresetInfo(sub, idx);
             const srcChar = presetInfo?.char || safeFromCodePoint(sub.sourceUnicode);
             const vertChar = presetInfo?.vertChar || safeFromCodePoint(sub.vertUnicode);
