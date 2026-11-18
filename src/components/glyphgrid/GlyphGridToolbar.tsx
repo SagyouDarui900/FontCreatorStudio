@@ -371,7 +371,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                   </div>
                   <div className="flex items-center gap-1 shrink-0 ml-1">
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded font-bold border ${themeClasses.accentBadge}`}
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${themeClasses.accentBadge}`}
                     >
                       分類選択
                     </span>
@@ -558,7 +558,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               <Layers className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
               <span className="truncate">{activeCategoryDisplayName}</span>
               {searchQuery && (
-                <span className={`px-1.5 py-0.2 rounded border text-[10px] font-mono truncate ${themeClasses.accentBadge}`}>
+                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-mono truncate ${themeClasses.accentBadge}`}>
                   「{searchQuery}」
                 </span>
               )}

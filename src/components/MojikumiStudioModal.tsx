@@ -183,9 +183,9 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
 
         {/* HEADER BAR 2: Editorial Mode Switcher & Format Controls */}
         <div
-          className={`px-4 sm:px-6 py-2 border-b flex items-center justify-between gap-2 overflow-x-auto custom-scrollbar shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`px-3 sm:px-6 py-2 border-b flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:overflow-x-auto custom-scrollbar shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-1 shrink-0">
+          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar max-w-full shrink-0">
             {LAYOUT_MODES.map((m) => {
               const Icon = m.icon;
               const isSel = state.layoutMode === m.id;
@@ -309,7 +309,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
           <button
             type="button"
             onClick={() => state.setMobileTab('preview')}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 min-h-[38px] rounded-lg transition-colors cursor-pointer ${
               state.mobileTab === 'preview'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -323,7 +323,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               state.setMobileTab('texts');
               state.setSidebarTab('text');
             }}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 min-h-[38px] rounded-lg transition-colors cursor-pointer ${
               state.mobileTab === 'texts'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -337,7 +337,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               state.setMobileTab('settings');
               state.setSidebarTab('dimensions');
             }}
-            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 min-h-[38px] rounded-lg transition-colors cursor-pointer ${
               state.mobileTab === 'settings'
                 ? themeClasses.activeTool
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -382,7 +382,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
           <main
             className={`${
               state.mobileTab !== 'preview' ? 'hidden md:flex' : 'flex'
-            } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-hidden md:overflow-x-auto relative ${
+            } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-auto relative ${
               isLight ? 'bg-stone-200/50' : 'bg-black/30'
             }`}
             style={{ WebkitOverflowScrolling: 'touch' }}
@@ -408,7 +408,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               </div>
             </div>
 
-            <div className="flex-1 w-full p-2 sm:p-4 md:p-6 flex flex-col items-center justify-start">
+            <div className="flex-1 w-full p-2 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:p-4 md:p-6 flex flex-col items-center justify-start">
               {state.layoutMode === 'book_spread' && (
                 <BookSpreadView
                   layout={state.currentLayout}
@@ -465,6 +465,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                   fontSizeQ={state.fontSizeQ}
                   lineFeedH={state.lineFeedH}
                   zoom={state.zoom}
+                  isVertical={state.isVertical}
+                  showGrid={state.showBodyGrid}
                 />
               )}
 

@@ -387,11 +387,11 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
       {/* Keyboard Shortcut Footer */}
       <div className="text-[10px] text-stone-500 dark:text-stone-400 text-center flex items-center justify-center gap-1 pt-1 border-t border-stone-200 dark:border-[#223025]">
         <span>ショートカット:</span>
-        <kbd className="px-1 py-0.2 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-700 font-mono font-bold">
+        <kbd className="px-1 py-0.5 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-700 font-mono font-bold">
           Alt
         </kbd>
         <span>+</span>
-        <kbd className="px-1 py-0.2 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-700 font-mono font-bold">
+        <kbd className="px-1 py-0.5 bg-stone-100 dark:bg-stone-800 rounded border border-stone-300 dark:border-stone-700 font-mono font-bold">
           +/-
         </kbd>
       </div>

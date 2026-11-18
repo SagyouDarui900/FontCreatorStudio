@@ -478,8 +478,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             <button
               type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 rounded-lg max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
+              aria-label="閉じる"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -523,9 +524,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           {activeTab === 'family' ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               {/* Left Column: Dedicated Visual Stage & Live Text String Preview (5 cols) */}
-              <div className="lg:col-span-5 sticky lg:top-0 space-y-3">
+              <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-3">
                 {/* Single Glyph Vector Preview Stage */}
-                <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className={`p-3.5 sm:p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
                   <div className="flex items-center justify-between pb-1 border-b">
                     <span className="text-xs font-bold flex items-center gap-1.5">
                       <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -542,13 +543,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <span className={`text-[10px] font-medium shrink-0 ${themeClasses.textMuted}`}>
                         確認文字:
                       </span>
-                      <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5">
+                      <div className="flex items-center gap-1.5 sm:gap-1 overflow-x-auto custom-scrollbar pb-0.5">
                         {quickGlyphs.map((g) => (
                           <button
                             key={g.unicode}
                             type="button"
                             onClick={() => setPreviewUnicode(g.unicode)}
-                            className={`w-6 h-6 rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
+                            className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
                               currentGlyph?.unicode === g.unicode
                                 ? themeClasses.accentBtn
                                 : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
@@ -724,16 +725,16 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                       <span>② 太さオフセット（微調整）</span>
                     </label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 sm:gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedPreset('custom');
                           setWeightDelta(Math.max(-60, weightDelta - 5));
                         }}
-                        className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                        className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                       </button>
                       <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border min-w-[64px] text-center ${themeClasses.accentBadge}`}>
                         {weightDelta > 0 ? `+${weightDelta}` : weightDelta} px
@@ -744,9 +745,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                           setSelectedPreset('custom');
                           setWeightDelta(Math.min(150, weightDelta + 5));
                         }}
-                        className={`w-6 h-6 rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                        className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                       </button>
                     </div>
                   </div>
@@ -808,7 +809,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                             setScope(s.id);
                           }
                         }}
-                        className={`p-2 rounded-xl border text-center text-xs font-bold transition-colors cursor-pointer ${
+                        className={`p-2 rounded-xl border text-center text-xs font-bold transition-colors cursor-pointer last:max-sm:col-span-2 ${
                           scope === s.id
                             ? themeClasses.activeTool
                             : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
@@ -912,13 +913,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               </div>
 
               {/* Master Morphing Preview Stage */}
-              <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
-                <div className="text-xs font-bold flex items-center justify-between">
+              <div className={`p-3.5 sm:p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+                <div className="text-xs font-bold flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>モーフィング補間プレビュー</span>
                   </span>
-                  <div className="flex gap-2 text-[10px] font-mono">
+                  <div className="flex flex-wrap gap-2 text-[10px] font-mono">
                     <span className="text-sky-600 font-bold">■ Master A ({glyphA?.char || 'A'})</span>
                     <span className="text-rose-600 font-bold">■ Master B ({glyphB?.char || 'B'})</span>
                     <span className={`${themeClasses.accentText} font-bold`}>■ 補間結果</span>
@@ -984,7 +985,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
         {/* Footer Actions */}
         <div
-          className={`p-3.5 sm:p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3.5 sm:p-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           {activeTab === 'family' ? (
             <>
@@ -992,17 +993,17 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 type="button"
                 onClick={handleBatchExportWeightFamilyZip}
                 disabled={isExportingZip}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors border cursor-pointer ${themeClasses.accentBadge} hover:opacity-90 disabled:opacity-50`}
+                className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border cursor-pointer ${themeClasses.accentBadge} hover:opacity-90 disabled:opacity-50`}
               >
                 <FolderArchive className="w-4 h-4 shrink-0" />
                 <span>全5ウェイト一括ZIP出力</span>
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={handleCreateNewWeightProject}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                  className={`px-3 py-2.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
                   <Copy className="w-3.5 h-3.5 shrink-0" />
                   <span className="hidden sm:inline">新規ウェイトプロジェクト作成</span>
@@ -1011,26 +1012,27 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <button
                   type="button"
                   onClick={handleApplyToProject}
-                  className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+                  className={`px-3.5 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
                 >
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>現在のプロジェクトに適用</span>
+                  <span className="max-sm:hidden">現在のプロジェクトに適用</span>
+                  <span className="sm:hidden">適用する</span>
                 </button>
               </div>
             </>
           ) : (
-            <div className="w-full flex items-center justify-between gap-2">
+            <div className="w-full flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 キャンセル
               </button>
               <button
                 type="button"
                 onClick={handleApplyMasterInterp}
-                className={`px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+                className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>補間結果を「{currentGlyph?.char || ''}」に適用</span>

@@ -163,7 +163,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
         >
           <CurrentPenIcon className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
           {isCustomPen && (
-            <span className="absolute -top-1 -right-1 max-sm:right-0 max-sm:top-0 px-1 py-0.2 bg-emerald-500 text-stone-950 font-bold text-[8px] rounded-full shadow-xs leading-none">
+            <span className="absolute -top-1 -right-1 max-sm:right-0 max-sm:top-0 px-1 py-0.5 bg-emerald-500 text-stone-950 font-bold text-[8px] rounded-full shadow-xs leading-none">
               自
             </span>
           )}

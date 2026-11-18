@@ -38,101 +38,129 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
     if (isVertical) {
       return (
         <div
-          className="flex flex-row-reverse items-start justify-start h-full select-text p-2 overflow-x-auto custom-scrollbar"
-          style={{
-            gap: `${lineGapPx}px`,
-            fontFamily,
-            fontFeatureSettings: '"vert" 1, "vrt2" 1',
-            contain: 'content',
-          }}
+          dir="rtl"
+          className="w-full h-full overflow-x-auto custom-scrollbar p-2"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {layout.lines.map((line, lIdx) => (
-            <div
-              key={lIdx}
-              className={`flex flex-col items-center relative shrink-0 ${
-                line.isOverflown ? 'bg-rose-500/10' : ''
-              }`}
-              style={{ minWidth: `${emPx}px` }}
-            >
-              {line.glyphs.map((g, gIdx) => {
-                const vertStyle = getVerticalGlyphStyle(g.char, true);
-                return (
-                  <span
-                    key={gIdx}
-                    className={`inline-flex items-center justify-center relative ${
-                      g.isHanging
-                        ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
-                        : ''
-                    }`}
-                    style={{
-                      width: `${emPx}px`,
-                      minHeight: `${emPx}px`,
-                      fontSize: `${emPx}px`,
-                      lineHeight: 1,
-                      paddingTop: `${g.spacingBeforeEm * emPx}px`,
-                      paddingBottom: `${g.spacingAfterEm * emPx}px`,
-                    }}
-                    title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
-                  >
-                    {showGrid && (
+          <div
+            dir="ltr"
+            className="flex flex-row-reverse items-start justify-start w-max ml-auto select-text"
+            style={{
+              gap: `${lineGapPx}px`,
+              fontFamily,
+              fontFeatureSettings: '"vert" 0, "vrt2" 0',
+              contain: 'content',
+            }}
+          >
+            {layout.lines.map((line, lIdx) => (
+              <div
+                key={lIdx}
+                className={`flex flex-col items-center relative shrink-0 ${
+                  line.isOverflown ? 'bg-rose-500/10 rounded-xs' : ''
+                }`}
+                style={{ minWidth: `${emPx}px`, minHeight: `${emPx}px` }}
+              >
+                {line.glyphs.map((g, gIdx) => {
+                  const vertStyle = getVerticalGlyphStyle(g.char, true);
+                  return (
+                    <span
+                      key={gIdx}
+                      className="inline-flex items-center justify-center relative"
+                      style={{
+                        paddingTop: `${g.spacingBeforeEm * emPx}px`,
+                        paddingBottom: `${g.spacingAfterEm * emPx}px`,
+                      }}
+                      title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
+                    >
                       <span
-                        className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
-                        style={{ width: `${emPx}px`, height: `${emPx}px` }}
-                      />
-                    )}
-                    <span style={vertStyle}>{g.char}</span>
-                  </span>
-                );
-              })}
-            </div>
-          ))}
+                        className={`inline-flex items-center justify-center relative ${
+                          g.isHanging
+                            ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                            : ''
+                        }`}
+                        style={{
+                          width: `${emPx}px`,
+                          height: `${emPx}px`,
+                          fontSize: `${emPx}px`,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {showGrid && (
+                          <span
+                            className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
+                          />
+                        )}
+                        <span style={vertStyle}>{g.char}</span>
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
 
     return (
       <div
-        className="flex flex-col h-full select-text p-2"
-        style={{
-          gap: `${lineGapPx}px`,
-          fontFamily,
-          contain: 'content',
-        }}
+        className="w-full h-full overflow-x-auto custom-scrollbar p-2"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {layout.lines.map((line, lIdx) => (
-          <div
-            key={lIdx}
-            className={`flex flex-row items-baseline relative shrink-0 ${
-              line.isOverflown ? 'bg-rose-500/10' : ''
-            }`}
-            style={{ minHeight: `${emPx}px` }}
-          >
-            {line.glyphs.map((g, gIdx) => (
-              <span
-                key={gIdx}
-                className={`inline-block relative text-center ${
-                  g.isHanging
-                    ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
-                    : ''
-                }`}
-                style={{
-                  fontSize: `${emPx}px`,
-                  lineHeight: 1,
-                  paddingLeft: `${g.spacingBeforeEm * emPx}px`,
-                  paddingRight: `${g.spacingAfterEm * emPx}px`,
-                }}
-              >
-                {showGrid && (
+        <div
+          className="flex flex-col items-start justify-start w-max select-text"
+          style={{
+            gap: `${lineGapPx}px`,
+            fontFamily,
+            fontFeatureSettings: '"vert" 0, "vrt2" 0',
+            contain: 'content',
+          }}
+        >
+          {layout.lines.map((line, lIdx) => (
+            <div
+              key={lIdx}
+              className={`flex flex-row items-center relative shrink-0 ${
+                line.isOverflown ? 'bg-rose-500/10 rounded-xs' : ''
+              }`}
+              style={{ minHeight: `${emPx}px` }}
+            >
+              {line.glyphs.map((g, gIdx) => {
+                const boxWidthPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                return (
                   <span
-                    className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
-                    style={{ width: `${emPx}px`, height: `${emPx}px` }}
-                  />
-                )}
-                {g.char}
-              </span>
-            ))}
-          </div>
-        ))}
+                    key={gIdx}
+                    className="inline-flex items-center justify-center relative"
+                    style={{
+                      paddingLeft: `${g.spacingBeforeEm * emPx}px`,
+                      paddingRight: `${g.spacingAfterEm * emPx}px`,
+                    }}
+                  >
+                    <span
+                      className={`inline-flex items-center justify-center relative text-center ${
+                        g.isHanging
+                          ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                          : ''
+                      }`}
+                      style={{
+                        width: `${boxWidthPx}px`,
+                        height: `${emPx}px`,
+                        fontSize: `${emPx}px`,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {showGrid && (
+                        <span
+                          className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60"
+                        />
+                      )}
+                      <span>{g.char}</span>
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     );
   };

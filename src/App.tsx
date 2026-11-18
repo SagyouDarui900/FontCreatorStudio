@@ -327,9 +327,11 @@ function AppMain({
   // canvas: edits there are overwritten the next time the pixel studio
   // opens, because pixelData takes priority on load.
   const warnedPixelGlyphsRef = useRef<Set<string>>(new Set());
+  const projectGlyphsRef = useRef(project.glyphs);
+  projectGlyphsRef.current = project.glyphs;
   useEffect(() => {
     if (activeModal !== null) return;
-    const g = project.glyphs[selectedUnicode];
+    const g = projectGlyphsRef.current[selectedUnicode];
     if (!g?.pixelData) return;
     const key = `${project.id}:${selectedUnicode}`;
     if (warnedPixelGlyphsRef.current.has(key)) return;
@@ -338,7 +340,7 @@ function AppMain({
       `「${g.char || ''}」はピクセルデータを編集中の文字です。通常キャンバスでの編集はピクセルスタジオで上書きされます`,
       'warning'
     );
-  }, [activeModal, project, selectedUnicode, showToast]);
+  }, [activeModal, project.id, selectedUnicode, showToast]);
 
   // Responsive layout tracking & navigation state
   const {

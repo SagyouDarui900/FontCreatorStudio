@@ -105,7 +105,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  }
  }, [isOpen, refreshStorageData]);
 
- // Keyboard shortcut listener: Escape, Tabs (1/2/3), Refresh (R)
+ // Keyboard shortcut listener: Escape, Tabs (1/2/3/4), Refresh (R)
  useEffect(() => {
  if (!isOpen) return;
 
@@ -115,15 +115,30 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  if (e.key === 'Escape') {
  e.preventDefault();
+ if (confirmRestoreId) {
+ setConfirmRestoreId(null);
+ } else if (confirmDeleteId) {
+ setConfirmDeleteId(null);
+ } else if (confirmDeleteBreakdownItem) {
+ setConfirmDeleteBreakdownItem(null);
+ } else if (confirmClearAll) {
+ setConfirmClearAll(false);
+ } else if (isCreatingSnapshot) {
+ setIsCreatingSnapshot(false);
+ } else {
  onClose();
+ }
  } else if (!isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
  if (e.key === '1') {
  e.preventDefault();
  setActiveTab('snapshots');
  } else if (e.key === '2') {
  e.preventDefault();
- setActiveTab('breakdown');
+ setActiveTab('autosave');
  } else if (e.key === '3') {
+ e.preventDefault();
+ setActiveTab('breakdown');
+ } else if (e.key === '4') {
  e.preventDefault();
  setActiveTab('guide');
  } else if (e.key.toLowerCase() === 'r') {
@@ -136,7 +151,17 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  window.addEventListener('keydown', handleKeyDown);
  return () => window.removeEventListener('keydown', handleKeyDown);
- }, [isOpen, onClose, refreshStorageData, onShowToast]);
+ }, [
+ isOpen,
+ onClose,
+ refreshStorageData,
+ onShowToast,
+ confirmRestoreId,
+ confirmDeleteId,
+ confirmDeleteBreakdownItem,
+ confirmClearAll,
+ isCreatingSnapshot,
+ ]);
 
  // Handle manual JSON file backup export
  const handleExportJson = () => {
@@ -251,19 +276,24 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  if (!isOpen) return null;
 
  return (
-  <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-2 sm:p-4 z-[60] anim-fade">
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-label="保存・バックアップ管理"
+    className="fixed inset-0 bg-black/75 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 z-[60] anim-fade"
+  >
     <div
-      className={`w-full max-w-3xl max-h-[92vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+      className={`w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
     >
       {/* MODAL HEADER */}
       <div
-        className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
+        className={`flex items-center justify-between px-4 sm:px-6 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
-        <div className="flex items-center space-x-2.5">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-xs ${themeClasses.accentBtn}`}>
+        <div className="flex items-center space-x-2.5 min-w-0">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${themeClasses.accentBtn}`}>
             <HardDrive className="w-4 h-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
               <span className="max-sm:truncate">保存・バックアップ管理</span>
               <span className={`text-[11px] font-normal px-2 py-0.5 rounded-full border font-mono max-sm:shrink-0 ${themeClasses.accentBadge}`}>
@@ -276,8 +306,10 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
           </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
-          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+          aria-label="閉じる"
+          className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
         >
           <X className="w-5 h-5" />
         </button>
@@ -557,10 +589,10 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <span className="text-xs font-extrabold text-stone-800 dark:text-emerald-100 truncate">
  {snap.label || snap.familyName || '手書きフォント'}
  </span>
- <span className="text-[11px] px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
+ <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
  {snap.glyphCount} 文字
  </span>
- <span className="text-[11px] px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono">
+ <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono">
  {formatBytes(snap.sizeBytes)}
  </span>
  </div>
@@ -649,11 +681,11 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <span className="text-xs font-extrabold text-stone-800 dark:text-emerald-100 truncate">
  {entry.projectName || '手書きフォント'}
  </span>
- <span className="text-[11px] px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
+ <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
  {entry.glyphCount} 文字収録
  </span>
  {idx === 0 && (
- <span className="text-[11px] px-1.5 py-0.2 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className="text-[11px] px-1.5 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  直近の自動保護ポイント
  </span>
  )}
@@ -775,7 +807,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* MODAL FOOTER */}
  <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 ${themeClasses.headerBg}`}
+ className={`flex items-center justify-between px-4 sm:px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
  >
  <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1.5 max-sm:hidden`}>
  <Clock className="w-3.5 h-3.5" />
@@ -783,8 +815,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  <button
+ type="button"
  onClick={onClose}
- className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+ className={`max-sm:w-full max-sm:min-h-[40px] px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
  >
  閉じる
  </button>
@@ -795,6 +828,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {confirmRestoreId && (
  <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[70] anim-fade">
  <div
+ role="alertdialog"
+ aria-modal="true"
+ aria-label="スナップショットの復元"
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${themeClasses.modalBg} ${themeClasses.border}`}
  >
  <div className={`flex items-center space-x-2 ${themeClasses.accentText}`}>
@@ -829,6 +865,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {confirmDeleteId && (
  <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[70] anim-fade">
  <div
+ role="alertdialog"
+ aria-modal="true"
+ aria-label="スナップショットの削除"
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${themeClasses.modalBg} ${themeClasses.border}`}
  >
  <div className="flex items-center space-x-2 text-rose-600">
@@ -860,6 +899,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {confirmDeleteBreakdownItem && (
  <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[70] anim-fade">
  <div
+ role="alertdialog"
+ aria-modal="true"
+ aria-label="ストレージ項目の削除"
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${themeClasses.modalBg} ${themeClasses.border}`}
  >
  <div className="flex items-center space-x-2 text-rose-600">
@@ -895,6 +937,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {confirmClearAll && (
  <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[70] anim-fade">
  <div
+ role="alertdialog"
+ aria-modal="true"
+ aria-label="全スナップショットの一括削除"
  className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-3.5 ${themeClasses.modalBg} ${themeClasses.border}`}
  >
  <div className="flex items-center space-x-2 text-rose-600">

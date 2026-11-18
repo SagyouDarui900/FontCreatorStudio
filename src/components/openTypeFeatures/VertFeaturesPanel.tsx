@@ -66,10 +66,10 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onAutoDetectVerticalGlyphs}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
+              className={`flex-1 sm:flex-none justify-center px-3 py-2 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>既存グリフから全自動バインド</span>
@@ -77,7 +77,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
 
             <button
               onClick={onToggleVerticalWriting}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+              className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                 verticalWriting?.enabled
                   ? themeClasses.accentBtn
                   : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted}`
@@ -163,7 +163,7 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
                 <div className="flex items-center space-x-3 min-w-0">
                   <button
                     onClick={() => onToggleVertSub(sub.id)}
-                    className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
+                    className={`w-6 h-6 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                       sub.enabled
                         ? 'bg-emerald-600 border-emerald-600 text-white'
                         : themeClasses.border
@@ -182,12 +182,12 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
                       className={`flex items-center space-x-1.5 text-[11px] font-mono mt-0.5 ${themeClasses.textMuted}`}
                     >
                       <span
-                        className={`px-1 py-0.2 rounded border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+                        className={`px-1 py-0.5 rounded border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                       >
                         {srcChar} (U+{sub.sourceUnicode.toString(16).toUpperCase()})
                       </span>
                       <ArrowRight className="w-3 h-3 shrink-0" />
-                      <span className={`px-1 py-0.2 rounded border font-bold ${themeClasses.accentBadge}`}>
+                      <span className={`px-1 py-0.5 rounded border font-bold ${themeClasses.accentBadge}`}>
                         {vertChar}
                       </span>
                     </div>

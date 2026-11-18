@@ -363,7 +363,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         defaultKanjiList: kanjiList,
       });
     },
-    [selectedFontStyle]
+    [selectedFontStyle, baselineY]
   );
 
   const handleOpenBatchModalForKangxi = useCallback(
@@ -402,7 +402,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
         defaultKanjiList: item.kanjiList || [],
       });
     },
-    [selectedFontStyle]
+    [selectedFontStyle, baselineY]
   );
 
   const handleOpenBatchModalForCustomPart = useCallback((part: CustomPart) => {
@@ -677,7 +677,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className={`p-1 rounded transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                aria-label="閉じる"
+                className={`p-1 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -1045,7 +1046,10 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           onClick={() => setPendingDuplicateSave(null)}
         >
           <div
-            className={`w-full max-w-xs rounded-lg border p-3 space-y-2 shadow-xl ${themeClasses.cardBg} ${themeClasses.border}`}
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="同名パーツの保存確認"
+            className={`w-full max-w-xs rounded-lg border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-3 space-y-2 shadow-xl ${themeClasses.cardBg} ${themeClasses.border}`}
             onClick={(e) => e.stopPropagation()}
           >
             <p className={`text-xs font-bold ${themeClasses.textPrimary}`}>

@@ -99,7 +99,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
               key={tab.id}
               type="button"
               onClick={() => onChangeSidebarTab(tab.id)}
-              className={`py-1.5 px-1 rounded-md text-[11px] text-center transition-colors duration-150 truncate ${
+              className={`py-1.5 min-h-[36px] sm:min-h-0 px-1 rounded-md text-[11px] text-center transition-colors duration-150 truncate ${
                 isSel
                   ? isLight
                     ? 'bg-white text-emerald-900 shadow-xs border border-stone-200 font-bold'
@@ -390,11 +390,11 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
       </div>
 
       {/* Mobile Done / Close drawer button */}
-      <div className={`p-3 border-t ${themeClasses.border} md:hidden ${themeClasses.headerBg}`}>
+      <div className={`p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t ${themeClasses.border} md:hidden ${themeClasses.headerBg}`}>
         <button
           type="button"
           onClick={() => onChangeMobileTab('preview')}
-          className="w-full py-2.5 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors duration-150"
+          className="w-full min-h-[42px] py-2.5 rounded-lg bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-sm transition-colors duration-150 cursor-pointer"
         >
           <span>プレビューに戻る</span>
         </button>

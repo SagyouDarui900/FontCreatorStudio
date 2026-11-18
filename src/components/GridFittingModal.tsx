@@ -123,7 +123,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             <button
               onClick={onClose}
-              className={`p-1.5 sm:p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 sm:p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -133,7 +133,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
         {/* Toolbar: PPEM Selector & View Controls */}
         <div
-          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap scrollbar-none max-sm:flex-wrap ${themeClasses.subtoolbarBg}`}
+          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap no-scrollbar max-sm:flex-wrap ${themeClasses.subtoolbarBg}`}
         >
           <div className="flex items-center space-x-1.5 shrink-0">
             <span className={`shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs ${themeClasses.textMuted}`}>
@@ -277,17 +277,17 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         </div>
 
         {/* Mobile Sticky Action Bar */}
-        <div className={`flex sm:hidden items-center justify-between gap-2 px-3 py-2 border-t shrink-0 ${themeClasses.subtoolbarBg}`}>
+        <div className={`flex sm:hidden items-center justify-between gap-2 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] border-t shrink-0 ${themeClasses.subtoolbarBg}`}>
           <button
             onClick={handleApplyToCurrentGlyph}
-            className="flex-1 py-2 rounded-xl bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1 transition-colors"
+            className="flex-1 min-h-[42px] py-2 rounded-xl bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1 transition-colors"
           >
             <Check className="w-3.5 h-3.5" />
             <span>「{currentGlyph.char}」に適用</span>
           </button>
           <button
             onClick={handleBatchApplyHinting}
-            className={`flex-1 py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1 transition-colors ${themeClasses.accentBtn}`}
+            className={`flex-1 min-h-[42px] py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1 transition-colors ${themeClasses.accentBtn}`}
           >
             <Sparkles className="w-3.5 h-3.5 opacity-90" />
             <span>全文字一括適用</span>

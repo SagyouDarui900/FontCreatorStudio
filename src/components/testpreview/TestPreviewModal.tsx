@@ -53,6 +53,9 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="組版テスト・試し打ちシミュレーター"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -60,15 +63,15 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
       }}
       className={`fixed inset-0 z-[60] select-none anim-fade ${
         isFullscreen
-          ? 'flex flex-col w-screen h-screen p-0 bg-black/90 overflow-hidden'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75'
+          ? 'flex flex-col w-screen h-[100dvh] p-0 bg-black/90 overflow-hidden'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75'
       }`}
     >
       <div
         className={`w-full flex flex-col overflow-hidden ${
           isFullscreen
-            ? `w-screen h-screen rounded-none border-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full sm:max-w-7xl border rounded-none sm:rounded-2xl shadow-2xl h-[100vh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+            ? `w-screen h-[100dvh] rounded-none border-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
+            : `w-full sm:max-w-7xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl h-[100dvh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header Bar and Guidance Banner */}
@@ -182,37 +185,81 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
         ) : (
           /* ==================== TOP STACKED MODE (WITH COLLAPSIBLE CONTROLS) ==================== */
           <>
-            <TopControlsBar state={state} />
-
-            {/* Main Proofing Stage and Docked Side Panel Container */}
-            <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
-              <PreviewCanvas
-                project={project}
-                state={state}
-                waterfallSizes={waterfallSizes}
-                patternIdPrefix="top"
-                isTopMode={true}
-              />
-
-              {/* Drag Resizer Right */}
-              {isSideAdjusterOpen && isDocked && (
-                <div
-                  onPointerDown={handleRightResizePointerDown}
-                  onPointerMove={handleRightResizePointerMove}
-                  onPointerUp={handleRightResizePointerUp}
-                  onDoubleClick={() => setRightAdjusterWidth(300)}
-                  className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group items-center justify-center select-none"
-                  title="ドラッグで右微調整パネルの幅を調整 (ダブルクリックで初期幅300pxにリセット)"
-                >
-                  <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />
-                </div>
-              )}
-
-              {/* Right Side Docked Glyph Adjuster Panel (Desktop only) */}
-              {isSideAdjusterOpen && !isMobileScreen && (
-                <CharAdjustPanel project={project} state={state} onSelectGlyphForEdit={onSelectGlyphForEdit} />
-              )}
+            {/* Mobile Tab Switcher in Top Mode */}
+            <div className={`flex md:hidden border-b shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+              <button
+                type="button"
+                onClick={() => setMobileTab('settings')}
+                className={`flex-1 py-2 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-colors cursor-pointer ${
+                  mobileTab !== 'adjust'
+                    ? `${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.cardBg}`
+                    : `border-transparent ${themeClasses.textMuted}`
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>プレビュー・設定</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSideAdjusterOpen(true);
+                  setMobileTab('adjust');
+                }}
+                className={`flex-1 py-2 text-xs font-bold flex items-center justify-center space-x-1.5 border-b-2 transition-colors cursor-pointer ${
+                  mobileTab === 'adjust'
+                    ? `${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.cardBg}`
+                    : `border-transparent ${themeClasses.textMuted}`
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span className="truncate max-w-[120px]">
+                  {selectedCharInfo ? `「${selectedCharInfo.char}」個別調整` : '文字個別調整'}
+                </span>
+                {selectedCharInfo && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                )}
+              </button>
             </div>
+
+            {isMobileScreen && mobileTab === 'adjust' ? (
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <CharAdjustPanel project={project} state={state} onSelectGlyphForEdit={onSelectGlyphForEdit} />
+              </div>
+            ) : (
+              <>
+                <TopControlsBar state={state} />
+
+                {/* Main Proofing Stage and Docked Side Panel Container */}
+                <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
+                  <PreviewCanvas
+                    project={project}
+                    state={state}
+                    waterfallSizes={waterfallSizes}
+                    patternIdPrefix="top"
+                    isTopMode={true}
+                  />
+
+                  {/* Drag Resizer Right */}
+                  {isSideAdjusterOpen && isDocked && (
+                    <div
+                      onPointerDown={handleRightResizePointerDown}
+                      onPointerMove={handleRightResizePointerMove}
+                      onPointerUp={handleRightResizePointerUp}
+                      onDoubleClick={() => setRightAdjusterWidth(300)}
+                      className="hidden md:flex w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group items-center justify-center select-none"
+                      title="ドラッグで右微調整パネルの幅を調整 (ダブルクリックで初期幅300pxにリセット)"
+                    >
+                      <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />
+                    </div>
+                  )}
+
+                  {/* Right Side Docked Glyph Adjuster Panel (Desktop only) */}
+                  {isSideAdjusterOpen && !isMobileScreen && (
+                    <CharAdjustPanel project={project} state={state} onSelectGlyphForEdit={onSelectGlyphForEdit} />
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
 

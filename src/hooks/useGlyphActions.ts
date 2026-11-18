@@ -350,17 +350,22 @@ export function useGlyphActions({
         onShowToast(`「${baseChar}」にはまだ字形が作図されていません`, 'warning');
         return;
       }
-      const combinedContours = synthesizeDakutenContours(baseContours, Boolean(isHandakuten));
+      const upm = project.metadata?.unitsPerEm || 1000;
+      const defaultLsb = Math.round(50 * (upm / 1000));
+      const combinedContours = synthesizeDakutenContours(baseContours, Boolean(isHandakuten), {
+        unitsPerEm: upm,
+      });
 
       commitHistory(targetUnicode);
       setProject((prev) => {
-        const upm = prev.metadata?.unitsPerEm || 1000;
+        const currentUpm = prev.metadata?.unitsPerEm || upm;
+        const fallbackLsb = Math.round(50 * (currentUpm / 1000));
         const existing = prev.glyphs[targetUnicode] || {
           unicode: targetUnicode,
           char: targetChar,
           name: `uni${targetUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: baseGlyph.advanceWidth || upm,
-          lsb: baseGlyph.lsb ?? 50,
+          advanceWidth: baseGlyph.advanceWidth || currentUpm,
+          lsb: baseGlyph.lsb ?? fallbackLsb,
         };
 
         return {
@@ -370,8 +375,8 @@ export function useGlyphActions({
             [targetUnicode]: {
               ...existing,
               contours: combinedContours,
-              advanceWidth: baseGlyph.advanceWidth || existing.advanceWidth || upm,
-              lsb: baseGlyph.lsb ?? existing.lsb ?? 50,
+              advanceWidth: baseGlyph.advanceWidth || existing.advanceWidth || currentUpm,
+              lsb: baseGlyph.lsb ?? existing.lsb ?? defaultLsb,
               modified: true,
             },
           },
@@ -386,7 +391,7 @@ export function useGlyphActions({
         'success'
       );
     },
-    [project.glyphs, currentGlyph, commitHistory, setProject, selectedChar, setSelectedUnicode, setSelectedChar, onShowToast]
+    [project.glyphs, project.metadata?.unitsPerEm, currentGlyph, commitHistory, setProject, selectedChar, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
   // Copy strokes from another char

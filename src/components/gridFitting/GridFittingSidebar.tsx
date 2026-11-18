@@ -86,7 +86,7 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
             <button
               key={g.unicode}
               onClick={() => onSelectUnicode(g.unicode)}
-              className={`h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
+              className={`h-10 sm:h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
                 selectedUnicode === g.unicode
                   ? 'bg-amber-600 text-white border-amber-600'
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`

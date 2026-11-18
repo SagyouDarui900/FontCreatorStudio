@@ -423,6 +423,7 @@ export interface FormattedGlyph {
   char: string;
   charIndex: number;
   kind: CharKind;
+  baseAdvanceEm?: number;  // 仮想ボディ幅/送り幅 (通常1.0, 半角0.5, ツメ等)
   spacingBeforeEm: number; // 前のアキ (1.0 = 1em)
   spacingAfterEm: number;  // 後のアキ
   isHanging: boolean;      // ぶら下がり
@@ -472,35 +473,34 @@ export function getPairOptimalSpacing(
     return { beforeEm, afterEm };
   }
 
-  // 行中処理
+  // 行中処理 (leftKind と rightKind の「間」のアキを rightKind の前 = beforeEm に付与する)
   if (leftKind === 'non_yakumono' && rightKind === 'start_bracket') {
     beforeEm += table.nonYakumono_to_startBracket.optimal / 100;
   } else if (leftKind === 'end_bracket' && rightKind === 'non_yakumono') {
-    afterEm += table.endBracket_to_nonYakumono.optimal / 100;
+    beforeEm += table.endBracket_to_nonYakumono.optimal / 100;
   } else if (leftKind === 'end_bracket' && rightKind === 'start_bracket') {
     // 終わり括弧と始め括弧の連続
-    afterEm += table.endBracket_to_startBracket.optimal / 100;
+    beforeEm += table.endBracket_to_startBracket.optimal / 100;
   } else if (leftKind === 'touten' && rightKind === 'start_bracket') {
-    afterEm += table.touten_to_startBracket.optimal / 100;
+    beforeEm += table.touten_to_startBracket.optimal / 100;
   } else if (leftKind === 'touten' && rightKind === 'non_yakumono') {
-    afterEm += table.touten_to_nonYakumono.optimal / 100;
+    beforeEm += table.touten_to_nonYakumono.optimal / 100;
   } else if (leftKind === 'kuten' && rightKind === 'start_bracket') {
-    afterEm += table.kuten_to_startBracket.optimal / 100;
+    beforeEm += table.kuten_to_startBracket.optimal / 100;
   } else if (leftKind === 'kuten' && rightKind === 'non_yakumono') {
-    afterEm += table.kuten_to_nonYakumono.optimal / 100;
+    beforeEm += table.kuten_to_nonYakumono.optimal / 100;
   } else if (leftKind === 'middle_dot' || rightKind === 'middle_dot') {
-    if (leftKind === 'middle_dot') afterEm += table.middleDot_around.optimal / 100;
-    if (rightKind === 'middle_dot') beforeEm += table.middleDot_around.optimal / 100;
+    beforeEm += table.middleDot_around.optimal / 100;
   } else if (
     (leftKind === 'half_latin' && rightKind === 'non_yakumono') ||
     (leftKind === 'non_yakumono' && rightKind === 'half_latin')
   ) {
-    afterEm += table.halfLatin_around_nonYakumono.optimal / 100;
+    beforeEm += table.halfLatin_around_nonYakumono.optimal / 100;
   } else if (
     (leftKind === 'half_digit' && rightKind === 'non_yakumono') ||
     (leftKind === 'non_yakumono' && rightKind === 'half_digit')
   ) {
-    afterEm += table.halfDigit_around_nonYakumono.optimal / 100;
+    beforeEm += table.halfDigit_around_nonYakumono.optimal / 100;
   }
 
   return { beforeEm, afterEm };
@@ -593,6 +593,7 @@ export function simulateTypesetting(
             char: ch,
             charIndex: totalCharCount + charCursor,
             kind,
+            baseAdvanceEm: baseAdvance,
             spacingBeforeEm: beforeEm,
             spacingAfterEm: afterEm,
             isHanging: false,
@@ -618,6 +619,7 @@ export function simulateTypesetting(
               char: ch,
               charIndex: totalCharCount + charCursor,
               kind,
+              baseAdvanceEm: baseAdvance,
               spacingBeforeEm: beforeEm,
               spacingAfterEm: 0,
               isHanging: true,
@@ -634,7 +636,11 @@ export function simulateTypesetting(
             if (startProhibited.has(ch) && currentLineGlyphs.length > 1) {
               const last = currentLineGlyphs.pop()!;
               charCursor--;
-              const lastAdvance = (last.spacingBeforeEm || 0) + (last.spacingAfterEm || 0) + 1.0;
+              const lastAdvance =
+                (last.spacingBeforeEm || 0) +
+                (last.spacingAfterEm || 0) +
+                (last.baseAdvanceEm ?? 1.0) +
+                trackingEm;
               currentAdvanceEm = Math.max(0, currentAdvanceEm - lastAdvance);
             }
           }
@@ -658,6 +664,7 @@ export function simulateTypesetting(
           char: ch,
           charIndex: totalCharCount + charCursor,
           kind,
+          baseAdvanceEm: baseAdvance,
           spacingBeforeEm: beforeEm,
           spacingAfterEm: afterEm,
           isHanging: false,
@@ -675,7 +682,7 @@ export function simulateTypesetting(
         isParagraphStart: isParaStart,
         isParagraphEnd: isParaEnd,
         totalAdvanceEm: currentAdvanceEm,
-        isOverflown: currentAdvanceEm > charsPerLine && lineBurasagari === 0,
+        isOverflown: currentAdvanceEm > safeCharsPerLine + 0.05 && lineBurasagari === 0,
         burasagariCount: lineBurasagari,
       });
 
@@ -687,7 +694,7 @@ export function simulateTypesetting(
 
   const averageDensity =
     lines.length > 0
-      ? (lines.reduce((acc, l) => acc + l.glyphs.length, 0) / (lines.length * charsPerLine)) * 100
+      ? (lines.reduce((acc, l) => acc + l.glyphs.length, 0) / (lines.length * safeCharsPerLine)) * 100
       : 0;
 
   return {

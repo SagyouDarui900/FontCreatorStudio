@@ -324,8 +324,9 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 rounded-lg max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
+              aria-label="閉じる"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -336,7 +337,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Left: Dedicated Visual Stage (5 cols) */}
-            <div className="lg:col-span-5 sticky lg:top-0 space-y-3">
+            <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-3">
               <BatchPreviewSection
                 isLight={isLight}
                 themeClasses={themeClasses}
@@ -393,13 +394,13 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
         {/* Footer Action Bar */}
         <div
-          className={`p-3.5 sm:p-4 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3.5 sm:p-4 border-t flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 sm:gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={onClose}
-              className={`px-3.5 py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               キャンセル
             </button>
@@ -412,7 +413,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             type="button"
             onClick={handleApplyBatch}
             disabled={targetGlyphs.length === 0}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
+            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
           >
             <Sparkles className="w-4 h-4 fill-current shrink-0" />
             <span className="truncate">対象 {targetGlyphs.length} 文字に一括適用</span>

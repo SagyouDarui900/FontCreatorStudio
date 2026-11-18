@@ -239,6 +239,10 @@ export function useGlyphSynthesisState({
     [availableDakutenSources, dakuPreviewChar]
   );
 
+  const unitsPerEm = project.metadata?.unitsPerEm && project.metadata.unitsPerEm > 0
+    ? project.metadata.unitsPerEm
+    : 1000;
+
   const dakutenPreviewSvgPath = useMemo(() => {
     const code = dakuPreviewChar.codePointAt(0);
     if (!code) return '';
@@ -257,12 +261,14 @@ export function useGlyphSynthesisState({
       scale: dakuScale,
       dakuStyle,
       handakuStyle,
+      unitsPerEm,
     });
     return contoursToSvgPath(normalizeGlyphContoursWinding(synthesized));
   }, [
     dakuPreviewChar,
     dakuPreviewKind,
     project.glyphs,
+    unitsPerEm,
     dakuOffsetX,
     dakuOffsetY,
     dakuScale,
@@ -283,7 +289,7 @@ export function useGlyphSynthesisState({
       offsetX: smallOffsetX,
       offsetY: smallOffsetY,
       weightDelta: smallWeightBoost,
-      unitsPerEm: project.metadata?.unitsPerEm || 1000,
+      unitsPerEm,
     });
 
     return {
@@ -293,7 +299,7 @@ export function useGlyphSynthesisState({
   }, [
     smallPreviewChar,
     project.glyphs,
-    project.metadata?.unitsPerEm,
+    unitsPerEm,
     smallScale,
     smallPlacement,
     smallOffsetX,
@@ -353,6 +359,7 @@ export function useGlyphSynthesisState({
       offsetX: dakuOffsetX,
       offsetY: dakuOffsetY,
       scale: dakuScale,
+      unitsPerEm,
     });
 
     if (generatedCount === 0) {
@@ -384,6 +391,7 @@ export function useGlyphSynthesisState({
     notify,
     onClose,
     project.glyphs,
+    unitsPerEm,
     updateProject,
   ]);
 
@@ -481,5 +489,6 @@ export function useGlyphSynthesisState({
     smallKanaTargetCount,
     resetSmallKanaOffsets,
     handleExecuteSmallKanaBatch,
+    unitsPerEm,
   };
 }

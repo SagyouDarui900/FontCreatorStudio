@@ -34,6 +34,7 @@ interface DakutenSynthesisPanelProps {
   dakutenPreviewSvgPath: string;
   dakutenTargetCount: number;
   onExecuteBatch: () => void;
+  unitsPerEm?: number;
 }
 
 const SCOPE_OPTIONS: { id: KanaScope; label: string }[] = [
@@ -81,6 +82,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
   dakutenPreviewSvgPath,
   dakutenTargetCount,
   onExecuteBatch,
+  unitsPerEm = 1000,
 }) => {
   const previewMapping = DAKUTEN_MAPPINGS[dakuPreviewChar];
   const isHandakuPreview = Boolean(
@@ -346,7 +348,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             </div>
 
             {dakutenPreviewSvgPath ? (
-              <svg viewBox="0 0 1000 1000" className="w-full h-full p-2">
+              <svg viewBox={`0 0 ${unitsPerEm} ${unitsPerEm}`} className="w-full h-full p-2">
                 <path
                   d={dakutenPreviewSvgPath}
                   fill={isLight ? '#0f172a' : '#34d399'}

@@ -53,14 +53,14 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
 
   return (
     <div
-      className={`px-5 py-4 border-b transition-colors text-xs ${
+      className={`px-3.5 py-3 sm:px-5 sm:py-4 max-h-[52vh] sm:max-h-none overflow-y-auto overscroll-contain shrink-0 border-b transition-colors text-xs ${
         isLight
           ? 'bg-cyan-50/70 border-cyan-200 text-stone-800'
           : 'bg-[#0e1c20] border-[#1d3840] text-cyan-100'
       }`}
     >
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex items-center space-x-2.5">
+      <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3">
+        <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
           <div
             className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${
               isLight
@@ -70,9 +70,9 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
           >
             <Compass className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-sm text-stone-900 dark:text-white">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h3 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-white">
                 極点最適化（ベジェ曲線 Extrema ノード自動追加 &amp; 軸整列）
               </h3>
               <span
@@ -86,7 +86,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
                 TrueType / OpenType 規格準拠
               </span>
             </div>
-            <p className="text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed">
               3次ベジェ曲線の水平・垂直極点（dx/dt = 0 または dy/dt = 0）を幾何学的に検出し、輪郭形状を 100% 保持したまま極点上にノードを追加します。
               制御ハンドルを軸（水平・垂直）に数学的に正しく整列させることで、フォントレンダリングやヒンティングの精度を最大化します。
             </p>
@@ -95,7 +95,7 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
 
         <button
           onClick={onClose}
-          className={`p-1.5 rounded-lg border transition-colors ${
+          className={`min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 rounded-lg border transition-colors shrink-0 ${
             isLight
               ? 'bg-white border-stone-200 text-stone-400 hover:text-stone-700'
               : 'bg-[#142327] border-[#223f49] text-stone-400 hover:text-white'

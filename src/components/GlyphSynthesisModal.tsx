@@ -72,7 +72,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
                   </span>
                 )}
               </h2>
-              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
+              <p className={`hidden sm:block text-xs truncate ${themeClasses.textMuted}`}>
                 清音から濁音・半濁音、通常かなから小書き文字を一括生成
               </p>
             </div>
@@ -81,7 +81,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <button
               type="button"
               onClick={() => state.setIsFullscreen(!state.isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
                 state.isFullscreen
                   ? themeClasses.accentBadge
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
@@ -103,7 +103,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
               aria-label="閉じる"
             >
@@ -114,7 +114,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b px-3 sm:px-5 pt-1.5 gap-1.5 text-xs font-bold shrink-0 overflow-x-auto scrollbar-none whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`flex border-b px-3 sm:px-5 pt-1.5 gap-1.5 text-xs font-bold shrink-0 overflow-x-auto no-scrollbar whitespace-nowrap ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             type="button"
@@ -149,6 +149,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <DakutenSynthesisPanel
               isLight={isLight}
               themeClasses={themeClasses}
+              unitsPerEm={state.unitsPerEm}
               dakuScope={state.dakuScope}
               onChangeDakuScope={state.setDakuScope}
               dakuOverwrite={state.dakuOverwrite}
@@ -177,6 +178,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <SmallKanaSynthesisPanel
               isLight={isLight}
               themeClasses={themeClasses}
+              unitsPerEm={state.unitsPerEm}
               smallScope={state.smallScope}
               onChangeSmallScope={state.setSmallScope}
               smallOverwrite={state.smallOverwrite}

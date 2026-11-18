@@ -117,7 +117,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
               <div className="flex items-center space-x-3 min-w-0">
                 <button
                   onClick={() => onToggleLigature(lig.id)}
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
+                  className={`w-6 h-6 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                     lig.enabled
                       ? 'bg-emerald-600 border-emerald-600 text-white'
                       : themeClasses.border
@@ -130,7 +130,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
                   <div className="flex items-center space-x-2">
                     <span className="font-bold text-sm truncate">{lig.name}</span>
                     <span
-                      className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase border ${
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border ${
                         lig.type === 'liga'
                           ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
                           : 'bg-purple-500/10 text-purple-600 border-purple-500/30'

@@ -176,4 +176,35 @@ describe('dakutenHelper', () => {
     expect(res.updatedGlyphs[paCode].contours[0].id).toBe('pa-locked');
     expect(res.updatedGlyphs[katakanaGaCode]).toBeUndefined();
   });
+
+  it('scales dakuten, handakuten, and fallback metrics proportionally for custom unitsPerEm', () => {
+    const upm = 2000;
+    const daku1000 = createDakutenContours(0, 0, 'standard', 1.0, 1000);
+    const daku2000 = createDakutenContours(0, 0, 'standard', 1.0, upm);
+    expect(daku2000[0].nodes[0].x).toBeCloseTo(daku1000[0].nodes[0].x * 2, 1);
+    expect(daku2000[0].nodes[0].y).toBeCloseTo(daku1000[0].nodes[0].y * 2, 1);
+
+    const handaku2000 = createHandakutenContours(0, 0, 'standard', 1.0, upm);
+    const [, inner2000] = handaku2000;
+    for (const node of inner2000.nodes) {
+      expect(Math.hypot(node.x - 1670, node.y - 430)).toBeCloseTo(60, 1);
+    }
+
+    const kaCode = 'か'.codePointAt(0)!;
+    const gaCode = 'が'.codePointAt(0)!;
+    const res = batchSynthesizeDakuten(
+      {
+        [kaCode]: {
+          unicode: kaCode,
+          char: 'か',
+          name: 'uni304B',
+          advanceWidth: 0,
+          contours: [makeRectContour('ka-2000', 300, 400, 1400, 1600)],
+        },
+      } as unknown as Record<number, GlyphData>,
+      { scope: 'hiragana', overwriteExisting: true, unitsPerEm: upm }
+    );
+    expect(res.updatedGlyphs[gaCode].advanceWidth).toBe(2000);
+    expect(res.updatedGlyphs[gaCode].lsb).toBe(100);
+  });
 });

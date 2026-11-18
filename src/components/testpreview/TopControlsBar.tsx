@@ -248,116 +248,123 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
         </div>
 
         {/* Toggles */}
-        <div className="flex flex-wrap items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setFontScaleMultiplier(fontScaleMultiplier === 1.35 ? 1.0 : 1.35)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-              fontScaleMultiplier === 1.35
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="和文サイズ最適化 (135% / 100%)"
-          >
-            最適化 {fontScaleMultiplier === 1.35 ? '135%' : '100%'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAutoBalanceMargins(!autoBalanceMargins)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-              autoBalanceMargins
-                ? 'bg-amber-600 text-white'
-                : isLight
-                ? 'bg-emerald-800 text-white'
-                : 'bg-emerald-500 text-stone-950'
-            }`}
-            title="配置補正: 左右センタリング / ガイド位置優先"
-          >
-            {autoBalanceMargins ? 'センタリング' : '位置優先'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setUseTsume(!useTsume)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-              useTsume
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="OpenType palt/pkna 機能による和文詰め組み切替"
-          >
-            {useTsume ? '詰め組み' : 'ベタ組'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowCharBoxes(!showCharBoxes)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
-              showCharBoxes
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="1em仮想ボディ外枠・中心十字線"
-          >
-            仮想枠
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowNotebookGuides(!showNotebookGuides)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
-              showNotebookGuides
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="ノート風ガイド罫線"
-          >
-            ノートガイド
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowGenkoGrid(!showGenkoGrid)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
-              showGenkoGrid
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="原稿用紙マス目・方眼"
-          >
-            原稿用紙
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSpaceMarkers(!showSpaceMarkers)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
-              showSpaceMarkers ? 'bg-amber-600 text-white' : 'bg-white text-stone-600'
-            }`}
-            title="空白記号ハイライト (全角/半角)"
-          >
-            空白
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsWaterfall(!isWaterfall)}
-            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
-              isWaterfall
-                ? isLight
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-emerald-500 text-stone-950'
-                : 'bg-white text-stone-600'
-            }`}
-            title="段階サイズ比較 (16px〜80px)"
-          >
-            段階
-          </button>
-        </div>
+        {(() => {
+          const inactiveToggleCls = isLight
+            ? 'bg-white border-[#c8ded3] text-stone-600 hover:bg-emerald-50'
+            : 'bg-[#18231c] border-[#25362b] text-emerald-300 hover:bg-[#202d24]';
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setFontScaleMultiplier(fontScaleMultiplier === 1.35 ? 1.0 : 1.35)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                  fontScaleMultiplier === 1.35
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="和文サイズ最適化 (135% / 100%)"
+              >
+                最適化 {fontScaleMultiplier === 1.35 ? '135%' : '100%'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAutoBalanceMargins(!autoBalanceMargins)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                  autoBalanceMargins
+                    ? 'bg-amber-600 text-white border-amber-700'
+                    : isLight
+                    ? 'bg-emerald-800 text-white border-emerald-900'
+                    : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                }`}
+                title="配置補正: 左右センタリング / ガイド位置優先"
+              >
+                {autoBalanceMargins ? 'センタリング' : '位置優先'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseTsume(!useTsume)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                  useTsume
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="OpenType palt/pkna 機能による和文詰め組み切替"
+              >
+                {useTsume ? '詰め組み' : 'ベタ組'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCharBoxes(!showCharBoxes)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  showCharBoxes
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="1em仮想ボディ外枠・中心十字線"
+              >
+                仮想枠
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNotebookGuides(!showNotebookGuides)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  showNotebookGuides
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="ノート風ガイド罫線"
+              >
+                ノートガイド
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGenkoGrid(!showGenkoGrid)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  showGenkoGrid
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="原稿用紙マス目・方眼"
+              >
+                原稿用紙
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSpaceMarkers(!showSpaceMarkers)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  showSpaceMarkers ? 'bg-amber-600 text-white border-amber-700' : inactiveToggleCls
+                }`}
+                title="空白記号ハイライト (全角/半角)"
+              >
+                空白
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsWaterfall(!isWaterfall)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  isWaterfall
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="段階サイズ比較 (16px〜80px)"
+              >
+                段階
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Text Input Area */}

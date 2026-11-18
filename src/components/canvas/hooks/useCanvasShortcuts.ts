@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { GridSettings, PathContour, RulerMeasurement, ToolMode } from '../../../types';
 
 export interface UseCanvasShortcutsProps {
@@ -45,46 +45,50 @@ export interface UseCanvasShortcutsProps {
   isGlyphLocked?: boolean;
 }
 
-export function useCanvasShortcuts({
-  isAnyModalOpen,
-  toolMode,
-  activePenContour,
-  selectedContourIds,
-  selectedNodeId,
-  selectedNodeIds,
-  selectedContourId,
-  rulerMeasurement,
-  gridSettings,
-  onChangeGridSettings,
-  resetView,
-  handleZoomStep,
-  handleResetTracePosition,
-  handleResetPenContour,
-  handleUndoPenNode,
-  handleFinishPenContour,
-  handleDeleteSelectedNode,
-  handleDeleteSelected,
-  handleToggleNodeType,
-  handleSmoothStrokeSelected,
-  handleDrawRulerAsStroke,
-  onSelectPrevGlyph,
-  onSelectNextGlyph,
-  setShowNodes,
-  setOutlineOnly,
-  setEraserSize,
-  brushWidth,
-  onChangeBrushWidth,
-  onAdjustBrushSize,
-  setRulerMeasurement,
-  setSelectedContourIds,
-  setSelectedNodeId,
-  setIsSpacePressed,
-  showCanvasToast,
-  onNudgeSelection,
-  isGlyphLocked = false,
-}: UseCanvasShortcutsProps) {
+export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
+  const propsRef = useRef<UseCanvasShortcutsProps>(props);
+  propsRef.current = props;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        isAnyModalOpen,
+        toolMode,
+        activePenContour,
+        selectedContourIds,
+        selectedNodeId,
+        selectedNodeIds,
+        rulerMeasurement,
+        gridSettings,
+        onChangeGridSettings,
+        resetView,
+        handleZoomStep,
+        handleResetTracePosition,
+        handleResetPenContour,
+        handleUndoPenNode,
+        handleFinishPenContour,
+        handleDeleteSelectedNode,
+        handleDeleteSelected,
+        handleToggleNodeType,
+        handleSmoothStrokeSelected,
+        handleDrawRulerAsStroke,
+        onSelectPrevGlyph,
+        onSelectNextGlyph,
+        setShowNodes,
+        setOutlineOnly,
+        setEraserSize,
+        brushWidth,
+        onChangeBrushWidth,
+        onAdjustBrushSize,
+        setRulerMeasurement,
+        setSelectedContourIds,
+        setSelectedNodeId,
+        setIsSpacePressed,
+        showCanvasToast,
+        onNudgeSelection,
+        isGlyphLocked = false,
+      } = propsRef.current;
+
       const activeEl = document.activeElement;
       const isInputActive =
         activeEl &&
@@ -358,12 +362,12 @@ export function useCanvasShortcuts({
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.key === ' ') {
-        setIsSpacePressed(false);
+        propsRef.current.setIsSpacePressed(false);
       }
     };
 
     const handleWindowBlur = () => {
-      setIsSpacePressed(false);
+      propsRef.current.setIsSpacePressed(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -375,42 +379,5 @@ export function useCanvasShortcuts({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [
-    isAnyModalOpen,
-    toolMode,
-    activePenContour,
-    selectedContourIds,
-    selectedNodeId,
-    selectedNodeIds,
-    selectedContourId,
-    rulerMeasurement,
-    gridSettings,
-    onChangeGridSettings,
-    resetView,
-    handleZoomStep,
-    handleResetTracePosition,
-    handleResetPenContour,
-    handleUndoPenNode,
-    handleFinishPenContour,
-    handleDeleteSelectedNode,
-    handleDeleteSelected,
-    handleToggleNodeType,
-    handleSmoothStrokeSelected,
-    handleDrawRulerAsStroke,
-    onSelectPrevGlyph,
-    onSelectNextGlyph,
-    setShowNodes,
-    setOutlineOnly,
-    setEraserSize,
-    brushWidth,
-    onChangeBrushWidth,
-    onAdjustBrushSize,
-    setRulerMeasurement,
-    setSelectedContourIds,
-    setSelectedNodeId,
-    setIsSpacePressed,
-    showCanvasToast,
-    onNudgeSelection,
-    isGlyphLocked,
-  ]);
+  }, []);
 }

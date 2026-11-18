@@ -194,20 +194,20 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         <div
           className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center">
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+            <div className="hidden sm:flex w-8 h-8 rounded-lg bg-sky-600 text-white items-center justify-center shrink-0">
               <ArrowRightLeft className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base font-bold flex items-center gap-2">
-                <span>グリフ重ね合わせ比較 (Overlay Compare)</span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-base font-bold flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="truncate">グリフ重ね合わせ比較 (Overlay Compare)</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-600 text-white font-medium">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-600 text-white font-medium shrink-0">
                     全画面モード
                   </span>
                 )}
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 ${
                     overlaySettings.enabled
                       ? themeClasses.accentBadge
                       : `${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`
@@ -216,16 +216,16 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                   {overlaySettings.enabled ? 'ON' : 'OFF'}
                 </span>
               </h2>
-              <p className={`text-xs ${themeClasses.textMuted}`}>
+              <p className={`text-xs hidden sm:block ${themeClasses.textMuted}`}>
                 作成中の文字に他文字を半透明・輪郭で重ね、骨格や太さのバランスを検査
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
                   ? themeClasses.activeTool
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -246,7 +246,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -347,7 +347,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                     <button
                       key={g.unicode}
                       onClick={() => handleSelectRefChar(g.char, g.unicode)}
-                      className={`px-2 py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
                         isSelected
                           ? 'bg-sky-600 text-white border-sky-600'
                           : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -406,7 +406,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 <Palette className="w-3.5 h-3.5 text-sky-600" />
                 <span>比較色</span>
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {COLOR_OPTIONS.map((c) => {
                   const isSelected = overlaySettings.color === c.hex;
                   return (
@@ -417,7 +417,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       }
                       title={c.name}
                       style={{ backgroundColor: c.hex }}
-                      className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
+                      className={`w-8 h-8 sm:w-7 sm:h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
                         isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110' : 'hover:scale-105'
                       }`}
                     >
@@ -456,7 +456,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             </div>
 
             {/* Position Offset X & Y */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <div className="flex justify-between text-[11px] font-bold mb-1">
                   <span>横位置オフセット (X)</span>
@@ -501,7 +501,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             </div>
 
             {/* Show Metrics toggle */}
-            <div className={`flex items-center justify-between pt-2 border-t ${themeClasses.border}`}>
+            <div className={`flex flex-wrap items-center justify-between gap-2 pt-2 border-t ${themeClasses.border}`}>
               <label className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
@@ -530,9 +530,9 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`p-3 border-t flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
+          className={`p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-3 border-t flex items-center justify-between max-sm:flex-col max-sm:items-stretch max-sm:gap-2 shrink-0 ${themeClasses.headerBg}`}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
             <div className={`text-xs ${themeClasses.textMuted}`}>
               選択中: 「<strong className="text-sky-600 dark:text-sky-400">{overlaySettings.referenceChar || '未設定'}</strong>」
             </div>
@@ -556,7 +556,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white active:scale-95 transition-[transform,background-color] cursor-pointer"
+            className="w-full sm:w-auto min-h-[42px] sm:min-h-0 px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white active:scale-95 transition-[transform,background-color] cursor-pointer"
           >
             完了 (キャンバスに反映)
           </button>

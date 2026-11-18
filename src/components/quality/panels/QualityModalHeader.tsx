@@ -41,12 +41,12 @@ export const QualityModalHeader: React.FC<QualityModalHeaderProps> = ({
   const themeClasses = passedThemeClasses ?? getThemeClasses(isLight ? 'light' : 'dark');
   return (
     <div
-      className={`flex flex-col md:flex-row md:items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3 border-b shrink-0 ${themeClasses.headerBg}`}
+      className={`flex flex-col md:flex-row md:items-center justify-between gap-2 px-3 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-4 sm:py-3 sm:pt-3 border-b shrink-0 ${themeClasses.headerBg}`}
     >
-      <div className="flex items-center justify-between md:justify-start space-x-3 min-w-0">
-        <div className="flex items-center space-x-2 min-w-0">
+      <div className="flex items-center justify-between md:justify-start gap-2 sm:space-x-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border shrink-0 transition-colors ${
+            className={`hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border shrink-0 transition-colors ${
               mainView === 'diagnostics'
                 ? isLight
                   ? 'bg-amber-100 border-amber-300 text-amber-800'
@@ -78,7 +78,7 @@ export const QualityModalHeader: React.FC<QualityModalHeaderProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                   <span>品質検査</span>
                   {report && report.totalIssues > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">
                       {report.totalIssues}
                     </span>
                   )}
@@ -96,7 +96,7 @@ export const QualityModalHeader: React.FC<QualityModalHeaderProps> = ({
                   <Activity className="w-3.5 h-3.5 text-amber-500" />
                   <span>プロジェクト診断</span>
                   {diagReport && diagReport.totalAttentionCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-mono font-bold">
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-500 text-white font-mono font-bold">
                       {diagReport.totalAttentionCount}
                     </span>
                   )}
@@ -138,17 +138,27 @@ export const QualityModalHeader: React.FC<QualityModalHeaderProps> = ({
           </div>
         </div>
 
-        {/* Mobile close button */}
-        <button
-          onClick={onClose}
-          className={`md:hidden p-1.5 rounded-xl border transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-          title="閉じる (Esc)"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {/* Mobile quick controls (rescan + close) */}
+        <div className="flex md:hidden items-center gap-1.5 shrink-0">
+          <button
+            onClick={onRescan}
+            disabled={isScanning}
+            className={`min-w-[36px] min-h-[36px] p-2 rounded-xl border text-xs font-semibold flex items-center justify-center transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+            title="フォント全体を再検査 (R)"
+          >
+            <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={onClose}
+            className={`min-w-[40px] min-h-[40px] p-2 rounded-xl border transition-colors flex items-center justify-center shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            title="閉じる (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center space-x-1.5 shrink-0">
+      <div className="hidden md:flex items-center space-x-1.5 shrink-0">
         <button
           onClick={onRescan}
           disabled={isScanning}

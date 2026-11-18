@@ -421,7 +421,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             <Layers className="w-3.5 h-3.5" />
             <span>精密整列・数値</span>
             {selectedContourIds && selectedContourIds.length > 0 && (
-              <span className="ml-0.5 px-1 py-0.2 text-[10px] font-mono tabular-nums font-bold rounded bg-emerald-500 text-white">
+              <span className="ml-0.5 px-1 py-0.5 text-[10px] font-mono tabular-nums font-bold rounded bg-emerald-500 text-white">
                 {selectedContourIds.length}
               </span>
             )}

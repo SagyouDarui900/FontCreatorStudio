@@ -283,21 +283,56 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
   };
 
   // Keyboard shortcut listener for Density Heatmap Modal
+  const shortcutsRef = React.useRef({
+    selectedNode,
+    isFullscreen,
+    onClose,
+    handleUndo,
+    handleSimplifyAllDense,
+    hasPrev,
+    hasNext,
+    handlePrevGlyph,
+    handleNextGlyph,
+  });
+  shortcutsRef.current = {
+    selectedNode,
+    isFullscreen,
+    onClose,
+    handleUndo,
+    handleSimplifyAllDense,
+    hasPrev,
+    hasNext,
+    handlePrevGlyph,
+    handleNextGlyph,
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        selectedNode: nodeSel,
+        isFullscreen: fullscreen,
+        onClose: closeModal,
+        handleUndo: undo,
+        handleSimplifyAllDense: simplifyAllDense,
+        hasPrev: canPrev,
+        hasNext: canNext,
+        handlePrevGlyph: goPrev,
+        handleNextGlyph: goNext,
+      } = shortcutsRef.current;
+
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
 
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (selectedNode) {
+        if (nodeSel) {
           setSelectedNode(null);
-        } else if (isFullscreen) {
+        } else if (fullscreen) {
           setIsFullscreen(false);
         } else {
-          onClose();
+          closeModal();
         }
         return;
       }
@@ -310,13 +345,13 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        handleUndo();
+        undo();
         return;
       }
 
       if (e.key === 'Enter') {
         e.preventDefault();
-        handleSimplifyAllDense();
+        simplifyAllDense();
         return;
       }
 
@@ -352,14 +387,14 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
           e.preventDefault();
           setZoomLevel(1.0);
         } else if (e.key === 'ArrowLeft') {
-          if (hasPrev) {
+          if (canPrev) {
             e.preventDefault();
-            handlePrevGlyph();
+            goPrev();
           }
         } else if (e.key === 'ArrowRight') {
-          if (hasNext) {
+          if (canNext) {
             e.preventDefault();
-            handleNextGlyph();
+            goNext();
           }
         }
       }
@@ -367,41 +402,37 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isOpen,
-    selectedNode,
-    isFullscreen,
-    onClose,
-    handleUndo,
-    handleSimplifyAllDense,
-    hasPrev,
-    hasNext,
-    handlePrevGlyph,
-    handleNextGlyph,
-  ]);
+  }, [isOpen]);
 
   if (!isOpen || unicode === null) return null;
 
   return (
-    <div className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/75 anim-fade ${
-      isFullscreen ? 'p-0' : 'p-3 sm:p-5'
-    }`}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="輪郭ノード密度ヒートマップ"
+      className={`fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center bg-black/75 anim-fade ${
+        isFullscreen ? 'p-0' : 'p-0 sm:p-5'
+      }`}
+    >
       <div
         className={`w-full border flex flex-col overflow-hidden ${
-          isFullscreen ? 'h-full max-h-full rounded-none border-0' : 'rounded-2xl shadow-2xl max-w-6xl max-h-[94vh]'
+          isFullscreen
+            ? 'h-full max-h-full rounded-none border-0'
+            : 'h-[100dvh] sm:h-auto rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl sm:max-w-6xl sm:max-h-[94vh]'
         } ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* Modal Header */}
         <div
-          className={`px-5 max-sm:px-3 py-3.5 border-b flex items-center justify-between gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 sm:px-5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:pt-3.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-md shrink-0">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="hidden sm:flex w-10 h-10 rounded-xl bg-amber-600 items-center justify-center text-white shadow-md shrink-0">
               <Flame className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-2">
-                <h3 className="text-base font-bold truncate">輪郭密度ヒートマップ診断 & 単純化</h3>
+                <h3 className="text-sm sm:text-base font-bold truncate">輪郭密度ヒートマップ診断 & 単純化</h3>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold max-sm:hidden ${
                     isLight ? 'bg-amber-100 text-amber-900' : 'bg-amber-950/80 text-amber-300 border border-amber-800'
@@ -410,7 +441,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                   {char} (U+{unicode.toString(16).toUpperCase()})
                 </span>
               </div>
-              <p className={`text-xs truncate ${themeClasses.textMuted}`}>
+              <p className={`text-xs truncate hidden sm:block ${themeClasses.textMuted}`}>
                 過剰なアンカー密度をヒートマップで視覚化し、クリックで局所または輪郭単位の単純化を即時適用できます
               </p>
             </div>
@@ -457,7 +488,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
                   onSelectGlyph(unicode);
                   onClose();
                 }}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                className={`p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 title="通常のエディタキャンバスでこの文字を開く"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -467,7 +498,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`hidden sm:flex p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title={isFullscreen ? '通常表示 (F)' : '全画面表示 (F)'}
             >
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
@@ -475,7 +506,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
             <button
               onClick={onClose}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -495,7 +526,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
         />
 
         {/* Modal Main Content: SVG Canvas + Sidebar */}
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row max-lg:overflow-y-auto max-lg:overscroll-contain">
           <HeatmapCanvasView
             isLight={isLight}
             zoomLevel={zoomLevel}

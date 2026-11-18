@@ -61,6 +61,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLicenseModalOpen) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
       if (e.key === 'Escape') {
@@ -77,7 +78,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isFullscreen, isLicenseModalOpen, onClose]);
 
   // Current active image source (either per-char or global)
   const currentImageSrc =
@@ -159,22 +160,25 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="下絵・レタリングトレース設定"
       className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
         className={`flex flex-col overflow-hidden ${
           isFullscreen
-            ? `w-screen h-screen rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full max-w-lg xl:max-w-2xl border rounded-2xl shadow-2xl max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+            ? `w-screen h-[100dvh] rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-lg xl:max-w-2xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <Layers className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -192,8 +196,9 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           <div className="flex items-center space-x-1.5">
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1 px-2 rounded-lg border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
                   ? themeClasses.accentBadge
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
@@ -213,7 +218,9 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="閉じる"
               className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >

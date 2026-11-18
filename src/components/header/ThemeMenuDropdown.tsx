@@ -117,7 +117,7 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold truncate">{p.name}</span>
-                        <span className={`text-[9px] px-1.5 py-0.2 rounded border font-semibold ${p.badgeClass}`}>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${p.badgeClass}`}>
                           {p.badge}
                         </span>
                       </div>

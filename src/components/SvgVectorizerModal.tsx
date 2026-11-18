@@ -21,7 +21,7 @@ import { PathContour } from '../types';
 import { parseSvgStringToContours, SvgFitMode } from '../utils/svgParser';
 import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
 import { contoursToSvgPath, getSafeGlyphViewBox } from '../utils/path';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 
 /** Maximum SVG text size accepted for parsing (1 MB). */
 const SVG_TEXT_MAX_BYTES = 1024 * 1024;
@@ -67,6 +67,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'vectorizer' | 'svg_import'>('vectorizer');
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   // SVG Direct Import states
   const svgFileInputRef = useRef<HTMLInputElement>(null);
@@ -263,7 +264,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
       if (onShowToast) {
         onShowToast('クリップボードに画像またはSVGデータが見つかりませんでした。', 'warning');
       }
-    } catch (err) {
+    } catch {
       if (onShowToast) {
         onShowToast('クリップボードの読み取りが拒否されたか、非対応です。ファイル選択から読み込んでください。', 'warning');
       }
@@ -284,115 +285,108 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      role="dialog"
+      aria-modal="true"
+      aria-label="SVGインポート & 画像ベクター化スタジオ"
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/60 select-none'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
-        className={`flex flex-col overflow-hidden ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? isLight
-              ? 'w-screen h-screen bg-[#f7faf8] text-stone-800'
-              : 'w-screen h-screen bg-[#151e18] text-emerald-100'
-            : isLight
-            ? 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] rounded-none sm:rounded-2xl bg-[#f7faf8] border-[#c8ded3] text-stone-800'
-            : 'w-full max-w-2xl xl:max-w-4xl border max-h-[92vh] rounded-none sm:rounded-2xl bg-[#151e18] border-[#25362b] text-emerald-100'
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl xl:max-w-4xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3 sm:p-3.5 border-b flex items-center justify-between shrink-0 ${
-            isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#18231c] border-[#25362b]'
-          }`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-2 max-sm:min-w-0 max-sm:flex-1">
-            <Wand2 className={`w-4 h-4 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
-            <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 max-sm:min-w-0 ${
-                isLight ? 'text-emerald-950' : 'text-emerald-200'
-              }`}
-            >
-              <span className="max-sm:truncate">SVGインポート & 画像ベクター化スタジオ</span>
-              {isFullscreen && (
-                <span className="text-[10px] px-2 py-0.5 bg-emerald-600 text-white font-medium">
-                  全画面モード
-                </span>
-              )}
-            </h2>
+          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+            <div className={`p-2 rounded-xl border shrink-0 ${themeClasses.accentBadge}`}>
+              <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
+                <span className="truncate">SVGインポート & 画像ベクター化</span>
+                {isFullscreen && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                    全画面
+                  </span>
+                )}
+              </h2>
+              <p className={`hidden sm:block text-[11px] truncate ${themeClasses.textMuted}`}>
+                手書きスキャン画像からの自動ベクター変換・SVGパスの直接取り込み
+              </p>
+            </div>
           </div>
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 border text-xs font-semibold flex items-center space-x-1 transition-colors ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
                 isFullscreen
-                  ? isLight
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                  : isLight
-                  ? 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
-                  : 'bg-[#101813] border-[#25362b] text-emerald-300 hover:bg-[#18231c]'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
               }`}
               title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
               {isFullscreen ? (
                 <>
                   <Minimize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">通常</span>
+                  <span>通常</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">全画面</span>
+                  <span>全画面</span>
                 </>
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className={`p-1 rounded-lg max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center border transition-colors ${
-                isLight ? 'text-stone-500 border-stone-200 hover:bg-emerald-100' : 'text-emerald-400 border-[#25362b] hover:bg-[#202d24]'
-              }`}
+              className={`p-1.5 rounded-lg min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
+              aria-label="閉じる"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         {/* Tab Selection */}
         <div
-          className={`grid grid-cols-2 p-1.5 gap-1.5 border-b text-xs font-semibold shrink-0 ${
-            isLight ? 'bg-[#edf5f0] border-[#d8e6df]' : 'bg-[#101813] border-[#25362b]'
-          }`}
+          className={`grid grid-cols-2 p-2 gap-1.5 border-b text-xs font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
+            type="button"
             onClick={() => setActiveTab('vectorizer')}
-            className={`py-2 px-2 sm:px-3 border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors ${
+            className={`py-2 px-2.5 sm:px-3 rounded-xl border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
               activeTab === 'vectorizer'
-                ? isLight
-                  ? 'bg-white border-stone-300 text-emerald-950 font-bold'
-                  : 'bg-[#1c2920] border-emerald-700 text-emerald-300 font-bold'
-                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-emerald-800'
+                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.accentText} font-bold shadow-xs`
+                : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
-            <ImageIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+            <ImageIcon className={`w-4 h-4 shrink-0 ${activeTab === 'vectorizer' ? themeClasses.accentText : ''}`} />
             <span className="truncate max-sm:hidden">手書き画像 → SVG変換</span>
             <span className="hidden max-sm:inline">画像 → SVG</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('svg_import')}
-            className={`py-2 px-2 sm:px-3 border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors ${
+            className={`py-2 px-2.5 sm:px-3 rounded-xl border flex items-center justify-center space-x-1.5 sm:space-x-2 transition-colors cursor-pointer ${
               activeTab === 'svg_import'
-                ? isLight
-                  ? 'bg-white border-stone-300 text-emerald-950 font-bold'
-                  : 'bg-[#1c2920] border-emerald-700 text-emerald-300 font-bold'
-                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-emerald-800'
+                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.accentText} font-bold shadow-xs`
+                : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
-            <FileCode className="w-4 h-4 text-emerald-600 shrink-0" />
+            <FileCode className={`w-4 h-4 shrink-0 ${activeTab === 'svg_import' ? themeClasses.accentText : ''}`} />
             <span className="truncate max-sm:hidden">SVGファイル / コード読込</span>
             <span className="hidden max-sm:inline">SVG読込</span>
           </button>
@@ -400,7 +394,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 1: IMAGE VECTORIZER */}
         {activeTab === 'vectorizer' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-4 text-xs">
             {/* Upload Toolbar */}
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -415,58 +409,51 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 }}
               />
               <button
+                type="button"
                 onClick={() => imgFileInputRef.current?.click()}
-                className={`py-2 px-3 border flex items-center space-x-1.5 font-bold ${
-                  isLight
-                    ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900'
-                    : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600'
-                }`}
+                className={`py-2 px-3.5 rounded-xl border border-transparent flex items-center space-x-1.5 font-bold min-h-[40px] sm:min-h-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
               >
-                <Upload className="w-3.5 h-3.5" />
+                <Upload className="w-3.5 h-3.5 shrink-0" />
                 <span>画像ファイルを選択</span>
               </button>
 
               <button
+                type="button"
                 onClick={handlePasteClipboard}
-                className={`py-2 px-3 border flex items-center space-x-1.5 ${
-                  isLight
-                    ? 'bg-white border-stone-300 hover:bg-emerald-50'
-                    : 'bg-[#1a261f] border-[#25362b] hover:bg-[#223127]'
-                }`}
+                className={`py-2 px-3 rounded-xl border flex items-center space-x-1.5 font-semibold min-h-[40px] sm:min-h-0 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
-                <Clipboard className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
+                <Clipboard className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
                 <span>クリップボード貼り付け</span>
               </button>
 
               {rawImageSrc && (
                 <button
+                  type="button"
                   onClick={() => setShowOriginalOverlay(!showOriginalOverlay)}
-                  className={`py-2 px-2.5 border flex items-center space-x-1 ${
+                  className={`py-2 px-3 rounded-xl border flex items-center space-x-1.5 min-h-[40px] sm:min-h-0 transition-colors cursor-pointer ${
                     showOriginalOverlay
-                      ? 'bg-emerald-100 dark:bg-emerald-950 border-emerald-600 font-bold'
-                      : 'border-stone-300 dark:border-stone-700'
+                      ? `${themeClasses.accentBadge} font-bold`
+                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                   }`}
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3.5 h-3.5 shrink-0" />
                   <span>元画像と重ねる</span>
                 </button>
               )}
             </div>
 
             {!rawImageSrc ? (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div
                   onClick={() => imgFileInputRef.current?.click()}
-                  className={`p-8 border-2 border-dashed flex flex-col items-center justify-center space-y-3 cursor-pointer text-center transition-colors ${
-                    isLight
-                      ? 'border-emerald-300 bg-white/70 hover:bg-emerald-50/50'
-                      : 'border-emerald-800/60 bg-[#101813] hover:bg-[#141f18]'
-                  }`}
+                  className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center space-y-3 cursor-pointer text-center transition-colors ${themeClasses.cardBg} ${themeClasses.accentBorder} hover:opacity-90`}
                 >
-                  <ImageIcon className="w-12 h-12 text-emerald-600 opacity-60" />
+                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center ${themeClasses.accentBadge}`}>
+                    <ImageIcon className="w-7 h-7" />
+                  </div>
                   <div>
                     <p className="font-bold text-sm">手書き文字の写真やスケッチ画像をアップロード</p>
-                    <p className="text-[11px] text-stone-500 mt-1">
+                    <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>
                       高精度な輪郭抽出アルゴリズムによりベクター輪郭（SVGベジェ曲線）へ自動変換します
                     </p>
                   </div>
@@ -474,35 +461,31 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
                 {/* Recommended Image Specification Guide */}
                 <div
-                  className={`p-3.5 border text-[11px] space-y-2 ${
-                    isLight
-                      ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-                      : 'bg-[#101b14] border-emerald-800/60 text-emerald-200'
-                  }`}
+                  className={`p-3.5 sm:p-4 rounded-xl border text-[11px] space-y-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
-                  <div className="flex items-center space-x-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+                  <div className={`flex items-center space-x-1.5 font-bold text-xs ${themeClasses.accentText}`}>
                     <Info className="w-4 h-4 shrink-0" />
                     <span>フォント作成・ベクター変換の推奨画像規格</span>
                   </div>
-                  <ul className="space-y-1.5 text-stone-600 dark:text-stone-300 pl-0.5 leading-relaxed">
+                  <ul className={`space-y-1.5 pl-0.5 leading-relaxed ${themeClasses.textMuted}`}>
                     <li className="flex items-start space-x-1.5">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">・推奨解像度:</span>
+                      <span className={`font-bold shrink-0 ${themeClasses.accentText}`}>・推奨解像度:</span>
                       <span>
-                        <strong className="text-stone-800 dark:text-emerald-300">1000 × 1000 px</strong> 〜 <strong className="text-stone-800 dark:text-emerald-300">2048 × 2048 px</strong> （正方形 1:1 比率）
-                        <span className="block text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
-                          ※FontForge等の標準EM正方形枠（UnitsPerEm 1000/1024）と1:1で対応し、高精度のベジェ曲線にトレースされます（最低512px角以上）。
+                        <strong className={themeClasses.textPrimary}>1000 × 1000 px</strong> 〜 <strong className={themeClasses.textPrimary}>2048 × 2048 px</strong> （正方形 1:1 比率）
+                        <span className="block text-[10px] opacity-80 mt-0.5">
+                          ※標準EM正方形枠（UnitsPerEm 1000/1024）と1:1で対応し、高精度のベジェ曲線にトレースされます（最低512px角以上）。
                         </span>
                       </span>
                     </li>
                     <li className="flex items-start space-x-1.5">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">・コントラスト:</span>
+                      <span className={`font-bold shrink-0 ${themeClasses.accentText}`}>・コントラスト:</span>
                       <span>
-                        <strong className="text-stone-800 dark:text-emerald-300">白背景に濃い黒文字</strong>（はっきりしたモノクロ・高コントラスト）
+                        <strong className={themeClasses.textPrimary}>白背景に濃い黒文字</strong>（はっきりしたモノクロ・高コントラスト）
                       </span>
                     </li>
                     <li className="flex items-start space-x-1.5">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">・余白と配置:</span>
-                      <span>文字の上下左右に <strong>10%〜15% 程度の適度な余白</strong> を確保してください。</span>
+                      <span className={`font-bold shrink-0 ${themeClasses.accentText}`}>・余白と配置:</span>
+                      <span>文字の上下左右に <strong className={themeClasses.textPrimary}>10%〜15% 程度の適度な余白</strong> を確保してください。</span>
                     </li>
                   </ul>
                 </div>
@@ -511,16 +494,16 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 {/* Vectorizer Preview */}
                 <div
-                  className={`relative aspect-square border overflow-hidden flex items-center justify-center ${
-                    isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#0f1611] border-[#25362b]'
-                  }`}
+                  className={`relative aspect-square rounded-2xl border overflow-hidden flex items-center justify-center ${
+                    isLight ? 'bg-white' : 'bg-black/30'
+                  } ${themeClasses.border}`}
                 >
                   {/* Grid background */}
                   <div
-                    className="absolute inset-0 opacity-10 pointer-events-none"
+                    className="absolute inset-0 opacity-15 pointer-events-none"
                     style={{
                       backgroundImage:
-                        'radial-gradient(circle, #10b981 1px, transparent 1px)',
+                        'radial-gradient(circle, currentColor 1px, transparent 1px)',
                       backgroundSize: '16px 16px',
                     }}
                   />
@@ -535,7 +518,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   )}
 
                   {/* Generated Vector Contours */}
-                  <svg viewBox={getSafeGlyphViewBox(vectorContours, 1000)} className="w-full h-full z-10">
+                  <svg viewBox={getSafeGlyphViewBox(vectorContours, 1000)} className="w-full h-full z-10 p-2">
                     <path
                       d={contoursToSvgPath(vectorContours)}
                       fill={isLight ? '#064e3b' : '#34d399'}
@@ -546,7 +529,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   </svg>
 
                   {isProcessing && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white space-x-2 z-20">
+                    <div className="absolute inset-0 bg-black/45 flex items-center justify-center text-white space-x-2 z-20">
                       <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
                       <span className="text-xs font-bold">ベクター解析中...</span>
                     </div>
@@ -556,22 +539,20 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 {/* Parameters Controls */}
                 <div className="space-y-3.5">
                   <div
-                    className={`p-3 border space-y-3 ${
-                      isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#121c15] border-[#25362b]'
-                    }`}
+                    className={`p-3.5 rounded-xl border space-y-3 ${themeClasses.cardBg} ${themeClasses.border}`}
                   >
-                    <div className="flex items-center justify-between font-bold text-xs pb-1 border-b border-stone-200 dark:border-stone-800">
-                      <span className="flex items-center space-x-1">
-                        <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className={`flex items-center justify-between font-bold text-xs pb-2 border-b ${themeClasses.border}`}>
+                      <span className="flex items-center space-x-1.5">
+                        <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                         <span>ベクター化パラメーター調整</span>
                       </span>
-                      <span className="text-[10px] text-stone-500 font-normal">
+                      <span className={`text-[10px] font-mono font-normal ${themeClasses.textMuted}`}>
                         輪郭数: {vectorContours.length}
                       </span>
                     </div>
 
                     {vectorizeEmpty && !isProcessing && (
-                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2.5 py-2">
                         輪郭が見つかりませんでした。閾値を調整してください。
                       </p>
                     )}
@@ -580,7 +561,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
                         <span>二値化の閾値 (しきい値):</span>
-                        <span className="font-mono font-bold text-emerald-600">{threshold}</span>
+                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>{threshold}</span>
                       </div>
                       <input
                         type="range"
@@ -588,7 +569,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         max="240"
                         value={threshold}
                         onChange={(e) => setThreshold(Number(e.target.value))}
-                        className="w-full accent-emerald-700"
+                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
                       />
                     </div>
 
@@ -596,7 +577,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
                         <span>スムージング (滑らかさ / ノイズ除去):</span>
-                        <span className="font-mono font-bold text-emerald-600">
+                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
                           {smoothing.toFixed(1)}
                         </span>
                       </div>
@@ -607,7 +588,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         step="0.5"
                         value={smoothing}
                         onChange={(e) => setSmoothing(Number(e.target.value))}
-                        className="w-full accent-emerald-700"
+                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
                       />
                     </div>
 
@@ -615,7 +596,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                     <div>
                       <div className="flex justify-between text-[11px] mb-1">
                         <span>コントラスト強調:</span>
-                        <span className="font-mono font-bold text-emerald-600">
+                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
                           {contrast.toFixed(1)}x
                         </span>
                       </div>
@@ -626,69 +607,58 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                         step="0.1"
                         value={contrast}
                         onChange={(e) => setContrast(Number(e.target.value))}
-                        className="w-full accent-emerald-700"
+                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
                       />
                     </div>
 
                     {/* Invert */}
-                    <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center justify-between pt-1 cursor-pointer select-none min-h-[36px]">
                       <span className="text-[11px]">白黒を反転する（黒背景に白文字の場合）:</span>
                       <input
                         type="checkbox"
                         checked={invert}
                         onChange={(e) => setInvert(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-700 rounded-sm"
+                        className="w-4 h-4 accent-emerald-600 rounded shrink-0 ml-2"
                       />
-                    </div>
+                    </label>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="space-y-2">
                     <button
+                      type="button"
                       onClick={() => {
                         onApplyContours(vectorContours, false);
                         onClose();
                       }}
                       disabled={vectorContours.length === 0}
-                      className={`w-full py-2.5 px-3 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
-                        vectorContours.length === 0
-                          ? 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
-                          : isLight
-                          ? 'bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900'
-                          : 'bg-emerald-700 hover:bg-emerald-600 text-white border-emerald-600'
-                      }`}
+                      className={`w-full py-2.5 px-3 min-h-[44px] sm:min-h-0 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-colors border border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
                     >
-                      <Check className="w-4 h-4" />
+                      <Check className="w-4 h-4 shrink-0" />
                       <span>文字「{selectedChar}」に置き換え適用</span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
                       <button
+                        type="button"
                         onClick={() => {
                           onApplyContours(vectorContours, true);
                           onClose();
                         }}
                         disabled={vectorContours.length === 0}
-                        className={`py-2 px-2.5 border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
-                          isLight
-                            ? 'bg-white border-emerald-700 text-emerald-950 hover:bg-emerald-50'
-                            : 'bg-[#18231c] border-emerald-600 text-emerald-200 hover:bg-[#202d24]'
-                        }`}
+                        className={`py-2 px-2.5 min-h-[40px] sm:min-h-0 rounded-xl border flex items-center justify-center space-x-1 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                       >
-                        <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                        <Plus className="w-3.5 h-3.5 shrink-0" />
                         <span>既存輪郭に追加</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={handleDownloadSvg}
                         disabled={!generatedSvgString}
-                        className={`py-2 px-2.5 border flex items-center justify-center space-x-1 text-[11px] font-semibold ${
-                          isLight
-                            ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
-                            : 'bg-[#18231c] border-[#25362b] text-stone-300 hover:bg-[#202d24]'
-                        }`}
+                        className={`py-2 px-2.5 min-h-[40px] sm:min-h-0 rounded-xl border flex items-center justify-center space-x-1 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                       >
-                        <Download className="w-3.5 h-3.5 text-emerald-600" />
+                        <Download className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                         <span>SVGファイル保存</span>
                       </button>
                     </div>
@@ -701,7 +671,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 2: DIRECT SVG IMPORT */}
         {activeTab === 'svg_import' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-4 text-xs">
             {/* SVG file upload toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <input
@@ -717,60 +687,52 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               />
               <div className="flex items-center gap-2 flex-wrap">
                 <button
+                  type="button"
                   onClick={() => svgFileInputRef.current?.click()}
-                  className={`py-2 px-3 border flex items-center space-x-1.5 font-bold transition-colors ${
-                    isLight
-                      ? 'bg-emerald-800 border-emerald-900 text-white hover:bg-emerald-900'
-                      : 'bg-emerald-700 border-emerald-600 text-white hover:bg-emerald-600'
-                  }`}
+                  className={`py-2 px-3.5 rounded-xl border border-transparent flex items-center space-x-1.5 font-bold min-h-[40px] sm:min-h-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
                 >
-                  <Upload className="w-3.5 h-3.5" />
+                  <Upload className="w-3.5 h-3.5 shrink-0" />
                   <span>SVGファイルを選択</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={handlePasteClipboard}
-                  className={`py-2 px-3 border flex items-center space-x-1.5 transition-colors ${
-                    isLight
-                      ? 'bg-white border-stone-300 hover:bg-emerald-50'
-                      : 'bg-[#1a261f] border-[#25362b] hover:bg-[#223127]'
-                  }`}
+                  className={`py-2 px-3 rounded-xl border flex items-center space-x-1.5 font-semibold min-h-[40px] sm:min-h-0 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
-                  <Clipboard className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
+                  <Clipboard className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
                   <span>クリップボード貼り付け</span>
                 </button>
               </div>
 
-              <label className="flex items-center space-x-1.5 text-[11px] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fitToEm}
-                  onChange={(e) => {
-                    setFitToEm(e.target.checked);
-                  }}
-                  className="w-4 h-4 accent-emerald-700 /* 入力要素 */ rounded-xs"
-                />
-                <span>1000×1000 EM枠に自動フィット</span>
-              </label>
-
-              {fitToEm && (
-                <label className="flex items-center space-x-1.5 text-[11px]">
-                  <span>配置方法:</span>
-                  <select
-                    value={fitMode}
-                    onChange={(e) => setFitMode(e.target.value as SvgFitMode)}
-                    className={`px-1.5 py-1 border text-[11px] ${
-                      isLight
-                        ? 'bg-white border-stone-300 text-stone-800'
-                        : 'bg-[#101813] border-[#25362b] text-emerald-100'
-                    }`}
-                  >
-                    <option value="center">中央配置</option>
-                    <option value="baseline">ベースライン合わせ</option>
-                    <option value="viewbox">viewBox 基準</option>
-                  </select>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center space-x-1.5 text-[11px] cursor-pointer min-h-[32px]">
+                  <input
+                    type="checkbox"
+                    checked={fitToEm}
+                    onChange={(e) => {
+                      setFitToEm(e.target.checked);
+                    }}
+                    className="w-4 h-4 accent-emerald-600 rounded"
+                  />
+                  <span>1000×1000 EM枠に自動フィット</span>
                 </label>
-              )}
+
+                {fitToEm && (
+                  <label className="flex items-center space-x-1.5 text-[11px]">
+                    <span className={themeClasses.textMuted}>配置方法:</span>
+                    <select
+                      value={fitMode}
+                      onChange={(e) => setFitMode(e.target.value as SvgFitMode)}
+                      className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                    >
+                      <option value="center">中央配置</option>
+                      <option value="baseline">ベースライン合わせ</option>
+                      <option value="viewbox">viewBox 基準</option>
+                    </select>
+                  </label>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -781,22 +743,18 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   value={svgText}
                   onChange={(e) => handleSvgTextChange(e.target.value)}
                   placeholder={`<svg viewBox="0 0 1000 1000">\n  <path d="M 100 100 L 900 100 ..." />\n</svg>`}
-                  className={`flex-1 min-h-[220px] p-2.5 rounded-sm /* 入力のみ最大rounded-sm */ border font-mono text-[11px] leading-relaxed resize-none ${
-                    isLight
-                      ? 'bg-white border-stone-300 text-stone-800'
-                      : 'bg-[#101813] border-[#25362b] text-emerald-100'
-                  }`}
+                  className={`flex-1 min-h-[200px] sm:min-h-[220px] p-3 rounded-xl border font-mono text-[11px] leading-relaxed resize-none outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 />
                 {svgParseError && (
-                  <p className="text-[11px] text-red-600 font-semibold">{svgParseError}</p>
+                  <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold">{svgParseError}</p>
                 )}
                 {svgFileWarning && (
-                  <p className="text-[11px] text-amber-600 font-semibold">{svgFileWarning}</p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">{svgFileWarning}</p>
                 )}
                 {svgWarnings.length > 0 && (
                   <div className="space-y-0.5">
                     {svgWarnings.map((warning, i) => (
-                      <p key={i} className="text-[11px] text-amber-600">
+                      <p key={i} className="text-[11px] text-amber-600 dark:text-amber-400">
                         {warning}
                       </p>
                     ))}
@@ -808,9 +766,9 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="space-y-3 flex flex-col">
                 <span className="text-[11px] font-bold">抽出プレビュー:</span>
                 <div
-                  className={`flex-1 min-h-[220px] border flex items-center justify-center p-2 relative ${
-                    isLight ? 'bg-white border-[#d8e6df]' : 'bg-[#0f1611] border-[#25362b]'
-                  }`}
+                  className={`flex-1 min-h-[200px] sm:min-h-[220px] rounded-2xl border flex items-center justify-center p-3 relative overflow-hidden ${
+                    isLight ? 'bg-white' : 'bg-black/30'
+                  } ${themeClasses.border}`}
                 >
                   {svgParsedContours.length > 0 ? (
                     <svg viewBox={getSafeGlyphViewBox(svgParsedContours, 1000)} className="w-full h-full">
@@ -821,7 +779,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                       />
                     </svg>
                   ) : (
-                    <div className="text-center text-stone-400 text-xs">
+                    <div className={`text-center text-xs px-4 ${themeClasses.textMuted}`}>
                       SVGデータが入力されるとここにプレビューが表示されます
                     </div>
                   )}
@@ -830,38 +788,28 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 {/* Apply Buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
+                    type="button"
                     onClick={() => {
                       onApplyContours(svgParsedContours, false);
                       onClose();
                     }}
                     disabled={svgParsedContours.length === 0}
-                    className={`py-2 px-3 font-bold flex items-center justify-center space-x-1.5 transition-colors border ${
-                      svgParsedContours.length === 0
-                        ? 'bg-stone-300 text-stone-500 border-stone-300 cursor-not-allowed'
-                        : isLight
-                        ? 'bg-emerald-800 hover:bg-emerald-900 border-emerald-900 text-white'
-                        : 'bg-emerald-700 hover:bg-emerald-600 border-emerald-600 text-white'
-                    }`}
+                    className={`py-2.5 px-3 min-h-[44px] sm:min-h-0 rounded-xl font-bold flex items-center justify-center space-x-1.5 transition-colors border border-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
                   >
-                    <Check className="w-4 h-4" />
+                    <Check className="w-4 h-4 shrink-0" />
                     <span>文字に置き換え適用</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => {
                       onApplyContours(svgParsedContours, true);
                       onClose();
                     }}
                     disabled={svgParsedContours.length === 0}
-                    className={`py-2 px-2.5 border flex items-center justify-center space-x-1 font-semibold transition-colors ${
-                      svgParsedContours.length === 0
-                        ? 'border-stone-300 text-stone-400 cursor-not-allowed'
-                        : isLight
-                        ? 'bg-white border-emerald-700 text-emerald-950 hover:bg-emerald-50'
-                        : 'bg-[#18231c] border-emerald-600 text-emerald-200 hover:bg-[#202d24]'
-                    }`}
+                    className={`py-2.5 px-3 min-h-[42px] sm:min-h-0 rounded-xl border flex items-center justify-center space-x-1 font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                   >
-                    <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                    <Plus className="w-3.5 h-3.5 shrink-0" />
                     <span>既存輪郭に追加</span>
                   </button>
                 </div>

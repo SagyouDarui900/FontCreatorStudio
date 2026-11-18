@@ -29,6 +29,7 @@ interface SmallKanaSynthesisPanelProps {
   smallKanaPreviewPaths: { basePath: string; smallPath: string };
   smallKanaTargetCount: number;
   onExecuteBatch: () => void;
+  unitsPerEm?: number;
 }
 
 const SCOPE_OPTIONS: { id: KanaScope; label: string }[] = [
@@ -68,6 +69,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
   smallKanaPreviewPaths,
   smallKanaTargetCount,
   onExecuteBatch,
+  unitsPerEm = 1000,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
@@ -303,7 +305,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             </div>
 
             {smallKanaPreviewPaths.basePath ? (
-              <svg viewBox="0 0 1000 1000" className="w-full h-full p-2">
+              <svg viewBox={`0 0 ${unitsPerEm} ${unitsPerEm}`} className="w-full h-full p-2">
                 <path
                   d={smallKanaPreviewPaths.basePath}
                   fill={isLight ? '#cbd5e1' : '#334155'}

@@ -48,14 +48,14 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
 
   return (
     <div
-      className={`px-5 py-4 border-b transition-colors text-xs ${
+      className={`px-3.5 py-3 sm:px-5 sm:py-4 max-h-[52vh] sm:max-h-none overflow-y-auto overscroll-contain shrink-0 border-b transition-colors text-xs ${
         isLight
           ? 'bg-emerald-50/70 border-emerald-200 text-stone-800'
           : 'bg-[#102016] border-[#223d2b] text-emerald-100'
       }`}
     >
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div className="flex items-center space-x-2.5">
+      <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3">
+        <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
           <div
             className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${
               isLight
@@ -65,9 +65,9 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
           >
             <Sparkles className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-sm text-stone-900 dark:text-white">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h3 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-white">
                 ノード最適化（冗長点の間引き &amp; パス平滑化）
               </h3>
               <span
@@ -81,7 +81,7 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
                 形状保護保証
               </span>
             </div>
-            <p className="text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed">
               ほぼ直線上に並ぶ不要な中間点や重複ノードを間引き、文字の輪郭パスを美しく滑らかに整流します。
               角（トメ・ハネ・コーナー）や直線の張り、縦横比、曲率は厳格に保護されます。
             </p>
@@ -90,7 +90,7 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
 
         <button
           onClick={onClose}
-          className={`p-1.5 rounded-lg border transition-colors ${
+          className={`min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 rounded-lg border transition-colors shrink-0 ${
             isLight
               ? 'bg-white border-stone-200 text-stone-400 hover:text-stone-700'
               : 'bg-[#16271c] border-[#253f2c] text-stone-400 hover:text-white'

@@ -252,7 +252,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="min-w-0 flex-1">
  <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2 min-w-0">
  <span className="truncate">FontCreator 説明書 & ガイド</span>
- <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-normal border ${themeClasses.accentBadge}`}>
+ <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-normal border ${themeClasses.accentBadge}`}>
  v2.0
  </span>
  {isFullscreen && (
@@ -633,7 +633,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  <div className="flex items-center space-x-2 min-w-0 pr-1">
  <span className="jp-wrap">{item.description}</span>
  {item.badge && (
- <span className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono shrink-0 border ${themeClasses.accentBadge}`}>
+ <span className={`text-[9.5px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${themeClasses.accentBadge}`}>
  {item.badge}
  </span>
  )}

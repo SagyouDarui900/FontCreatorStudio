@@ -130,7 +130,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
               </button>
             )}
 
-            <div className={`flex items-center gap-1 border-l pl-2 ${themeClasses.border}`}>
+            <div className={`flex flex-wrap items-center gap-1.5 sm:gap-1 sm:border-l sm:pl-2 ${themeClasses.border}`}>
               <button
                 onClick={() => {
                   setIsExtremaPanelOpen((prev) => !prev);
@@ -207,7 +207,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                 <Flame className="w-3 h-3 text-amber-500" />
                 <span>ヒートマップ</span>
                 {excessiveNodesUnicodes.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-500 text-white font-mono font-bold">
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-amber-500 text-white font-mono font-bold">
                     {excessiveNodesUnicodes.length}
                   </span>
                 )}
@@ -221,9 +221,9 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
       <div
         className={`flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-2 border-b text-xs ${themeClasses.headerBg}`}
       >
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0 w-full">
           {/* Search Input */}
-          <div className="relative min-w-[140px] max-w-xs flex-1">
+          <div className="relative w-full sm:min-w-[140px] sm:max-w-xs sm:flex-1">
             <Search className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
             <input
               ref={searchInputRef}
@@ -236,7 +236,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
           </div>
 
           {/* Severity Filter */}
-          <div className={`flex items-center space-x-1 p-0.5 rounded-lg border shrink-0 ${themeClasses.subtoolbarBg}`}>
+          <div className={`flex items-center space-x-1 p-0.5 rounded-lg border shrink-0 overflow-x-auto max-w-full no-scrollbar ${themeClasses.subtoolbarBg}`}>
             <button
               type="button"
               onClick={() => setSeverityFilter('all')}
@@ -331,7 +331,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold ${
+                    className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
                       activeTab === tab.id
                         ? 'bg-white/20 text-white'
                         : isLight
@@ -348,7 +348,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
         </div>
 
         {/* Category-Specific Quick Batch Fix Button if filtered */}
-        <div className="flex items-center space-x-1.5 shrink-0 ml-auto">
+        <div className="flex items-center space-x-1.5 shrink-0 w-full sm:w-auto sm:ml-auto justify-end">
           {activeTab === 'path_intersection' && (report?.categoryCounts.path_intersection ?? 0) > 0 && (
             <button
               onClick={() => onBatchFix('path_intersection')}

@@ -361,11 +361,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </p>
  </div>
  </div>
- <div className="flex items-center space-x-1.5">
+ <div className="flex items-center space-x-1.5 shrink-0">
  {/* Fullscreen Toggle */}
  <button
  onClick={() => setIsFullscreen(!isFullscreen)}
- className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+ className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
  isFullscreen
  ? themeClasses.activeTool
  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -386,7 +386,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </button>
  <button
  onClick={onClose}
- className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+ className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
  title="閉じる (Esc)"
  >
  <X className="w-5 h-5" />
@@ -407,7 +407,8 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  }`}
  >
  <MoveHorizontal className="w-3.5 h-3.5" />
- <span>ペアカーニング調整（約物・欧文・かな）</span>
+ <span className="max-sm:hidden">ペアカーニング調整（約物・欧文・かな）</span>
+ <span className="hidden max-sm:inline">ペアカーニング調整</span>
  </button>
 
  <button
@@ -425,7 +426,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
 
  {/* Modal Content */}
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
+ <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:p-5 sm:pb-5">
  {activeTab === 'kerning' ? (
  /* ========================================================= */
  /* TAB 1: PAIR KERNING */
@@ -437,7 +438,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <div
  className={`p-3.5 rounded-lg border flex flex-col gap-2 ${themeClasses.subtoolbarBg}`}
  >
- <span className="text-xs font-bold flex items-center justify-between gap-1.5">
+ <span className="text-xs font-bold flex flex-wrap items-center justify-between gap-2">
  <span className="flex items-center gap-1.5">
  <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>標準カーニング一括プリセット</span>
@@ -445,7 +446,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  type="button"
  onClick={handleAutoKernAllPairs}
- className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 cursor-pointer transition-colors"
+ className="px-2.5 py-1 sm:px-2 sm:py-0.5 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 cursor-pointer transition-colors"
  title="作図済みグリフの光学プロファイルからペアカーニングを自動計算"
  >
  <Sparkles className="w-3 h-3" />
@@ -456,15 +457,15 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  {KERNING_PRESET_GROUPS.map((group) => (
  <div
  key={group.id}
- className={`p-2 rounded-lg border flex items-center justify-between text-xs transition-colors ${themeClasses.cardBg}`}
+ className={`p-2 rounded-lg border flex items-center justify-between gap-2 text-xs transition-colors ${themeClasses.cardBg}`}
  >
- <div className="flex flex-col">
+ <div className="flex flex-col min-w-0">
  <span className="font-bold text-[11px]">{group.name}</span>
  <span className={`text-[10px] ${themeClasses.textMuted}`}>{group.description}</span>
  </div>
  <button
  onClick={() => handleApplyPresetGroup(group)}
- className={`px-2.5 py-1 text-[10px] font-bold rounded-lg shrink-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`px-3 py-1.5 sm:px-2.5 sm:py-1 text-[10px] font-bold rounded-lg shrink-0 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  一括登録
  </button>
@@ -481,14 +482,14 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <Plus className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>自由なペアを追加</span>
  </span>
- <div className="flex items-center gap-2 text-xs max-sm:flex-wrap">
+ <div className="grid grid-cols-[1fr_auto_1fr_1.3fr] sm:flex items-center gap-2 text-xs">
  <input
  type="text"
  maxLength={1}
  placeholder="左 (A)"
  value={customLeft ?? ''}
  onChange={(e) => setCustomLeft(e.target.value)}
- className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-full sm:w-14 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <span className={`font-bold ${themeClasses.textMuted}`}>+</span>
  <input
@@ -497,7 +498,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="右 (V)"
  value={customRight ?? ''}
  onChange={(e) => setCustomRight(e.target.value)}
- className={`w-14 p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-full sm:w-14 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <input
  type="number"
@@ -508,11 +509,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  const parsed = Number(e.target.value);
  setCustomValue(Number.isFinite(parsed) ? parsed : 0);
  }}
- className={`w-20 p-1.5 rounded-lg border text-center font-mono font-bold ${themeClasses.cardBg}`}
+ className={`w-full sm:w-20 p-2 sm:p-1.5 rounded-lg border text-center font-mono font-bold ${themeClasses.cardBg}`}
  />
  <button
  onClick={handleAddCustomPair}
- className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`col-span-4 sm:col-span-1 sm:flex-1 py-2 sm:py-1.5 px-3 rounded-lg font-bold text-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  追加
  </button>
@@ -659,12 +660,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </span>
 
  {/* Compare Container */}
- <div className={`grid grid-rows-2 gap-2 p-3 rounded-lg border ${themeClasses.cardBg}`}>
+ <div className={`grid grid-rows-2 gap-2 p-3 rounded-lg border overflow-hidden ${themeClasses.cardBg}`}>
  {/* Row 1: Without Kerning */}
- <div className={`flex items-center gap-3 border-b pb-2 ${themeClasses.border}`}>
+ <div className={`flex items-center gap-3 border-b pb-2 min-w-0 ${themeClasses.border}`}>
  <span className={`text-[10px] w-16 shrink-0 ${themeClasses.textMuted}`}>通常(±0)</span>
- <div className="h-16 flex items-center relative overflow-visible">
- <svg viewBox="0 0 2000 1000" className="h-16 overflow-visible">
+ <div className="h-16 min-w-0 flex-1 flex items-center relative overflow-hidden sm:overflow-visible">
+ <svg viewBox="0 0 2000 1000" className="w-full max-w-[160px] sm:w-auto h-16 overflow-visible">
  {/* Left Glyph */}
  {pairGlyphs.leftGlyph && (
  <path
@@ -688,12 +689,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
 
  {/* Row 2: With Kerning */}
- <div className="flex items-center gap-3 pt-1">
+ <div className="flex items-center gap-3 pt-1 min-w-0">
  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 w-16 shrink-0">
  {currentPairValue > 0 ? `+${currentPairValue}` : currentPairValue} 適用
  </span>
- <div className="h-16 flex items-center relative overflow-visible">
- <svg viewBox="0 0 2000 1000" className="h-16 overflow-visible">
+ <div className="h-16 min-w-0 flex-1 flex items-center relative overflow-hidden sm:overflow-visible">
+ <svg viewBox="0 0 2000 1000" className="w-full max-w-[160px] sm:w-auto h-16 overflow-visible">
  {/* Left Glyph */}
  {pairGlyphs.leftGlyph && (
  <path
@@ -725,7 +726,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <div
  className={`p-3.5 rounded-lg border flex flex-col gap-2 ${themeClasses.subtoolbarBg}`}
  >
- <div className="flex items-center justify-between text-xs font-bold">
+ <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-bold">
  <span className="flex items-center gap-1.5">
  <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>リアルタイム組版テスト</span>
@@ -847,7 +848,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span>サイドベアリング調整モード</span>
  </span>
 
- <div className="grid grid-cols-2 gap-2 text-xs">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
  {(
  [
  {
@@ -978,12 +979,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span className={`font-bold ${themeClasses.textMuted}`}>
  プレビューする文字:
  </span>
- <div className="flex items-center gap-1">
+ <div className="flex flex-wrap items-center gap-1.5">
  {['あ', 'い', 'か', '漢', '字', 'A', '1'].map((c) => (
  <button
  key={c}
  onClick={() => setSbPreviewChar(c)}
- className={`w-7 h-7 rounded border text-xs font-bold transition-colors cursor-pointer ${
+ className={`w-9 h-9 sm:w-7 sm:h-7 rounded border text-xs font-bold transition-colors cursor-pointer ${
  sbPreviewChar === c
  ? `${themeClasses.activeTool} border-transparent`
  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -1009,7 +1010,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span className={`font-mono ${themeClasses.textMuted}`}>「{sbPreviewChar}」</span>
  </div>
 
- <div className={`w-64 h-64 relative rounded-lg border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.cardBg}`}>
+ <div className={`w-full max-w-[256px] aspect-square relative rounded-lg border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.cardBg}`}>
  {/* Visual Sidebearing Margins */}
  <div className="absolute inset-0 pointer-events-none opacity-20">
  <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />
@@ -1062,7 +1063,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  type="button"
  onClick={handleExecuteSidebearingBatch}
- className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`w-full py-2.5 px-4 min-h-[44px] sm:min-h-0 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  <CheckCircle2 className="w-4 h-4" />
  <span>選択カテゴリのサイドベアリングを一括調整</span>

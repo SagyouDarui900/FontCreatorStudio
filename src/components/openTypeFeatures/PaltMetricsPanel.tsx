@@ -31,7 +31,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div
-        className={`p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`p-3.5 sm:p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
@@ -54,10 +54,10 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={onAutoDerivePalt}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
+              className={`flex-1 sm:flex-none justify-center px-3 py-2 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>全グリフの字面から一括自動算出</span>
@@ -65,7 +65,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
 
             <button
               onClick={onTogglePaltGlobal}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+              className={`flex-1 sm:flex-none justify-center px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
                 paltConfig?.enabled
                   ? themeClasses.accentBtn
                   : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted}`
@@ -151,7 +151,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
                 <div className="flex items-center space-x-2.5 min-w-0">
                   <button
                     onClick={() => onTogglePaltItem(metric.unicode)}
-                    className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                    className={`w-6 h-6 sm:w-4 sm:h-4 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                       metric.enabled
                         ? 'bg-emerald-600 border-emerald-600 text-white'
                         : themeClasses.border

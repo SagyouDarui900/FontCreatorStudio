@@ -27,7 +27,7 @@ import {
   makeUniquePresetName,
   clampBrushWidth,
 } from '../../utils/presetData';
-import { ThemeMode, isLightTheme } from '../../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../../utils/theme';
 import { PenPresetsModalProps, StudioTab } from './types';
 import { PenPreviewSection } from './PenPreviewSection';
 import { PenScratchpad } from './PenScratchpad';
@@ -109,10 +109,12 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   onResetCanvasPrefs,
 }) => {
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<StudioTab>('basic');
   const [mobileView, setMobileView] = useState<'params' | 'scratchpad'>('params');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   // Active Working Preset State
   const [workingPreset, setWorkingPreset] = useState<UserPenPreset>(() => {
@@ -228,7 +230,21 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+      toastTimerRef.current = null;
+    }, 2500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
   }, []);
 
   const [isRenaming, setIsRenaming] = useState(false);
@@ -245,6 +261,24 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   // user confirms in the dialog below, following the pattern used for
   // part deletion in the radicals drawer.
   const [pendingDeletePreset, setPendingDeletePreset] = useState<UserPenPreset | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (pendingDeletePreset) {
+          setPendingDeletePreset(null);
+        } else if (isRenaming) {
+          setIsRenaming(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, pendingDeletePreset, isRenaming, onClose]);
 
   const isDefaultPreset = workingPreset.isCustom === false;
 
@@ -449,37 +483,42 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 anim-fade p-1.5 sm:p-3">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="ブラシ・ペン設定"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center bg-black/75 anim-fade p-0 sm:p-3"
+    >
       <div
-        className={`flex flex-col min-h-0 bg-white dark:bg-[#18231c] text-stone-900 dark:text-stone-100 border border-stone-300 dark:border-stone-800 overflow-hidden ${
+        className={`relative flex flex-col min-h-0 overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? 'w-full h-full'
-            : `w-full ${showPresetDrawer ? 'max-w-5xl' : 'max-w-4xl'} h-[86vh] max-h-[720px] rounded-2xl shadow-2xl`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full ${showPresetDrawer ? 'sm:max-w-5xl' : 'sm:max-w-4xl'} h-[100dvh] sm:h-[86vh] sm:max-h-[720px] rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl`
         }`}
       >
         {/* Header */}
-        <div className="px-3 py-1.5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-[#121c16] shrink-0">
-          <div className="flex items-center space-x-3">
+        <div className={`px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:py-1.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <button
               type="button"
               onClick={() => setShowPresetDrawer((prev) => !prev)}
-              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300 transition-colors flex items-center space-x-1 cursor-pointer"
+              className={`p-1.5 rounded-lg transition-colors flex items-center space-x-1 cursor-pointer shrink-0 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="プリセット一覧を開く"
             >
               <span className="text-xs font-bold">ブラシ ({presets.length})</span>
               <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showPresetDrawer ? 'rotate-90' : ''}`} />
             </button>
 
-            <div className="h-4 w-px bg-stone-300 dark:bg-stone-700" />
+            <div className="h-4 w-px bg-stone-300 dark:bg-stone-700 shrink-0" />
 
             {/* Editable Brush Name */}
             {isRenaming ? (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 min-w-0">
                 <input
                   type="text"
                   value={renameInput ?? ''}
                   onChange={(e) => setRenameInput(e.target.value)}
-                  className="px-2 py-0.5 text-xs bg-white dark:bg-stone-900 border border-emerald-500 rounded-sm text-stone-900 dark:text-stone-100 font-bold focus:outline-none"
+                  className={`px-2 py-0.5 text-xs border border-emerald-500 rounded-md font-bold focus:outline-none min-w-0 max-w-[140px] sm:max-w-none ${themeClasses.cardBg} ${themeClasses.textPrimary}`}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -490,14 +529,14 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => applyRename(renameInput)}
-                  className="p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer"
+                  className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer shrink-0"
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{workingPreset.name}</span>
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>{workingPreset.name}</span>
                 {!isDefaultPreset && (
                   <button
                     type="button"
@@ -505,7 +544,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                       setRenameInput(workingPreset.name);
                       setIsRenaming(true);
                     }}
-                    className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors cursor-pointer"
+                    className={`p-1 rounded-md transition-colors cursor-pointer shrink-0 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                     title="ブラシ名を変更"
                   >
                     <Edit2 className="w-3 h-3" />
@@ -515,16 +554,16 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             )}
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1.5 shrink-0">
             {/* Mobile View Switcher */}
-            <div className="flex md:hidden items-center bg-stone-200/80 dark:bg-stone-800 p-0.5 text-xs">
+            <div className={`flex md:hidden items-center rounded-lg border p-0.5 text-xs ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
               <button
                 type="button"
                 onClick={() => setMobileView('params')}
-                className={`px-2 py-0.5 font-bold transition-colors cursor-pointer ${
+                className={`px-2 py-1 rounded-md font-bold transition-colors cursor-pointer ${
                   mobileView === 'params'
-                    ? 'bg-white dark:bg-stone-900 text-emerald-600 dark:text-emerald-400'
-                    : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
+                    ? `${themeClasses.cardBg} ${themeClasses.accentText}`
+                    : themeClasses.textMuted
                 }`}
               >
                 パラメータ
@@ -532,10 +571,10 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setMobileView('scratchpad')}
-                className={`px-2 py-0.5 font-bold transition-colors flex items-center space-x-1 cursor-pointer ${
+                className={`px-2 py-1 rounded-md font-bold transition-colors flex items-center space-x-1 cursor-pointer ${
                   mobileView === 'scratchpad'
-                    ? 'bg-white dark:bg-stone-900 text-emerald-600 dark:text-emerald-400'
-                    : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
+                    ? `${themeClasses.cardBg} ${themeClasses.accentText}`
+                    : themeClasses.textMuted
                 }`}
               >
                 <PenTool className="w-3 h-3" />
@@ -547,7 +586,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen((prev) => !prev)}
-              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 dark:text-stone-400 transition-colors cursor-pointer"
+              className={`hidden sm:flex p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title={isFullscreen ? '元に戻す' : '最大化'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -557,8 +596,9 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-stone-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
-              title="閉じる"
+              aria-label="閉じる"
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer ${themeClasses.textMuted}`}
+              title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
             </button>
@@ -576,7 +616,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         />
 
         {/* 8-Tab Navigation Bar */}
-        <div className="flex border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#152019] overflow-x-auto shrink-0 scrollbar-thin touch-scroll-x">
+        <div className={`flex border-b overflow-x-auto shrink-0 no-scrollbar touch-scroll-x ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
           {[
             { id: 'basic' as StudioTab, label: '基本', icon: Paintbrush },
             { id: 'taper' as StudioTab, label: '入り抜き', icon: Diamond },
@@ -594,13 +634,13 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 shrink-0 min-w-[60px] sm:min-w-[72px] py-1.5 px-2 flex flex-row items-center justify-center gap-1.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
+                className={`flex-1 shrink-0 min-w-[60px] sm:min-w-[72px] py-2 sm:py-1.5 px-2 flex flex-row items-center justify-center gap-1.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#18231c]'
-                    : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100/50 dark:hover:bg-stone-800/40'
+                    ? `${themeClasses.accentBorder} ${themeClasses.accentText} ${themeClasses.modalBg}`
+                    : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'opacity-70'}`} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? themeClasses.accentText : 'opacity-70'}`} />
                 <span className="text-[11px] whitespace-nowrap">{tab.label}</span>
               </button>
             );
@@ -684,7 +724,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-3 py-2 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-[#121c16] flex items-center justify-between shrink-0">
+        <div className={`px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-2 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
           <button
             type="button"
             onClick={() => {
@@ -711,17 +751,17 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               }
               showToast('ペン設定を完全な初期状態（標準筆）にリセットしました');
             }}
-            className="px-3 py-1.5 text-xs font-semibold text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer border border-transparent"
+            className={`px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             初期値に戻す
           </button>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
             {isExistingCustomPreset && (
               <button
                 type="button"
                 onClick={handleOverwritePreset}
-                className="px-3 py-1.5 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center space-x-1 cursor-pointer border border-emerald-600"
+                className="px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center space-x-1 cursor-pointer border border-emerald-600"
                 title="選択中のプリセットに現在の設定を上書き保存します"
               >
                 <span>上書き保存</span>
@@ -730,14 +770,14 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={handleSaveAsNewPreset}
-              className="px-3 py-1.5 text-xs font-semibold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
+              className={`px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               {isExistingCustomPreset ? '別名で新規保存' : '新規保存'}
             </button>
             <button
               type="button"
               onClick={handleApplyCurrentAndClose}
-              className="px-4 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center space-x-1.5 cursor-pointer border border-emerald-500"
+              className={`px-4 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer ${themeClasses.accentBtn}`}
             >
               <Check className="w-3.5 h-3.5" />
               <span>このペンを適用して閉じる</span>
@@ -747,7 +787,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
         {/* Floating Toast Notification */}
         {toastMessage && (
-          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-stone-900/95 text-white text-xs font-medium border border-stone-700 pointer-events-none z-50">
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-stone-900/95 text-white text-xs font-medium border border-stone-700 pointer-events-none z-50">
             {toastMessage}
           </div>
         )}
@@ -755,23 +795,28 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         {/* Delete confirmation dialog */}
         {pendingDeletePreset && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="w-full max-w-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-2xl">
-              <div className="text-sm font-bold text-stone-900 dark:text-stone-100">プリセットを削除しますか？</div>
-              <p className="mt-1 text-xs text-stone-600 dark:text-stone-400">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-label="プリセットの削除確認"
+              className={`w-full max-w-xs rounded-xl border p-4 shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`}
+            >
+              <div className={`text-sm font-bold ${themeClasses.textPrimary}`}>プリセットを削除しますか？</div>
+              <p className={`mt-1 text-xs ${themeClasses.textMuted}`}>
                 「{pendingDeletePreset.name}」を削除します。削除されたプリセットは復元できません。
               </p>
               <div className="mt-3 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setPendingDeletePreset(null)}
-                  className="px-3 py-1.5 text-xs font-semibold border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 transition-colors cursor-pointer"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 >
                   キャンセル
                 </button>
                 <button
                   type="button"
                   onClick={confirmDeletePreset}
-                  className="px-3 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
                 >
                   削除する
                 </button>

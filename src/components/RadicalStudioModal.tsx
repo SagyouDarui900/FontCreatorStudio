@@ -351,11 +351,11 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   }, [isOpen, resetView]);
 
   useEffect(() => {
-    setUndoStack([]);
-    setRedoStack([]);
-    setSelectedContourId(null);
-    setSelectedNodeId(null);
-    setActivePenContour(null);
+    setUndoStack((prev) => (prev.length === 0 ? prev : []));
+    setRedoStack((prev) => (prev.length === 0 ? prev : []));
+    setSelectedContourId((prev) => (prev === null ? prev : null));
+    setSelectedNodeId((prev) => (prev === null ? prev : null));
+    setActivePenContour((prev) => (prev === null ? prev : null));
   }, [selectedPartId, setUndoStack, setRedoStack, setSelectedContourId, setSelectedNodeId, setActivePenContour]);
 
   // Related Kanji list containing current radical for watermark tracing guide picker
@@ -381,134 +381,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   }, [activePart, project.glyphs]);
 
   // Global Keyboard Shortcuts within Studio Modal
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      // Undo / Redo
-      const isZ = e.code === 'KeyZ' || e.key === 'z' || e.key === 'Z';
-      const isY = e.code === 'KeyY' || e.key === 'y' || e.key === 'Y';
-      if ((e.ctrlKey || e.metaKey) && isZ) {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleRedo();
-        } else if (activePenContour && activePenContour.nodes.length > 0) {
-          handleUndoPartPenNode();
-        } else {
-          handleUndo();
-        }
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && isY) {
-        e.preventDefault();
-        handleRedo();
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
-        e.preventDefault();
-        setIsMoveAllPart(true);
-        setSelectedContourId(null);
-        setSelectedNodeId(null);
-        notify('部首の全ストロークを選択しました（全体移動可能）', 'info');
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        handleExportLibraryJson();
-        return;
-      }
-
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        setIsSpacePressed(true);
-        return;
-      }
-
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        const step = e.shiftKey ? 10 : 1;
-        let dx = 0;
-        let dy = 0;
-        if (e.key === 'ArrowLeft') dx = -step;
-        if (e.key === 'ArrowRight') dx = step;
-        if (e.key === 'ArrowUp') dy = -step;
-        if (e.key === 'ArrowDown') dy = step;
-
-        handleNudgePart(dx, dy);
-        return;
-      }
-
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (e.code === 'KeyV' || e.key === 'v' || e.key === 'V') {
-          e.preventDefault();
-          setToolMode('select');
-        } else if (e.code === 'KeyP' || e.key === 'p' || e.key === 'P') {
-          e.preventDefault();
-          setToolMode('pen');
-        } else if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') {
-          e.preventDefault();
-          setToolMode('brush');
-        } else if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
-          e.preventDefault();
-          setToolMode('eraser');
-        } else if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
-          e.preventDefault();
-          setToolMode('hand');
-        } else if (e.key === 'Delete' || e.key === 'Backspace') {
-          e.preventDefault();
-          if (activePenContour) {
-            handleUndoPartPenNode();
-          } else if (selectedNodeId) {
-            handleDeleteSelectedNode();
-          } else if (selectedContourId) {
-            handleDeleteSelectedContour();
-          }
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          if (activePenContour && activePenContour.nodes.length >= 2) {
-            handleFinishPartPenContour(true);
-          }
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          if (pendingDeletePart) {
-            cancelDeletePart();
-          } else if (activePenContour) {
-            handleResetPartPenContour();
-          } else {
-            setSelectedNodeId(null);
-            setSelectedContourId(null);
-            setIsMoveAllPart(false);
-          }
-        }
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        setIsSpacePressed(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [
-    isOpen,
+  const shortcutsRef = useRef({
     activePenContour,
     selectedNodeId,
     selectedContourId,
@@ -529,7 +402,180 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     notify,
     pendingDeletePart,
     cancelDeletePart,
-  ]);
+  });
+  shortcutsRef.current = {
+    activePenContour,
+    selectedNodeId,
+    selectedContourId,
+    handleUndo,
+    handleRedo,
+    handleUndoPartPenNode,
+    handleResetPartPenContour,
+    handleFinishPartPenContour,
+    handleDeleteSelectedNode,
+    handleDeleteSelectedContour,
+    handleExportLibraryJson,
+    handleNudgePart,
+    setIsMoveAllPart,
+    setIsSpacePressed,
+    setToolMode,
+    setSelectedContourId,
+    setSelectedNodeId,
+    notify,
+    pendingDeletePart,
+    cancelDeletePart,
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        activePenContour: penContour,
+        selectedNodeId: nodeId,
+        selectedContourId: contourId,
+        handleUndo: undo,
+        handleRedo: redo,
+        handleUndoPartPenNode: undoPenNode,
+        handleResetPartPenContour: resetPenContour,
+        handleFinishPartPenContour: finishPenContour,
+        handleDeleteSelectedNode: deleteSelectedNode,
+        handleDeleteSelectedContour: deleteSelectedContour,
+        handleExportLibraryJson: exportLibraryJson,
+        handleNudgePart: nudgePart,
+        setIsMoveAllPart: setMoveAllPart,
+        setIsSpacePressed: setSpacePressed,
+        setToolMode: changeToolMode,
+        setSelectedContourId: selectContourId,
+        setSelectedNodeId: selectNodeId,
+        notify: showNotice,
+        pendingDeletePart: pendingDelete,
+        cancelDeletePart: cancelPendingDelete,
+      } = shortcutsRef.current;
+
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Undo / Redo
+      const isZ = e.code === 'KeyZ' || e.key === 'z' || e.key === 'Z';
+      const isY = e.code === 'KeyY' || e.key === 'y' || e.key === 'Y';
+      if ((e.ctrlKey || e.metaKey) && isZ) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else if (penContour && penContour.nodes.length > 0) {
+          undoPenNode();
+        } else {
+          undo();
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && isY) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        setMoveAllPart(true);
+        selectContourId(null);
+        selectNodeId(null);
+        showNotice('部首の全ストロークを選択しました（全体移動可能）', 'info');
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyS' || e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        exportLibraryJson();
+        return;
+      }
+
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        setSpacePressed(true);
+        return;
+      }
+
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === 'ArrowLeft') dx = -step;
+        if (e.key === 'ArrowRight') dx = step;
+        if (e.key === 'ArrowUp') dy = -step;
+        if (e.key === 'ArrowDown') dy = step;
+
+        nudgePart(dx, dy);
+        return;
+      }
+
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.code === 'KeyV' || e.key === 'v' || e.key === 'V') {
+          e.preventDefault();
+          changeToolMode('select');
+        } else if (e.code === 'KeyP' || e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          changeToolMode('pen');
+        } else if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') {
+          e.preventDefault();
+          changeToolMode('brush');
+        } else if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') {
+          e.preventDefault();
+          changeToolMode('eraser');
+        } else if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
+          e.preventDefault();
+          changeToolMode('hand');
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          if (penContour) {
+            undoPenNode();
+          } else if (nodeId) {
+            deleteSelectedNode();
+          } else if (contourId) {
+            deleteSelectedContour();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (penContour && penContour.nodes.length >= 2) {
+            finishPenContour(true);
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          if (pendingDelete) {
+            cancelPendingDelete();
+          } else if (penContour) {
+            resetPenContour();
+          } else {
+            selectNodeId(null);
+            selectContourId(null);
+            setMoveAllPart(false);
+          }
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        shortcutsRef.current.setIsSpacePressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isOpen]);
 
   const hasUpgradedDefaultsRef = useRef(false);
 
@@ -575,7 +621,12 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/75 select-none anim-fade">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="部首・作字パーツ工房"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none anim-fade"
+    >
       <input
         type="file"
         ref={svgFileInputRef}
@@ -594,13 +645,13 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
       <div
         className={`w-full h-full flex flex-col overflow-hidden transition-[width,height] ${
           isFullscreen
-            ? `fixed inset-0 z-[60] w-screen h-screen ${themeClasses.modalBg}`
-            : `w-full sm:w-[98vw] h-[100vh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-2xl border shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`
+            ? `fixed inset-0 z-[60] w-screen h-[100dvh] ${themeClasses.modalBg}`
+            : `w-full sm:w-[98vw] h-[100dvh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`
         }`}
       >
         {/* MODAL TOP HEADER */}
         <div
-          className={`px-3 sm:px-4 py-2 border-b flex items-center justify-between shrink-0 gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:py-2 border-b flex items-center justify-between shrink-0 gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0">
             <div
@@ -672,8 +723,9 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1.5 px-2 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
                   ? themeClasses.activeTool
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -694,8 +746,10 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={handleCloseStudio}
-              className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+              aria-label="工房を閉じる"
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
                 isLight ? 'text-stone-600 hover:bg-emerald-100' : 'text-stone-400 hover:bg-[#223126]'
               }`}
               title="工房を閉じる"

@@ -152,7 +152,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                     handlePresetChange(p.id);
                   }
                 }}
-                className={`p-2 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer ${
+                className={`p-2 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer last:max-sm:col-span-2 ${
                   isSelected
                     ? themeClasses.activeTool
                     : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
@@ -171,16 +171,16 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
           <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">目標幅 (Width)</span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 sm:gap-1">
                 <button
                   type="button"
                   onClick={() => {
                     setTargetWidth(Math.max(400, targetWidth - 10));
                     setSizePreset('custom');
                   }}
-                  className={`w-5 h-5 rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 >
-                  <Minus className="w-2.5 h-2.5" />
+                  <Minus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
                 </button>
                 <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded border min-w-[54px] text-center ${themeClasses.cardBg} ${themeClasses.accentText}`}>
                   {targetWidth}px
@@ -191,9 +191,9 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                     setTargetWidth(Math.min(980, targetWidth + 10));
                     setSizePreset('custom');
                   }}
-                  className={`w-5 h-5 rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 >
-                  <Plus className="w-2.5 h-2.5" />
+                  <Plus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
                 </button>
               </div>
             </div>
@@ -215,16 +215,16 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
           <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">目標高さ (Height)</span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 sm:gap-1">
                 <button
                   type="button"
                   onClick={() => {
                     setTargetHeight(Math.max(400, targetHeight - 10));
                     setSizePreset('custom');
                   }}
-                  className={`w-5 h-5 rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 >
-                  <Minus className="w-2.5 h-2.5" />
+                  <Minus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
                 </button>
                 <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded border min-w-[54px] text-center ${themeClasses.cardBg} ${themeClasses.accentText}`}>
                   {targetHeight}px
@@ -235,9 +235,9 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                     setTargetHeight(Math.min(980, targetHeight + 10));
                     setSizePreset('custom');
                   }}
-                  className={`w-5 h-5 rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                 >
-                  <Plus className="w-2.5 h-2.5" />
+                  <Plus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
                 </button>
               </div>
             </div>
@@ -376,17 +376,17 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
         </div>
 
         {/* Advance Width Checkbox & Input */}
-        <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div className={`p-2.5 rounded-xl border flex flex-wrap items-center justify-between gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+          <label className="flex items-center gap-2 cursor-pointer select-none min-h-[36px] sm:min-h-0">
             <input
               type="checkbox"
               checked={unifyAdvance}
               onChange={(e) => setUnifyAdvance(e.target.checked)}
-              className="rounded accent-emerald-600 w-4 h-4"
+              className="rounded accent-emerald-600 w-4 h-4 shrink-0"
             />
             <span className="text-xs font-semibold">送り幅 (advanceWidth) を統一</span>
           </label>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 ml-auto">
             <input
               type="number"
               disabled={!unifyAdvance}

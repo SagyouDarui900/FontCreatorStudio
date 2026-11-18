@@ -20,9 +20,9 @@ export const QualityModalFooter: React.FC<QualityModalFooterProps> = ({
   const themeClasses = passedThemeClasses ?? getThemeClasses(isLight ? 'light' : 'dark');
   return (
     <div
-      className={`flex flex-col sm:flex-row items-center justify-between px-5 py-3 border-t text-xs gap-3 shrink-0 ${themeClasses.headerBg}`}
+      className={`flex flex-col sm:flex-row items-center justify-between px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3 border-t text-xs gap-2 sm:gap-3 shrink-0 ${themeClasses.headerBg}`}
     >
-      <div className={`flex flex-wrap items-center gap-2 text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
+      <div className={`hidden sm:flex flex-wrap items-center gap-2 text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
         <span className="hidden md:inline">
           ※ 赤破線はベースライン (Y=800)。「元に戻す (Ctrl+Z)」でいつでも取り消せます。
         </span>
@@ -48,7 +48,7 @@ export const QualityModalFooter: React.FC<QualityModalFooterProps> = ({
       <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
         <button
           onClick={() => setIsFullscreen((prev) => !prev)}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors flex items-center space-x-1.5 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+          className={`hidden sm:flex px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors items-center space-x-1.5 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
         >
           {isFullscreen ? (
             <>
@@ -64,7 +64,7 @@ export const QualityModalFooter: React.FC<QualityModalFooterProps> = ({
         </button>
         <button
           onClick={onClose}
-          className={`px-4 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+          className={`w-full sm:w-auto min-h-[42px] sm:min-h-0 px-4 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
         >
           閉じる
         </button>

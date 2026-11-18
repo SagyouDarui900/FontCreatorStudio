@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { GlyphDensityHeatmapModal } from '../GlyphDensityHeatmapModal';
 import { ProjectDiagnosticsPanel } from '../ProjectDiagnosticsPanel';
 import {
@@ -115,72 +115,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
   } = actions;
 
   // Keyboard shortcuts: Escape, F (fullscreen), R (rescan), H (heatmap), D (diagnostics toggle), / (search focus), 1-7 (tabs)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = document.activeElement?.tagName.toLowerCase();
-      const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (isFullscreen) {
-          setIsFullscreen(false);
-        } else {
-          onClose();
-        }
-        return;
-      }
-
-      if (!isInput) {
-        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          e.preventDefault();
-          setIsFullscreen((prev) => !prev);
-        } else if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          e.preventDefault();
-          runScan();
-          runDiagnostics();
-          notify('再検査およびプロジェクト診断を実行しました', 'info');
-        } else if ((e.key === 'd' || e.key === 'D') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          e.preventDefault();
-          setMainView((prev) => (prev === 'quality' ? 'diagnostics' : 'quality'));
-        } else if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-          if (excessiveNodesUnicodes.length > 0) {
-            e.preventDefault();
-            setHeatmapModalUnicode(excessiveNodesUnicodes[0]);
-          }
-        } else if (e.key === '/') {
-          e.preventDefault();
-          if (mainView === 'diagnostics') {
-            const diagInput = document.querySelector<HTMLInputElement>('input[data-diag-search]');
-            if (diagInput) {
-              diagInput.focus();
-            }
-          } else {
-            searchInputRef.current?.focus();
-          }
-        } else if (!e.ctrlKey && !e.metaKey && !e.altKey && mainView === 'quality') {
-          const tabMap: Record<string, TabFilter> = {
-            '1': 'all',
-            '2': 'duplicate_shape',
-            '3': 'path_intersection',
-            '4': 'excessive_nodes',
-            '5': 'missing_extrema',
-            '6': 'uneven_stroke',
-            '7': 'baseline_deviation',
-          };
-          if (tabMap[e.key]) {
-            e.preventDefault();
-            setActiveTab(tabMap[e.key]);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isOpen,
+  const shortcutsRef = useRef({
     isFullscreen,
     onClose,
     runScan,
@@ -193,7 +128,102 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
     setHeatmapModalUnicode,
     searchInputRef,
     setActiveTab,
-  ]);
+  });
+  shortcutsRef.current = {
+    isFullscreen,
+    onClose,
+    runScan,
+    runDiagnostics,
+    excessiveNodesUnicodes,
+    mainView,
+    notify,
+    setIsFullscreen,
+    setMainView,
+    setHeatmapModalUnicode,
+    searchInputRef,
+    setActiveTab,
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        isFullscreen: fullscreen,
+        onClose: closeModal,
+        runScan: triggerScan,
+        runDiagnostics: triggerDiagnostics,
+        excessiveNodesUnicodes: denseUnicodes,
+        mainView: view,
+        notify: showNotice,
+        setIsFullscreen: updateFullscreen,
+        setMainView: updateMainView,
+        setHeatmapModalUnicode: openHeatmap,
+        searchInputRef: searchRef,
+        setActiveTab: updateActiveTab,
+      } = shortcutsRef.current;
+
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (fullscreen) {
+          updateFullscreen(false);
+        } else {
+          closeModal();
+        }
+        return;
+      }
+
+      if (!isInput) {
+        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          updateFullscreen((prev) => !prev);
+        } else if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          triggerScan();
+          triggerDiagnostics();
+          showNotice('再検査およびプロジェクト診断を実行しました', 'info');
+        } else if ((e.key === 'd' || e.key === 'D') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          updateMainView((prev) => (prev === 'quality' ? 'diagnostics' : 'quality'));
+        } else if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          if (denseUnicodes.length > 0) {
+            e.preventDefault();
+            openHeatmap(denseUnicodes[0]);
+          }
+        } else if (e.key === '/') {
+          e.preventDefault();
+          if (view === 'diagnostics') {
+            const diagInput = document.querySelector<HTMLInputElement>('input[data-diag-search]');
+            if (diagInput) {
+              diagInput.focus();
+            }
+          } else {
+            searchRef.current?.focus();
+          }
+        } else if (!e.ctrlKey && !e.metaKey && !e.altKey && view === 'quality') {
+          const tabMap: Record<string, TabFilter> = {
+            '1': 'all',
+            '2': 'duplicate_shape',
+            '3': 'path_intersection',
+            '4': 'excessive_nodes',
+            '5': 'missing_extrema',
+            '6': 'uneven_stroke',
+            '7': 'baseline_deviation',
+          };
+          if (tabMap[e.key]) {
+            e.preventDefault();
+            updateActiveTab(tabMap[e.key]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -225,17 +255,20 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="フォント品質・構造チェック & 一括最適化"
       className={`fixed inset-0 z-[60] ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade'
       }`}
     >
       <div
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
-            ? 'w-screen h-screen rounded-none border-none shadow-none'
-            : `w-full max-w-4xl xl:max-w-5xl rounded-2xl border ${themeClasses.border} shadow-2xl max-h-[90vh]`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl sm:max-h-[90vh]`
         }`}
       >
         {/* Header Bar */}

@@ -120,11 +120,11 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
       >
         {/* Header Bar */}
         <div
-          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 gap-2 sm:gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center space-x-3 min-w-0">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
             <div
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
+              className={`hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
             >
               <AlignVerticalJustifyCenter className="w-5 h-5" />
             </div>
@@ -143,16 +143,16 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   {config.enabled ? 'ON' : 'OFF'}
                 </span>
               </div>
-              <p className={`text-[11px] sm:text-xs mt-0.5 truncate ${themeClasses.textMuted}`}>
+              <p className={`hidden sm:block text-xs mt-0.5 truncate ${themeClasses.textMuted}`}>
                 日本語縦書き・合字・ペア調整のビジュアル設計と検証
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0">
+          <div className="flex items-center justify-end space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={toggleFeaturesGlobal}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
                 config.enabled
                   ? `${themeClasses.accentBtn} border-transparent`
                   : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border} ${themeClasses.activeToolHover}`
@@ -164,7 +164,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
             <button
               onClick={onClose}
-              className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -198,7 +198,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 {tab.count !== undefined && (
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
                       isSelected ? 'bg-white/20 text-white' : 'bg-black/10 dark:bg-white/10'
                     }`}
                   >
@@ -206,7 +206,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   </span>
                 )}
                 {tab.badge && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500 text-white">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-white">
                     {tab.badge}
                   </span>
                 )}
@@ -216,7 +216,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
         </div>
 
         {/* Tab Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-5 sm:space-y-6">
           {activeTab === 'vert' && (
             <VertFeaturesPanel
               verticalWriting={config.verticalWriting}
@@ -277,7 +277,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
         {/* Modal Footer */}
         <div
-          className={`flex items-center justify-between px-5 py-3 border-t shrink-0 text-xs ${
+          className={`flex items-center justify-end sm:justify-between px-3.5 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t shrink-0 text-xs ${
             isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#141e17] border-[#223326]'
           }`}
         >
@@ -288,7 +288,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors"
+            className="w-full sm:w-auto min-h-[42px] sm:min-h-0 px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer"
           >
             完了・閉じる
           </button>

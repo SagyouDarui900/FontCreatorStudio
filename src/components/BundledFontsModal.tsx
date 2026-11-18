@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   BookOpen,
@@ -30,6 +30,19 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const filtered = BUNDLED_FONTS_INFO.filter((font) => {
@@ -49,13 +62,18 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="内蔵フォントライセンス情報"
+      className="fixed inset-0 z-[70] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade"
+    >
       <div
-        className={`w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl border-0 sm:border overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 sm:px-5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
             <div className={`p-1.5 rounded-lg shrink-0 ${themeClasses.accentBtn}`}>
@@ -74,8 +92,10 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ml-2 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            aria-label="閉じる"
+            className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0 ml-2 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -96,7 +116,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           className={`px-3 sm:px-4 py-2 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 text-xs ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* Category Tabs */}
-          <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none w-full sm:w-auto pb-0.5 sm:pb-0">
+          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5 sm:pb-0">
             {[
               { id: 'all', label: 'すべて' },
               { id: '部首 (Radicals)', label: '部首合成用' },
@@ -131,7 +151,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
         </div>
 
         {/* Scrollable Font Cards List */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 scrollbar-none">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 no-scrollbar">
           {filtered.map((font) => (
             <div
               key={font.id}
@@ -151,8 +171,8 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
                       {font.category}
                     </span>
                   </div>
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                    製作者 / 著作権者: <span className="font-semibold text-stone-700 dark:text-stone-200">{font.author}</span>
+                  <p className={`text-[11px] mt-0.5 ${themeClasses.textMuted}`}>
+                    製作者 / 著作権者: <span className={`font-semibold ${themeClasses.textPrimary}`}>{font.author}</span>
                   </p>
                 </div>
 
@@ -175,7 +195,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
               {/* Sample Character Preview */}
               <div
-                className={`p-2.5 rounded-lg border mb-2 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none ${themeClasses.appBg} ${themeClasses.border}`}
+                className={`p-2.5 rounded-lg border mb-2 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar ${themeClasses.appBg} ${themeClasses.border}`}
               >
                 <div className="flex items-baseline gap-3 shrink-0">
                   <span
@@ -227,14 +247,15 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`flex flex-col-reverse sm:flex-row sm:items-center justify-between px-3.5 sm:px-5 py-3 border-t shrink-0 gap-2.5 text-xs ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex flex-col-reverse sm:flex-row sm:items-center justify-between px-3.5 sm:px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t shrink-0 gap-2.5 text-xs ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className={`text-[10.5px] sm:text-[11px] ${themeClasses.textMuted}`}>
             ※ 本アプリで作成したフォントには、ご自身で設定した著作権・ライセンスを付与できます。
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className={`w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+            className={`w-full sm:w-auto px-4 py-2 sm:py-1.5 max-sm:min-h-[40px] rounded-lg text-xs font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
           >
             閉じる
           </button>

@@ -76,9 +76,9 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
   const scaleRatioY = origBbox.height > 0 ? (normBbox.height / origBbox.height) * 100 : 100;
 
   return (
-    <div className={`p-4 rounded-2xl border flex flex-col gap-3 ${themeClasses.cardBg} ${themeClasses.border}`}>
+    <div className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col gap-3 ${themeClasses.cardBg} ${themeClasses.border}`}>
       {/* Header Bar */}
-      <div className="flex items-center justify-between pb-2 border-b gap-2">
+      <div className="flex flex-wrap items-center justify-between pb-2 border-b gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-bold text-xs tracking-tight flex items-center gap-1.5">
             <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -139,13 +139,13 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
           <span className={`text-[10px] font-medium shrink-0 ${themeClasses.textMuted}`}>
             確認文字を切替:
           </span>
-          <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar pb-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-1 overflow-x-auto custom-scrollbar pb-0.5">
             {quickSampleGlyphs.map((g) => (
               <button
                 key={g.unicode}
                 type="button"
                 onClick={() => onSelectPreviewGlyph?.(g)}
-                className={`w-6 h-6 rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
+                className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
                   previewGlyph?.unicode === g.unicode
                     ? themeClasses.accentBtn
                     : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`

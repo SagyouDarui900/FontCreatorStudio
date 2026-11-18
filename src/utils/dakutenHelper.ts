@@ -140,15 +140,18 @@ export function createDakutenContours(
   customOffsetX = 0,
   customOffsetY = 0,
   style: DakutenStyle = 'standard',
-  scale = 1
+  scale = 1,
+  unitsPerEm = 1000
 ): PathContour[] {
   const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  const anchorX = 835;
-  const anchorY = 220;
+  const upm = Number.isFinite(unitsPerEm) && unitsPerEm > 0 ? unitsPerEm : 1000;
+  const emScale = upm / 1000;
+  const anchorX = 835 * emScale;
+  const anchorY = 220 * emScale;
 
   const transformPt = (x: number, y: number) => ({
-    x: Math.round((anchorX + (x - anchorX) * safeScale + customOffsetX) * 100) / 100,
-    y: Math.round((anchorY + (y - anchorY) * safeScale + customOffsetY) * 100) / 100,
+    x: Math.round((anchorX + (x * emScale - anchorX) * safeScale + customOffsetX) * 100) / 100,
+    y: Math.round((anchorY + (y * emScale - anchorY) * safeScale + customOffsetY) * 100) / 100,
   });
 
   if (style === 'round') {
@@ -271,18 +274,21 @@ export function createHandakutenContours(
   customOffsetX = 0,
   customOffsetY = 0,
   style: HandakutenStyle = 'standard',
-  scale = 1
+  scale = 1,
+  unitsPerEm = 1000
 ): PathContour[] {
   const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  const cx = 835 + customOffsetX;
-  const cy = 215 + customOffsetY;
+  const upm = Number.isFinite(unitsPerEm) && unitsPerEm > 0 ? unitsPerEm : 1000;
+  const emScale = upm / 1000;
+  const cx = 835 * emScale + customOffsetX;
+  const cy = 215 * emScale + customOffsetY;
 
-  const outerRx = Math.round((style === 'brush' ? 64 : 60) * safeScale);
-  const outerRy = Math.round((style === 'brush' ? 56 : 60) * safeScale);
-  const innerRx = style === 'solid' ? 0 : Math.round((style === 'brush' ? 28 : 30) * safeScale);
-  const innerRy = style === 'solid' ? 0 : Math.round((style === 'brush' ? 25 : 30) * safeScale);
-  const innerCx = style === 'brush' ? cx - Math.round(2 * safeScale) : cx;
-  const innerCy = style === 'brush' ? cy + Math.round(2 * safeScale) : cy;
+  const outerRx = Math.round((style === 'brush' ? 64 : 60) * safeScale * emScale);
+  const outerRy = Math.round((style === 'brush' ? 56 : 60) * safeScale * emScale);
+  const innerRx = style === 'solid' ? 0 : Math.round((style === 'brush' ? 28 : 30) * safeScale * emScale);
+  const innerRy = style === 'solid' ? 0 : Math.round((style === 'brush' ? 25 : 30) * safeScale * emScale);
+  const innerCx = style === 'brush' ? cx - Math.round(2 * safeScale * emScale) : cx;
+  const innerCy = style === 'brush' ? cy + Math.round(2 * safeScale * emScale) : cy;
 
   // 外側楕円 (時計回り)
   const outerCircle: PathContour = {
@@ -401,16 +407,18 @@ export function synthesizeDakutenContours(
     scale?: number;
     dakuStyle?: DakutenStyle;
     handakuStyle?: HandakutenStyle;
+    unitsPerEm?: number;
   }
 ): PathContour[] {
   const cloned = cloneContours(baseContours);
   const ox = options?.offsetX ?? 0;
   const oy = options?.offsetY ?? 0;
   const scale = options?.scale ?? 1;
+  const unitsPerEm = options?.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
 
   const accent = isHandakuten
-    ? createHandakutenContours(ox, oy, options?.handakuStyle ?? 'standard', scale)
-    : createDakutenContours(ox, oy, options?.dakuStyle ?? 'standard', scale);
+    ? createHandakutenContours(ox, oy, options?.handakuStyle ?? 'standard', scale, unitsPerEm)
+    : createDakutenContours(ox, oy, options?.dakuStyle ?? 'standard', scale, unitsPerEm);
 
   return normalizeGlyphContoursWinding([...cloned, ...accent]);
 }
@@ -428,6 +436,7 @@ export function batchSynthesizeDakuten(
     scale?: number;
     dakuStyle?: DakutenStyle;
     handakuStyle?: HandakutenStyle;
+    unitsPerEm?: number;
   }
 ): {
   updatedGlyphs: Record<number, GlyphData>;
@@ -440,6 +449,8 @@ export function batchSynthesizeDakuten(
 
   const overwrite = options?.overwriteExisting ?? false;
   const scope = options?.scope ?? 'all';
+  const upm = options?.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
+  const defaultLsb = Math.round(50 * (upm / 1000));
 
   for (const [char, mapping] of Object.entries(DAKUTEN_MAPPINGS)) {
     if (mapping.type !== 'seion') continue;
@@ -474,8 +485,8 @@ export function batchSynthesizeDakuten(
               unicode: targetCode,
               char: targetChar,
               name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || 1000,
-              lsb: sourceGlyph.lsb ?? existing?.lsb ?? 50,
+              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || upm,
+              lsb: sourceGlyph.lsb ?? existing?.lsb ?? defaultLsb,
               contours: combined,
               modified: true,
             };
@@ -501,8 +512,8 @@ export function batchSynthesizeDakuten(
               unicode: targetCode,
               char: targetChar,
               name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || 1000,
-              lsb: sourceGlyph.lsb ?? existing?.lsb ?? 50,
+              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || upm,
+              lsb: sourceGlyph.lsb ?? existing?.lsb ?? defaultLsb,
               contours: combined,
               modified: true,
             };

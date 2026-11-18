@@ -198,7 +198,7 @@ export const GlossaryTab: React.FC<GlossaryTabProps> = ({ isLight }) => {
                   )}
                 </div>
                 {t.badge && (
-                  <span className="text-[9px] px-1.5 py-0.2  font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  <span className="text-[9px] px-1.5 py-0.5  font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                     {t.badge}
                   </span>
                 )}

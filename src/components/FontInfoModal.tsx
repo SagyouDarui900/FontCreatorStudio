@@ -50,16 +50,22 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     ...project.metadata,
   });
 
-  // Keep formData synchronized whenever project.metadata updates or modal opens
+  // Sync formData only when modal opens (false -> true) so unsaved edits are preserved
+  const prevIsOpenRef = React.useRef(false);
+  const metadataRef = React.useRef(project.metadata);
+  metadataRef.current = project.metadata;
   React.useEffect(() => {
-    if (isOpen) {
+    const justOpened = isOpen && !prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+    if (justOpened) {
+      const meta = metadataRef.current;
       setFormData({
-        license: project.metadata.license || 'SIL Open Font License 1.1',
-        licenseUrl: project.metadata.licenseUrl || 'https://openfontlicense.org/',
-        ...project.metadata,
+        license: meta.license || 'SIL Open Font License 1.1',
+        licenseUrl: meta.licenseUrl || 'https://openfontlicense.org/',
+        ...meta,
       });
     }
-  }, [isOpen, project.metadata]);
+  }, [isOpen]);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBundledFontsModalOpen, setIsBundledFontsModalOpen] = useState(false);
@@ -71,6 +77,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isBundledFontsModalOpen) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
       if (e.key === 'Escape') {
@@ -87,7 +94,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isFullscreen, isBundledFontsModalOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -220,22 +227,25 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="フォント情報・ライセンス"
       className={`fixed inset-0 z-[60] ${
         isFullscreen
-          ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-3 sm:p-4 bg-black/75 select-none anim-fade'
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none anim-fade'
       }`}
     >
       <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
-            ? 'w-screen h-screen rounded-none border-none shadow-none'
-            : `w-full max-w-xl xl:max-w-2xl border ${themeClasses.border} rounded-2xl shadow-2xl max-h-[90vh]`
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-xl xl:max-w-2xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
+          className={`px-3.5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <Settings className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -251,8 +261,9 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <div className="flex items-center space-x-1.5">
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1 px-2 rounded-lg border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1 px-2 rounded-lg border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
                   ? themeClasses.activeTool
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -272,7 +283,9 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               )}
             </button>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="閉じる"
               className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
@@ -283,7 +296,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex border-b text-xs font-semibold overflow-x-auto scrollbar-none shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${themeClasses.subtoolbarBg}`}
+          className={`flex border-b text-xs font-semibold overflow-x-auto no-scrollbar shrink-0 p-1.5 sm:p-2 gap-1 sm:gap-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             type="button"
@@ -339,7 +352,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-4 text-xs scrollbar-none">
+        <form id="font-info-form" onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-4 text-xs no-scrollbar">
           {/* TAB 1: BASIC INFO & METRICS */}
           {activeTab === 'info' && (
             <div className="space-y-3.5 anim-fade">
@@ -565,32 +578,34 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             </div>
           )}
 
-          {/* Footer */}
-          <div className={`pt-3.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 ${themeClasses.border}`}>
-            <div className={`text-[11px] text-center sm:text-left ${themeClasses.textMuted}`}>
-              {activeTab === 'info' && 'フォント名やEMメトリクスを設定'}
-              {activeTab === 'license' && 'ライセンス・著作権情報を埋め込み'}
-              {activeTab === 'opentype' && 'OS/2 & hhea メタデータを設定'}
-              {activeTab === 'guide' && '商用利用・著作権ガイド'}
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 border rounded-lg font-medium transition-colors cursor-pointer text-xs ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
-              >
-                閉じる
-              </button>
-              <button
-                type="submit"
-                className={`flex-1 sm:flex-none px-5 py-2 sm:py-1.5 rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-[transform,background-color] cursor-pointer text-xs shadow-xs active:scale-95 ${themeClasses.accentBtn}`}
-              >
-                <Check className="w-4 h-4" />
-                <span>設定を保存</span>
-              </button>
-            </div>
-          </div>
         </form>
+
+        {/* Sticky Footer */}
+        <div className={`px-3.5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
+          <div className={`text-[11px] text-center sm:text-left ${themeClasses.textMuted}`}>
+            {activeTab === 'info' && 'フォント名やEMメトリクスを設定'}
+            {activeTab === 'license' && 'ライセンス・著作権情報を埋め込み'}
+            {activeTab === 'opentype' && 'OS/2 & hhea メタデータを設定'}
+            {activeTab === 'guide' && '商用利用・著作権ガイド'}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 max-sm:min-h-[40px] border rounded-lg font-medium transition-colors cursor-pointer text-xs ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+            >
+              閉じる
+            </button>
+            <button
+              type="submit"
+              form="font-info-form"
+              className={`flex-1 sm:flex-none px-5 py-2 sm:py-1.5 max-sm:min-h-[40px] rounded-lg font-bold flex items-center justify-center space-x-1.5 transition-[transform,background-color] cursor-pointer text-xs shadow-xs active:scale-95 ${themeClasses.accentBtn}`}
+            >
+              <Check className="w-4 h-4" />
+              <span>設定を保存</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <BundledFontsModal

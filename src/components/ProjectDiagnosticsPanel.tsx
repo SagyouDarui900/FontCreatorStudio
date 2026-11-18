@@ -301,7 +301,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-contain sm:overflow-hidden">
       {/* Top Scope & Global Actions Bar */}
       <div
         className={`px-3 sm:px-5 py-2.5 sm:py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
@@ -315,7 +315,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
             <span>スコープ:</span>
           </div>
           <div className="relative flex-1 min-w-0">
-            <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
+            <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
             {[
               { id: 'standard_japanese', label: '基本和文 (かな・英数)' },
               { id: 'registered_only', label: '登録済みのみ' },
@@ -399,14 +399,14 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
       {/* 4 Overview Statistics Cards */}
       {diagReport && (
         <div
-          className={`grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border-b ${
+          className={`grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 p-3 sm:p-4 border-b shrink-0 ${
             isLight ? 'bg-stone-50/70 border-stone-200' : 'bg-[#111913] border-[#25362b]'
           }`}
         >
           {/* Card 1: Overall Completion Rate */}
           <button
             onClick={() => setDiagFilter('all')}
-            className={`p-3 rounded-xl border text-left transition-colors ${
+            className={`p-2.5 sm:p-3 rounded-xl border text-left transition-colors ${
               diagFilter === 'all'
                 ? isLight
                   ? 'bg-white border-emerald-500 shadow-xs ring-1 ring-emerald-500/20'
@@ -454,7 +454,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                 <AlertCircle className="w-3 h-3" />
                 <span>未作成・空グリフ</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold font-mono">
                 未着手
               </span>
             </div>
@@ -487,7 +487,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                 <AlertTriangle className="w-3 h-3" />
                 <span>著しく低い字形複雑度</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 font-bold font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 font-bold font-mono">
                 仮置き疑い
               </span>
             </div>
@@ -520,7 +520,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
                 <Activity className="w-3 h-3" />
                 <span>作業中・描きかけ</span>
               </span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 font-bold font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 font-bold font-mono">
                 未閉合など
               </span>
             </div>
@@ -540,7 +540,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
       {/* Category Progress Bars (Expandable) */}
       {diagReport && diagReport.categoryStats.length > 0 && (
         <div
-          className={`border-b px-5 py-2.5 transition-colors ${
+          className={`border-b px-3.5 sm:px-5 py-2 sm:py-2.5 transition-colors shrink-0 ${
             isLight ? 'bg-stone-100/50 border-stone-200' : 'bg-[#141d16] border-[#25362b]'
           }`}
         >
@@ -713,7 +713,7 @@ export const ProjectDiagnosticsPanel: React.FC<ProjectDiagnosticsPanelProps> = (
       </div>
 
       {/* Main Items List Container */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-3">
+      <div className="sm:flex-1 sm:min-h-0 sm:overflow-y-auto p-3.5 sm:p-5 space-y-3">
         {filteredItems.length === 0 ? (
           <div className="text-center py-16">
             <div

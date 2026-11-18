@@ -36,31 +36,33 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/75 anim-fade"
+      aria-label="IVS 異体字セレクタ管理"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-5 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[85vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-5 py-3.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="hidden sm:flex p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
               <Layers className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className={`text-base font-bold flex items-center gap-2 ${themeClasses.textPrimary}`}>
+            <div className="min-w-0">
+              <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 truncate ${themeClasses.textPrimary}`}>
                 IVS 異体字セレクタ（Ideographic Variation Sequence）管理
               </h2>
-              <p className={`text-xs ${themeClasses.textMuted}`}>
+              <p className={`hidden sm:block text-xs ${themeClasses.textMuted}`}>
                 辻・葛・辺など、1つのコードポイントに対して規格や伝統字形を切り替えるUnicode標準異体字シーケンス
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            className={`p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            title="閉じる"
           >
             <X className="w-5 h-5" />
           </button>
@@ -68,11 +70,11 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`px-5 py-2 border-b flex items-center gap-2 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`px-3.5 sm:px-5 py-2 border-b flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <button
             onClick={() => setActiveTab('presets')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer ${
               activeTab === 'presets'
                 ? themeClasses.accentBtn
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -82,7 +84,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('about')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer ${
               activeTab === 'about'
                 ? themeClasses.accentBtn
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -93,7 +95,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
           {activeTab === 'presets' ? (
             <div className="space-y-4">
               <p className={`text-xs ${themeClasses.textMuted}`}>
@@ -181,10 +183,10 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                 同一コードポイントでありながら異なるグリフ（字形）を呼び出すことができます。
               </p>
 
-              <h3 className={`text-sm font-bold mt-4 ${themeClasses.textPrimary}`}>武蔵システム OTEdit / TTEdit との互換性</h3>
+              <h3 className={`text-sm font-bold mt-4 ${themeClasses.textPrimary}`}>OpenType IVS 仕様と本アプリでの扱い</h3>
               <p>
-                本アプリで作成したフォントは、OpenType の <code>cmap format 14 (Unicode Variation Sequences)</code> テーブルに対応したメタデータを保持し、
-                Adobe InDesign、Illustrator、Word などのIVS対応環境で標準文字と異体字の両立を実現できます。
+                OpenType 規格では <code>cmap format 14 (Unicode Variation Sequences)</code> テーブルによって同一コードポイントに対する異体字字形を切り替えます。
+                本アプリでは代表的な IVS 対象漢字の基底コードポイントを素早く呼び出して作図・調整するためのガイドとしてご活用いただけます。
               </p>
             </div>
           )}
@@ -192,11 +194,11 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`px-5 py-3 border-t flex justify-end shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`px-3.5 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t flex justify-end shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <button
             onClick={onClose}
-            className={`px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+            className={`w-full sm:w-auto min-h-[42px] sm:min-h-0 px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
           >
             閉じる
           </button>

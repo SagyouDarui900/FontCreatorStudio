@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { isMacDevice } from '../utils/platform';
 import { GlyphData, PathContour, ToolMode } from '../types';
 
@@ -18,23 +18,28 @@ export interface UseAppShortcutsOptions {
   setToolMode: (mode: ToolMode) => void;
 }
 
-export function useAppShortcuts({
-  isAnyModalOpen,
-  handleUndo,
-  handleRedo,
-  handleQuickSaveCurrentGlyph,
-  handleCopyGlyph,
-  handlePasteGlyph,
-  selectedUnicode,
-  currentGlyph,
-  clipboardContours,
-  handleSelectPrevGlyph,
-  handleSelectNextGlyph,
-  toggleZenMode,
-  setToolMode,
-}: UseAppShortcutsOptions) {
+export function useAppShortcuts(options: UseAppShortcutsOptions) {
+  const optionsRef = useRef<UseAppShortcutsOptions>(options);
+  optionsRef.current = options;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        isAnyModalOpen,
+        handleUndo,
+        handleRedo,
+        handleQuickSaveCurrentGlyph,
+        handleCopyGlyph,
+        handlePasteGlyph,
+        selectedUnicode,
+        currentGlyph,
+        clipboardContours,
+        handleSelectPrevGlyph,
+        handleSelectNextGlyph,
+        toggleZenMode,
+        setToolMode,
+      } = optionsRef.current;
+
       const activeElement = document.activeElement;
       const isInput =
         activeElement &&
@@ -134,19 +139,5 @@ export function useAppShortcuts({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isAnyModalOpen,
-    handleUndo,
-    handleRedo,
-    handleQuickSaveCurrentGlyph,
-    handleCopyGlyph,
-    handlePasteGlyph,
-    selectedUnicode,
-    currentGlyph,
-    clipboardContours,
-    handleSelectPrevGlyph,
-    handleSelectNextGlyph,
-    toggleZenMode,
-    setToolMode,
-  ]);
+  }, []);
 }

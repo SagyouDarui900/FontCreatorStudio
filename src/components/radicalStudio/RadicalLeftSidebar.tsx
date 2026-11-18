@@ -142,7 +142,7 @@ const PresetCard = React.memo<PresetCardProps>(({
             <span className="font-normal text-[10px] text-stone-400 ml-1">({radical.char})</span>
           </span>
           <span
-            className={`text-[9px] px-1.5 py-0.2 rounded font-medium shrink-0 ml-1 ${
+            className={`text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 ml-1 ${
               isLight
                 ? 'bg-stone-100 text-stone-600'
                 : 'bg-[#25362b] text-emerald-300'
@@ -246,7 +246,7 @@ const CustomPartCard = React.memo<CustomPartCardProps>(({
           <span className="text-xs font-bold truncate">{part.name}</span>
           {part.category && (
             <span
-              className={`text-[9px] px-1.5 py-0.2 rounded font-medium ${
+              className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
                 isLight ? 'bg-stone-100 text-stone-600' : 'bg-[#25362b] text-emerald-300'
               }`}
             >
@@ -749,7 +749,7 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <span className="text-xs font-bold truncate text-stone-900 dark:text-emerald-100">
  {radical.name}
  </span>
- <span className="text-[9px] px-1.5 py-0.2 rounded font-medium bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 shrink-0">
+ <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 shrink-0">
  {radical.strokes}画
  </span>
  </div>

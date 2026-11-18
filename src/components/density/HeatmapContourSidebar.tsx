@@ -23,7 +23,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
 }) => {
   return (
     <div
-      className={`w-full lg:w-96 border-t lg:border-t-0 lg:border-l flex flex-col overflow-hidden text-xs ${
+      className={`w-full lg:w-96 border-t lg:border-t-0 lg:border-l flex flex-col lg:overflow-hidden text-xs ${
         isLight ? 'bg-white border-stone-200' : 'bg-[#121d15] border-[#223528]'
       }`}
     >
@@ -137,7 +137,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
       </div>
 
       {/* Contours List Section */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2.5">
+      <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto p-3.5 sm:p-4 space-y-2.5">
         <div className="flex items-center justify-between font-bold text-stone-700 dark:text-emerald-300 mb-1">
           <span className="flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
 
       {/* Footer / Tip */}
       <div
-        className={`p-3 border-t text-[11px] flex flex-col gap-2 ${
+        className={`p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:pb-3 border-t text-[11px] flex flex-col gap-2 ${
           isLight ? 'bg-stone-50 border-stone-200 text-stone-500' : 'bg-[#0e1610] border-[#223528] text-stone-400'
         }`}
       >
@@ -244,7 +244,7 @@ export const HeatmapContourSidebar: React.FC<HeatmapContourSidebarProps> = React
             SVGキャンバス上のアンカー頂点を直接クリックすると、その箇所のみをピンポイントで単純化できます。
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-stone-400 dark:text-stone-500">
+        <div className="hidden sm:flex flex-wrap items-center gap-1.5 pt-1 text-[10px] text-stone-400 dark:text-stone-500">
           <span className="font-semibold text-stone-500 dark:text-stone-400">ショートカット:</span>
           <span className="px-1.5 py-0.5 rounded bg-stone-200/70 dark:bg-stone-800 font-mono text-stone-700 dark:text-stone-300">Enter: 一括単純化</span>
           <span className="px-1.5 py-0.5 rounded bg-stone-200/70 dark:bg-stone-800 font-mono text-stone-700 dark:text-stone-300">1~3: 強度切替</span>

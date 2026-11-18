@@ -296,7 +296,7 @@ export const QualityIssueCard: React.FC<QualityIssueCardProps> = ({
       </div>
 
       {/* Actions Column */}
-      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-end gap-1.5 w-full sm:w-auto shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-stone-100 dark:border-[#223025]">
+      <div className="flex flex-col sm:items-end justify-end gap-1.5 w-full sm:w-auto shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-stone-100 dark:border-[#223025]">
         {/* Primary Auto-Fix Action */}
         {issue.canAutoFix && (
           <button

@@ -48,11 +48,11 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
   handleSimplifyNodeCluster,
 }) => {
   return (
-    <div className="flex-1 min-h-[380px] lg:min-h-0 relative flex flex-col p-4 bg-stone-900/5 dark:bg-black/30">
+    <div className="flex-1 min-h-[340px] sm:min-h-[380px] lg:min-h-0 relative flex flex-col p-3 sm:p-4 bg-stone-900/5 dark:bg-black/30">
       {/* Floating Overlay Controls & Legend */}
-      <div className="absolute top-6 left-6 z-10 flex flex-wrap items-center gap-2 pointer-events-auto">
+      <div className="relative sm:absolute sm:top-6 sm:left-6 mb-2 sm:mb-0 z-10 flex flex-wrap items-center gap-2 pointer-events-auto">
         <div
-          className={`px-3 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center gap-3 ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-[11px] font-semibold flex flex-wrap items-center gap-2 sm:gap-3 ${
             isLight ? 'bg-white/90 border-stone-200 text-stone-800' : 'bg-[#101912]/90 border-[#223528] text-emerald-100'
           }`}
         >
@@ -123,7 +123,7 @@ export const HeatmapCanvasView: React.FC<HeatmapCanvasViewProps> = React.memo(({
       </div>
 
       {/* Zoom Controls */}
-      <div className="absolute bottom-6 left-6 z-10 flex items-center space-x-1 border rounded-xl p-1 shadow-md bg-white/90 dark:bg-[#101912]/90 border-stone-200 dark:border-[#223528]">
+      <div className="absolute bottom-3 left-3 sm:bottom-6 sm:left-6 z-10 flex items-center space-x-1 border rounded-xl p-1 shadow-md bg-white/90 dark:bg-[#101912]/90 border-stone-200 dark:border-[#223528]">
         <button
           onClick={() => setZoomLevel((z) => Math.max(0.7, Math.round((z - 0.2) * 10) / 10))}
           className="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-[#1e3023] text-stone-700 dark:text-emerald-200"

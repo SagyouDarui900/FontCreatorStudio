@@ -737,7 +737,10 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-2 bg-black/75 anim-fade pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="ピクセルフォント・クリエイター"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-2 bg-black/75 anim-fade pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -752,9 +755,9 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       <div
         className={`w-full ${
           isFullscreen
-            ? 'h-full max-h-none rounded-none border-0'
-            : 'max-w-7xl h-full sm:h-[95vh] sm:max-h-[920px] rounded-none shadow-2xl border-0 sm:border'
-        } flex flex-col overflow-hidden select-none ${themeClasses.modalBg}`}
+            ? 'h-[100dvh] max-h-none rounded-none border-0'
+            : 'sm:max-w-7xl h-[100dvh] sm:h-[95vh] sm:max-h-[920px] rounded-none shadow-none sm:shadow-2xl border-0 sm:border'
+        } flex flex-col overflow-hidden select-none ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         <input
           ref={fileInputRef}
@@ -887,7 +890,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
         {/* MOBILE TOP HEADER */}
         <div
-          className={`flex md:hidden items-center justify-between px-2.5 py-1.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex md:hidden items-center justify-between px-2.5 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
             <div className="w-7 h-7 bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-400">
