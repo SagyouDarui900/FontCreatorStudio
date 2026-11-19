@@ -227,7 +227,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   const [isStylusActive, setIsStylusActive] = useState<boolean>(false);
   const [liveStylusPressure, setLiveStylusPressure] = useState<number | null>(null);
-  const lastPressureValRef = useRef<number | null>(null);
   const [marqueeSelection, setMarqueeSelection] = useState<{ start: Point; current: Point } | null>(null);
   const [showShapePickerDropdown, setShowShapePickerDropdown] = useState<boolean>(false);
   const shapePickerRef = useRef<HTMLDivElement>(null);
@@ -274,7 +273,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   // Real-time Hover Position in Font Canvas Coordinates
   const [hoverCanvasPos, setHoverCanvasPos] = useState<Point | null>(null);
-  const hoverRafRef = useRef<number | null>(null);
 
   // Throttled RAF references for ultra-smooth 60fps canvas operations
   const generalCrosshairRef = useRef<SVGGElement | null>(null);
@@ -285,7 +283,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      if (hoverRafRef.current != null) cancelAnimationFrame(hoverRafRef.current);
       if (eraseRafRef.current != null) cancelAnimationFrame(eraseRafRef.current);
     };
   }, []);
@@ -379,9 +376,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     onCommitHistory,
     setIsStylusActive,
     isStylusActive,
-    onPressureUpdate: (val) => {
-      lastPressureValRef.current = val;
-    },
   });
 
   const {
@@ -735,6 +729,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    clearHoverPos,
     isPenDrawingRef,
     lastPenActiveTimeRef,
     touchPointersRef,
@@ -862,8 +857,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
     if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
-    setHoverCanvasPos(null);
-  }, []);
+    clearHoverPos();
+  }, [clearHoverPos]);
 
   // Consolidated Tool Switch & Pointer Loss Cleanup
   const { handleLostPointerCapture } = useToolModeCleanup({
@@ -1168,114 +1163,27 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         handleDistributeSelected={handleDistributeSelected}
       />
 
-      <div
-        ref={containerRef}
-        className={`relative flex-1 min-h-0 w-full overflow-hidden select-none touch-none transition-colors ${
-          isLight ? 'bg-[#f0f4f1]' : 'bg-[#0c120e]'
-        } ${isAnyModalOpen ? 'pointer-events-none' : ''}`}
-        style={{
-          touchAction: 'none',
-          WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none',
-          userSelect: 'none',
-        }}
-        onAuxClick={(e) => {
-          if (e.button === 1) {
-            e.preventDefault();
-          }
-        }}
-        onContextMenu={handleCanvasContextMenu}
-      >
-        {/* Floating Overlays & Mobile Sheets */}
-        <CanvasFloatingOverlays
-          isMobileFocusMode={isMobileFocusMode}
-          setIsMobileFocusMode={setIsMobileFocusMode}
-          isMobileAuxMenuOpen={isMobileAuxMenuOpen}
-          setIsMobileAuxMenuOpen={setIsMobileAuxMenuOpen}
-          onUndo={onUndo}
-          onRedo={onRedo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          toolMode={toolMode}
-          isSpacePressed={isSpacePressed}
-          isLight={isLight}
-          theme={theme}
-          upm={upm}
-          traceSettings={traceSettings}
-          onChangeTraceSettings={onChangeTraceSettings}
-          handleResetTracePosition={handleResetTracePosition}
-          handleResetTraceAll={handleResetTraceAll}
-          onSetToolMode={onSetToolMode}
-          showCanvasToast={showCanvasToast}
-          touchLoupeState={touchLoupeState}
-          contours={contours}
-          isOutlineMode={isOutlineMode}
-          canvasToast={canvasToast}
-          selectedNodeId={selectedNodeId}
-          selectedNodeIds={selectedNodeIds}
-          selectedContourId={selectedContourId}
-          handleDeleteSelectedNode={handleDeleteSelectedNode}
-          handleToggleNodeType={handleToggleNodeType}
-          isGlyphLocked={isGlyphLocked}
-          resetView={resetView}
-          handleZoomStep={handleZoomStep}
-          zoom={zoom}
-          onChangeGridSettings={onChangeGridSettings || (() => {})}
-          gridSettings={gridSettings}
-          palmRejectionMode={palmRejectionMode}
-          handleSetPalmRejectionMode={handleSetPalmRejectionMode}
-          pressureSensitivity={pressureSensitivity}
-          onChangePressureSensitivity={onChangePressureSensitivity}
-          handleClearAllContours={handleClearAllContours}
-          setOutlineOnly={setOutlineOnly}
-          onOpenGlyphCompareModal={onOpenGlyphCompareModal}
-          overlaySettings={overlaySettings}
-          onToggleZenMode={onToggleZenMode}
-          isZenMode={isZenMode}
-          selectedContourIds={selectedContourIds}
-          handleMergeSelectedContours={handleMergeSelectedContours}
-          showMobilePartSheet={showMobilePartSheet}
-          setShowMobilePartSheet={setShowMobilePartSheet}
-          handleDuplicateSelected={handleDuplicateSelected}
-          handleDeleteSelected={handleDeleteSelected}
-          setSelectedContourIds={setSelectedContourIds}
-          setSelectedNodeId={setSelectedNodeId}
-          handleFlipHSelected={handleFlipHSelected}
-          handleFlipVSelected={handleFlipVSelected}
-          handleRotateSelected={(deg?: number) => handleRotateSelected(deg ?? 90)}
-          handleSlantSelected={handleSlantSelected}
-          handleScaleSelected={handleScaleSelected}
-          handleSmoothStrokeSelected={handleSmoothStrokeSelected}
-          handleSimplifySelected={handleSimplifySelected}
-          showMobileBrushSheet={showMobileBrushSheet}
-          setShowMobileBrushSheet={setShowMobileBrushSheet}
-          brushWidth={brushWidth}
-          onChangeBrushWidth={onChangeBrushWidth}
-          smoothingIntensity={smoothingIntensity}
-          onChangeSmoothingIntensity={onChangeSmoothingIntensity}
-          brushStraightMode={brushStraightMode}
-          setBrushStraightMode={setBrushStraightMode}
-          brushStyle={brushStyle}
-          onChangeBrushStyle={onChangeBrushStyle}
-          showMobileGuidesSheet={showMobileGuidesSheet}
-          setShowMobileGuidesSheet={setShowMobileGuidesSheet}
-          nodeStyle={nodeStyle}
-          setNodeStyle={setNodeStyle}
-          showNodes={showNodes}
-          setShowNodes={setShowNodes}
-          customGuidelines={customGuidelines}
-          setCustomGuidelines={setCustomGuidelines}
-          lockGuidelines={lockGuidelines}
-          setLockGuidelines={setLockGuidelines}
-          activeChar={activeChar}
-          selectedUnicode={selectedUnicode}
-          onGenerateDakutenTarget={onGenerateDakutenTarget}
-          onDuplicateAsSmallKana={onDuplicateAsSmallKana}
-          onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
-        />
-
-        {/* SVG Canvas Stage */}
-        <CanvasSvgStage
+      <div className="relative flex-1 min-h-0 w-full overflow-hidden">
+        <div
+          ref={containerRef}
+          className={`relative w-full h-full overflow-hidden select-none touch-none transition-colors ${
+            isLight ? 'bg-[#f0f4f1]' : 'bg-[#0c120e]'
+          } ${isAnyModalOpen ? 'pointer-events-none' : ''}`}
+          style={{
+            touchAction: 'none',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+          }}
+          onAuxClick={(e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+            }
+          }}
+          onContextMenu={handleCanvasContextMenu}
+        >
+          {/* SVG Canvas Stage */}
+          <CanvasSvgStage
           canvasGroupRef={canvasGroupRef}
           pan={pan}
           zoom={zoom}
@@ -1367,9 +1275,98 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           penStrokeWidth={penStrokeWidth}
           penCapStyle={penCapStyle}
           penMousePos={penMousePos}
-          brushWidth={brushWidth}
-          activeSnapGuides={activeSnapGuides}
+            brushWidth={brushWidth}
+            activeSnapGuides={activeSnapGuides}
+            isGlyphLocked={isGlyphLocked}
+          />
+        </div>
+
+        {/* Floating Overlays & Mobile Sheets (outside containerRef so canvas touch-none / preventDefault never blocks scrolling) */}
+        <CanvasFloatingOverlays
+          isMobileFocusMode={isMobileFocusMode}
+          setIsMobileFocusMode={setIsMobileFocusMode}
+          isMobileAuxMenuOpen={isMobileAuxMenuOpen}
+          setIsMobileAuxMenuOpen={setIsMobileAuxMenuOpen}
+          onUndo={onUndo}
+          onRedo={onRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          toolMode={toolMode}
+          isSpacePressed={isSpacePressed}
+          isLight={isLight}
+          theme={theme}
+          upm={upm}
+          traceSettings={traceSettings}
+          onChangeTraceSettings={onChangeTraceSettings}
+          handleResetTracePosition={handleResetTracePosition}
+          handleResetTraceAll={handleResetTraceAll}
+          onSetToolMode={onSetToolMode}
+          showCanvasToast={showCanvasToast}
+          touchLoupeState={touchLoupeState}
+          contours={contours}
+          isOutlineMode={isOutlineMode}
+          canvasToast={canvasToast}
+          selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
+          selectedContourId={selectedContourId}
+          handleDeleteSelectedNode={handleDeleteSelectedNode}
+          handleToggleNodeType={handleToggleNodeType}
           isGlyphLocked={isGlyphLocked}
+          resetView={resetView}
+          handleZoomStep={handleZoomStep}
+          zoom={zoom}
+          onChangeGridSettings={onChangeGridSettings || (() => {})}
+          gridSettings={gridSettings}
+          palmRejectionMode={palmRejectionMode}
+          handleSetPalmRejectionMode={handleSetPalmRejectionMode}
+          pressureSensitivity={pressureSensitivity}
+          onChangePressureSensitivity={onChangePressureSensitivity}
+          handleClearAllContours={handleClearAllContours}
+          setOutlineOnly={setOutlineOnly}
+          onOpenGlyphCompareModal={onOpenGlyphCompareModal}
+          overlaySettings={overlaySettings}
+          onToggleZenMode={onToggleZenMode}
+          isZenMode={isZenMode}
+          selectedContourIds={selectedContourIds}
+          handleMergeSelectedContours={handleMergeSelectedContours}
+          showMobilePartSheet={showMobilePartSheet}
+          setShowMobilePartSheet={setShowMobilePartSheet}
+          handleDuplicateSelected={handleDuplicateSelected}
+          handleDeleteSelected={handleDeleteSelected}
+          setSelectedContourIds={setSelectedContourIds}
+          setSelectedNodeId={setSelectedNodeId}
+          handleFlipHSelected={handleFlipHSelected}
+          handleFlipVSelected={handleFlipVSelected}
+          handleRotateSelected={(deg?: number) => handleRotateSelected(deg ?? 90)}
+          handleSlantSelected={handleSlantSelected}
+          handleScaleSelected={handleScaleSelected}
+          handleSmoothStrokeSelected={handleSmoothStrokeSelected}
+          handleSimplifySelected={handleSimplifySelected}
+          showMobileBrushSheet={showMobileBrushSheet}
+          setShowMobileBrushSheet={setShowMobileBrushSheet}
+          brushWidth={brushWidth}
+          onChangeBrushWidth={onChangeBrushWidth}
+          smoothingIntensity={smoothingIntensity}
+          onChangeSmoothingIntensity={onChangeSmoothingIntensity}
+          brushStraightMode={brushStraightMode}
+          setBrushStraightMode={setBrushStraightMode}
+          brushStyle={brushStyle}
+          onChangeBrushStyle={onChangeBrushStyle}
+          showMobileGuidesSheet={showMobileGuidesSheet}
+          setShowMobileGuidesSheet={setShowMobileGuidesSheet}
+          nodeStyle={nodeStyle}
+          setNodeStyle={setNodeStyle}
+          showNodes={showNodes}
+          setShowNodes={setShowNodes}
+          customGuidelines={customGuidelines}
+          setCustomGuidelines={setCustomGuidelines}
+          lockGuidelines={lockGuidelines}
+          setLockGuidelines={setLockGuidelines}
+          activeChar={activeChar}
+          selectedUnicode={selectedUnicode}
+          onGenerateDakutenTarget={onGenerateDakutenTarget}
+          onDuplicateAsSmallKana={onDuplicateAsSmallKana}
+          onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
         />
 
         {/* Canvas Right-Click Context Menu */}

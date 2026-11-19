@@ -223,3 +223,71 @@ export function setContourExactDimensions(
     })),
   };
 }
+
+/**
+ * Scale one or more selected contours as a group to exact target width and height in font units.
+ */
+export function setContoursExactDimensions(
+  contours: PathContour[],
+  selectedIds: string[],
+  newWidth: number,
+  newHeight: number,
+  keepAspect: boolean = false
+): PathContour[] {
+  if (!contours || contours.length === 0 || !selectedIds || selectedIds.length === 0) {
+    return contours;
+  }
+  if (newWidth <= 0 || newHeight <= 0) {
+    return contours;
+  }
+
+  const selectedContours = contours.filter((c) => selectedIds.includes(c.id));
+  if (selectedContours.length === 0) return contours;
+
+  if (selectedContours.length === 1) {
+    const target = selectedContours[0];
+    const scaled = setContourExactDimensions(target, newWidth, newHeight, keepAspect);
+    return contours.map((c) => (c.id === target.id ? scaled : c));
+  }
+
+  const groupBBox = getContoursBoundingBox(selectedContours);
+  if (groupBBox.width <= 0 || groupBBox.height <= 0) {
+    return contours;
+  }
+
+  let scaleX = newWidth / groupBBox.width;
+  let scaleY = newHeight / groupBBox.height;
+
+  if (keepAspect) {
+    const avgScale = Math.min(scaleX, scaleY);
+    scaleX = avgScale;
+    scaleY = avgScale;
+  }
+
+  const originX = groupBBox.minX;
+  const originY = groupBBox.minY;
+
+  return contours.map((c) => {
+    if (!selectedIds.includes(c.id)) return c;
+    return {
+      ...c,
+      nodes: c.nodes.map((n) => ({
+        ...n,
+        x: Math.round(originX + (n.x - originX) * scaleX),
+        y: Math.round(originY + (n.y - originY) * scaleY),
+        handleIn: n.handleIn
+          ? {
+              x: Math.round(originX + (n.handleIn.x - originX) * scaleX),
+              y: Math.round(originY + (n.handleIn.y - originY) * scaleY),
+            }
+          : undefined,
+        handleOut: n.handleOut
+          ? {
+              x: Math.round(originX + (n.handleOut.x - originX) * scaleX),
+              y: Math.round(originY + (n.handleOut.y - originY) * scaleY),
+            }
+          : undefined,
+      })),
+    };
+  });
+}

@@ -13,6 +13,7 @@ export interface UsePointerMetricsDragOptions {
   lockGuidelines: boolean;
   toolMode: ToolMode;
   isDrawingTool: boolean;
+  upm?: number;
   showCanvasToast: (msg: string, desc?: string) => void;
 }
 
@@ -28,6 +29,7 @@ export function usePointerMetricsDrag({
   lockGuidelines,
   toolMode,
   isDrawingTool,
+  upm = 1000,
   showCanvasToast,
 }: UsePointerMetricsDragOptions) {
   const hasCommittedMetricHistoryRef = useRef<boolean>(false);
@@ -66,12 +68,14 @@ export function usePointerMetricsDrag({
   // Update LSB or RSB position while dragging
   const handleMetricsPointerMove = useCallback(
     (pos: Point): boolean => {
+      const roundedX = Math.round(pos.x);
+      const maxAdv = Math.max(2000, upm * 3);
       if (draggingMetric === 'lsb') {
         if (!hasCommittedMetricHistoryRef.current) {
           onCommitHistory?.();
           hasCommittedMetricHistoryRef.current = true;
         }
-        onChangeLsb(Math.max(0, Math.min(pos.x, advanceWidth - 50)), { skipHistory: true });
+        onChangeLsb(Math.max(0, Math.min(roundedX, advanceWidth - 50)), { skipHistory: true });
         return true;
       }
       if (draggingMetric === 'rsb') {
@@ -79,12 +83,12 @@ export function usePointerMetricsDrag({
           onCommitHistory?.();
           hasCommittedMetricHistoryRef.current = true;
         }
-        onChangeAdvanceWidth(Math.max(lsb + 50, Math.min(2000, pos.x)), { skipHistory: true });
+        onChangeAdvanceWidth(Math.max(lsb + 50, Math.min(maxAdv, roundedX)), { skipHistory: true });
         return true;
       }
       return false;
     },
-    [draggingMetric, advanceWidth, lsb, onChangeLsb, onChangeAdvanceWidth, onCommitHistory]
+    [draggingMetric, advanceWidth, lsb, upm, onChangeLsb, onChangeAdvanceWidth, onCommitHistory]
   );
 
   // Terminate metric drag on pointer up

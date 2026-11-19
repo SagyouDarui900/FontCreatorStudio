@@ -116,13 +116,23 @@ export function useCanvasNativeGestures({
       wheelCommitTimer = setTimeout(commitWheelViewport, 100);
     };
 
+    const shouldBypassNativePreventDefault = (target: EventTarget | null) => {
+      if (isAnyModalOpenRef.current) return true;
+      if (target instanceof Element) {
+        return Boolean(target.closest('[role="dialog"], [data-allow-native-scroll="true"]'));
+      }
+      return false;
+    };
+
     const preventAll = (e: Event) => {
+      if (shouldBypassNativePreventDefault(e.target)) return;
       if (e.cancelable) {
         e.preventDefault();
       }
     };
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (shouldBypassNativePreventDefault(e.target)) return;
       // Prevent browser native zoom & multi-touch gestures when touching canvas
       if (e.touches.length >= 2 && e.cancelable) {
         e.preventDefault();
@@ -130,6 +140,7 @@ export function useCanvasNativeGestures({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      if (shouldBypassNativePreventDefault(e.target)) return;
       // Inside canvas area, touches are strictly for drawing or 2-finger panning. Always prevent page scrolling/bouncing.
       if (e.cancelable) {
         e.preventDefault();
@@ -137,6 +148,7 @@ export function useCanvasNativeGestures({
     };
 
     const handleWheelNative = (e: WheelEvent) => {
+      if (shouldBypassNativePreventDefault(e.target)) return;
       if (e.cancelable) {
         e.preventDefault();
       }

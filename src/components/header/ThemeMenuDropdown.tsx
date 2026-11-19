@@ -34,7 +34,7 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`px-1.5 h-7 rounded-md flex items-center space-x-1 border cursor-pointer ${cardBgClass}`}
+        className={`px-1.5 h-7 rounded-md flex items-center justify-center gap-1 border cursor-pointer ${cardBgClass}`}
         title="カラーテーマ・目の保護（セピア/ブルーライトカット）の切り替え"
       >
         <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 shrink-0" />

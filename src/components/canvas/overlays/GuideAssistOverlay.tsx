@@ -34,7 +34,7 @@ export const GuideAssistOverlay: React.FC<GuideAssistOverlayProps> = React.memo(
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className={`w-[calc(100vw-16px)] sm:w-[340px] max-h-[65vh] overflow-y-auto rounded-lg border p-3 shadow-xl text-left ${
+        className={`w-[calc(100vw-16px)] sm:w-[340px] max-h-[65dvh] overflow-y-auto overscroll-contain touch-pan-y rounded-lg border p-3 shadow-xl text-left ${
           isLight
             ? 'bg-white border-[#c8ded3] text-stone-800'
             : 'bg-[#101712] border-emerald-800/70 text-emerald-100'

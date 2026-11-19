@@ -114,7 +114,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           <button
             type="button"
             onClick={() => setShowHintBanner(!showHintBanner)}
-            className={`h-7 px-2 sm:px-2.5 rounded-md text-xs font-medium border transition-colors flex items-center space-x-1 cursor-pointer ${
+            className={`h-7 px-2 sm:px-2.5 rounded-md text-xs font-medium border transition-colors flex items-center justify-center gap-1 cursor-pointer ${
               showHintBanner
                 ? isLight
                   ? 'bg-emerald-100 border-emerald-300 text-emerald-900'
@@ -248,7 +248,7 @@ export const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           <button
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className={`h-7 px-2 sm:px-2.5 rounded-md border text-xs font-semibold flex items-center space-x-1 transition-colors cursor-pointer ${
+            className={`h-7 px-2 sm:px-2.5 rounded-md border text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
               isFullscreen
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : isLight

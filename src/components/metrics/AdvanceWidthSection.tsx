@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, MoveHorizontal } from 'lucide-react';
 import { PathContour, ThemeClasses } from '../../types';
 
@@ -14,7 +14,7 @@ export interface AdvanceWidthSectionProps {
   themeClasses: ThemeClasses;
   onChangeAdvanceWidth: (val: number) => void;
   onChangeLsb: (val: number) => void;
-  onCommitHistory: () => void;
+  onCommitHistory?: () => void;
   onStepAdvance: (delta: number) => void;
   onStepLsb: (delta: number) => void;
   onSetAdvancePreset: (val: number) => void;
@@ -34,13 +34,62 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
   themeClasses,
   onChangeAdvanceWidth,
   onChangeLsb,
-  onCommitHistory,
   onStepAdvance,
   onStepLsb,
   onSetAdvancePreset,
   onSetLsbPreset,
   onCenterWithinAdvance,
 }) => {
+  const effectiveAdv = advanceWidth ?? upm;
+  const effectiveLsb = lsb ?? 50;
+
+  const [advDraft, setAdvDraft] = useState<string>(String(effectiveAdv));
+  const [lsbDraft, setLsbDraft] = useState<string>(String(effectiveLsb));
+
+  useEffect(() => {
+    setAdvDraft(String(effectiveAdv));
+  }, [effectiveAdv]);
+
+  useEffect(() => {
+    setLsbDraft(String(effectiveLsb));
+  }, [effectiveLsb]);
+
+  const commitAdvanceDraft = () => {
+    const trimmed = advDraft.trim();
+    if (!trimmed) {
+      setAdvDraft(String(effectiveAdv));
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setAdvDraft(String(effectiveAdv));
+      return;
+    }
+    const clamped = Math.max(50, Math.round(parsed));
+    setAdvDraft(String(clamped));
+    if (clamped !== effectiveAdv) {
+      onChangeAdvanceWidth(clamped);
+    }
+  };
+
+  const commitLsbDraft = () => {
+    const trimmed = lsbDraft.trim();
+    if (!trimmed || trimmed === '-') {
+      setLsbDraft(String(effectiveLsb));
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setLsbDraft(String(effectiveLsb));
+      return;
+    }
+    const rounded = Math.round(parsed);
+    setLsbDraft(String(rounded));
+    if (rounded !== effectiveLsb) {
+      onChangeLsb(rounded);
+    }
+  };
+
   return (
     <div
       className={`flex flex-col rounded-xl border overflow-hidden transition-colors ${themeClasses.cardBg} ${themeClasses.border} shadow-xs`}
@@ -54,7 +103,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
             メトリクス数値指定
           </span>
           <span className={`text-[10px] font-mono tabular-nums font-bold px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap border ${themeClasses.accentBadge}`}>
-            幅:{advanceWidth ?? 1000} / LSB:{lsb ?? 50}
+            幅:{effectiveAdv} / LSB:{effectiveLsb}
           </span>
         </div>
         <div className="shrink-0 p-0.5 text-stone-400">
@@ -89,15 +138,27 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
               </button>
               <div className="relative flex-1 min-w-0 flex items-center">
                 <input
-                  type="number"
-                  value={advanceWidth ?? upm}
-                  onChange={(e) => {
-                    const value = Number(e.target.value);
-                    onChangeAdvanceWidth(Number.isFinite(value) ? Math.max(0, Math.round(value)) : upm);
+                  type="text"
+                  inputMode="numeric"
+                  aria-label="送り幅 (Advance)"
+                  value={advDraft}
+                  onChange={(e) => setAdvDraft(e.target.value)}
+                  onBlur={commitAdvanceDraft}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                      setAdvDraft(String(effectiveAdv));
+                      e.currentTarget.blur();
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      onStepAdvance(e.shiftKey ? 50 : 10);
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      onStepAdvance(e.shiftKey ? -50 : -10);
+                    }
                   }}
-                  onBlur={onCommitHistory}
                   className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
-                  step={10}
                 />
                 <span className={`absolute right-2 text-[10px] font-mono pointer-events-none font-bold ${themeClasses.textMuted}`}>
                   px
@@ -177,14 +238,27 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
               </button>
               <div className="relative flex-1 min-w-0 flex items-center">
                 <input
-                  type="number"
-                  value={lsb ?? 50}
-                  onChange={(e) => {
-                    onChangeLsb(Number(e.target.value) || 0);
+                  type="text"
+                  inputMode="numeric"
+                  aria-label="左余白 (LSB)"
+                  value={lsbDraft}
+                  onChange={(e) => setLsbDraft(e.target.value)}
+                  onBlur={commitLsbDraft}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                      setLsbDraft(String(effectiveLsb));
+                      e.currentTarget.blur();
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      onStepLsb(e.shiftKey ? 20 : 5);
+                    } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      onStepLsb(e.shiftKey ? -20 : -5);
+                    }
                   }}
-                  onBlur={onCommitHistory}
                   className={`w-full border rounded-lg px-2.5 py-1.5 pr-7 text-sm font-mono tabular-nums font-bold text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
-                  step={5}
                 />
                 <span className={`absolute right-2 text-[10px] font-mono pointer-events-none font-bold ${themeClasses.textMuted}`}>
                   px

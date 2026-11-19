@@ -643,7 +643,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 showCanvasToast(next ? 'スナップ: ON' : 'スナップ: OFF');
               }}
               title={`スマートスナップ [S]: ${gridSettings.snapToGrid || gridSettings.snapToGuides ? 'ON' : 'OFF'}`}
-              className={`h-6 px-1.5 rounded transition-colors flex items-center gap-1 font-bold text-[10.5px] ${
+              className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 font-bold text-[10.5px] ${
                 gridSettings.snapToGrid || gridSettings.snapToGuides
                   ? 'bg-emerald-600 text-white'
                   : iconBtnClass
@@ -681,7 +681,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 type="button"
                 onClick={handleResetTracePosition}
                 title="下絵位置を中央にリセット"
-                className="h-6 px-1.5 rounded text-[10px] font-bold flex items-center gap-0.5 bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors"
+                className="h-6 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span className="hidden xl:inline">下絵戻す</span>
@@ -697,7 +697,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
               showCanvasToast(next ? '輪郭表示モード: ON' : '塗りつぶし表示に戻しました');
             }}
             title={`輪郭のみ表示 [Shift+O]: ${isOutlineMode ? 'ON' : 'OFF'}`}
-            className={`h-6 px-1.5 rounded transition-colors flex items-center gap-1 text-[10.5px] font-bold ${
+            className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 text-[10.5px] font-bold ${
               isOutlineMode ? 'bg-sky-600 text-white' : iconBtnClass
             }`}
           >
@@ -711,7 +711,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
               type="button"
               onClick={onOpenGlyphCompareModal}
               title={`グリフ重ね合わせ比較: ${overlaySettings?.enabled ? `ON (${overlaySettings.referenceChar})` : 'OFF'}`}
-              className={`h-6 px-1.5 rounded transition-colors flex items-center gap-1 text-[10.5px] font-bold ${
+              className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 text-[10.5px] font-bold ${
                 overlaySettings?.enabled ? 'bg-sky-600 text-white' : iconBtnClass
               }`}
             >
@@ -747,7 +747,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             type="button"
             onClick={() => handleToggleGuideAssist(!showGuideAssist)}
             title="作図基準ガイド（凡例）を表示"
-            className={`h-6 px-1.5 rounded border text-[10.5px] font-bold flex items-center gap-1 transition-colors ${
+            className={`h-6 px-1.5 rounded border text-[10.5px] font-bold flex items-center justify-center gap-1 transition-colors ${
               showGuideAssist
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : isLight

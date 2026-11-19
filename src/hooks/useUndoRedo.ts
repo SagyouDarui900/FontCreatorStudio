@@ -112,6 +112,25 @@ interface UseUndoRedoOptions {
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
 }
 
+export const MAX_HISTORY_GLYPHS = 150;
+
+function touchHistoryGlyphOrder(
+  order: number[],
+  unicode: number,
+  maxEntries: number = MAX_HISTORY_GLYPHS
+): { nextOrder: number[]; evicted: number[] } {
+  const filtered = order.filter((u) => u !== unicode);
+  filtered.push(unicode);
+  if (filtered.length <= maxEntries) {
+    return { nextOrder: filtered, evicted: [] };
+  }
+  const excess = filtered.length - maxEntries;
+  return {
+    nextOrder: filtered.slice(excess),
+    evicted: filtered.slice(0, excess),
+  };
+}
+
 export function useUndoRedo({
   projectRef,
   currentGlyphRef,
@@ -126,9 +145,27 @@ export function useUndoRedo({
   // Keep synchronous mirrors so Undo/Redo never invoke sibling setState/setProject inside another updater
   const undoStacksRef = useRef<Record<number, GlyphData[]>>({});
   const redoStacksRef = useRef<Record<number, GlyphData[]>>({});
+  const historyOrderRef = useRef<number[]>([]);
 
   const currentUndoStack = undoStacks[selectedUnicode] || [];
   const currentRedoStack = redoStacks[selectedUnicode] || [];
+
+  const applyEvictionToMaps = useCallback((
+    undoMap: Record<number, GlyphData[]>,
+    redoMap: Record<number, GlyphData[]>,
+    evicted: number[]
+  ) => {
+    if (evicted.length === 0) return { undoMap, redoMap, redoChanged: false };
+    let redoChanged = false;
+    for (const u of evicted) {
+      delete undoMap[u];
+      if (u in redoMap) {
+        delete redoMap[u];
+        redoChanged = true;
+      }
+    }
+    return { undoMap, redoMap, redoChanged };
+  }, []);
 
   const commitHistory = useCallback((targetUnicode?: number) => {
     const unicode = targetUnicode ?? selectedUnicode;
@@ -140,20 +177,44 @@ export function useUndoRedo({
       contours: [],
     };
 
+    const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, unicode);
+    historyOrderRef.current = nextOrder;
+
     const currentUndo = undoStacksRef.current[unicode] || [];
     const last = currentUndo.length > 0 ? currentUndo[currentUndo.length - 1] : null;
+    const nextUndoMap = { ...undoStacksRef.current };
+    const nextRedoMap = { ...redoStacksRef.current };
+    let undoChanged = false;
+    let redoChanged = false;
+
     if (!last || !areGlyphsEqual(last, existingGlyph)) {
-      const nextUndoMap = {
-        ...undoStacksRef.current,
-        [unicode]: [...currentUndo.slice(-49), cloneGlyph(existingGlyph)],
-      };
+      nextUndoMap[unicode] = [...currentUndo.slice(-49), cloneGlyph(existingGlyph)];
+      undoChanged = true;
+    }
+
+    if (nextRedoMap[unicode] && nextRedoMap[unicode].length > 0) {
+      delete nextRedoMap[unicode];
+      redoChanged = true;
+    }
+
+    if (evicted.length > 0) {
+      for (const u of evicted) {
+        if (u in nextUndoMap) {
+          delete nextUndoMap[u];
+          undoChanged = true;
+        }
+        if (u in nextRedoMap) {
+          delete nextRedoMap[u];
+          redoChanged = true;
+        }
+      }
+    }
+
+    if (undoChanged) {
       undoStacksRef.current = nextUndoMap;
       setUndoStacks(nextUndoMap);
     }
-
-    if (redoStacksRef.current[unicode] && redoStacksRef.current[unicode].length > 0) {
-      const nextRedoMap = { ...redoStacksRef.current };
-      delete nextRedoMap[unicode];
+    if (redoChanged) {
       redoStacksRef.current = nextRedoMap;
       setRedoStacks(nextRedoMap);
     }
@@ -165,6 +226,9 @@ export function useUndoRedo({
     if (stack.length === 0) {
       return;
     }
+
+    const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, unicode);
+    historyOrderRef.current = nextOrder;
 
     const previous = stack[stack.length - 1];
     const nextUndoStack = stack.slice(0, stack.length - 1);
@@ -180,6 +244,7 @@ export function useUndoRedo({
       ...redoStacksRef.current,
       [unicode]: nextRedoStack,
     };
+    applyEvictionToMaps(nextUndoMap, nextRedoMap, evicted);
 
     undoStacksRef.current = nextUndoMap;
     redoStacksRef.current = nextRedoMap;
@@ -200,7 +265,7 @@ export function useUndoRedo({
       },
       updatedAt: Date.now(),
     }));
-  }, [selectedUnicode, currentGlyphRef, setProject]);
+  }, [selectedUnicode, currentGlyphRef, setProject, applyEvictionToMaps]);
 
   const handleRedo = useCallback(() => {
     const unicode = selectedUnicode;
@@ -208,6 +273,9 @@ export function useUndoRedo({
     if (stack.length === 0) {
       return;
     }
+
+    const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, unicode);
+    historyOrderRef.current = nextOrder;
 
     const next = stack[stack.length - 1];
     const nextRedoStack = stack.slice(0, stack.length - 1);
@@ -223,6 +291,7 @@ export function useUndoRedo({
       ...undoStacksRef.current,
       [unicode]: nextUndoStack,
     };
+    applyEvictionToMaps(nextUndoMap, nextRedoMap, evicted);
 
     redoStacksRef.current = nextRedoMap;
     undoStacksRef.current = nextUndoMap;
@@ -243,36 +312,56 @@ export function useUndoRedo({
       },
       updatedAt: Date.now(),
     }));
-  }, [selectedUnicode, currentGlyphRef, setProject]);
+  }, [selectedUnicode, currentGlyphRef, setProject, applyEvictionToMaps]);
 
   const pushSnapshot = useCallback((glyph: GlyphData, targetUnicode?: number) => {
     const unicode = targetUnicode ?? glyph.unicode ?? selectedUnicode;
+    const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, unicode);
+    historyOrderRef.current = nextOrder;
+
     const stack = undoStacksRef.current[unicode] || [];
-    const nextUndoMap = {
+    const nextUndoMap: Record<number, GlyphData[]> = {
       ...undoStacksRef.current,
       [unicode]: [...stack.slice(-49), cloneGlyph(glyph)],
     };
+    const nextRedoMap: Record<number, GlyphData[]> = { ...redoStacksRef.current };
+    let redoChanged = false;
+
+    if (nextRedoMap[unicode] && nextRedoMap[unicode].length > 0) {
+      delete nextRedoMap[unicode];
+      redoChanged = true;
+    }
+
+    const evictionResult = applyEvictionToMaps(nextUndoMap, nextRedoMap, evicted);
     undoStacksRef.current = nextUndoMap;
     setUndoStacks(nextUndoMap);
 
-    if (redoStacksRef.current[unicode] && redoStacksRef.current[unicode].length > 0) {
-      const nextRedoMap = { ...redoStacksRef.current };
-      delete nextRedoMap[unicode];
+    if (redoChanged || evictionResult.redoChanged) {
       redoStacksRef.current = nextRedoMap;
       setRedoStacks(nextRedoMap);
     }
-  }, [selectedUnicode]);
+  }, [selectedUnicode, applyEvictionToMaps]);
 
   const setUndoStack = useCallback((action: React.SetStateAction<GlyphData[]>) => {
+    const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, selectedUnicode);
+    historyOrderRef.current = nextOrder;
+
     const currentStack = undoStacksRef.current[selectedUnicode] || [];
     const nextStack = typeof action === 'function' ? action(currentStack) : action;
-    const nextUndoMap = {
+    const nextUndoMap: Record<number, GlyphData[]> = {
       ...undoStacksRef.current,
       [selectedUnicode]: nextStack,
     };
+    const nextRedoMap: Record<number, GlyphData[]> = { ...redoStacksRef.current };
+    const evictionResult = applyEvictionToMaps(nextUndoMap, nextRedoMap, evicted);
+
     undoStacksRef.current = nextUndoMap;
     setUndoStacks(nextUndoMap);
-  }, [selectedUnicode]);
+    if (evictionResult.redoChanged) {
+      redoStacksRef.current = nextRedoMap;
+      setRedoStacks(nextRedoMap);
+    }
+  }, [selectedUnicode, applyEvictionToMaps]);
 
   return {
     undoStack: currentUndoStack,

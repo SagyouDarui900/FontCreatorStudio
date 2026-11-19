@@ -31,10 +31,10 @@ import { TransformSection } from './TransformSection';
 export interface MetricsPanelProps {
   advanceWidth: number;
   lsb: number;
-  onChangeAdvanceWidth: (val: number) => void;
-  onChangeLsb: (val: number) => void;
+  onChangeAdvanceWidth: (val: number, options?: { skipHistory?: boolean }) => void;
+  onChangeLsb: (val: number, options?: { skipHistory?: boolean }) => void;
   contours: PathContour[];
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory: () => void;
   selectedChar: string;
   selectedUnicode: number;
@@ -156,14 +156,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     }
 
     // Direct fallback
-    onCommitHistory();
     const result = simplifyGlyphContours(contours, {
       level: simplifyLevel,
       preserveSharpCorners: true,
     });
 
-    onChangeContours(result.contours);
     if (result.changed) {
+      onCommitHistory();
+      onChangeContours(result.contours, { skipHistory: true });
       onShowToast?.(
         `輪郭を単純化しました: 頂点数 ${result.originalNodeCount}点 → ${result.optimizedNodeCount}点 (${result.reductionPercentage}% 削減)`,
         'success'
@@ -189,9 +189,9 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     // Direct fallback
     onCommitHistory();
     const result = calculateOptimalSpacing(selectedUnicode, contours, preset, upm);
-    onChangeContours(result.contours);
-    onChangeAdvanceWidth(result.advanceWidth);
-    onChangeLsb(result.lsb);
+    onChangeContours(result.contours, { skipHistory: true });
+    onChangeAdvanceWidth(result.advanceWidth, { skipHistory: true });
+    onChangeLsb(result.lsb, { skipHistory: true });
 
     const presetLabel =
       preset === 'smart'
@@ -210,6 +210,29 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     );
   };
 
+  // Apply target LSB by shifting glyph contours horizontally and syncing glyph.lsb
+  const applyTargetLsb = (targetLsb: number) => {
+    const nextLsb = Math.round(targetLsb);
+    if (contours.length > 0 && bbox.width > 0) {
+      const deltaX = nextLsb - Math.round(bbox.minX);
+      if (deltaX !== 0) {
+        onCommitHistory();
+        const shifted = transformContours(contours, (p) => ({
+          x: Math.round(p.x + deltaX),
+          y: p.y,
+        }));
+        onChangeContours(shifted, { skipHistory: true });
+        onChangeLsb(nextLsb, { skipHistory: true });
+      } else if (lsb !== nextLsb) {
+        onCommitHistory();
+        onChangeLsb(nextLsb, { skipHistory: true });
+      }
+    } else if (lsb !== nextLsb) {
+      onCommitHistory();
+      onChangeLsb(nextLsb, { skipHistory: true });
+    }
+  };
+
   // Horizontal Centering within current Advance Width
   const handleCenterWithinAdvance = () => {
     if (guardLocked()) return;
@@ -218,44 +241,48 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
       return;
     }
     onCommitHistory();
-    const currentAdv = advanceWidth || upm;
+    const currentAdv = advanceWidth ?? upm;
     const targetLsb = Math.round((currentAdv - bbox.width) / 2);
     const deltaX = targetLsb - bbox.minX;
 
-    const shifted = deltaX !== 0 ? transformContours(contours, (p) => ({ x: Math.round(p.x + deltaX), y: p.y })) : contours;
+    const shifted =
+      deltaX !== 0
+        ? transformContours(contours, (p) => ({ x: Math.round(p.x + deltaX), y: p.y }))
+        : contours;
 
-    onChangeContours(shifted);
-    onChangeLsb(targetLsb);
+    onChangeContours(shifted, { skipHistory: true });
+    onChangeLsb(targetLsb, { skipHistory: true });
     onShowToast?.(`文字を送り幅(${currentAdv}px)の中央に配置しました (LSB/RSB: ${targetLsb}px)`, 'success');
   };
 
   // Step adjustments for Advance & LSB
   const handleStepAdvance = (delta: number) => {
     if (guardLocked()) return;
-    const nextVal = Math.max(100, Math.round((advanceWidth || upm) + delta));
-    onChangeAdvanceWidth(nextVal);
+    const nextVal = Math.max(50, Math.round((advanceWidth ?? upm) + delta));
+    if (nextVal === advanceWidth) return;
     onCommitHistory();
+    onChangeAdvanceWidth(nextVal, { skipHistory: true });
   };
 
   const handleStepLsb = (delta: number) => {
     if (guardLocked()) return;
     const nextVal = Math.round((lsb ?? 50) + delta);
-    onChangeLsb(nextVal);
-    onCommitHistory();
+    applyTargetLsb(nextVal);
   };
 
   // Preset Advance width setters
   const handleSetAdvancePreset = (preset: number) => {
     if (guardLocked()) return;
-    onChangeAdvanceWidth(preset);
-    onCommitHistory();
+    if (advanceWidth !== preset) {
+      onCommitHistory();
+      onChangeAdvanceWidth(preset, { skipHistory: true });
+    }
     onShowToast?.(`送り幅を ${preset}px に設定しました`, 'info');
   };
 
   const handleSetLsbPreset = (preset: number) => {
     if (guardLocked()) return;
-    onChangeLsb(preset);
-    onCommitHistory();
+    applyTargetLsb(preset);
     onShowToast?.(`左余白(LSB)を ${preset}px に設定しました`, 'info');
   };
 
@@ -264,35 +291,35 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(flipContoursHorizontal(contours));
+    onChangeContours(flipContoursHorizontal(contours), { skipHistory: true });
   };
 
   const handleFlipV = () => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(flipContoursVertical(contours));
+    onChangeContours(flipContoursVertical(contours), { skipHistory: true });
   };
 
   const handleSlant = (degrees: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(slantContours(contours, degrees));
+    onChangeContours(slantContours(contours, degrees), { skipHistory: true });
   };
 
   const handleScale = (factor: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(scaleContours(contours, factor, factor));
+    onChangeContours(scaleContours(contours, factor, factor), { skipHistory: true });
   };
 
   const handleAspectScale = (scaleX: number, scaleY: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(scaleContours(contours, scaleX, scaleY));
+    onChangeContours(scaleContours(contours, scaleX, scaleY), { skipHistory: true });
   };
 
   const handleSmoothAndFix = () => {
@@ -300,7 +327,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const cleaned = smoothAndFixTransformedContours(contours);
-    onChangeContours(cleaned);
+    onChangeContours(cleaned, { skipHistory: true });
     onShowToast?.('輪郭のガタツキと変形歪みを滑らかに補正しました', 'success');
   };
 
@@ -308,7 +335,12 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(centerContoursInBox(contours, upm, Math.round(upm * 0.8)));
+    const centered = centerContoursInBox(contours, upm, Math.round(upm * 0.8));
+    onChangeContours(centered, { skipHistory: true });
+    const centeredBBox = getContoursBoundingBox(centered);
+    if (centeredBBox.width > 0) {
+      onChangeLsb(Math.round(centeredBBox.minX), { skipHistory: true });
+    }
   };
 
   const handleFitToEmBox = () => {
@@ -318,7 +350,11 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     const isKana = /[ぁ-んァ-ヶー]/.test(selectedChar);
     const targetRatio = isKana ? 0.78 : 0.85;
     const fitted = fitContoursToEmBox(contours, upm, upm, targetRatio);
-    onChangeContours(fitted);
+    onChangeContours(fitted, { skipHistory: true });
+    const fittedBBox = getContoursBoundingBox(fitted);
+    if (fittedBBox.width > 0) {
+      onChangeLsb(Math.round(fittedBBox.minX), { skipHistory: true });
+    }
     onShowToast?.(`文字の輪郭をキャンバス枠内（字面枠 ${Math.round(targetRatio * 100)}%基準）に最適化しました`, 'success');
   };
 
@@ -326,23 +362,34 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours([]);
+    onChangeContours([], { skipHistory: true });
     setIsConfirmingClear(false);
   };
 
   const handleOutlineStrokePaths = () => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
+    const hasOpenContour = contours.some((c) => !c.closed);
+    if (!hasOpenContour) {
+      onShowToast?.('開いた骨格線（ペン線など）がないため、アウトライン化は不要です', 'info');
+      return;
+    }
     onCommitHistory();
     const transformed = contours.map((c) => (c.closed ? c : outlineOpenContour(c, strokeOutlineWidth)));
-    onChangeContours(transformed);
+    onChangeContours(transformed, { skipHistory: true });
+    onShowToast?.(`骨格線を太さ ${strokeOutlineWidth}px でアウトライン化しました`, 'success');
   };
 
   const handleConvertToSmallKana = () => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(createSmallKanaContours(contours));
+    const smallKana = createSmallKanaContours(contours, { unitsPerEm: upm });
+    onChangeContours(smallKana, { skipHistory: true });
+    const smallBBox = getContoursBoundingBox(smallKana);
+    if (smallBBox.width > 0) {
+      onChangeLsb(Math.round(smallBBox.minX), { skipHistory: true });
+    }
   };
 
   if (!isOpen) return null;
@@ -430,7 +477,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
         {activeTab === 'precision' ? (
           <div
-            className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y p-2"
             style={{
               paddingBottom: effectiveIsOverlay
                 ? 'max(env(safe-area-inset-bottom, 0px) + 24px, 24px)'
@@ -455,7 +502,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         ) : (
           /* Scrollable Panel Content */
           <div
-            className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain p-2 space-y-2"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y p-2 space-y-2"
             style={{
               paddingBottom: effectiveIsOverlay
                 ? 'max(env(safe-area-inset-bottom, 0px) + 24px, 24px)'
@@ -496,11 +543,14 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             themeClasses={themeClasses}
             onChangeAdvanceWidth={(v) => {
               if (guardLocked()) return;
-              onChangeAdvanceWidth(v);
+              const nextVal = Math.max(50, Math.round(v));
+              if (nextVal === advanceWidth) return;
+              onCommitHistory();
+              onChangeAdvanceWidth(nextVal, { skipHistory: true });
             }}
             onChangeLsb={(v) => {
               if (guardLocked()) return;
-              onChangeLsb(v);
+              applyTargetLsb(v);
             }}
             onCommitHistory={onCommitHistory}
             onStepAdvance={handleStepAdvance}

@@ -99,8 +99,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
                   <button
                     key={deg}
                     type="button"
+                    disabled={contours.length === 0}
                     onClick={() => onSlant(deg)}
-                    className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                    className={`min-h-[34px] py-1 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                   >
                     {deg > 0 ? `+${deg}°` : `${deg}°`}
                   </button>
@@ -112,8 +113,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={onFlipH}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <FlipHorizontal className="w-4 h-4 shrink-0" />
                 <span>左右反転</span>
@@ -121,8 +123,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={onFlipV}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <FlipVertical className="w-4 h-4 shrink-0" />
                 <span>上下反転</span>
@@ -130,8 +133,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={() => onScale(1.1)}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <Maximize2 className="w-4 h-4 shrink-0" />
                 <span>拡大 +10%</span>
@@ -139,8 +143,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={() => onScale(0.9)}
-                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[42px] px-3 py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 <Minimize2 className="w-4 h-4 shrink-0" />
                 <span>縮小 -10%</span>
@@ -148,8 +153,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={() => onAspectScale(0.85, 1.0)}
-                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="横幅をスリム化して縦長の長体に変換 (X:85%)"
               >
                 <span>長体 (横縮小)</span>
@@ -157,8 +163,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
               <button
                 type="button"
+                disabled={contours.length === 0}
                 onClick={() => onAspectScale(1.15, 0.85)}
-                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`min-h-[38px] px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="縦幅を抑えて横広の扁平に変換 (X:115%, Y:85%)"
               >
                 <span>扁平 (横広化)</span>
@@ -170,7 +177,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               type="button"
               onClick={onSmoothAndFix}
               disabled={contours.length === 0}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="変形・拡大縮小時に生じたガタツキやベジェ曲線の折れ曲がり歪みを自動補正"
             >
               <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -179,8 +186,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
             <button
               type="button"
+              disabled={contours.length === 0}
               onClick={onFitToEmBox}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="はみ出た文字や大きすぎる文字を、キャンバスの字面枠（漢字85%/仮名78%）にぴったり収まるよう自動縮小・中央配置します"
             >
               <Maximize2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -189,8 +197,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
 
             <button
               type="button"
+              disabled={contours.length === 0}
               onClick={onCenter}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               <AlignCenter className="w-4 h-4 shrink-0" />
               <span>EM枠の中央に配置 ({upm}×{upm})</span>
@@ -199,8 +208,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             {/* Small Kana Helper */}
             <button
               type="button"
+              disabled={contours.length === 0}
               onClick={onConvertToSmallKana}
-              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="通常の文字を小文字用（ぁ, ッ等）の位置とサイズに自動縮小"
             >
               <Wand2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -236,7 +246,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
                 step={5}
                 value={Number.isFinite(strokeOutlineWidth) ? strokeOutlineWidth : 60}
                 onChange={(e) => setStrokeOutlineWidth(Number(e.target.value))}
-                className="flex-1 accent-emerald-700 h-2"
+                className="flex-1 accent-emerald-700 h-2 touch-pan-x"
               />
               <span className={`text-xs font-mono font-bold w-12 text-right ${themeClasses.textPrimary}`}>
                 {Number.isFinite(strokeOutlineWidth) ? strokeOutlineWidth : 60}px
@@ -244,8 +254,9 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
             </div>
             <button
               type="button"
+              disabled={contours.length === 0}
               onClick={onOutlineStrokePaths}
-              className={`w-full min-h-[40px] py-2 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 ${themeClasses.accentBtn}`}
+              className={`w-full min-h-[40px] py-2 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
             >
               <Layers className="w-4 h-4 shrink-0" />
               <span>骨格線をアウトライン化</span>

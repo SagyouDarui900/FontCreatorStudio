@@ -152,7 +152,7 @@ export function subtractEraserStrokeFromClosedContours(
       const right = getPixel(x, y);
       if (left !== right) {
         if (left === 1 && right === 0) addEdge({ x, y }, { x, y: y + 1 });
-        else addEdge({ x: y + 1, y }, { x, y });
+        else addEdge({ x, y: y + 1 }, { x, y });
       }
     }
   }

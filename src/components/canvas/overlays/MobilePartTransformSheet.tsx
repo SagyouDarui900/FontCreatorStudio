@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Layers,
@@ -47,17 +48,21 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
     handleSimplifySelected,
     handleDeleteSelected,
   }) => {
-    if (!isOpen) return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
-    return (
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
-        <div className="fixed inset-0" onClick={onClose} />
+    return createPortal(
+      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="fixed inset-0 bg-black/60 anim-fade" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[80dvh] overflow-y-auto anim-slide-up ${
+          role="dialog"
+          aria-modal="true"
+          aria-label="選択輪郭パーツの変形・調整"
+          data-allow-native-scroll="true"
+          className={`relative z-10 w-full rounded-t-2xl border-t shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 mb-3">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
             <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
               <span>選択輪郭パーツの変形・調整</span>
             </div>
@@ -69,7 +74,7 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
             </button>
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3 text-xs">
             {/* Merge paths or resolve cursive loops */}
             {selectedContourIds.length >= 1 && (
               <div>
@@ -192,7 +197,8 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 );

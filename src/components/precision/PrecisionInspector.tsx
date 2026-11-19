@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   AlignLeft,
   AlignCenter,
@@ -29,7 +29,7 @@ import { getContoursBoundingBox, getContourBoundingBox } from '../../utils/path'
 import {
   alignContours,
   distributeContours,
-  setContourExactDimensions,
+  setContoursExactDimensions,
   AlignDirection,
   DistributeDirection,
 } from '../../utils/geometry/alignment';
@@ -40,7 +40,7 @@ export interface PrecisionInspectorProps {
   selectedContourIds: string[];
   selectedNodeId: string | null;
   selectedHandleType: 'node' | 'handleIn' | 'handleOut' | null;
-  onChangeContours: (contours: PathContour[]) => void;
+  onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory: () => void;
   unitsPerEm?: number;
   advanceWidth?: number;
@@ -91,6 +91,29 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
     return getContoursBoundingBox(selectedContours);
   }, [selectedContours]);
 
+  // Draft input states to prevent premature clamping / 1px crush on live keystrokes
+  const [nodeXDraft, setNodeXDraft] = useState<string>('');
+  const [nodeYDraft, setNodeYDraft] = useState<string>('');
+  const [widthDraft, setWidthDraft] = useState<string>('');
+  const [heightDraft, setHeightDraft] = useState<string>('');
+
+  const activeNodeRoundedX = activeNode ? Math.round(activeNode.x) : null;
+  const activeNodeRoundedY = activeNode ? Math.round(activeNode.y) : null;
+
+  useEffect(() => {
+    setNodeXDraft(activeNodeRoundedX !== null ? String(activeNodeRoundedX) : '');
+    setNodeYDraft(activeNodeRoundedY !== null ? String(activeNodeRoundedY) : '');
+  }, [activeNode?.id, activeNodeRoundedX, activeNodeRoundedY]);
+
+  const selWidthRounded = selBBox ? Math.round(selBBox.width) : null;
+  const selHeightRounded = selBBox ? Math.round(selBBox.height) : null;
+  const selectedContourIdsKey = selectedContourIds.join(',');
+
+  useEffect(() => {
+    setWidthDraft(selWidthRounded !== null ? String(selWidthRounded) : '');
+    setHeightDraft(selHeightRounded !== null ? String(selHeightRounded) : '');
+  }, [selWidthRounded, selHeightRounded, selectedContourIdsKey]);
+
   // Update a single node property
   const handleUpdateNodeProp = (key: 'x' | 'y' | 'type', value: any) => {
     if (isGlyphLocked) {
@@ -98,6 +121,14 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       return;
     }
     if (!activeParentContour || !activeNode) return;
+    if (key === 'x' || key === 'y') {
+      const numVal = Math.round(Number(value));
+      if (!Number.isFinite(numVal) || numVal === Math.round(activeNode[key])) return;
+    } else if (activeNode.type === value) {
+      return;
+    }
+
+    onCommitHistory();
     const updated = contours.map((c) => {
       if (c.id !== activeParentContour.id) return c;
       return {
@@ -105,7 +136,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         nodes: c.nodes.map((n) => {
           if (n.id !== activeNode.id) return n;
           if (key === 'x' || key === 'y') {
-            const numVal = Math.round(Number(value) || 0);
+            const numVal = Math.round(Number(value));
             const delta = numVal - n[key];
             return {
               ...n,
@@ -118,8 +149,30 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         }),
       };
     });
-    onChangeContours(updated);
-    onCommitHistory();
+    onChangeContours(updated, { skipHistory: true });
+  };
+
+  const commitNodeCoordDraft = (axis: 'x' | 'y') => {
+    if (!activeNode) return;
+    const raw = (axis === 'x' ? nodeXDraft : nodeYDraft).trim();
+    const currentRounded = Math.round(activeNode[axis]);
+    if (!raw || raw === '-') {
+      if (axis === 'x') setNodeXDraft(String(currentRounded));
+      else setNodeYDraft(String(currentRounded));
+      return;
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      if (axis === 'x') setNodeXDraft(String(currentRounded));
+      else setNodeYDraft(String(currentRounded));
+      return;
+    }
+    const rounded = Math.round(parsed);
+    if (axis === 'x') setNodeXDraft(String(rounded));
+    else setNodeYDraft(String(rounded));
+    if (rounded !== currentRounded) {
+      handleUpdateNodeProp(axis, rounded);
+    }
   };
 
   // Align actions
@@ -132,12 +185,12 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       showToast?.('整列するパスを選択してください');
       return;
     }
+    onCommitHistory();
     const updated = alignContours(contours, selectedContourIds, direction, {
-      width: advanceWidth,
+      width: direction === 'emBoxCenterH' ? unitsPerEm : advanceWidth,
       height: unitsPerEm,
     });
-    onChangeContours(updated);
-    onCommitHistory();
+    onChangeContours(updated, { skipHistory: true });
     showToast?.('パスを整列しました');
   };
 
@@ -151,9 +204,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       showToast?.('等間隔分布には3つ以上のパスが必要です');
       return;
     }
-    const updated = distributeContours(contours, selectedContourIds, direction);
-    onChangeContours(updated);
     onCommitHistory();
+    const updated = distributeContours(contours, selectedContourIds, direction);
+    onChangeContours(updated, { skipHistory: true });
     showToast?.('パスを等間隔に分布しました');
   };
 
@@ -163,13 +216,66 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
       return;
     }
-    if (selectedContours.length !== 1) return;
-    const targetContour = selectedContours[0];
-    const scaled = setContourExactDimensions(targetContour, targetW, targetH, keepAspect);
-    const updated = contours.map((c) => (c.id === targetContour.id ? scaled : c));
-    onChangeContours(updated);
+    if (selectedContours.length === 0) return;
+    const clampedW = Math.max(1, Math.round(targetW));
+    const clampedH = Math.max(1, Math.round(targetH));
     onCommitHistory();
-    showToast?.(`サイズを W:${targetW} H:${targetH} に変更しました`);
+    const updated = setContoursExactDimensions(
+      contours,
+      selectedContourIds,
+      clampedW,
+      clampedH,
+      false
+    );
+    onChangeContours(updated, { skipHistory: true });
+    showToast?.(`サイズを W:${clampedW} H:${clampedH} に変更しました`);
+  };
+
+  const commitDimensionDraft = (axis: 'w' | 'h') => {
+    if (!selBBox) return;
+    const currentW = Math.max(1, Math.round(selBBox.width));
+    const currentH = Math.max(1, Math.round(selBBox.height));
+    const raw = (axis === 'w' ? widthDraft : heightDraft).trim();
+
+    if (!raw) {
+      setWidthDraft(String(currentW));
+      setHeightDraft(String(currentH));
+      return;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setWidthDraft(String(currentW));
+      setHeightDraft(String(currentH));
+      return;
+    }
+
+    const clampedVal = Math.max(1, Math.round(parsed));
+    if (axis === 'w') {
+      if (clampedVal === currentW) {
+        setWidthDraft(String(currentW));
+        return;
+      }
+      const nextH =
+        keepAspect && selBBox.width > 0
+          ? Math.max(1, Math.round((clampedVal / selBBox.width) * selBBox.height))
+          : currentH;
+      setWidthDraft(String(clampedVal));
+      setHeightDraft(String(nextH));
+      handleSetExactDimension(clampedVal, nextH);
+    } else {
+      if (clampedVal === currentH) {
+        setHeightDraft(String(currentH));
+        return;
+      }
+      const nextW =
+        keepAspect && selBBox.height > 0
+          ? Math.max(1, Math.round((clampedVal / selBBox.height) * selBBox.width))
+          : currentW;
+      setHeightDraft(String(clampedVal));
+      setWidthDraft(String(nextW));
+      handleSetExactDimension(nextW, clampedVal);
+    }
   };
 
   // Path Offset / Stroke-to-outline expansion
@@ -178,16 +284,25 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       showToast?.('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
       return;
     }
-    if (selectedContourIds.length === 0) {
+    if (contours.length === 0 || selectedContourIds.length === 0) {
       showToast?.('展開するパスを選択してください');
       return;
     }
-    const { updatedContours } = expandContoursOffset(contours, selectedContourIds, {
+    const { updatedContours, newContourIds } = expandContoursOffset(contours, selectedContourIds, {
       strokeWidth: offsetStrokeWidth,
       capStyle: offsetCapStyle,
     });
-    onChangeContours(updatedContours);
+    if (newContourIds.length === 0) {
+      showToast?.('選択パスを展開できませんでした');
+      return;
+    }
     onCommitHistory();
+    onChangeContours(updatedContours, { skipHistory: true });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('font_editor_select_contours', { detail: { ids: newContourIds } })
+      );
+    }
     showToast?.(`線幅 ${offsetStrokeWidth}px でアウトライン化しました`);
   };
 
@@ -198,6 +313,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       return;
     }
     if (!activeParentContour || !activeNode) return;
+    onCommitHistory();
     const updated = contours.map((c) => {
       if (c.id !== activeParentContour.id) return c;
       return {
@@ -214,8 +330,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         }),
       };
     });
-    onChangeContours(updated);
-    onCommitHistory();
+    onChangeContours(updated, { skipHistory: true });
     showToast?.('座標を整数に丸めました');
   };
 
@@ -251,9 +366,20 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">X 座標</label>
               <input
-                type="number"
-                value={Math.round(activeNode.x)}
-                onChange={(e) => handleUpdateNodeProp('x', e.target.value)}
+                type="text"
+                inputMode="numeric"
+                aria-label="X 座標"
+                value={nodeXDraft}
+                onChange={(e) => setNodeXDraft(e.target.value)}
+                onBlur={() => commitNodeCoordDraft('x')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  } else if (e.key === 'Escape') {
+                    setNodeXDraft(String(Math.round(activeNode.x)));
+                    e.currentTarget.blur();
+                  }
+                }}
                 className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
@@ -262,9 +388,20 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">Y 座標</label>
               <input
-                type="number"
-                value={Math.round(activeNode.y)}
-                onChange={(e) => handleUpdateNodeProp('y', e.target.value)}
+                type="text"
+                inputMode="numeric"
+                aria-label="Y 座標"
+                value={nodeYDraft}
+                onChange={(e) => setNodeYDraft(e.target.value)}
+                onBlur={() => commitNodeCoordDraft('y')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  } else if (e.key === 'Escape') {
+                    setNodeYDraft(String(Math.round(activeNode.y)));
+                    e.currentTarget.blur();
+                  }
+                }}
                 className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
                 }`}
@@ -433,12 +570,19 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">幅 (W)</label>
               <input
-                type="number"
-                value={Math.round(selBBox.width)}
-                onChange={(e) => {
-                  const val = Math.max(1, Number(e.target.value) || 1);
-                  const h = keepAspect && selBBox.width > 0 ? (val / selBBox.width) * selBBox.height : selBBox.height;
-                  handleSetExactDimension(val, Math.round(h));
+                type="text"
+                inputMode="numeric"
+                aria-label="幅 (W)"
+                value={widthDraft}
+                onChange={(e) => setWidthDraft(e.target.value)}
+                onBlur={() => commitDimensionDraft('w')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  } else if (e.key === 'Escape') {
+                    setWidthDraft(String(Math.max(1, Math.round(selBBox.width))));
+                    e.currentTarget.blur();
+                  }
                 }}
                 className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
@@ -448,12 +592,19 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             <div className="min-w-0">
               <label className="text-[10px] text-stone-500 block mb-0.5 font-mono">高さ (H)</label>
               <input
-                type="number"
-                value={Math.round(selBBox.height)}
-                onChange={(e) => {
-                  const val = Math.max(1, Number(e.target.value) || 1);
-                  const w = keepAspect && selBBox.height > 0 ? (val / selBBox.height) * selBBox.width : selBBox.width;
-                  handleSetExactDimension(Math.round(w), val);
+                type="text"
+                inputMode="numeric"
+                aria-label="高さ (H)"
+                value={heightDraft}
+                onChange={(e) => setHeightDraft(e.target.value)}
+                onBlur={() => commitDimensionDraft('h')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  } else if (e.key === 'Escape') {
+                    setHeightDraft(String(Math.max(1, Math.round(selBBox.height))));
+                    e.currentTarget.blur();
+                  }
                 }}
                 className={`w-full min-w-0 px-2 py-1 border rounded font-mono tabular-nums text-xs ${
                   isLight ? 'bg-stone-50 border-stone-300 text-stone-900' : 'bg-stone-800 border-stone-700 text-stone-100'
@@ -485,7 +636,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             step={5}
             value={offsetStrokeWidth}
             onChange={(e) => setOffsetStrokeWidth(Number(e.target.value))}
-            className="flex-1 accent-emerald-600"
+            className="flex-1 accent-emerald-600 touch-pan-x"
           />
           <span className="font-mono text-xs font-bold w-12 text-right">{offsetStrokeWidth}px</span>
         </div>

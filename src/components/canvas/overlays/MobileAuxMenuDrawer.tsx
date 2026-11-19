@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sliders,
   X,
@@ -101,7 +102,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     onDuplicateAsSmallKana,
     onOpenGlyphSynthesisModal,
   }) => {
-    if (!isOpen) return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
     const themeClasses = getThemeClasses(theme || (isLight ? 'light' : 'dark'));
     const selectedNodeCount =
@@ -110,17 +111,22 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     const smallPair = activeChar ? KANA_PAIRS[activeChar] : undefined;
     const hasContours = contours.length > 0;
 
-    return (
-      <div
-        className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/75 anim-fade"
-        onClick={onClose}
-      >
+    return createPortal(
+      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
         <div
+          className="fixed inset-0 bg-black/75 anim-fade"
+          onClick={onClose}
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="キャンバス操作・補助メニュー"
+          data-allow-native-scroll="true"
           onClick={(e) => e.stopPropagation()}
-          className={`w-full max-h-[82vh] overflow-y-auto rounded-t-2xl shadow-2xl border-t p-4 pb-8 space-y-4 anim-slide-up ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+          className={`relative z-10 w-full max-h-[85dvh] flex flex-col overflow-hidden rounded-t-2xl shadow-2xl border-t anim-slide-up ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
         >
-          {/* Drawer Handle & Header */}
-          <div className="flex flex-col items-center pb-2.5 border-b border-stone-200 dark:border-[#25382c]">
+          {/* Drawer Handle & Pinned Header */}
+          <div className="flex flex-col items-center px-4 pt-3 pb-2.5 border-b border-stone-200 dark:border-[#25382c] shrink-0">
             <div className="w-10 h-1 bg-stone-300 dark:bg-stone-600 rounded mb-2" />
             <div className="w-full flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -136,6 +142,9 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
               </button>
             </div>
           </div>
+
+          {/* Scrollable Body */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] space-y-4">
 
           {/* Group 1: 表示 & ズーム倍率 */}
           <div className="space-y-2">
@@ -371,7 +380,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                       const val = parseInt(e.target.value, 10);
                       onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
                     }}
-                    className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                    className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 touch-pan-x"
                   />
                   <button
                     type="button"
@@ -642,8 +651,10 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
               メニューを閉じる
             </button>
           </div>
+          </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 );

@@ -138,7 +138,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
                   onChangePressureSensitivity('off');
                 }
               }}
-              className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
                 pressureSensitivity !== 'off'
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
@@ -179,7 +179,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
             setBrushStraightMode(next);
             showCanvasToast(next ? '直線モードをONにしました (定規のようにまっすぐ描画)' : 'フリーハンド描画に戻しました');
           }}
-          className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 cursor-pointer ${
+          className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
             brushStraightMode
               ? 'bg-emerald-600 text-white border-emerald-600'
               : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
@@ -199,7 +199,7 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
               setAutoSmoothBrush(next);
               showCanvasToast(next ? '手ブレ補正・自動平滑化をONにしました' : '自動平滑化をOFFにしました');
             }}
-            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
               autoSmoothBrush
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'

@@ -754,6 +754,12 @@ function booleanSubtractContoursOrNull(
   } catch (err) {
     console.error('Boolean subtract error:', err);
     return null;
+  } finally {
+    try {
+      scope.project?.clear();
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -814,6 +820,12 @@ function booleanIntersectContoursOrNull(
   } catch (err) {
     console.error('Boolean intersect error:', err);
     return null;
+  } finally {
+    try {
+      scope.project?.clear();
+    } catch {
+      // ignore
+    }
   }
 }
 

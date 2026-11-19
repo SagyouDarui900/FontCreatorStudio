@@ -215,6 +215,17 @@ export function ProjectProvider({
       if (!options?.skipHistory) {
         commitHistory();
       }
+      const latest =
+        currentGlyphRef.current.unicode === selectedUnicode
+          ? currentGlyphRef.current
+          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
+      if (latest.contours !== newContours) {
+        currentGlyphRef.current = {
+          ...latest,
+          contours: newContours,
+          modified: true,
+        };
+      }
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
           unicode: selectedUnicode,
@@ -240,7 +251,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, selectedUnicode, selectedChar, commitHistory, setProject]
+    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleUpdateAdvanceWidth = useCallback(
@@ -248,6 +259,17 @@ export function ProjectProvider({
       if (checkIsLockedAndNotify()) return;
       if (!options?.skipHistory) {
         commitHistory();
+      }
+      const latest =
+        currentGlyphRef.current.unicode === selectedUnicode
+          ? currentGlyphRef.current
+          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
+      if (latest.advanceWidth !== val) {
+        currentGlyphRef.current = {
+          ...latest,
+          advanceWidth: val,
+          modified: true,
+        };
       }
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
@@ -274,7 +296,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, selectedUnicode, selectedChar, commitHistory, setProject]
+    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleUpdateLsb = useCallback(
@@ -282,6 +304,17 @@ export function ProjectProvider({
       if (checkIsLockedAndNotify()) return;
       if (!options?.skipHistory) {
         commitHistory();
+      }
+      const latest =
+        currentGlyphRef.current.unicode === selectedUnicode
+          ? currentGlyphRef.current
+          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
+      if (latest.lsb !== val) {
+        currentGlyphRef.current = {
+          ...latest,
+          lsb: val,
+          modified: true,
+        };
       }
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
@@ -308,7 +341,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, selectedUnicode, selectedChar, commitHistory, setProject]
+    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleQuickSaveCurrentGlyph = useCallback(() => {

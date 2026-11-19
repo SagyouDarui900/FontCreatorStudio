@@ -32,7 +32,8 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
 
   return (
     <div
-      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 max-sm:flex-wrap max-sm:justify-center text-xs font-medium pointer-events-auto max-w-[96vw] overflow-x-auto no-scrollbar ${
+      data-allow-native-scroll="true"
+      className={`absolute top-14 left-1/2 -translate-x-1/2 z-30 px-2.5 sm:px-3.5 py-1.5 rounded-xl border shadow-lg flex items-center gap-2 max-sm:flex-wrap max-sm:justify-center text-xs font-medium pointer-events-auto max-w-[96vw] overflow-x-auto overscroll-contain touch-pan-x no-scrollbar ${
         isLight
           ? 'bg-white/95 border-stone-200/90 text-stone-800 '
           : 'bg-[#141e17]/95 border-emerald-800/60 text-emerald-100 '
@@ -75,7 +76,7 @@ export const TraceAdjustFloatingHud: React.FC<TraceAdjustFloatingHudProps> = Rea
               scale: parseFloat(e.target.value),
             });
           }}
-          className={`w-16 sm:w-20 cursor-pointer h-1 rounded-lg ${
+          className={`w-16 sm:w-20 cursor-pointer h-1 rounded-lg touch-pan-x ${
             isLight ? 'bg-stone-200 accent-emerald-600' : 'bg-[#25362b] accent-emerald-500'
           }`}
           title="下絵サイズ（青枠ハンドルやホイールでも調整可能）"

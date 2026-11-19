@@ -128,7 +128,7 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
               setIsShiftLockRatio((prev) => !prev);
               showCanvasToast(!isShiftLockRatio ? '正方形・正円比率に固定しました' : '自由比率に切り替えました');
             }}
-            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
               isShiftLockRatio
                 ? 'bg-emerald-600 text-white border-emerald-600'
                 : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700'

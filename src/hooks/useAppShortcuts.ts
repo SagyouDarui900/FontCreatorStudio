@@ -16,6 +16,8 @@ export interface UseAppShortcutsOptions {
   handleSelectNextGlyph: () => void;
   toggleZenMode: () => void;
   setToolMode: (mode: ToolMode) => void;
+  handleAutoSpaceCurrentGlyph?: () => void;
+  handleSimplifyCurrentGlyph?: () => void;
 }
 
 export function useAppShortcuts(options: UseAppShortcutsOptions) {
@@ -38,6 +40,8 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
         handleSelectNextGlyph,
         toggleZenMode,
         setToolMode,
+        handleAutoSpaceCurrentGlyph,
+        handleSimplifyCurrentGlyph,
       } = optionsRef.current;
 
       const activeElement = document.activeElement;
@@ -77,6 +81,16 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
       if (ctrlOrCmd && e.key.toLowerCase() === 's') {
         e.preventDefault();
         handleQuickSaveCurrentGlyph();
+        return;
+      }
+
+      if (!ctrlOrCmd && e.altKey && (e.key.toLowerCase() === 's' || e.code === 'KeyS')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleAutoSpaceCurrentGlyph?.();
+        } else {
+          handleSimplifyCurrentGlyph?.();
+        }
         return;
       }
 

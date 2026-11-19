@@ -122,9 +122,9 @@ export interface UseCanvasPointerDispatcherOptions {
   // Optional: when not wired, the dispatcher falls back to setTransformSession(null).
   cancelTransformSession?: () => void;
 
-  rulerMeasurement: RulerMeasurement | null;
+  rulerMeasurement?: RulerMeasurement | null;
   handleRulerPointerDown: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => void;
-  handleRulerPointerMove: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => void;
+  handleRulerPointerMove: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean | void;
   handleRulerPointerUp: (e: React.PointerEvent<SVGSVGElement>) => void;
 
   lockGuidelines: boolean;
@@ -236,7 +236,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleTransformPointerUp,
     setTransformSession,
     cancelTransformSession,
-    rulerMeasurement,
     handleRulerPointerDown,
     handleRulerPointerMove,
     handleRulerPointerUp,
@@ -287,6 +286,27 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       });
     }
   }, [setLiveStylusPressure]);
+
+  // Throttled hover position mirror and rAF cancellation helper
+  const hoverCanvasPosRef = useRef<Point | null>(hoverCanvasPos);
+  hoverCanvasPosRef.current = hoverCanvasPos;
+  const hoverRafIdRef = useRef<number | null>(null);
+  const pendingHoverPosRef = useRef<Point | null>(null);
+  const clearHoverPos = useCallback(() => {
+    if (hoverRafIdRef.current !== null) {
+      cancelAnimationFrame(hoverRafIdRef.current);
+      hoverRafIdRef.current = null;
+    }
+    pendingHoverPosRef.current = null;
+    hoverCanvasPosRef.current = null;
+    setHoverCanvasPos(null);
+  }, [setHoverCanvasPos]);
+
+  // Synchronous mirrors for panning & marquee selection so rapid single-frame sequences never miss updates
+  const isPanningRef = useRef<boolean>(isPanning);
+  isPanningRef.current = isPanning;
+  const marqueeSelectionRef = useRef<{ start: Point; current: Point } | null>(marqueeSelection);
+  marqueeSelectionRef.current = marqueeSelection;
 
   // Multi-touch refs
   const touchPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -356,14 +376,20 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isPenDrawingRef.current = false;
   }, [toolMode, setSvgGesturing]);
 
-  // Clean up any pending pinch RAF on unmount
+  // Clean up any pending RAFs on unmount
   useEffect(() => {
     return () => {
       if (pinchRafIdRef.current !== null) {
         cancelAnimationFrame(pinchRafIdRef.current);
+        pinchRafIdRef.current = null;
       }
       if (pressureRafIdRef.current !== null) {
         cancelAnimationFrame(pressureRafIdRef.current);
+        pressureRafIdRef.current = null;
+      }
+      if (hoverRafIdRef.current !== null) {
+        cancelAnimationFrame(hoverRafIdRef.current);
+        hoverRafIdRef.current = null;
       }
       setSvgGesturing(false);
     };
@@ -388,6 +414,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     lockGuidelines,
     toolMode,
     isDrawingTool,
+    upm: opts.upm,
     showCanvasToast,
   });
 
@@ -452,6 +479,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       } catch {
         // Ignored
       }
+      isPanningRef.current = true;
       setIsPanning(true);
       const curPan = panRef.current as { x: number; y: number };
       panStartRef.current = { x: e.clientX - curPan.x, y: e.clientY - curPan.y };
@@ -564,6 +592,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
       setShapeStartPoint(null);
       setShapeCurrentPoint(null);
+      marqueeSelectionRef.current = null;
       setMarqueeSelection(null);
       setDraggingMetric(null);
       setDraggingGuidelineId(null);
@@ -845,7 +874,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         setSelectedNodeId(null);
         setSelectedHandleType(null);
       }
-      setMarqueeSelection({ start: pos, current: pos });
+      const nextMarquee = { start: pos, current: pos };
+      marqueeSelectionRef.current = nextMarquee;
+      setMarqueeSelection(nextMarquee);
     }
   }, [
     toolMode,
@@ -1028,7 +1059,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Spacebar / Hand Pan
-    if (isPanning) {
+    if (isPanningRef.current) {
       const rawPan = {
         x: e.clientX - panStartRef.current.x,
         y: e.clientY - panStartRef.current.y,
@@ -1065,7 +1096,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // General Crosshair direct DOM positioning (0ms latency, zero drift)
     if (generalCrosshairRef?.current) {
-      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning || toolMode === 'brush' || toolMode === 'eraser') {
+      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanningRef.current || toolMode === 'brush' || toolMode === 'eraser') {
         if (generalCrosshairRef.current.style.display !== 'none') {
           generalCrosshairRef.current.style.display = 'none';
         }
@@ -1079,7 +1110,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Eraser Reticle direct DOM positioning
     if (toolMode === 'eraser' && eraserReticleRef.current) {
-      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) {
+      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanningRef.current) {
         if (eraserReticleRef.current.style.display !== 'none') {
           eraserReticleRef.current.style.display = 'none';
         }
@@ -1093,7 +1124,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Drawing Reticle direct DOM positioning
     if (toolMode === 'brush' && drawingReticleRef.current) {
-      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) {
+      if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanningRef.current) {
         if (drawingReticleRef.current.style.display !== 'none') {
           drawingReticleRef.current.style.display = 'none';
         }
@@ -1105,17 +1136,23 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
-    // Update hover position (A6: 0.5 canvas units threshold to reduce
+    // Update hover position (A6: 0.5 canvas units threshold + rAF throttling to reduce
     // state updates and re-renders on pointer moves. The crosshair and
-    // reticles are positioned by direct DOM updates above, so their
-    // display does not depend on this state.)
+    // reticles are positioned by direct DOM updates above.)
     const needsHoverPos = gridSettings.showCursorCrosshair !== false;
+    const currentHover = pendingHoverPosRef.current ?? hoverCanvasPosRef.current;
     if (needsHoverPos) {
-      if (!hoverCanvasPos || Math.abs(hoverCanvasPos.x - pos.x) > 0.5 || Math.abs(hoverCanvasPos.y - pos.y) > 0.5) {
-        setHoverCanvasPos(pos);
+      if (!currentHover || Math.abs(currentHover.x - pos.x) > 0.5 || Math.abs(currentHover.y - pos.y) > 0.5) {
+        pendingHoverPosRef.current = pos;
+        if (hoverRafIdRef.current === null) {
+          hoverRafIdRef.current = requestAnimationFrame(() => {
+            hoverRafIdRef.current = null;
+            setHoverCanvasPos(pendingHoverPosRef.current);
+          });
+        }
       }
-    } else if (hoverCanvasPos !== null) {
-      setHoverCanvasPos(null);
+    } else if (hoverCanvasPosRef.current !== null || pendingHoverPosRef.current !== null) {
+      clearHoverPos();
     }
 
     // Guideline drag (delegated to hook)
@@ -1124,8 +1161,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Active Ruler drag
-    if (toolMode === 'ruler' && rulerMeasurement && rulerMeasurement.active) {
-      handleRulerPointerMove(pos, e);
+    if (toolMode === 'ruler' && handleRulerPointerMove(pos, e)) {
       return;
     }
 
@@ -1135,8 +1171,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Marquee rectangular drag selection
-    if (marqueeSelection) {
-      setMarqueeSelection((prev) => (prev ? { ...prev, current: pos } : null));
+    if (marqueeSelectionRef.current) {
+      const nextMarquee = { ...marqueeSelectionRef.current, current: pos };
+      marqueeSelectionRef.current = nextMarquee;
+      setMarqueeSelection(nextMarquee);
       return;
     }
 
@@ -1238,20 +1276,17 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
   }, [
-    isPanning,
     handleTracePointerMove,
     screenToCanvas,
     toolMode,
     gridSettings.showCursorCrosshair,
     isSpacePressed,
-    hoverCanvasPos,
     setHoverCanvasPos,
+    clearHoverPos,
     updateLivePressureThrottled,
     handleGuidelinePointerMove,
-    rulerMeasurement,
     handleRulerPointerMove,
     handleMetricsPointerMove,
-    marqueeSelection,
     setMarqueeSelection,
     dispatchTransformMove,
     isErasingRef,
@@ -1260,7 +1295,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isShapeTool,
     shapeStartPoint,
     handleShapePointerMove,
-    activePenContour,
     setPenMousePos,
     handleNodeDragMove,
     panStartRef,
@@ -1387,24 +1421,26 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Reset dragging states and commit pan if we were dragging with Hand/Space
-    if (isPanning) {
+    if (isPanningRef.current) {
       const finalPan = clampPan
         ? clampPan(panRef.current as { x: number; y: number }, zoomRef.current)
         : (panRef.current as { x: number; y: number });
       (panRef.current as { x: number; y: number }) = finalPan;
       setPan(finalPan);
     }
+    isPanningRef.current = false;
     setIsPanning(false);
     resetTraceDragState();
     handleMetricsPointerUp();
     handleGuidelinePointerUp();
 
     // Resolve Marquee Selection on release
-    if (marqueeSelection) {
-      const minX = Math.min(marqueeSelection.start.x, marqueeSelection.current.x);
-      const maxX = Math.max(marqueeSelection.start.x, marqueeSelection.current.x);
-      const minY = Math.min(marqueeSelection.start.y, marqueeSelection.current.y);
-      const maxY = Math.max(marqueeSelection.start.y, marqueeSelection.current.y);
+    const currentMarquee = marqueeSelectionRef.current;
+    if (currentMarquee) {
+      const minX = Math.min(currentMarquee.start.x, currentMarquee.current.x);
+      const maxX = Math.max(currentMarquee.start.x, currentMarquee.current.x);
+      const minY = Math.min(currentMarquee.start.y, currentMarquee.current.y);
+      const maxY = Math.max(currentMarquee.start.y, currentMarquee.current.y);
       const boxW = maxX - minX;
       const boxH = maxY - minY;
 
@@ -1467,6 +1503,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
           }
         }
       }
+      marqueeSelectionRef.current = null;
       setMarqueeSelection(null);
     }
 
@@ -1549,14 +1586,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     zoomRef,
     panRef,
     clampPan,
-    isPanning,
     onUndo,
     onRedo,
     setIsPanning,
     resetTraceDragState,
     handleMetricsPointerUp,
     handleGuidelinePointerUp,
-    marqueeSelection,
     setMarqueeSelection,
     contours,
     selectedNodeIds,
@@ -1582,6 +1617,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    clearHoverPos,
     isPenDrawingRef,
     lastPenActiveTimeRef,
     touchPointersRef,

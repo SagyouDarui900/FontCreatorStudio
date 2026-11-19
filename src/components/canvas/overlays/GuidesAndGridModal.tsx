@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Grid,
   X,
@@ -64,19 +65,23 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
   setLockGuidelines,
   showCanvasToast,
 }) => {
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/75 anim-fade">
-      <div className="fixed inset-0" onClick={onClose} />
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4">
+      <div className="fixed inset-0 bg-black/75 anim-fade" onClick={onClose} />
       <div
-        className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-5 border-t sm:border shadow-2xl max-h-[85dvh] overflow-y-auto ${
+        role="dialog"
+        aria-modal="true"
+        aria-label="ガイド枠・方眼グリッド設定"
+        data-allow-native-scroll="true"
+        className={`relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border-t sm:border shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden ${
           isLight
             ? 'bg-white border-[#c8ded3] text-stone-800'
             : 'bg-[#151f19] border-[#25362b] text-emerald-100'
         }`}
       >
-        <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 mb-3">
+        <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
           <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
             <Grid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>ガイド枠・方眼グリッド設定</span>
@@ -89,7 +94,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
           </button>
         </div>
 
-        <div className="space-y-3.5 text-xs">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-3.5 text-xs">
           {/* Square Grid & Snapping with Intuitive Slider */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -247,7 +252,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       gridSize: val,
                     }));
                   }}
-                  className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden"
+                  className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden touch-pan-x"
                   title={`グリッドサイズ: ${gridSettings.gridSize || 50}px`}
                 />
                 <span className="text-[10px] font-mono text-stone-400 font-bold">200px</span>
@@ -309,7 +314,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       gridOpacity: val,
                     }));
                   }}
-                  className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden"
+                  className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden touch-pan-x"
                 />
                 <span className="text-[10px] text-stone-400 font-bold">100%</span>
               </div>
@@ -587,6 +592,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });

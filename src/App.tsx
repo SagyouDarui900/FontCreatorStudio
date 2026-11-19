@@ -515,6 +515,8 @@ function AppMain({
     handleSelectNextGlyph,
     toggleZenMode,
     setToolMode,
+    handleAutoSpaceCurrentGlyph,
+    handleSimplifyCurrentGlyph,
   });
 
   return (
@@ -632,7 +634,7 @@ function AppMain({
             <GlyphCanvas
               contours={currentGlyph.contours || EMPTY_CONTOURS}
               onChangeContours={handleUpdateContours}
-              advanceWidth={currentGlyph.advanceWidth || 1000}
+              advanceWidth={currentGlyph.advanceWidth ?? (project.metadata?.unitsPerEm || 1000)}
               lsb={currentGlyph.lsb ?? 50}
               onChangeAdvanceWidth={handleUpdateAdvanceWidth}
               onChangeLsb={handleUpdateLsb}
@@ -729,7 +731,7 @@ function AppMain({
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >
             <MetricsPanel
-              advanceWidth={currentGlyph.advanceWidth || 1000}
+              advanceWidth={currentGlyph.advanceWidth ?? (project.metadata?.unitsPerEm || 1000)}
               lsb={currentGlyph.lsb ?? 50}
               onChangeAdvanceWidth={handleUpdateAdvanceWidth}
               onChangeLsb={handleUpdateLsb}

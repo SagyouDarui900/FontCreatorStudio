@@ -16,6 +16,7 @@ import {
   smoothStrokeContour,
   createRectContour,
   createEllipseContour,
+  createRoundedRectContour,
   createTriangleContour,
   createStarContour,
   createHeartContour,
@@ -104,45 +105,41 @@ export function useRadicalCanvas({
 
   // Pan and Drag State
   const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const [, setPanStart] = useState<Point>({ x: 0, y: 0 });
+  const panStartRef = useRef<Point>({ x: 0, y: 0 });
   const [isMoveAllPart, setIsMoveAllPart] = useState<boolean>(false);
-  const moveAllStartPointRef = useRef<Point | null>(null);
-  const moveAllInitialContoursRef = useRef<PathContour[] | null>(null);
 
   // Node Dragging State
-  const [isDraggingNode, setIsDraggingNode] = useState(false);
-  const dragStartPosRef = useRef<Point>({ x: 0, y: 0 });
-  const draggedNodeInitialPosRef = useRef<Point>({ x: 0, y: 0 });
-  const [draggedHandleType, setDraggedHandleType] = useState<'in' | 'out' | null>(null);
-  const draggedHandleInitialPosRef = useRef<Point | null>(null);
+  const [, setIsDraggingNode] = useState(false);
+  const isDraggingNodeRef = useRef(false);
 
   // Node & Handle Selection Drag States
-  const [selectedHandleType, setSelectedHandleType] = useState<'node' | 'handleIn' | 'handleOut' | null>(null);
-  const [dragStartPoint, setDragStartPoint] = useState<Point>({ x: 0, y: 0 });
+  const [, setSelectedHandleType] = useState<'node' | 'handleIn' | 'handleOut' | null>(null);
+  const selectedHandleTypeRef = useRef<'node' | 'handleIn' | 'handleOut' | null>(null);
+  const [, setDragStartPoint] = useState<Point>({ x: 0, y: 0 });
+  const dragStartPointRef = useRef<Point>({ x: 0, y: 0 });
   const dragStartContoursRef = useRef<PathContour[] | null>(null);
   const dragCurrentContoursRef = useRef<PathContour[] | null>(null);
 
   // Contour Dragging State
-  const [isDraggingContour, setIsDraggingContour] = useState(false);
-  const draggedContourInitialContoursRef = useRef<PathContour[] | null>(null);
-
-  // Transform Bounding Box Gesture
-  const transformBoxGestureRef = useRef<{
-    mode: 'scale' | 'rotate';
-    handle: string;
-    startPoint: Point;
-    initialBBox: { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number; centerX: number; centerY: number };
-    initialContours: PathContour[];
-  } | null>(null);
+  const [, setIsDraggingContour] = useState(false);
+  const isDraggingContourRef = useRef(false);
 
   // Brush / Shape / Pen tool in-progress state & high-performance drawing refs
-  const [isDrawingStroke, setIsDrawingStroke] = useState(false);
+  const [, setIsDrawingStroke] = useState(false);
+  const isDrawingStrokeRef = useRef(false);
   const brushStrokePointsRef = useRef<StrokePoint[]>([]);
   const activeBrushPathRef = useRef<SVGPathElement>(null);
   const brushRafIdRef = useRef<number | null>(null);
   const mouseSmoothSpeedRef = useRef<number>(0.5);
   const isPenDraggingHandleRef = useRef<boolean>(false);
   const [isPenNearFirstNode, setIsPenNearFirstNode] = useState<boolean>(false);
+
+  const selectedNodeIdRef = useRef<string | null>(selectedNodeId);
+  selectedNodeIdRef.current = selectedNodeId;
+  const selectedContourIdRef = useRef<string | null>(selectedContourId);
+  selectedContourIdRef.current = selectedContourId;
 
   const getBrushPreviewPoints = useCallback((points: StrokePoint[], maxPoints = 180): StrokePoint[] => {
     if (points.length <= 2) return points;
@@ -152,10 +149,14 @@ export function useRadicalCanvas({
   }, []);
 
   const [shapeStartPoint, setShapeStartPoint] = useState<Point | null>(null);
+  const shapeStartPointRef = useRef<Point | null>(null);
   const [shapeCurrentPoint, setShapeCurrentPoint] = useState<Point | null>(null);
+  const shapeCurrentPointRef = useRef<Point | null>(null);
   const [activeShapeType, setActiveShapeType] = useState<ShapeType>('rect');
   const [showShapeMenu, setShowShapeMenu] = useState<boolean>(false);
   const [activePenContour, setActivePenContour] = useState<PathContour | null>(null);
+  const activePenContourRef = useRef<PathContour | null>(null);
+  activePenContourRef.current = activePenContour;
   const [penMousePos, setPenMousePos] = useState<Point | null>(null);
   const [penHudPos, setPenHudPos] = useState<{ x: number; y: number } | null>(null);
   const [penStrokeWidth, setPenStrokeWidth] = useState<number>(() => {
@@ -194,6 +195,83 @@ export function useRadicalCanvas({
   const touchPinchInitialZoomRef = useRef<number>(1);
   const touchPinchInitialPanRef = useRef<Point>({ x: 0, y: 0 });
   const touchPinchInitialMidpointRef = useRef<Point>({ x: 0, y: 0 });
+
+  // Cancel pending brush animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (brushRafIdRef.current !== null) {
+        cancelAnimationFrame(brushRafIdRef.current);
+        brushRafIdRef.current = null;
+      }
+    };
+  }, []);
+
+  const prevToolModeRef = useRef<ToolMode>(toolMode);
+  const prevPartIdRef = useRef<string | null>(activePart?.id ?? null);
+
+  // Clean up transient gesture & drawing states on tool switch or active part change
+  useEffect(() => {
+    const currentPartId = activePart?.id ?? null;
+    const toolChanged = prevToolModeRef.current !== toolMode;
+    const partChanged = prevPartIdRef.current !== currentPartId;
+    if (!toolChanged && !partChanged) return;
+    prevToolModeRef.current = toolMode;
+    prevPartIdRef.current = currentPartId;
+
+    if (brushRafIdRef.current !== null) {
+      cancelAnimationFrame(brushRafIdRef.current);
+      brushRafIdRef.current = null;
+    }
+
+    isDrawingStrokeRef.current = false;
+    setIsDrawingStroke((prev) => (prev ? false : prev));
+    brushStrokePointsRef.current = [];
+
+    isErasingRef.current = false;
+    eraserStrokePointsRef.current = [];
+    eraserInitialContoursRef.current = null;
+    eraserCurrentContoursRef.current = null;
+    activeEraserSvgDRef.current = '';
+    if (activeBrushPathRef.current) {
+      activeBrushPathRef.current.setAttribute('d', '');
+    }
+    if (activeEraserPathRef.current) {
+      activeEraserPathRef.current.setAttribute('d', '');
+    }
+
+    shapeStartPointRef.current = null;
+    shapeCurrentPointRef.current = null;
+    setShapeStartPoint((prev) => (prev === null ? prev : null));
+    setShapeCurrentPoint((prev) => (prev === null ? prev : null));
+
+    isDraggingNodeRef.current = false;
+    isDraggingContourRef.current = false;
+    setIsDraggingNode((prev) => (prev ? false : prev));
+    setIsDraggingContour((prev) => (prev ? false : prev));
+
+    selectedHandleTypeRef.current = null;
+    setSelectedHandleType((prev) => (prev === null ? prev : null));
+
+    dragStartContoursRef.current = null;
+    dragCurrentContoursRef.current = null;
+
+    isPanningRef.current = false;
+    setIsPanning((prev) => (prev ? false : prev));
+    activeTouchesRef.current.clear();
+    touchPinchInitialDistRef.current = null;
+
+    isPenDraggingHandleRef.current = false;
+    setPenMousePos((prev) => (prev === null ? prev : null));
+    setIsPenNearFirstNode((prev) => (prev ? false : prev));
+
+    if (toolMode !== 'pen' || partChanged) {
+      activePenContourRef.current = null;
+      setActivePenContour((prev) => (prev === null ? prev : null));
+    }
+
+    setEraserHoverPos((prev) => (prev === null ? prev : null));
+    setActiveSnapLines((prev) => (prev.x === null && prev.y === null ? prev : { x: null, y: null }));
+  }, [toolMode, activePart?.id, setActiveSnapLines]);
 
   // Magnetic guide & grid snapping helper
   const snapToGuides = useCallback(
@@ -291,6 +369,8 @@ export function useRadicalCanvas({
  case 'rect':
  case 'square':
  return [createRectContour(minX, minY, maxX, maxY)];
+ case 'rounded_rect':
+ return [createRoundedRectContour(cx, cy, width, height, Math.min(width, height) * 0.2)];
  case 'pill':
  return [createPillContour(cx, cy, width, height)];
  case 'ellipse':
@@ -385,6 +465,7 @@ export function useRadicalCanvas({
  x: (pts[0].x + pts[1].x) / 2,
  y: (pts[0].y + pts[1].y) / 2,
  };
+ isPanningRef.current = false;
  setIsPanning(false);
  return;
  }
@@ -398,8 +479,11 @@ export function useRadicalCanvas({
 
  // Hand tool / Middle click pan / Space key pan
  if (toolMode === 'hand' || e.button === 1 || isSpacePressed) {
+ isPanningRef.current = true;
  setIsPanning(true);
- setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+ const nextPanStart = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+ panStartRef.current = nextPanStart;
+ setPanStart(nextPanStart);
  return;
  }
 
@@ -423,6 +507,7 @@ export function useRadicalCanvas({
  pointerType: e.pointerType,
  };
  brushStrokePointsRef.current = [firstPt];
+ isDrawingStrokeRef.current = true;
  setIsDrawingStroke(true);
  if (activeBrushPathRef.current) {
  activeBrushPathRef.current.setAttribute('d', '');
@@ -454,6 +539,8 @@ export function useRadicalCanvas({
  ].includes(toolMode);
 
  if (isShape) {
+ shapeStartPointRef.current = pos;
+ shapeCurrentPointRef.current = pos;
  setShapeStartPoint(pos);
  setShapeCurrentPoint(pos);
  return;
@@ -479,7 +566,7 @@ export function useRadicalCanvas({
  } else {
  const sourceContours = eraserCurrentContoursRef.current || activePart.contours;
  const remaining = eraseContoursAtPoint(sourceContours, pos, eraserRadius, eraserMode);
- if (remaining.length !== sourceContours.length) {
+ if (remaining !== sourceContours) {
  eraserCurrentContoursRef.current = remaining;
  setParts((prevParts) =>
  prevParts.map((p) => (p.id === activePart.id ? { ...p, contours: remaining } : p))
@@ -491,7 +578,8 @@ export function useRadicalCanvas({
 
  // Pen Tool
  if (toolMode === 'pen') {
- if (!activePenContour) {
+ const currentPenContour = activePenContourRef.current;
+ if (!currentPenContour) {
  const newNode: BezierNode = {
  id: generateId(),
  x: pos.x,
@@ -500,27 +588,34 @@ export function useRadicalCanvas({
  handleOut: null,
  type: 'corner',
  };
- setActivePenContour({
+ const createdContour: PathContour = {
  id: generateId(),
  closed: false,
  nodes: [newNode],
- });
+ };
+ activePenContourRef.current = createdContour;
+ setActivePenContour(createdContour);
+ selectedNodeIdRef.current = newNode.id;
  setSelectedNodeId(newNode.id);
  isPenDraggingHandleRef.current = true;
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  } else {
  // Check if clicking near first node to close contour
- const firstNode = activePenContour.nodes[0];
+ const firstNode = currentPenContour.nodes[0];
  const distToFirst = Math.hypot(pos.x - firstNode.x, pos.y - firstNode.y);
 
- if (distToFirst < 22 / zoom && activePenContour.nodes.length >= 2) {
+ if (distToFirst < 22 / zoom && currentPenContour.nodes.length >= 2) {
  const finishedContour: PathContour = {
- ...activePenContour,
+ ...currentPenContour,
  closed: true,
  };
  commitPartChange([...activePart.contours, finishedContour]);
+ activePenContourRef.current = null;
  setActivePenContour(null);
+ selectedContourIdRef.current = finishedContour.id;
  setSelectedContourId(finishedContour.id);
+ selectedNodeIdRef.current = null;
  setSelectedNodeId(null);
  setToolMode('select');
  } else {
@@ -532,12 +627,16 @@ export function useRadicalCanvas({
  handleOut: null,
  type: 'corner',
  };
- setActivePenContour({
- ...activePenContour,
- nodes: [...activePenContour.nodes, newNode],
- });
+ const updatedPenContour: PathContour = {
+ ...currentPenContour,
+ nodes: [...currentPenContour.nodes, newNode],
+ };
+ activePenContourRef.current = updatedPenContour;
+ setActivePenContour(updatedPenContour);
+ selectedNodeIdRef.current = newNode.id;
  setSelectedNodeId(newNode.id);
  isPenDraggingHandleRef.current = true;
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  }
  }
@@ -550,23 +649,29 @@ export function useRadicalCanvas({
  dragStartContoursRef.current = initialContours;
  dragCurrentContoursRef.current = initialContours;
  if (isMoveAllPart) {
+ selectedHandleTypeRef.current = null;
  setSelectedHandleType(null);
+ isDraggingContourRef.current = true;
  setIsDraggingContour(true);
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  return;
  }
  const hitRadius = Math.max(12, 16 / zoom);
 
  // 1. Check Handle Hits on currently selected node first
- if (selectedNodeId && selectedContourId) {
- const targetContour = activePart.contours.find((c) => c.id === selectedContourId);
- const targetNode = targetContour?.nodes.find((n) => n.id === selectedNodeId);
+ if (selectedNodeIdRef.current && selectedContourIdRef.current) {
+ const targetContour = activePart.contours.find((c) => c.id === selectedContourIdRef.current);
+ const targetNode = targetContour?.nodes.find((n) => n.id === selectedNodeIdRef.current);
  if (targetNode) {
  if (targetNode.handleIn) {
  const dIn = Math.hypot(pos.x - targetNode.handleIn.x, pos.y - targetNode.handleIn.y);
  if (dIn < hitRadius) {
+ selectedHandleTypeRef.current = 'handleIn';
  setSelectedHandleType('handleIn');
+ isDraggingNodeRef.current = true;
  setIsDraggingNode(true);
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  return;
  }
@@ -574,8 +679,11 @@ export function useRadicalCanvas({
  if (targetNode.handleOut) {
  const dOut = Math.hypot(pos.x - targetNode.handleOut.x, pos.y - targetNode.handleOut.y);
  if (dOut < hitRadius) {
+ selectedHandleTypeRef.current = 'handleOut';
  setSelectedHandleType('handleOut');
+ isDraggingNodeRef.current = true;
  setIsDraggingNode(true);
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  return;
  }
@@ -589,10 +697,15 @@ export function useRadicalCanvas({
  for (const node of contour.nodes) {
  const distNode = Math.hypot(pos.x - node.x, pos.y - node.y);
  if (distNode < hitRadius) {
+ selectedContourIdRef.current = contour.id;
  setSelectedContourId(contour.id);
+ selectedNodeIdRef.current = node.id;
  setSelectedNodeId(node.id);
+ selectedHandleTypeRef.current = 'node';
  setSelectedHandleType('node');
+ isDraggingNodeRef.current = true;
  setIsDraggingNode(true);
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  foundNode = true;
  break;
@@ -622,14 +735,21 @@ export function useRadicalCanvas({
  }
 
  if (clickedContour) {
+ selectedContourIdRef.current = clickedContour.id;
  setSelectedContourId(clickedContour.id);
+ selectedNodeIdRef.current = null;
  setSelectedNodeId(null);
+ isDraggingContourRef.current = true;
  setIsDraggingContour(true);
+ dragStartPointRef.current = pos;
  setDragStartPoint(pos);
  } else {
+ selectedContourIdRef.current = null;
  setSelectedContourId(null);
+ selectedNodeIdRef.current = null;
  setSelectedNodeId(null);
  }
+ selectedHandleTypeRef.current = null;
  setSelectedHandleType(null);
  }
  }
@@ -666,10 +786,10 @@ export function useRadicalCanvas({
  }
  }
 
- if (isPanning) {
+ if (isPanningRef.current) {
  setPan({
- x: e.clientX - panStart.x,
- y: e.clientY - panStart.y,
+ x: e.clientX - panStartRef.current.x,
+ y: e.clientY - panStartRef.current.y,
  });
  return;
  }
@@ -677,7 +797,7 @@ export function useRadicalCanvas({
  const rawPos = getCanvasCoords(e);
  const snapped = snapToGuides(rawPos);
 
- if (isDraggingNode || isDraggingContour || toolMode === 'pen' || shapeStartPoint) {
+ if (isDraggingNodeRef.current || isDraggingContourRef.current || toolMode === 'pen' || shapeStartPointRef.current) {
  if (activeSnapLines.x !== snapped.snapX || activeSnapLines.y !== snapped.snapY) {
  setActiveSnapLines({ x: snapped.snapX, y: snapped.snapY });
  }
@@ -719,7 +839,7 @@ export function useRadicalCanvas({
  } else {
  const sourceContours = eraserCurrentContoursRef.current || activePart.contours;
  const remaining = eraseContoursAtPoint(sourceContours, pos, eraserRadius, eraserMode, prev);
- if (remaining.length !== sourceContours.length) {
+ if (remaining !== sourceContours) {
  setParts((prevParts) =>
  prevParts.map((p) => (p.id === activePart.id ? { ...p, contours: remaining } : p))
  );
@@ -730,7 +850,7 @@ export function useRadicalCanvas({
  }
 
  // Live Brush Stroke Engine
- if (isDrawingStroke && toolMode === 'brush') {
+ if (isDrawingStrokeRef.current && toolMode === 'brush') {
  const native = e.nativeEvent as PointerEvent & { getCoalescedEvents?: () => PointerEvent[] };
  const events = native.getCoalescedEvents ? native.getCoalescedEvents() : [native];
  
@@ -763,13 +883,16 @@ export function useRadicalCanvas({
  });
  }
 
+ // Capture shiftKey synchronously before entering rAF
+ const shiftHeld = e.shiftKey;
+
  // RAF Throttled DOM path update for maximum frame rate
  if (!brushRafIdRef.current) {
  brushRafIdRef.current = requestAnimationFrame(() => {
  brushRafIdRef.current = null;
  if (brushStrokePointsRef.current.length >= 2 && activeBrushPathRef.current) {
  const sampledPoints = getBrushPreviewPoints(brushStrokePointsRef.current);
- const pts = isStraightMode || e.shiftKey
+ const pts = isStraightMode || shiftHeld
  ? [
  brushStrokePointsRef.current[0],
  brushStrokePointsRef.current[brushStrokePointsRef.current.length - 1],
@@ -796,20 +919,22 @@ export function useRadicalCanvas({
 
  // Pen Tool Hover and Dragging Handle
  if (toolMode === 'pen') {
- if (activePenContour && activePenContour.nodes.length >= 2) {
- const firstNode = activePenContour.nodes[0];
+ const currentPenContour = activePenContourRef.current;
+ const currentNodeId = selectedNodeIdRef.current;
+ if (currentPenContour && currentPenContour.nodes.length >= 2) {
+ const firstNode = currentPenContour.nodes[0];
  const dist = Math.hypot(pos.x - firstNode.x, pos.y - firstNode.y);
  setIsPenNearFirstNode(dist < 22 / zoom);
  } else {
  setIsPenNearFirstNode(false);
  }
 
- if (isPenDraggingHandleRef.current && activePenContour && selectedNodeId) {
- const dx = pos.x - dragStartPoint.x;
- const dy = pos.y - dragStartPoint.y;
+ if (isPenDraggingHandleRef.current && currentPenContour && currentNodeId) {
+ const dx = pos.x - dragStartPointRef.current.x;
+ const dy = pos.y - dragStartPointRef.current.y;
  if (Math.hypot(dx, dy) > 3) {
- const updatedNodes = activePenContour.nodes.map((node) => {
- if (node.id !== selectedNodeId) return node;
+ const updatedNodes = currentPenContour.nodes.map((node) => {
+ if (node.id !== currentNodeId) return node;
  return {
  ...node,
  type: 'smooth' as const,
@@ -817,34 +942,40 @@ export function useRadicalCanvas({
  handleIn: { x: 2 * node.x - pos.x, y: 2 * node.y - pos.y },
  };
  });
- setActivePenContour({
- ...activePenContour,
+ const updatedPenContour = {
+ ...currentPenContour,
  nodes: updatedNodes,
- });
+ };
+ activePenContourRef.current = updatedPenContour;
+ setActivePenContour(updatedPenContour);
  }
  }
  return;
  }
 
- if (shapeStartPoint) {
+ if (shapeStartPointRef.current) {
+ shapeCurrentPointRef.current = pos;
  setShapeCurrentPoint(pos);
  return;
  }
 
  // Dragging handle or node in Select mode
- if (isDraggingNode && selectedNodeId && selectedContourId && activePart) {
- const dx = pos.x - dragStartPoint.x;
- const dy = pos.y - dragStartPoint.y;
+ if (isDraggingNodeRef.current && selectedNodeIdRef.current && selectedContourIdRef.current && activePart) {
+ const dx = pos.x - dragStartPointRef.current.x;
+ const dy = pos.y - dragStartPointRef.current.y;
+ const targetContourId = selectedContourIdRef.current;
+ const targetNodeId = selectedNodeIdRef.current;
+ const handleType = selectedHandleTypeRef.current;
 
  const sourceContours = dragCurrentContoursRef.current || activePart.contours;
  const updated = sourceContours.map((contour) => {
- if (contour.id !== selectedContourId) return contour;
+ if (contour.id !== targetContourId) return contour;
  return {
  ...contour,
  nodes: contour.nodes.map((node) => {
- if (node.id !== selectedNodeId) return node;
+ if (node.id !== targetNodeId) return node;
 
- if (selectedHandleType === 'handleIn') {
+ if (handleType === 'handleIn') {
  const newHandleIn = { x: pos.x, y: pos.y };
  let newHandleOut = node.handleOut;
  if (node.type === 'smooth' && node.handleOut) {
@@ -859,7 +990,7 @@ export function useRadicalCanvas({
  return { ...node, handleIn: newHandleIn, handleOut: newHandleOut };
  }
 
- if (selectedHandleType === 'handleOut') {
+ if (handleType === 'handleOut') {
  const newHandleOut = { x: pos.x, y: pos.y };
  let newHandleIn = node.handleIn;
  if (node.type === 'smooth' && node.handleIn) {
@@ -891,6 +1022,7 @@ export function useRadicalCanvas({
  });
 
  dragCurrentContoursRef.current = updated;
+ dragStartPointRef.current = pos;
  setParts((prev) =>
  prev.map((p) => (p.id === activePart.id ? { ...p, contours: updated } : p))
  );
@@ -899,13 +1031,14 @@ export function useRadicalCanvas({
  }
 
  // Dragging whole selected contour
- if (isDraggingContour && activePart && (selectedContourId || isMoveAllPart)) {
- const dx = pos.x - dragStartPoint.x;
- const dy = pos.y - dragStartPoint.y;
+ if (isDraggingContourRef.current && activePart && (selectedContourIdRef.current || isMoveAllPart)) {
+ const dx = pos.x - dragStartPointRef.current.x;
+ const dy = pos.y - dragStartPointRef.current.y;
+ const targetContourId = selectedContourIdRef.current;
 
  const sourceContours = dragCurrentContoursRef.current || activePart.contours;
  const updated = sourceContours.map((contour) => {
- if (!isMoveAllPart && contour.id !== selectedContourId) return contour;
+ if (!isMoveAllPart && contour.id !== targetContourId) return contour;
  return {
  ...contour,
  nodes: contour.nodes.map((node) => ({
@@ -923,6 +1056,7 @@ export function useRadicalCanvas({
  });
 
  dragCurrentContoursRef.current = updated;
+ dragStartPointRef.current = pos;
  setParts((prev) =>
  prev.map((p) => (p.id === activePart.id ? { ...p, contours: updated } : p))
  );
@@ -932,44 +1066,32 @@ export function useRadicalCanvas({
  };
 
  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
- if (e.pointerType === 'touch') {
- activeTouchesRef.current.delete(e.pointerId);
- if (activeTouchesRef.current.size < 2) {
- touchPinchInitialDistRef.current = null;
- }
- }
+  // Pointer cancellation must discard the in-progress gesture instead of
+  // committing a shape, eraser stroke, or drag as if it completed normally.
+  if (e.type === 'pointercancel') {
+    handlePointerCancel(e);
+    return;
+  }
 
- setIsPanning(false);
- setIsDraggingNode(false);
- setIsDraggingContour(false);
- setSelectedHandleType(null);
- setActiveSnapLines({ x: null, y: null });
- try {
- (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
- } catch {}
+  if (e.pointerType === 'touch') {
+    activeTouchesRef.current.delete(e.pointerId);
+    if (activeTouchesRef.current.size < 2) {
+      touchPinchInitialDistRef.current = null;
+    }
+  }
 
- // Pointer cancellation must discard the in-progress gesture instead of
- // committing a shape, eraser stroke, or drag as if it completed normally.
- if (e.type === 'pointercancel') {
- setShapeStartPoint(null);
- setShapeCurrentPoint(null);
- setIsDrawingStroke(false);
- brushStrokePointsRef.current = [];
- eraserStrokePointsRef.current = [];
- eraserInitialContoursRef.current = null;
- eraserCurrentContoursRef.current = null;
- isErasingRef.current = false;
- dragStartContoursRef.current = null;
- dragCurrentContoursRef.current = null;
- activeEraserSvgDRef.current = '';
- if (activeBrushPathRef.current) {
- activeBrushPathRef.current.setAttribute('d', '');
- }
- if (activeEraserPathRef.current) {
- activeEraserPathRef.current.setAttribute('d', '');
- }
- return;
- }
+  isPanningRef.current = false;
+  setIsPanning(false);
+  isDraggingNodeRef.current = false;
+  setIsDraggingNode(false);
+  isDraggingContourRef.current = false;
+  setIsDraggingContour(false);
+  selectedHandleTypeRef.current = null;
+  setSelectedHandleType(null);
+  setActiveSnapLines({ x: null, y: null });
+  try {
+    (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+  } catch {}
 
  // Finalize Eraser Tool
  if (isErasingRef.current && toolMode === 'eraser') {
@@ -1016,15 +1138,17 @@ export function useRadicalCanvas({
 
  // Record undo state if a node or contour drag occurred in select mode
  if (dragStartContoursRef.current && dragCurrentContoursRef.current && activePart) {
- const startJson = JSON.stringify(dragStartContoursRef.current);
- const currentJson = JSON.stringify(dragCurrentContoursRef.current);
+ const startContours = dragStartContoursRef.current;
+ const finalContours = dragCurrentContoursRef.current;
+ const startJson = JSON.stringify(startContours);
+ const currentJson = JSON.stringify(finalContours);
  if (startJson !== currentJson) {
- setUndoStack((prev) => [...prev.slice(-25), dragStartContoursRef.current!]);
+ setUndoStack((prev) => [...prev.slice(-25), startContours]);
  setRedoStack([]);
  setParts((prevParts) =>
    prevParts.map((p) =>
      p.id === activePart.id
-       ? { ...p, contours: dragCurrentContoursRef.current!, updatedAt: Date.now() }
+       ? { ...p, contours: finalContours, updatedAt: Date.now() }
        : p
    )
  );
@@ -1042,8 +1166,8 @@ export function useRadicalCanvas({
  if (!activePart) return;
 
  // Finalize Brush
- if (isDrawingStroke && toolMode === 'brush') {
- if (brushRafIdRef.current) {
+ if (isDrawingStrokeRef.current && toolMode === 'brush') {
+ if (brushRafIdRef.current !== null) {
  cancelAnimationFrame(brushRafIdRef.current);
  brushRafIdRef.current = null;
  }
@@ -1072,6 +1196,7 @@ export function useRadicalCanvas({
  strokeContour = selfMerged[0];
  } else if (selfMerged && selfMerged.length > 1) {
  commitPartChange(normalizeGlyphContoursWinding([...activePart.contours, ...selfMerged]));
+ isDrawingStrokeRef.current = false;
  setIsDrawingStroke(false);
  brushStrokePointsRef.current = [];
  if (activeBrushPathRef.current) {
@@ -1099,6 +1224,7 @@ export function useRadicalCanvas({
  }
  }
  }
+ isDrawingStrokeRef.current = false;
  setIsDrawingStroke(false);
  brushStrokePointsRef.current = [];
  if (activeBrushPathRef.current) {
@@ -1130,19 +1256,21 @@ export function useRadicalCanvas({
  'crescent',
  ].includes(toolMode);
 
- if (isShape && shapeStartPoint && shapeCurrentPoint) {
+ const startPt = shapeStartPointRef.current;
+ const currPt = shapeCurrentPointRef.current;
+ if (isShape && startPt && currPt) {
  const dist = Math.hypot(
- shapeCurrentPoint.x - shapeStartPoint.x,
- shapeCurrentPoint.y - shapeStartPoint.y
+ currPt.x - startPt.x,
+ currPt.y - startPt.y
  );
  const p1 =
  dist < 10
- ? { x: shapeStartPoint.x - 120, y: shapeStartPoint.y - 120 }
- : shapeStartPoint;
+ ? { x: startPt.x - 120, y: startPt.y - 120 }
+ : startPt;
  const p2 =
  dist < 10
- ? { x: shapeStartPoint.x + 120, y: shapeStartPoint.y + 120 }
- : shapeCurrentPoint;
+ ? { x: startPt.x + 120, y: startPt.y + 120 }
+ : currPt;
 
  const newShapeContours = getShapeContours(toolMode, p1, p2);
  if (isAutoUnionMode && activePart.contours.length > 0) {
@@ -1159,13 +1287,23 @@ export function useRadicalCanvas({
  } else {
  commitPartChange([...activePart.contours, ...newShapeContours]);
  }
- setSelectedContourId(newShapeContours[0]?.id || null);
+ const nextSelectedId = newShapeContours[0]?.id || null;
+ selectedContourIdRef.current = nextSelectedId;
+ setSelectedContourId(nextSelectedId);
+ shapeStartPointRef.current = null;
+ shapeCurrentPointRef.current = null;
  setShapeStartPoint(null);
  setShapeCurrentPoint(null);
  }
  };
 
  const handlePointerCancel = (e: React.PointerEvent<SVGSVGElement>) => {
+   if (e.pointerType === 'touch') {
+     activeTouchesRef.current.delete(e.pointerId);
+     if (activeTouchesRef.current.size < 2) {
+       touchPinchInitialDistRef.current = null;
+     }
+   }
    try {
      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
        e.currentTarget.releasePointerCapture?.(e.pointerId);
@@ -1198,6 +1336,10 @@ export function useRadicalCanvas({
      cancelAnimationFrame(brushRafIdRef.current);
      brushRafIdRef.current = null;
    }
+   isPanningRef.current = false;
+   setIsPanning(false);
+   isPenDraggingHandleRef.current = false;
+   isDrawingStrokeRef.current = false;
    setIsDrawingStroke(false);
    brushStrokePointsRef.current = [];
    eraserStrokePointsRef.current = [];
@@ -1206,10 +1348,15 @@ export function useRadicalCanvas({
    isErasingRef.current = false;
    dragStartContoursRef.current = null;
    dragCurrentContoursRef.current = null;
+   shapeStartPointRef.current = null;
+   shapeCurrentPointRef.current = null;
    setShapeStartPoint(null);
    setShapeCurrentPoint(null);
+   isDraggingNodeRef.current = false;
    setIsDraggingNode(false);
+   isDraggingContourRef.current = false;
    setIsDraggingContour(false);
+   selectedHandleTypeRef.current = null;
    setSelectedHandleType(null);
    setActiveSnapLines({ x: null, y: null });
    activeEraserSvgDRef.current = '';

@@ -151,7 +151,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
       )}
 
       {/* Primary View Controls */}
-      <div className="flex items-center space-x-1 pl-1 border-l border-stone-200 dark:border-stone-700 shrink-0">
+      <div className="flex items-center gap-1 pl-1 border-l border-stone-200 dark:border-stone-700 shrink-0">
         {/* Node Points Visibility Toggle */}
         <button
           type="button"
@@ -160,7 +160,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
             setShowNodes(next);
             showCanvasToast(next ? '頂点・ハンドルを表示しました' : '頂点・ハンドルを非表示にしました');
           }}
-          className={`px-1.5 py-0.5 rounded border flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border flex items-center justify-center gap-1 cursor-pointer shrink-0 ${
             showNodes
               ? isLight
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
@@ -169,7 +169,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           }`}
           title={showNodes ? '頂点とハンドルを隠して文字の形を確認 (クリックで非表示) [Nキー]' : '頂点とハンドルを表示 (クリックで表示) [Nキー]'}
         >
-          {showNodes ? <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <EyeOff className="w-3.5 h-3.5" />}
+          {showNodes ? <Eye className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" /> : <EyeOff className="w-3.5 h-3.5 shrink-0" />}
           <span className="text-[11px] font-bold max-sm:hidden">
             {showNodes ? '頂点表示' : '頂点隠す'}
           </span>
@@ -187,7 +187,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
                 : '塗りつぶし表示モードに戻しました'
             );
           }}
-          className={`px-1.5 py-0.5 rounded border flex items-center space-x-1 cursor-pointer shrink-0 ${
+          className={`px-1.5 py-0.5 rounded border flex items-center justify-center gap-1 cursor-pointer shrink-0 ${
             isOutlineMode
               ? isLight
                 ? 'bg-sky-50 border-sky-400 text-sky-800'
@@ -201,9 +201,9 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           }
         >
           {isOutlineMode ? (
-            <Square className="w-3.5 h-3.5 stroke-[2.5] text-sky-500 fill-none" />
+            <Square className="w-3.5 h-3.5 shrink-0 stroke-[2.5] text-sky-500 fill-none" />
           ) : (
-            <div className="w-3.5 h-3.5 rounded-xs border border-stone-500 bg-stone-700 dark:border-stone-400 dark:bg-stone-300" />
+            <div className="w-3.5 h-3.5 shrink-0 rounded-xs border border-stone-500 bg-stone-700 dark:border-stone-400 dark:bg-stone-300" />
           )}
           <span className="text-[11px] font-bold max-sm:hidden">
             {isOutlineMode ? '輪郭モード' : '塗り表示'}

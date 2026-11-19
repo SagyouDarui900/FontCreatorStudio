@@ -146,8 +146,9 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
+      data-allow-native-scroll="true"
       style={{ left: pos.left, top: pos.top }}
-      className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs anim-pop select-none ${
+      className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain touch-pan-y rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs anim-pop select-none ${
         isLight
           ? 'bg-white border-stone-200 text-stone-800 shadow-stone-400/30'
           : 'bg-[#151f19] border-emerald-900/60 text-emerald-100 shadow-black/60'

@@ -96,7 +96,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({
         <button
           type="button"
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className={`h-7 px-2 sm:px-2.5 rounded-md text-xs font-semibold border transition-colors flex items-center space-x-1 cursor-pointer ${
+          className={`h-7 px-2 sm:px-2.5 rounded-md text-xs font-semibold border transition-colors flex items-center justify-center gap-1 cursor-pointer ${
             isFullscreen
               ? isLight
                 ? 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200'

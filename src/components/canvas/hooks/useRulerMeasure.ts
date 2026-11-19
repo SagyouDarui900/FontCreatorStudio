@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Point, PathContour, GridSettings, SnapGuideLine, CustomGuideline, SnapMetrics, RulerMeasurement } from '../../../types';
 import { snapSinglePoint } from '../../../utils/snap';
 import { generateId } from '../../../utils/path';
@@ -25,6 +25,8 @@ export function useRulerMeasure({
   showCanvasToast,
 }: UseRulerMeasureOptions) {
   const [rulerMeasurement, setRulerMeasurement] = useState<RulerMeasurement | null>(null);
+  const rulerMeasurementRef = useRef<RulerMeasurement | null>(null);
+  rulerMeasurementRef.current = rulerMeasurement;
 
   const [brushStraightMode, setBrushStraightMode] = useState<boolean>(false);
 
@@ -43,11 +45,13 @@ export function useRulerMeasure({
         startPos = snapRes.point;
         setActiveSnapGuides(snapRes.activeGuides);
       }
-      setRulerMeasurement({
+      const nextMeasurement: RulerMeasurement = {
         start: startPos,
         end: startPos,
         active: true,
-      });
+      };
+      rulerMeasurementRef.current = nextMeasurement;
+      setRulerMeasurement(nextMeasurement);
       return true;
     },
     [contours, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
@@ -55,7 +59,8 @@ export function useRulerMeasure({
 
   const handleRulerPointerMove = useCallback(
     (pos: Point, e: React.PointerEvent) => {
-      if (!rulerMeasurement || !rulerMeasurement.active) return false;
+      const current = rulerMeasurementRef.current;
+      if (!current || !current.active) return false;
 
       let endX = pos.x;
       let endY = pos.y;
@@ -75,48 +80,55 @@ export function useRulerMeasure({
       }
 
       if (e.shiftKey) {
-        const dx = endX - rulerMeasurement.start.x;
-        const dy = endY - rulerMeasurement.start.y;
+        const dx = endX - current.start.x;
+        const dy = endY - current.start.y;
         const angle = Math.atan2(dy, dx);
         const snapStep = (15 * Math.PI) / 180;
         const snapAngle = Math.round(angle / snapStep) * snapStep;
         const dist = Math.hypot(dx, dy);
-        endX = Math.round(rulerMeasurement.start.x + Math.cos(snapAngle) * dist);
-        endY = Math.round(rulerMeasurement.start.y + Math.sin(snapAngle) * dist);
+        endX = Math.round(current.start.x + Math.cos(snapAngle) * dist);
+        endY = Math.round(current.start.y + Math.sin(snapAngle) * dist);
       }
 
-      setRulerMeasurement({
-        ...rulerMeasurement,
+      const nextMeasurement: RulerMeasurement = {
+        ...current,
         end: { x: endX, y: endY },
-      });
+      };
+      rulerMeasurementRef.current = nextMeasurement;
+      setRulerMeasurement(nextMeasurement);
       return true;
     },
-    [contours, customGuidelines, gridSettings, rulerMeasurement, setActiveSnapGuides, snapMetrics, zoom]
+    [contours, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
   );
 
   const handleRulerPointerUp = useCallback((_e?: React.PointerEvent) => {
-    if (!rulerMeasurement || !rulerMeasurement.active) return false;
+    const current = rulerMeasurementRef.current;
+    if (!current || !current.active) return false;
 
     const dist = Math.hypot(
-      rulerMeasurement.end.x - rulerMeasurement.start.x,
-      rulerMeasurement.end.y - rulerMeasurement.start.y
+      current.end.x - current.start.x,
+      current.end.y - current.start.y
     );
     if (dist < 4) {
+      rulerMeasurementRef.current = null;
       setRulerMeasurement(null);
       return true;
     }
 
-    setRulerMeasurement({
-      ...rulerMeasurement,
+    const nextMeasurement: RulerMeasurement = {
+      ...current,
       active: false,
-    });
+    };
+    rulerMeasurementRef.current = nextMeasurement;
+    setRulerMeasurement(nextMeasurement);
     return true;
-  }, [rulerMeasurement]);
+  }, []);
 
   const handleCreateGuidelineFromRuler = useCallback(
     (guideType: 'h' | 'v' | 'diagonal' | 'auto' = 'auto') => {
-      if (!rulerMeasurement) return;
-      const { start, end } = rulerMeasurement;
+      const current = rulerMeasurementRef.current;
+      if (!current) return;
+      const { start, end } = current;
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const absDx = Math.abs(dx);
@@ -147,6 +159,7 @@ export function useRulerMeasure({
           label: `斜め (${angle}°)`,
         };
         setCustomGuidelines((prev) => [...prev, newGuide]);
+        rulerMeasurementRef.current = null;
         setRulerMeasurement(null);
         showCanvasToast(
           '斜めガイド線を作成しました',
@@ -160,6 +173,7 @@ export function useRulerMeasure({
           position: isHorizontal ? Math.round((start.y + end.y) / 2) : Math.round((start.x + end.x) / 2),
         };
         setCustomGuidelines((prev) => [...prev, newGuide]);
+        rulerMeasurementRef.current = null;
         setRulerMeasurement(null);
         showCanvasToast(
           isHorizontal ? '水平ガイド線を作成しました' : '垂直ガイド線を作成しました',
@@ -167,7 +181,7 @@ export function useRulerMeasure({
         );
       }
     },
-    [rulerMeasurement, setCustomGuidelines, showCanvasToast]
+    [setCustomGuidelines, showCanvasToast]
   );
 
   return {

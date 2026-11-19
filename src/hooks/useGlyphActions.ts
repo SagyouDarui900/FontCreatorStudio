@@ -50,7 +50,6 @@ export function useGlyphActions({
         onShowToast('単純化する輪郭がありません', 'warning');
         return;
       }
-      commitHistory();
       const res = simplifyGlyphContours(contours, {
         level,
         preserveSharpCorners: true,
@@ -61,7 +60,8 @@ export function useGlyphActions({
         return;
       }
 
-      handleUpdateContours(res.contours);
+      commitHistory();
+      handleUpdateContours(res.contours, { skipHistory: true });
       onShowToast(
         `輪郭を単純化しました: 頂点数 ${res.originalNodeCount}点 → ${res.optimizedNodeCount}点 (${res.reductionPercentage}% 削減)`,
         'success'

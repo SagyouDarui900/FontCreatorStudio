@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Ruler } from 'lucide-react';
 import { BrushStyle } from '../../../types';
 import { PEN_PRESETS } from '../../../utils/path';
@@ -37,17 +38,21 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
     brushStyle = 'brush',
     onChangeBrushStyle,
   }) => {
-    if (!isOpen) return null;
+    if (!isOpen || typeof document === 'undefined') return null;
 
-    return (
-      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-black/60 anim-fade">
-        <div className="fixed inset-0" onClick={onClose} />
+    return createPortal(
+      <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        <div className="fixed inset-0 bg-black/60 anim-fade" onClick={onClose} />
         <div
-          className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[82dvh] overflow-y-auto anim-slide-up ${
+          role="dialog"
+          aria-modal="true"
+          aria-label="手書きペンの種類と太さ"
+          data-allow-native-scroll="true"
+          className={`relative z-10 w-full rounded-t-2xl border-t shadow-2xl max-h-[85dvh] flex flex-col overflow-hidden anim-slide-up ${
             isLight ? 'bg-white border-[#c8ded3] text-stone-800' : 'bg-[#151f19] border-[#25362b] text-emerald-100'
           }`}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800 mb-3">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
             <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
               <span>手書きペンの種類と太さ</span>
             </div>
@@ -58,6 +63,8 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
 
           {/* Stroke Width Slider */}
           <div className="mb-4">
@@ -71,7 +78,7 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
               max={150}
               value={brushWidth}
               onChange={(e) => onChangeBrushWidth?.(parseInt(e.target.value, 10))}
-              className="w-full accent-emerald-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-emerald-600 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer touch-pan-x"
             />
             <div className="flex items-center justify-between mt-1.5">
               {[8, 16, 28, 48, 80, 120].map((w) => (
@@ -143,7 +150,7 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
                 step="5"
                 value={smoothingIntensity ?? 0}
                 onChange={(e) => onChangeSmoothingIntensity?.(Number(e.target.value))}
-                className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg cursor-pointer accent-emerald-600"
+                className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg cursor-pointer accent-emerald-600 touch-pan-x"
               />
               <span className="text-[10px] opacity-60">100%</span>
             </div>
@@ -241,8 +248,10 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
               })}
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 );
