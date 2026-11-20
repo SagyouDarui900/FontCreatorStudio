@@ -5,6 +5,7 @@ import { ThemeMode } from '../../utils/theme';
 export interface HeaderProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
+  onProjectReplaced?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;

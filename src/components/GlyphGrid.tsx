@@ -3,6 +3,7 @@ import {
   Copy,
   Clipboard,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
 import { STORAGE_KEYS, setStorageItem } from '../utils/storageKeys';
@@ -127,6 +128,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
     project,
     onSelectGlyph,
     onClose,
+    isOverlay: effectiveIsOverlay,
   });
 
   const handleOpenContextMenu = useCallback(
@@ -160,6 +162,17 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   const currentSelectedHasContours = Boolean(
     currentSelectedGlyph && currentSelectedGlyph.contours && currentSelectedGlyph.contours.length > 0
   );
+  const currentSelectedLocked = Boolean(currentSelectedGlyph?.locked);
+  const currentSelectedChar = useMemo(() => {
+    if (currentSelectedGlyph?.char) return currentSelectedGlyph.char;
+    try {
+      return selectedUnicode > 0 && selectedUnicode <= 0x10ffff
+        ? String.fromCodePoint(selectedUnicode)
+        : '';
+    } catch {
+      return '';
+    }
+  }, [currentSelectedGlyph?.char, selectedUnicode]);
 
   // Keyboard paging shortcuts (PageUp / PageDown or Alt+Arrow)
   const handleKeyDown = useCallback(
@@ -168,18 +181,17 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         return;
       }
       if (e.key === 'PageDown' || (e.altKey && e.key === 'ArrowRight')) {
+        e.preventDefault();
+        // Always stop the event here (even on the last page) so window
+        // keydown listeners do not change the active canvas glyph.
+        e.stopPropagation();
         if (validPage < totalPages) {
-          e.preventDefault();
-          // Stop the event here so the window keydown listeners do not also
-          // nudge the selection (useCanvasShortcuts) or change glyphs
-          // (useAppShortcuts) for the same key press.
-          e.stopPropagation();
           setCurrentPage(Math.min(totalPages, validPage + 1));
         }
       } else if (e.key === 'PageUp' || (e.altKey && e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        e.stopPropagation();
         if (validPage > 1) {
-          e.preventDefault();
-          e.stopPropagation();
           setCurrentPage(Math.max(1, validPage - 1));
         }
       }
@@ -221,8 +233,8 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         className={`${
           effectiveIsOverlay
             ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 left-0 z-40 w-full sm:w-80 md:w-[340px] shadow-2xl anim-slide-left outline-none'
-            : 'relative z-10 shadow-none shrink-0 outline-none'
-        } border-r flex flex-col h-full select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
+            : 'relative z-10 shadow-none shrink-0 h-full outline-none'
+        } border-r flex flex-col select-none ${isResizing ? '' : 'transition-[width] duration-150'} ${themeClasses.sidebarBg} ${themeClasses.border}`}
       >
         {/* Left Sidebar Drag Resizer Handle */}
         {!effectiveIsOverlay && (
@@ -339,20 +351,25 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         </div>
 
         {/* Selected Glyph Quick Action Dock */}
-        {currentSelectedGlyph && (
+        {selectedUnicode > 0 && (
           <div
             className={`px-3 py-1.5 border-t flex items-center justify-between text-xs shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <div className="flex items-center space-x-1.5 min-w-0">
               <span className={`font-bold text-sm ${themeClasses.accentText}`}>
-                {currentSelectedGlyph.char || String.fromCodePoint(currentSelectedGlyph.unicode)}
+                {currentSelectedChar}
               </span>
               <span className={`text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
-                U+{currentSelectedGlyph.unicode.toString(16).toUpperCase().padStart(4, '0')}
+                U+{selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}
               </span>
-              {currentSelectedHasContours && (
+              {currentSelectedHasContours && currentSelectedGlyph && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold tabular-nums ${themeClasses.accentBadge}`}>
                   {currentSelectedGlyph.contours.length}画
+                </span>
+              )}
+              {currentSelectedLocked && (
+                <span title="編集ロック中">
+                  <Lock className="w-3 h-3 text-amber-500 shrink-0" />
                 </span>
               )}
             </div>
@@ -361,7 +378,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {currentSelectedHasContours && (
                 <button
                   type="button"
-                  onClick={() => onCopyGlyph(currentSelectedGlyph.unicode)}
+                  onClick={() => onCopyGlyph(selectedUnicode)}
                   className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 px-2 py-1.5 sm:p-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                   title="選択中の字形をコピー"
                 >
@@ -373,9 +390,14 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {hasClipboard && (
                 <button
                   type="button"
-                  onClick={() => onPasteGlyph(currentSelectedGlyph.unicode)}
-                  className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 px-2 py-1.5 sm:px-1.5 sm:py-1 rounded text-[10px] font-bold ${themeClasses.accentBtn} flex items-center justify-center gap-0.5 cursor-pointer`}
-                  title="コピーした形をこの文字に貼り付け"
+                  disabled={currentSelectedLocked}
+                  onClick={() => onPasteGlyph(selectedUnicode)}
+                  className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 px-2 py-1.5 sm:px-1.5 sm:py-1 rounded text-[10px] font-bold ${themeClasses.accentBtn} flex items-center justify-center gap-0.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed`}
+                  title={
+                    currentSelectedLocked
+                      ? '編集ロック中のため貼り付けできません'
+                      : 'コピーした形をこの文字に貼り付け'
+                  }
                 >
                   <Clipboard className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                   <span>貼付</span>
@@ -385,10 +407,15 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               {currentSelectedHasContours && (
                 <button
                   type="button"
-                  onClick={() => onClearGlyph(currentSelectedGlyph.unicode)}
+                  disabled={currentSelectedLocked}
+                  onClick={() => onClearGlyph(selectedUnicode)}
                   aria-label="この文字のパスを消去"
-                  className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 px-2 py-1.5 sm:p-1 flex items-center justify-center rounded text-[10px] font-bold hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-transparent hover:border-rose-300 transition-colors cursor-pointer"
-                  title="この文字のパスを消去"
+                  className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 px-2 py-1.5 sm:p-1 flex items-center justify-center rounded text-[10px] font-bold hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-transparent hover:border-rose-300 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
+                  title={
+                    currentSelectedLocked
+                      ? '編集ロック中のため消去できません'
+                      : 'この文字のパスを消去'
+                  }
                 >
                   <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                 </button>
@@ -430,6 +457,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         contextMenu={contextMenu}
         onClose={() => setContextMenu(null)}
         isLight={isLight}
+        theme={theme}
         project={project}
         hasClipboard={hasClipboard}
         contextMenuRef={contextMenuRef}

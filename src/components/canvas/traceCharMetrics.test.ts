@@ -95,6 +95,16 @@ describe('computeTraceCharMetrics', () => {
     expect(res.effectiveY).toBe(Math.round(600 + res.effectiveFontSize * 0.38));
     expect(res.anchorX).toBe(600);
   });
+
+  it('uses resolved baselineY when provided for Latin glyphs', () => {
+    const res = computeTraceCharMetrics({
+      charToRender: 'A',
+      unitsPerEm: 1000,
+      fontSize: 1000,
+      baselineY: 880,
+    });
+    expect(res.effectiveY).toBe(880);
+  });
 });
 
 describe('trace character kind and default scale', () => {

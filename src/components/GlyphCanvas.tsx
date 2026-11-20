@@ -56,6 +56,7 @@ import {
 import { GlyphCanvasProps } from './canvas/glyphCanvasTypes';
 import { hitTestContours } from './canvas/canvasHitTest';
 import { getInkColors } from './canvas/glyphCanvasConstants';
+import { resolveCanvasMetrics } from '../utils/font/constants';
 export type { GlyphCanvasProps };
 
 export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
@@ -315,16 +316,28 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     showCanvasToast,
   });
 
-  // Dynamic snap metrics calculated from font canvas UPM
-  const snapMetrics = useMemo(() => ({
+  // Dynamic snap metrics calculated from project metadata and font canvas UPM
+  const snapMetrics = useMemo(() => {
+    const resolved = resolveCanvasMetrics(project?.metadata, upm);
+    return {
+      lsb,
+      advanceWidth,
+      baseline: resolved.baselineY,
+      ascender: resolved.ascenderY,
+      capHeight: resolved.capHeightY,
+      xHeight: resolved.xHeightY,
+      descender: resolved.descenderY,
+      upm: resolved.upm,
+    };
+  }, [
     lsb,
     advanceWidth,
-    baseline: Math.round(upm * 0.8),
-    ascender: Math.round(upm * 0.2),
-    capHeight: Math.round(upm * 0.3),
-    xHeight: Math.round(upm * 0.5),
-    descender: upm,
-  }), [lsb, advanceWidth, upm]);
+    upm,
+    project?.metadata?.ascender,
+    project?.metadata?.descender,
+    project?.metadata?.capHeight,
+    project?.metadata?.xHeight,
+  ]);
 
   const {
     rulerMeasurement,
@@ -1491,5 +1504,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.onCopySelectedContours !== next.onCopySelectedContours) return false;
   if (prev.onPasteSelectedContours !== next.onPasteSelectedContours) return false;
   if (prev.project?.metadata?.unitsPerEm !== next.project?.metadata?.unitsPerEm) return false;
+  if (prev.project?.metadata?.ascender !== next.project?.metadata?.ascender) return false;
+  if (prev.project?.metadata?.descender !== next.project?.metadata?.descender) return false;
+  if (prev.project?.metadata?.capHeight !== next.project?.metadata?.capHeight) return false;
+  if (prev.project?.metadata?.xHeight !== next.project?.metadata?.xHeight) return false;
   return true;
 });

@@ -62,4 +62,39 @@ describe('gridFittingEngine', () => {
     expect(fitted.contours[0].nodes).toHaveLength(4);
     expect(contoursToSvgPath(fitted.contours)).toContain('Z');
   });
+
+  it('snaps to custom project ascender/baseline/capHeight/xHeight metrics when provided', () => {
+    const glyph: GlyphData = {
+      unicode: 65,
+      char: 'A',
+      name: 'A',
+      advanceWidth: 1000,
+      lsb: 100,
+      contours: [
+        {
+          id: 'stem1',
+          closed: true,
+          nodes: [
+            // baselineY = 880, capHeightY = 880 - 740 = 140, xHeightY = 880 - 520 = 360
+            { id: 'n1', x: 200, y: 145, type: 'corner' },
+            { id: 'n2', x: 300, y: 365, type: 'corner' },
+            { id: 'n3', x: 300, y: 875, type: 'corner' },
+            { id: 'n4', x: 200, y: 875, type: 'corner' },
+          ],
+        },
+      ],
+    };
+
+    const fitted = applyGridFittingToGlyph(
+      glyph,
+      16,
+      1000,
+      { ...DEFAULT_CONFIG, snapHorizontal: false, snapVertical: false, minStemWidthPx: 0 },
+      { unitsPerEm: 1000, ascender: 880, descender: -120, capHeight: 740, xHeight: 520 }
+    );
+
+    expect(fitted.contours[0].nodes[0].y).toBe(140);
+    expect(fitted.contours[0].nodes[1].y).toBe(360);
+    expect(fitted.contours[0].nodes[2].y).toBe(880);
+  });
 });

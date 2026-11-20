@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ThemeMode, isLightTheme, getThemeClasses, getThemePreset } from '../utils/theme';
+import { STORAGE_KEYS, getStorageItem } from '../utils/storageKeys';
 
-export const THEME_STORAGE_KEY = 'font_editor_theme_mode';
+export const THEME_STORAGE_KEY = STORAGE_KEYS.THEME_MODE.primary;
+
+const VALID_THEMES: ThemeMode[] = ['light', 'dark', 'sepia', 'warm', 'nord', 'monochrome'];
 
 export interface UseThemeOptions {
   // Called when saving the theme setting fails, so the caller can notify
@@ -12,27 +15,28 @@ export interface UseThemeOptions {
 export function useTheme(options?: UseThemeOptions) {
   const onSaveError = options?.onSaveError;
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(THEME_STORAGE_KEY);
-    } catch (error) {
-      console.warn('テーマ設定を読み込めませんでした:', error);
-    }
-    const validThemes: ThemeMode[] = ['light', 'dark', 'sepia', 'warm', 'nord', 'monochrome'];
-    return saved && validThemes.includes(saved as ThemeMode) ? (saved as ThemeMode) : 'light';
+    const saved = getStorageItem(STORAGE_KEYS.THEME_MODE);
+    return saved && VALID_THEMES.includes(saved as ThemeMode) ? (saved as ThemeMode) : 'light';
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.setItem(STORAGE_KEYS.THEME_MODE.primary, theme);
     } catch (e) {
       console.warn('Failed to save theme:', e);
       onSaveError?.();
     }
+    const preset = getThemePreset(theme);
     // Disable all CSS transitions during theme switch for instantaneous crisp swap
     document.documentElement.setAttribute('data-theme-switching', 'true');
     document.documentElement.setAttribute('data-theme', theme);
-    
+    document.documentElement.classList.toggle('dark', preset.base === 'dark');
+
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', preset.previewBg);
+    }
+
     // Force instantaneous style recalculation then remove switching guard on next frame
     const rafId = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -40,7 +44,7 @@ export function useTheme(options?: UseThemeOptions) {
       });
     });
     return () => cancelAnimationFrame(rafId);
-  }, [theme]);
+  }, [theme, onSaveError]);
 
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);

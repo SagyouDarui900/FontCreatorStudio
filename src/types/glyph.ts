@@ -43,6 +43,7 @@ export interface SnapMetrics {
   capHeight: number;
   xHeight: number;
   descender: number;
+  upm?: number;
 }
 
 export interface RulerMeasurement {

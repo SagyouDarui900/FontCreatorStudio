@@ -28,6 +28,7 @@ export type { HeaderProps };
 export const Header: React.FC<HeaderProps> = React.memo(({
   project,
   setProject,
+  onProjectReplaced,
   canUndo,
   canRedo,
   onUndo,
@@ -97,6 +98,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   } = useProjectFileIO({
     project,
     setProject,
+    onProjectReplaced,
     onShowToast,
     onOpenExportModal,
   });
@@ -403,7 +405,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             handleExportTtf();
           }}
           className={`px-2.5 h-7 rounded-md text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
-          title="OSやiPad・アプリで使えるフォントを出力 (TTF/OTF/WOFF)"
+          title="OSやiPad・アプリで使えるフォントを出力 (OTF)"
         >
           <Download className="w-3.5 h-3.5 shrink-0" />
           <span className="leading-none whitespace-nowrap">
@@ -417,6 +419,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         isOpen={isConfirmingNew}
         onClose={() => setIsConfirmingNew(false)}
         isLight={isLight}
+        theme={theme}
         project={project}
         glyphCount={glyphCount}
         newProjectName={newProjectName}

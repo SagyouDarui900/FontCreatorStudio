@@ -153,7 +153,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
             {/* Menu Header */}
             <div className={`flex items-center justify-between px-0.5 pb-2 border-b ${themeClasses.border}`}>
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${themeClasses.accentBtn}`}>
                   <Sliders className="w-3.5 h-3.5" />
                 </div>
                 <span className="text-xs font-bold tracking-tight">機能メニュー</span>
@@ -173,24 +173,20 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 onClose();
                 onOpenExportModal?.();
               }}
-              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between cursor-pointer group ${
-                isLight
-                  ? 'bg-emerald-50/80 hover:bg-emerald-100/80 border-emerald-200 text-emerald-950'
-                  : 'bg-emerald-950/40 hover:bg-emerald-900/50 border-emerald-800/60 text-emerald-200'
-              }`}
+              className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between cursor-pointer group ${themeClasses.accentBadge} ${themeClasses.activeToolHover}`}
             >
               <div className="flex items-center space-x-2.5 min-w-0 flex-1 mr-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${themeClasses.accentBtn}`}>
                   <Download className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold truncate">フォントを出力 (TTF / OTF)</div>
-                  <div className="text-[10.5px] opacity-75 jp-wrap leading-tight">
+                  <div className="text-xs font-bold truncate">フォントを出力 (OTF)</div>
+                  <div className="text-[10.5px] opacity-80 jp-wrap leading-tight">
                     インストール用・ダウンロード用フォントファイルの書き出し
                   </div>
                 </div>
               </div>
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 pr-1 shrink-0">
+              <span className={`text-xs font-bold pr-1 shrink-0 ${themeClasses.accentText}`}>
                 出力 ➔
               </span>
             </button>
@@ -577,7 +573,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   className={smallItemClass}
                 >
                   <Upload className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
-                  <span className="text-xs font-medium truncate">フォント読込 (.ttf)</span>
+                  <span className="text-xs font-medium truncate">フォント読込 (.ttf/.otf)</span>
                 </button>
 
                 <button

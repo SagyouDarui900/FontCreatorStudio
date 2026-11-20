@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { ThemeMode, isLightTheme } from '../utils/theme';
+import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 
 export interface ToastAction {
   label: string;
@@ -23,6 +23,7 @@ interface ToastProps {
 export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
   if (toasts.length === 0) return null;
   const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
 
   return (
     <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none">
@@ -35,21 +36,17 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
           <div
             key={toast.id}
             className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border shadow-md text-[11px] sm:text-xs font-medium max-w-full ${
-              isLight
-                ? isError
+              isError
+                ? isLight
                   ? 'bg-rose-50 border-rose-200 text-rose-900'
-                  : isWarning
-                  ? 'bg-amber-50 border-amber-200 text-amber-900'
-                  : isSuccess
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                  : 'bg-white border-stone-200 text-stone-900'
-                : isError
-                ? 'bg-rose-950 border-rose-800 text-rose-200'
+                  : 'bg-rose-950 border-rose-800 text-rose-200'
                 : isWarning
-                ? 'bg-amber-950 border-amber-800 text-amber-200'
+                ? isLight
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-amber-950 border-amber-800 text-amber-200'
                 : isSuccess
-                ? 'bg-[#122319] border-emerald-700 text-emerald-100'
-                : 'bg-[#18231c] border-[#2d4034] text-stone-200'
+                ? themeClasses.accentBadge
+                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`
             }`}
           >
             {isError ? (
@@ -57,9 +54,9 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
             ) : isWarning ? (
               <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 shrink-0" />
             ) : isSuccess ? (
-              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircle2 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${themeClasses.accentText}`} />
             ) : (
-              <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-500 shrink-0" />
+              <Info className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${themeClasses.accentText}`} />
             )}
             <span className="leading-tight truncate max-w-[70vw] sm:max-w-none">{toast.text}</span>
             {toast.action && (
@@ -76,7 +73,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
             )}
             <button
               onClick={() => onDismiss(toast.id)}
-              className="p-0.5 rounded-full hover:opacity-75 shrink-0 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
+              className={`p-0.5 rounded-full hover:opacity-75 shrink-0 cursor-pointer ${themeClasses.textMuted}`}
               title="閉じる"
             >
               <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

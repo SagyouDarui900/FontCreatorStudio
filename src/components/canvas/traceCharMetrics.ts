@@ -3,6 +3,7 @@ export interface TraceCharMetricsInput {
   unitsPerEm: number;
   fontSize?: number;
   advanceWidth?: number;
+  baselineY?: number;
 }
 
 /**
@@ -70,10 +71,14 @@ export function computeTraceCharMetrics({
   unitsPerEm,
   fontSize,
   advanceWidth,
+  baselineY,
 }: TraceCharMetricsInput): TraceCharMetrics {
   const upm = unitsPerEm || 1000;
   const half = upm / 2;
-  const screenBaselineY = Math.round(upm * 0.8);
+  const screenBaselineY =
+    typeof baselineY === 'number' && Number.isFinite(baselineY)
+      ? baselineY
+      : Math.round(upm * 0.8);
 
   const isKana = isKanaText(charToRender);
   const isKanji = isKanjiText(charToRender);

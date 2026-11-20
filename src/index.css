@@ -161,11 +161,13 @@ label {
   background: rgba(120, 135, 120, 0.7);
 }
 .dark ::-webkit-scrollbar-thumb,
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
+[data-theme="dark"] ::-webkit-scrollbar-thumb,
+[data-theme="nord"] ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.28);
 }
 .dark ::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+[data-theme="nord"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
 

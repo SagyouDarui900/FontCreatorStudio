@@ -405,7 +405,7 @@ export function getCategoryCharList(category: CharCategory): { char: string; cod
     const [start, end] = category.range;
     const list = [];
     for (let code = start; code <= end; code++) {
-      const char = String.fromCharCode(code);
+      const char = String.fromCodePoint(code);
       list.push({
         char,
         code,

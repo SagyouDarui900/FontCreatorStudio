@@ -14,9 +14,10 @@ export function getHorizontalSnapTargets(
   excludeNodeId?: string
 ): { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] {
   const targets: { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] = [];
+  const upm = metrics.upm ?? 1000;
 
   // 1. Baseline (Highest priority)
-  const baselineY = metrics.baseline ?? 800;
+  const baselineY = metrics.baseline ?? Math.round(upm * 0.8);
   targets.push({
     position: baselineY,
     name: `ベースライン (Y: ${Math.round(baselineY)})`,
@@ -66,18 +67,30 @@ export function getHorizontalSnapTargets(
     });
   }
 
-  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ 1000x1000 & 実字面 820x820)
+  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ & 実字面 82%)
+  const half = upm / 2;
+  const jizuraTop = Math.round(upm * 0.09);
+  const jizuraBottom = Math.round(upm * 0.91);
+  const third1 = Number((upm / 3).toFixed(1));
+  const third2 = Number(((upm * 2) / 3).toFixed(1));
+  const quarter1 = upm / 4;
+  const quarter3 = (upm * 3) / 4;
+  const bodyTop = upm * 0.075;
+  const bodyBottom = upm * 0.925;
+  const kanaTop = upm * 0.11;
+  const kanaBottom = upm * 0.89;
+
   targets.push(
     { position: 0, name: 'ボディ枠上端 (Y: 0)', type: 'metric', color: '#10b981', priority: 8 },
-    { position: 1000, name: 'ボディ枠下端 (Y: 1000)', type: 'metric', color: '#10b981', priority: 8 },
-    { position: 90, name: '字面枠上端 (820x820 / Y: 90)', type: 'metric', color: '#059669', priority: 8 },
-    { position: 910, name: '字面枠下端 (820x820 / Y: 910)', type: 'metric', color: '#059669', priority: 8 }
+    { position: upm, name: `ボディ枠下端 (Y: ${upm})`, type: 'metric', color: '#10b981', priority: 8 },
+    { position: jizuraTop, name: `字面枠上端 (Y: ${jizuraTop})`, type: 'metric', color: '#059669', priority: 8 },
+    { position: jizuraBottom, name: `字面枠下端 (Y: ${jizuraBottom})`, type: 'metric', color: '#059669', priority: 8 }
   );
 
-  // 4. Canvas Center (十文字中央ガイド Y: 500)
+  // 4. Canvas Center (十文字中央ガイド)
   targets.push({
-    position: 500,
-    name: '十文字中央ガイド (Y: 500)',
+    position: half,
+    name: `十文字中央ガイド (Y: ${half})`,
     type: 'center',
     color: '#06b6d4',
     priority: 8,
@@ -105,26 +118,26 @@ export function getHorizontalSnapTargets(
   // 6. Japanese Guide Frames (田字格、九宮格、漢字枠、仮名枠)
   if (gridSettings?.japaneseGuide === 'jiugong') {
     targets.push(
-      { position: 333.3, name: '九宮格 (Y: 333)', type: 'metric', color: '#0284c7', priority: 6 },
-      { position: 666.7, name: '九宮格 (Y: 667)', type: 'metric', color: '#0284c7', priority: 6 }
+      { position: third1, name: `九宮格 (Y: ${Math.round(third1)})`, type: 'metric', color: '#0284c7', priority: 6 },
+      { position: third2, name: `九宮格 (Y: ${Math.round(third2)})`, type: 'metric', color: '#0284c7', priority: 6 }
     );
   }
   if (gridSettings?.japaneseGuide === 'sixteen') {
     targets.push(
-      { position: 250, name: '十六宮格 (Y: 250)', type: 'metric', color: '#0284c7', priority: 6 },
-      { position: 750, name: '十六宮格 (Y: 750)', type: 'metric', color: '#0284c7', priority: 6 }
+      { position: quarter1, name: `十六宮格 (Y: ${quarter1})`, type: 'metric', color: '#0284c7', priority: 6 },
+      { position: quarter3, name: `十六宮格 (Y: ${quarter3})`, type: 'metric', color: '#0284c7', priority: 6 }
     );
   }
   if (gridSettings?.showBodyFrame) {
     targets.push(
-      { position: 75, name: '漢字字面枠上端 (Y: 75)', type: 'metric', color: '#059669', priority: 6 },
-      { position: 925, name: '漢字字面枠下端 (Y: 925)', type: 'metric', color: '#059669', priority: 6 }
+      { position: bodyTop, name: `漢字字面枠上端 (Y: ${bodyTop})`, type: 'metric', color: '#059669', priority: 6 },
+      { position: bodyBottom, name: `漢字字面枠下端 (Y: ${bodyBottom})`, type: 'metric', color: '#059669', priority: 6 }
     );
   }
   if (gridSettings?.showKanaFrame) {
     targets.push(
-      { position: 110, name: '仮名枠上端 (Y: 110)', type: 'metric', color: '#d97706', priority: 6 },
-      { position: 890, name: '仮名枠下端 (Y: 890)', type: 'metric', color: '#d97706', priority: 6 }
+      { position: kanaTop, name: `仮名枠上端 (Y: ${kanaTop})`, type: 'metric', color: '#d97706', priority: 6 },
+      { position: kanaBottom, name: `仮名枠下端 (Y: ${kanaBottom})`, type: 'metric', color: '#d97706', priority: 6 }
     );
   }
 
@@ -185,6 +198,18 @@ export function getVerticalSnapTargets(
   excludeNodeId?: string
 ): { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] {
   const targets: { position: number; name: string; type: SnapGuideLine['targetType']; color: string; priority: number }[] = [];
+  const upm = metrics.upm ?? 1000;
+  const half = upm / 2;
+  const jizuraLeft = Math.round(upm * 0.09);
+  const jizuraRight = Math.round(upm * 0.91);
+  const third1 = Number((upm / 3).toFixed(1));
+  const third2 = Number(((upm * 2) / 3).toFixed(1));
+  const quarter1 = upm / 4;
+  const quarter3 = (upm * 3) / 4;
+  const bodyLeft = upm * 0.075;
+  const bodyRight = upm * 0.925;
+  const kanaLeft = upm * 0.11;
+  const kanaRight = upm * 0.89;
 
   // 1. LSB (Left Side Bearing - Highest priority for X)
   targets.push({
@@ -204,18 +229,18 @@ export function getVerticalSnapTargets(
     priority: 9,
   });
 
-  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ 1000x1000 & 実字面 820x820)
+  // 3. Japanese Virtual Body & Jizura Frames (仮想ボディ & 実字面 82%)
   targets.push(
     { position: 0, name: 'ボディ枠左端 (X: 0)', type: 'metric', color: '#10b981', priority: 8 },
-    { position: 1000, name: 'ボディ枠右端 (X: 1000)', type: 'metric', color: '#10b981', priority: 8 },
-    { position: 90, name: '字面枠左端 (820x820 / X: 90)', type: 'metric', color: '#059669', priority: 8 },
-    { position: 910, name: '字面枠右端 (820x820 / X: 910)', type: 'metric', color: '#059669', priority: 8 }
+    { position: upm, name: `ボディ枠右端 (X: ${upm})`, type: 'metric', color: '#10b981', priority: 8 },
+    { position: jizuraLeft, name: `字面枠左端 (X: ${jizuraLeft})`, type: 'metric', color: '#059669', priority: 8 },
+    { position: jizuraRight, name: `字面枠右端 (X: ${jizuraRight})`, type: 'metric', color: '#059669', priority: 8 }
   );
 
-  // 4. Canvas Center (十文字中央ガイド X: 500)
+  // 4. Canvas Center (十文字中央ガイド)
   targets.push({
-    position: 500,
-    name: '十文字中央ガイド (X: 500)',
+    position: half,
+    name: `十文字中央ガイド (X: ${half})`,
     type: 'center',
     color: '#06b6d4',
     priority: 8,
@@ -243,8 +268,8 @@ export function getVerticalSnapTargets(
   // 6. Japanese Guide Frames (九宮格、十六宮格、縦分割ガイド、漢字枠、仮名枠)
   if (gridSettings?.japaneseGuide === 'jiugong' || gridSettings?.verticalGuide === 'thirds') {
     targets.push(
-      { position: 333.3, name: '九宮格/3分割 (X: 333)', type: 'metric', color: '#0284c7', priority: 6 },
-      { position: 666.7, name: '九宮格/3分割 (X: 667)', type: 'metric', color: '#0284c7', priority: 6 }
+      { position: third1, name: `九宮格/3分割 (X: ${Math.round(third1)})`, type: 'metric', color: '#0284c7', priority: 6 },
+      { position: third2, name: `九宮格/3分割 (X: ${Math.round(third2)})`, type: 'metric', color: '#0284c7', priority: 6 }
     );
   }
   if (
@@ -253,28 +278,32 @@ export function getVerticalSnapTargets(
     gridSettings?.verticalGuide === 'eighths'
   ) {
     targets.push(
-      { position: 250, name: '4分割 (X: 250)', type: 'metric', color: '#0284c7', priority: 6 },
-      { position: 750, name: '4分割 (X: 750)', type: 'metric', color: '#0284c7', priority: 6 }
+      { position: quarter1, name: `4分割 (X: ${quarter1})`, type: 'metric', color: '#0284c7', priority: 6 },
+      { position: quarter3, name: `4分割 (X: ${quarter3})`, type: 'metric', color: '#0284c7', priority: 6 }
     );
   }
   if (gridSettings?.verticalGuide === 'eighths') {
+    const e1 = Number((upm / 8).toFixed(1));
+    const e3 = Number(((upm * 3) / 8).toFixed(1));
+    const e5 = Number(((upm * 5) / 8).toFixed(1));
+    const e7 = Number(((upm * 7) / 8).toFixed(1));
     targets.push(
-      { position: 125, name: '8分割 (X: 125)', type: 'metric', color: '#7c3aed', priority: 5 },
-      { position: 375, name: '8分割 (X: 375)', type: 'metric', color: '#7c3aed', priority: 5 },
-      { position: 625, name: '8分割 (X: 625)', type: 'metric', color: '#7c3aed', priority: 5 },
-      { position: 875, name: '8分割 (X: 875)', type: 'metric', color: '#7c3aed', priority: 5 }
+      { position: e1, name: `8分割 (X: ${e1})`, type: 'metric', color: '#7c3aed', priority: 5 },
+      { position: e3, name: `8分割 (X: ${e3})`, type: 'metric', color: '#7c3aed', priority: 5 },
+      { position: e5, name: `8分割 (X: ${e5})`, type: 'metric', color: '#7c3aed', priority: 5 },
+      { position: e7, name: `8分割 (X: ${e7})`, type: 'metric', color: '#7c3aed', priority: 5 }
     );
   }
   if (gridSettings?.showBodyFrame) {
     targets.push(
-      { position: 75, name: '漢字字面枠左端 (X: 75)', type: 'metric', color: '#059669', priority: 6 },
-      { position: 925, name: '漢字字面枠右端 (X: 925)', type: 'metric', color: '#059669', priority: 6 }
+      { position: bodyLeft, name: `漢字字面枠左端 (X: ${bodyLeft})`, type: 'metric', color: '#059669', priority: 6 },
+      { position: bodyRight, name: `漢字字面枠右端 (X: ${bodyRight})`, type: 'metric', color: '#059669', priority: 6 }
     );
   }
   if (gridSettings?.showKanaFrame) {
     targets.push(
-      { position: 110, name: '仮名枠左端 (X: 110)', type: 'metric', color: '#d97706', priority: 6 },
-      { position: 890, name: '仮名枠右端 (X: 890)', type: 'metric', color: '#d97706', priority: 6 }
+      { position: kanaLeft, name: `仮名枠左端 (X: ${kanaLeft})`, type: 'metric', color: '#d97706', priority: 6 },
+      { position: kanaRight, name: `仮名枠右端 (X: ${kanaRight})`, type: 'metric', color: '#d97706', priority: 6 }
     );
   }
 

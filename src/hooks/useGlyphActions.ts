@@ -155,9 +155,13 @@ export function useGlyphActions({
       });
 
       const ch = targetGlyph.char || String.fromCodePoint(unicode);
+      if (unicode !== selectedUnicode) {
+        setSelectedUnicode(unicode);
+        setSelectedChar(ch);
+      }
       onShowToast(`文字「${ch}」の字形を消去しました (Ctrl+Zで復元可能)`, 'info');
     },
-    [project.glyphs, commitHistory, setProject, onShowToast]
+    [project.glyphs, selectedUnicode, setSelectedUnicode, setSelectedChar, commitHistory, setProject, onShowToast]
   );
 
   // Copy Glyph contours

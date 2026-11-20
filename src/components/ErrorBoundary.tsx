@@ -2,7 +2,8 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Download } from 'lucide-react';
 import { loadProjectFromIndexedDB, LOCAL_STORAGE_PROJECT_KEY } from '../utils/storageManager';
 import { clearIndexedDBStorage } from '../utils/indexedDBStorage';
-import { THEME_STORAGE_KEY } from '../hooks/useTheme';
+import { STORAGE_KEYS, getStorageItem } from '../utils/storageKeys';
+import { ThemeMode, getThemeClasses, isLightTheme } from '../utils/theme';
 
 interface Props {
   children: ReactNode;
@@ -96,10 +97,15 @@ export class ErrorBoundary extends Component<Props, State> {
       const a = document.createElement('a');
       a.href = url;
       a.download = `font_rescue_backup_${Date.now()}.fontproj.json`;
+      a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        try {
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch {}
+      }, 60000);
       this.setState({ hasSavedBackup: true });
     } catch (e) {
       console.error('Failed to export rescue backup:', e);
@@ -111,7 +117,10 @@ export class ErrorBoundary extends Component<Props, State> {
     const failures: string[] = [];
     try {
       localStorage.removeItem(LOCAL_STORAGE_PROJECT_KEY);
-      localStorage.removeItem(THEME_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.THEME_MODE.primary);
+      for (const legacyKey of STORAGE_KEYS.THEME_MODE.legacy) {
+        localStorage.removeItem(legacyKey);
+      }
     } catch (e) {
       console.error('Failed to clear localStorage during reset:', e);
       failures.push('ローカル保存データの削除に失敗しました。');
@@ -143,55 +152,30 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      let themeMode = 'light';
-      try {
-        const saved = localStorage.getItem(THEME_STORAGE_KEY);
-        if (saved) themeMode = saved;
-      } catch {}
-
-      const isDark = themeMode === 'dark' || themeMode === 'nord' || themeMode === 'monochrome' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
-      const isSepia = themeMode === 'sepia';
-      const isWarm = themeMode === 'warm';
-
-      const bgClass = isDark
-        ? 'bg-[#0f1712] text-stone-100'
-        : isSepia
-        ? 'bg-[#f4ede2] text-[#423323]'
-        : isWarm
-        ? 'bg-[#fbf3e8] text-[#3d2a1d]'
-        : 'bg-[#f7faf8] text-stone-900';
-
-      const cardClass = isDark
-        ? 'bg-[#152319] border-[#25382c] text-emerald-100 shadow-2xl'
-        : isSepia
-        ? 'bg-[#fdfaf5] border-[#d8c5ab] text-[#423323] shadow-xl'
-        : isWarm
-        ? 'bg-[#fffaf3] border-[#ecd2b8] text-[#3d2a1d] shadow-xl'
-        : 'bg-white border-emerald-100 text-stone-800 shadow-xl';
-
-      const titleClass = isDark ? 'text-emerald-100' : isSepia ? 'text-[#423323]' : isWarm ? 'text-[#3d2a1d]' : 'text-stone-800';
-      const subtitleClass = isDark ? 'text-stone-400' : isSepia ? 'text-[#7a644f]' : isWarm ? 'text-[#7d5f47]' : 'text-stone-500';
-
-      const errBoxClass = isDark
-        ? 'bg-[#0a110d] text-emerald-300 border-[#1f2d24]'
-        : isSepia
-        ? 'bg-[#f3ebe0] text-[#5c4632] border-[#dfceb9]'
-        : isWarm
-        ? 'bg-[#faefe2] text-[#543b29] border-[#ecd5bf]'
-        : 'bg-stone-50 text-stone-600 border-stone-200';
+      const validThemes: ThemeMode[] = ['light', 'dark', 'sepia', 'warm', 'nord', 'monochrome'];
+      const rawSaved = getStorageItem(STORAGE_KEYS.THEME_MODE);
+      const fallbackDomDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+      const resolvedTheme: ThemeMode =
+        rawSaved && validThemes.includes(rawSaved as ThemeMode)
+          ? (rawSaved as ThemeMode)
+          : fallbackDomDark
+          ? 'dark'
+          : 'light';
+      const themeClasses = getThemeClasses(resolvedTheme);
+      const isLight = isLightTheme(resolvedTheme);
 
       return (
-        <div className={`min-h-screen w-full flex items-center justify-center p-6 font-sans ${bgClass}`}>
-          <div className={`max-w-md w-full p-6 border flex flex-col items-center text-center ${cardClass}`}>
+        <div className={`min-h-screen w-full flex items-center justify-center p-6 font-sans ${themeClasses.appBg}`}>
+          <div className={`max-w-md w-full p-6 border flex flex-col items-center text-center shadow-xl ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}>
             <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h1 className={`text-base font-bold mb-2 ${titleClass}`}>エラーが発生しました</h1>
-            <p className={`text-xs mb-4 leading-relaxed ${subtitleClass}`}>
+            <h1 className={`text-base font-bold mb-2 ${themeClasses.textPrimary}`}>エラーが発生しました</h1>
+            <p className={`text-xs mb-4 leading-relaxed ${themeClasses.textMuted}`}>
               画面描画中に例外が発生しました。初期化前にプロジェクトJSONを保存できます。
             </p>
             {this.state.error && (
-              <div className={`w-full max-h-28 overflow-y-auto p-2.5 text-left text-[11px] font-mono border mb-5 break-all ${errBoxClass}`}>
+              <div className={`w-full max-h-28 overflow-y-auto p-2.5 text-left text-[11px] font-mono border mb-5 break-all ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted}`}>
                 {this.state.error.message || String(this.state.error)}
               </div>
             )}
@@ -213,8 +197,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleExportBackup}
                 className={`w-full px-4 py-2 text-xs font-bold border transition-colors flex items-center justify-center gap-2 cursor-pointer ${
                   this.state.hasSavedBackup
-                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
+                    ? themeClasses.accentBadge
+                    : `${themeClasses.accentBtn} border-transparent`
                 }`}
               >
                 <Download className="w-4 h-4" />
@@ -226,7 +210,11 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="flex-1 px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer dark:bg-stone-700 dark:hover:bg-stone-600"
+                className={`flex-1 px-4 py-2 border text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                  isLight
+                    ? 'bg-stone-800 hover:bg-stone-900 text-white border-transparent'
+                    : 'bg-stone-700 hover:bg-stone-600 text-white border-transparent'
+                }`}
               >
                 <RotateCcw className="w-4 h-4" />
                 再読み込み
@@ -234,7 +222,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2 bg-stone-100 hover:bg-rose-50 hover:text-rose-700 text-stone-600 border border-stone-200 text-xs font-medium transition-colors cursor-pointer dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                className={`px-4 py-2 border text-xs font-medium transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} hover:text-rose-600`}
                 title="ローカル保存データを初期化します"
               >
                 キャッシュ初期化

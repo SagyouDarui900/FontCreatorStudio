@@ -43,6 +43,7 @@ export interface ProjectContextType {
   handleUndo: () => void;
   handleRedo: () => void;
   commitHistory: (targetUnicode?: number) => void;
+  clearHistory: () => void;
   clipboardContours: PathContour[] | null;
   setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>>;
   handleQuickSaveCurrentGlyph: () => void;
@@ -112,6 +113,7 @@ export function ProjectProvider({
     redoStack,
     setUndoStack,
     commitHistory,
+    clearHistory,
     handleUndo,
     handleRedo,
     canUndo,
@@ -125,6 +127,14 @@ export function ProjectProvider({
     setSelectedChar,
     setProject,
   });
+
+  const prevProjectIdRef = useRef(project.id);
+  useEffect(() => {
+    if (prevProjectIdRef.current !== project.id) {
+      prevProjectIdRef.current = project.id;
+      clearHistory();
+    }
+  }, [project.id, clearHistory]);
 
   const handleSelectGlyph = useCallback((unicode: number, char?: string) => {
     setSelectedUnicode(unicode);
@@ -437,6 +447,7 @@ export function ProjectProvider({
       handleUndo,
       handleRedo,
       commitHistory,
+      clearHistory,
       clipboardContours: glyphActions.clipboardContours,
       setClipboardContours: glyphActions.setClipboardContours,
       handleQuickSaveCurrentGlyph,
@@ -478,6 +489,7 @@ export function ProjectProvider({
       handleUndo,
       handleRedo,
       commitHistory,
+      clearHistory,
       handleQuickSaveCurrentGlyph,
       glyphActions,
     ]

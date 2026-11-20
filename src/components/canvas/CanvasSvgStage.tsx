@@ -358,6 +358,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             selectedUnicode={selectedUnicode != null ? String(selectedUnicode) : undefined}
             toolMode={toolMode}
             unitsPerEm={upm}
+            ascender={project?.metadata?.ascender}
             advanceWidth={advanceWidth}
             onPointerDownImage={handlePointerDownTraceImage}
             onPointerDownResize={handlePointerDownTraceResize}
@@ -385,6 +386,10 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           showVerticalCenter={gridSettings.showVerticalCenter !== false}
           gridOpacity={gridSettings.gridOpacity ?? 30}
           unitsPerEm={upm}
+          ascender={project?.metadata?.ascender}
+          descender={project?.metadata?.descender}
+          capHeight={project?.metadata?.capHeight}
+          xHeight={project?.metadata?.xHeight}
         />
 
         {/* 7. User Custom Guidelines */}

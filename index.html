@@ -52,12 +52,26 @@
     <script>
       (function() {
         try {
-          var t = localStorage.getItem('font_editor_theme_mode') || 'light';
+          var t = localStorage.getItem('fcs_theme_mode') || localStorage.getItem('font_editor_theme_mode') || 'light';
+          var valid = ['light', 'dark', 'sepia', 'warm', 'nord', 'monochrome'];
+          if (valid.indexOf(t) === -1) t = 'light';
           document.documentElement.setAttribute('data-theme', t);
           if (t === 'dark' || t === 'nord') {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');
+          }
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            var colors = {
+              light: '#f7faf8',
+              dark: '#0f1712',
+              sepia: '#f4ede2',
+              warm: '#fbf3e8',
+              nord: '#2e3440',
+              monochrome: '#f4f4f5'
+            };
+            meta.setAttribute('content', colors[t] || '#f7faf8');
           }
         } catch (e) {}
       })();

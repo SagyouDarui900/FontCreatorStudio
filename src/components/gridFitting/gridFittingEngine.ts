@@ -1,5 +1,6 @@
 import { GlyphData, PathContour, BezierNode } from '../../types';
 import { GridFittingConfig, RenderingMode, StemInfo } from './types';
+import { CanvasMetricsMetadataInput, resolveCanvasMetrics } from '../../utils/font/constants';
 
 /**
  * Convert contour set to SVG Path 'd' attribute string
@@ -127,12 +128,14 @@ export function applyGridFittingToGlyph(
   glyph: GlyphData,
   ppem: number,
   upm: number = 1000,
-  config: GridFittingConfig
+  config: GridFittingConfig,
+  metrics?: CanvasMetricsMetadataInput
 ): GlyphData {
   if (!glyph.contours || glyph.contours.length === 0 || ppem <= 0) return glyph;
 
   const pixelSizeInUnits = upm / ppem;
   const minStrokeUnits = config.minStemWidthPx * pixelSizeInUnits;
+  const resolvedMetrics = config.snapMetrics ? resolveCanvasMetrics(metrics, upm) : null;
 
   const newContours: PathContour[] = glyph.contours.map((c) => ({
     ...c,
@@ -150,17 +153,16 @@ export function applyGridFittingToGlyph(
         targetY = n.y + (roundedY - n.y) * config.snapStrength;
       }
 
-      if (config.snapMetrics) {
-        const baselineY = Math.round(upm * 0.8);
-        const capHeightY = Math.round(upm * 0.3);
-        const ascenderY = Math.round(upm * 0.2);
-        const descenderY = upm;
+      if (config.snapMetrics && resolvedMetrics) {
+        const { baselineY, capHeightY, xHeightY, ascenderY, descenderY } = resolvedMetrics;
         const threshold = pixelSizeInUnits * 0.5;
 
         if (Math.abs(n.y - baselineY) < threshold) {
           targetY = n.y + (baselineY - n.y) * config.snapStrength;
         } else if (Math.abs(n.y - capHeightY) < threshold) {
           targetY = n.y + (capHeightY - n.y) * config.snapStrength;
+        } else if (Math.abs(n.y - xHeightY) < threshold) {
+          targetY = n.y + (xHeightY - n.y) * config.snapStrength;
         } else if (Math.abs(n.y - ascenderY) < threshold) {
           targetY = n.y + (ascenderY - n.y) * config.snapStrength;
         } else if (Math.abs(n.y - 0) < threshold) {

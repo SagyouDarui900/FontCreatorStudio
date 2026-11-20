@@ -27,6 +27,84 @@ export function resolveBaselineY(ascender: unknown, unitsPerEm?: number): number
   return Math.round(upm * 0.8);
 }
 
+export interface CanvasMetricsMetadataInput {
+  unitsPerEm?: unknown;
+  ascender?: unknown;
+  descender?: unknown;
+  capHeight?: unknown;
+  xHeight?: unknown;
+}
+
+export interface ResolvedCanvasMetrics {
+  upm: number;
+  baselineY: number;
+  ascenderY: number;
+  capHeightY: number;
+  xHeightY: number;
+  descenderY: number;
+}
+
+/**
+ * Resolve all key vertical metrics in canvas screen coordinates (Y grows
+ * downward from 0 at top of the EM box) consistent with FontY = baselineY - ScreenY.
+ */
+export function resolveCanvasMetrics(
+  metadata?: CanvasMetricsMetadataInput | null,
+  unitsPerEm?: number
+): ResolvedCanvasMetrics {
+  const upm =
+    typeof unitsPerEm === 'number' && Number.isFinite(unitsPerEm) && unitsPerEm > 0
+      ? unitsPerEm
+      : typeof metadata?.unitsPerEm === 'number' &&
+          Number.isFinite(metadata.unitsPerEm) &&
+          metadata.unitsPerEm > 0
+        ? metadata.unitsPerEm
+        : DEFAULT_UPM;
+
+  const baselineY = resolveBaselineY(metadata?.ascender, upm);
+
+  const ascender =
+    typeof metadata?.ascender === 'number' &&
+    Number.isFinite(metadata.ascender) &&
+    metadata.ascender > 0
+      ? metadata.ascender
+      : baselineY;
+  const ascenderY = baselineY - ascender;
+
+  const capHeight =
+    typeof metadata?.capHeight === 'number' &&
+    Number.isFinite(metadata.capHeight) &&
+    metadata.capHeight > 0
+      ? metadata.capHeight
+      : Math.round(upm * 0.7);
+  const capHeightY = baselineY - capHeight;
+
+  const xHeight =
+    typeof metadata?.xHeight === 'number' &&
+    Number.isFinite(metadata.xHeight) &&
+    metadata.xHeight > 0
+      ? metadata.xHeight
+      : Math.round(upm * 0.5);
+  const xHeightY = baselineY - xHeight;
+
+  const descender =
+    typeof metadata?.descender === 'number' &&
+    Number.isFinite(metadata.descender) &&
+    metadata.descender < 0
+      ? metadata.descender
+      : baselineY - upm;
+  const descenderY = baselineY - descender;
+
+  return {
+    upm,
+    baselineY,
+    ascenderY,
+    capHeightY,
+    xHeightY,
+    descenderY,
+  };
+}
+
 // Small Hiragana & Katakana unicodes (should remain in their natural position, not centered)
 export const SMALL_KANA_UNICODES = new Set<number>([
   0x3041, 0x3043, 0x3045, 0x3047, 0x3049, 0x3063, 0x3083, 0x3085, 0x3087, 0x308E, 0x3095, 0x3096, // ぁぃぅぇぉっゃゅょゎゕゖ

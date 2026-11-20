@@ -26,6 +26,7 @@ interface UseProjectStorageOptions {
 export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   const isHydratedRef = useRef(false);
   const lastHydratedUpdatedAtRef = useRef<number | null>(null);
+  const lastHydratedProjectRef = useRef<FontProject | null>(null);
   const [isStorageLoading, setIsStorageLoading] = useState(true);
 
   // Restore failure state (1-1): set when stored data exists but cannot be
@@ -168,6 +169,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           if (validatedDb && !isCancelled) {
             projectRef.current = validatedDb;
             lastHydratedUpdatedAtRef.current = validatedDb.updatedAt ?? null;
+            lastHydratedProjectRef.current = validatedDb;
             setProject(validatedDb);
             isHydratedRef.current = true;
             setIsStorageLoading(false);
@@ -202,6 +204,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
               if (validatedLocal && !isCancelled) {
                 projectRef.current = validatedLocal;
                 lastHydratedUpdatedAtRef.current = validatedLocal.updatedAt ?? null;
+                lastHydratedProjectRef.current = validatedLocal;
                 setProject(validatedLocal);
                 isHydratedRef.current = true;
                 setIsStorageLoading(false);
@@ -254,6 +257,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           const defaultProject = createDefaultProject();
           projectRef.current = defaultProject;
           lastHydratedUpdatedAtRef.current = defaultProject.updatedAt ?? null;
+          lastHydratedProjectRef.current = defaultProject;
           setProject(defaultProject);
           isHydratedRef.current = true;
           setIsStorageLoading(false);
@@ -299,6 +303,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     const defaultProject = createDefaultProject();
     projectRef.current = defaultProject;
     lastHydratedUpdatedAtRef.current = defaultProject.updatedAt ?? null;
+    lastHydratedProjectRef.current = defaultProject;
     restoreFailedRef.current = false;
     setRestoreFailed(false);
     setRestoreError(null);
@@ -345,10 +350,15 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     if (isStorageLoading || !isHydratedRef.current || restoreFailedRef.current) {
       return;
     }
-    if (lastHydratedUpdatedAtRef.current !== null && project.updatedAt === lastHydratedUpdatedAtRef.current) {
+    if (
+      lastHydratedUpdatedAtRef.current !== null &&
+      project === lastHydratedProjectRef.current &&
+      project.updatedAt === lastHydratedUpdatedAtRef.current
+    ) {
       return;
     }
     lastHydratedUpdatedAtRef.current = null;
+    lastHydratedProjectRef.current = null;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);

@@ -166,4 +166,71 @@ describe('useUndoRedo LRU eviction & ProjectContext same-frame Undo/Redo sync', 
     });
     container.remove();
   });
+
+  it('resets undo and redo stacks automatically when project.id changes', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    let ctx!: ReturnType<typeof useProjectContext>;
+    function Consumer() {
+      ctx = useProjectContext();
+      return null;
+    }
+
+    function Wrapper() {
+      const [project, setProject] = React.useState<FontProject>(() => makeProject());
+      const projectRef = React.useRef(project);
+      projectRef.current = project;
+      return (
+        <ProjectProvider
+          project={project}
+          setProject={setProject}
+          projectRef={projectRef}
+          saveProjectToIndexedDbWhenIdle={async () => true}
+          showToast={vi.fn()}
+        >
+          <Consumer />
+        </ProjectProvider>
+      );
+    }
+
+    act(() => {
+      root.render(<Wrapper />);
+    });
+
+    act(() => {
+      ctx.handleUpdateContours([
+        {
+          id: 'c-old',
+          closed: true,
+          nodes: [
+            { id: 'n1', x: 50, y: 50, type: 'corner' },
+            { id: 'n2', x: 150, y: 50, type: 'corner' },
+            { id: 'n3', x: 150, y: 150, type: 'corner' },
+          ],
+        },
+      ]);
+    });
+    expect(ctx.canUndo).toBe(true);
+
+    // Replace project with a different ID
+    act(() => {
+      ctx.setProject({
+        ...makeProject(),
+        id: 'proj-new',
+        name: 'NewFont',
+      });
+    });
+
+    expect(ctx.canUndo).toBe(false);
+    expect(ctx.canRedo).toBe(false);
+    expect(ctx.undoStack).toEqual([]);
+    expect(ctx.redoStack).toEqual([]);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

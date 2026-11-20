@@ -446,6 +446,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
               <MetricsSettingsSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 formData={formData}
                 setFormData={setFormData}
                 project={project}
@@ -457,6 +458,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               {/* Project JSON Backup & Export Section */}
               <JsonBackupSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 glyphCount={glyphCount}
                 radicalCount={radicalCount}
                 handleDownloadJsonBackup={handleDownloadJsonBackup}
@@ -470,6 +472,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             <div className="space-y-4 anim-fade">
               <LicensePresetSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 formData={formData}
                 onApplyPreset={handleApplyPreset}
                 onOpenBundledFontsModal={() => setIsBundledFontsModalOpen(true)}
@@ -525,6 +528,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
               formData={formData}
               setFormData={setFormData}
               isLight={isLight}
+              themeClasses={themeClasses}
             />
           )}
 
@@ -537,7 +541,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                   <span>作成フォントの著作権・商用利用についての保証</span>
                 </div>
                 <p className="leading-relaxed opacity-90">
-                  本フォント作成ツールで作成されたすべての文字・ベクター輪郭・書き出されたフォントファイル（TTF / OTF / WOFF / SVG）の権利は、<strong>100%作成者であるあなたに帰属します</strong>。
+                  本フォント作成ツールで作成されたすべての文字・ベクター輪郭・書き出されたフォントファイル（OTF / SVG）の権利は、<strong>100%作成者であるあなたに帰属します</strong>。
                 </p>
               </div>
 

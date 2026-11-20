@@ -443,6 +443,18 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
       sanitizedMetadata[key] = fallback;
     }
   }
+  const stringFieldDefaults: Record<string, string> = {
+    familyName: 'マイ手書きフォント',
+    styleName: 'Regular',
+    designer: '',
+    copyright: '',
+    version: '1.000',
+  };
+  for (const [key, fallback] of Object.entries(stringFieldDefaults)) {
+    if (typeof sanitizedMetadata[key] !== 'string') {
+      sanitizedMetadata[key] = fallback;
+    }
+  }
 
   // Kerning: drop entries whose value is not a finite number and notify.
   let sanitizedKerning: Record<string, number> | undefined;
@@ -475,7 +487,7 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     }
 
     const g = rawGlyph as Record<string, any>;
-    if (typeof g.unicode !== 'number' || !Number.isFinite(g.unicode)) {
+    if (!isValidUnicode(g.unicode)) {
       removed.glyphs++;
       continue;
     }

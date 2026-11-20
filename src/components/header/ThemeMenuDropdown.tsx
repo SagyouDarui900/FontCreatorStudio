@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Palette, ChevronDown, X, Check } from 'lucide-react';
-import { ThemeMode, THEME_PRESETS, getThemePreset } from '../../utils/theme';
+import { ThemeMode, THEME_PRESETS, getThemePreset, getThemeClasses } from '../../utils/theme';
 
 interface ThemeMenuDropdownProps {
   theme: ThemeMode;
@@ -19,7 +19,7 @@ interface ThemeMenuDropdownProps {
 
 export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
   theme,
-  isLight,
+  isLight: _isLight,
   cardBgClass,
   isOpen,
   onToggleOpen,
@@ -30,11 +30,13 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
   menuRef,
   panelRef,
 }) => {
+  const themeClasses = getThemeClasses(theme);
+
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
         onClick={onToggleOpen}
-        className={`px-1.5 h-7 rounded-md flex items-center justify-center gap-1 border cursor-pointer ${cardBgClass}`}
+        className={`px-1.5 h-7 rounded-md flex items-center justify-center gap-1 border cursor-pointer ${cardBgClass} ${themeClasses.activeToolHover}`}
         title="カラーテーマ・目の保護（セピア/ブルーライトカット）の切り替え"
       >
         <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 shrink-0" />
@@ -55,16 +57,16 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
             ref={panelRef}
             onPointerDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className={`fixed right-2 sm:right-14 top-[calc(2.65rem+env(safe-area-inset-top,0px))] w-[calc(100vw-16px)] sm:w-80 max-w-sm rounded-xl border shadow-2xl z-[51] p-3 text-left ${cardBgClass}`}
+            className={`fixed right-2 sm:right-14 top-[calc(2.65rem+env(safe-area-inset-top,0px))] w-[calc(100vw-16px)] sm:w-80 max-w-sm rounded-xl border shadow-2xl z-[51] p-3 text-left ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
           >
-            <div className="px-1 py-1 border-b border-stone-200/80 dark:border-stone-800/80 flex items-center justify-between mb-2">
+            <div className={`px-1 py-1 border-b flex items-center justify-between mb-2 ${themeClasses.border}`}>
               <div className="flex items-center space-x-1.5">
                 <Palette className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-bold">テーマ・目への優しさ設定</span>
               </div>
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-[#202d24] cursor-pointer"
+                className={`p-1 rounded-lg cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -87,14 +89,10 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
                       notify(`テーマを「${p.name}」に変更しました`, 'info');
                       onClose();
                     }}
-                    className={`w-full text-left p-2 rounded-xl border flex items-start space-x-2.5 cursor-pointer ${
+                    className={`w-full text-left p-2 rounded-xl border flex items-start space-x-2.5 cursor-pointer transition-colors ${
                       isActive
-                        ? isLight
-                          ? 'bg-emerald-50/90 border-emerald-400 ring-2 ring-emerald-400/50'
-                          : 'bg-[#1c2c22] border-emerald-500 ring-2 ring-emerald-500/50'
-                        : isLight
-                        ? 'bg-stone-50/70 hover:bg-stone-100 border-stone-200/80'
-                        : 'bg-[#18231c]/70 hover:bg-[#202f26] border-[#25362b]'
+                        ? `${themeClasses.activeTool} border-transparent`
+                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                     }`}
                   >
                     {/* Color Preview Swatch */}
@@ -115,19 +113,19 @@ export const ThemeMenuDropdown: React.FC<ThemeMenuDropdownProps> = ({
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-bold truncate">{p.name}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${p.badgeClass}`}>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold shrink-0 ${p.badgeClass}`}>
                           {p.badge}
                         </span>
                       </div>
-                      <p className="text-[10.5px] text-stone-500 dark:text-stone-400 leading-snug mt-0.5">
+                      <p className={`text-[10.5px] leading-snug mt-0.5 ${isActive ? 'opacity-85' : themeClasses.textMuted}`}>
                         {p.description}
                       </p>
                     </div>
 
                     {isActive && (
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+                      <Check className="w-4 h-4 shrink-0 mt-1" />
                     )}
                   </button>
                 );

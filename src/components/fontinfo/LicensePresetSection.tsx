@@ -1,6 +1,7 @@
 import React from 'react';
 import { Scale, Check, ShieldCheck } from 'lucide-react';
 import { FontMetadata } from '../../types';
+import { ThemeClasses } from '../../utils/theme';
 
 export interface LicensePreset {
   id: string;
@@ -60,6 +61,7 @@ export const LICENSE_PRESETS: LicensePreset[] = [
 
 interface LicensePresetSectionProps {
   isLight: boolean;
+  themeClasses?: ThemeClasses;
   formData: FontMetadata;
   onApplyPreset: (presetId: string) => void;
   onOpenBundledFontsModal: () => void;
@@ -67,6 +69,7 @@ interface LicensePresetSectionProps {
 
 export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
   isLight,
+  themeClasses,
   formData,
   onApplyPreset,
   onOpenBundledFontsModal,
@@ -84,7 +87,7 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
         <span>ライセンス プリセットから選択</span>
       </div>
       <p className="text-[11px] opacity-85 leading-relaxed mb-3">
-        出力フォントファイル（TTF/OTF）の OpenType name テーブル（ID 13: License, ID 14: URL, ID 0:
+        出力フォントファイル（OTF）の OpenType name テーブル（ID 13: License, ID 14: URL, ID 0:
         Copyright）に正式に埋め込まれます。タップで即時適用されます。
       </p>
 
@@ -101,9 +104,13 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
               onClick={() => onApplyPreset(p.id)}
               className={`text-left p-3 rounded-xl border transition-colors cursor-pointer flex flex-col justify-between relative active:scale-[0.99] ${
                 isSelected
-                  ? isLight
+                  ? themeClasses
+                    ? `${themeClasses.cardBg} border-amber-500 ring-2 ring-amber-500/80 shadow-xs`
+                    : isLight
                     ? 'bg-white border-amber-500 ring-2 ring-amber-500/80 shadow-xs'
                     : 'bg-[#1e2a22] border-amber-400 ring-2 ring-amber-400/80 shadow-xs'
+                  : themeClasses
+                  ? `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                   : isLight
                   ? 'bg-white/90 border-stone-200 hover:border-amber-300 hover:bg-white'
                   : 'bg-[#151f18] border-[#293c2f] hover:border-amber-500/50'
@@ -115,7 +122,7 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
                     {isSelected && (
                       <Check className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                     )}
-                    <span className="font-bold text-xs leading-snug break-words text-stone-900 dark:text-amber-100">
+                    <span className={`font-bold text-xs leading-snug break-words ${themeClasses ? themeClasses.textPrimary : 'text-stone-900 dark:text-amber-100'}`}>
                       {p.name}
                     </span>
                   </div>
@@ -123,7 +130,7 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
                     {p.badge}
                   </span>
                 </div>
-                <p className="text-[11px] opacity-85 leading-relaxed break-words text-stone-700 dark:text-amber-200/90">
+                <p className={`text-[11px] opacity-85 leading-relaxed break-words ${themeClasses ? themeClasses.textMuted : 'text-stone-700 dark:text-amber-200/90'}`}>
                   {p.desc}
                 </p>
               </div>

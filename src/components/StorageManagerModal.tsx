@@ -52,6 +52,7 @@ interface StorageManagerModalProps {
  onClose: () => void;
  project: FontProject;
  setProject: React.Dispatch<React.SetStateAction<FontProject>>;
+ onProjectReplaced?: () => void;
  theme: ThemeMode;
  onShowToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
@@ -61,6 +62,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  onClose,
  project,
  setProject,
+ onProjectReplaced,
  theme,
  onShowToast,
 }) => {
@@ -193,6 +195,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  const { project: loaded, removed } = loadProjectFromSnapshotWithReport(snap.id);
  if (loaded) {
  setProject(loaded);
+ onProjectReplaced?.();
  onShowToast(`スナップショット「${snap.formattedDate}」をキャンバスに復元しました`, 'success');
  const removedNotice = formatRemovedDataNotice(removed);
  if (removedNotice) {
@@ -211,6 +214,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  const { project: validated, removed } = normalizeValidatedProject(validateStoredFontProjectWithReport(entry.project));
  if (validated) {
  setProject(validated);
+ onProjectReplaced?.();
  onShowToast(`IndexedDB自動バックアップ「${formatDateTime(entry.timestamp)}」を復元しました`, 'success');
  const removedNotice = formatRemovedDataNotice(removed);
  if (removedNotice) {
@@ -321,13 +325,13 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
       >
  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
  <div className="flex items-center space-x-2">
- <span className="text-xs font-bold text-stone-700 dark:text-emerald-300">
+ <span className={`text-xs font-bold ${themeClasses.accentText}`}>
  localStorage 使用量:
  </span>
- <span className="text-sm font-extrabold font-mono text-stone-900 dark:text-emerald-100">
+ <span className={`text-sm font-extrabold font-mono ${themeClasses.textPrimary}`}>
  {formatBytes(breakdown.totalUsedBytes)}
  </span>
- <span className="text-xs text-stone-400 dark:text-stone-500 font-mono">
+ <span className={`text-xs font-mono ${themeClasses.textMuted}`}>
  / 約 {formatBytes(breakdown.estimatedLimitBytes)} ({breakdown.usedPercentage.toFixed(1)}%)
  </span>
  </div>
@@ -432,10 +436,10 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  >
  <button
  onClick={() => setActiveTab('snapshots')}
- className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors cursor-pointer ${
  activeTab === 'snapshots'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
- : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
  <RotateCcw className="w-3.5 h-3.5" />
@@ -444,22 +448,22 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setActiveTab('autosave')}
- className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors cursor-pointer ${
  activeTab === 'autosave'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
- : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
- <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+ <Clock className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>IndexedDB クラッシュ復元 ({autosaveEntries.length})</span>
  </button>
 
  <button
  onClick={() => setActiveTab('breakdown')}
- className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors cursor-pointer ${
  activeTab === 'breakdown'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
- : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
  <Database className="w-3.5 h-3.5" />
@@ -468,10 +472,10 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setActiveTab('guide')}
- className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors ${
+ className={`px-3 max-sm:px-2 py-1.5 text-xs font-bold rounded-t-lg border-t border-x -mb-px flex items-center space-x-1.5 transition-colors cursor-pointer ${
  activeTab === 'guide'
  ? `${themeClasses.modalBg} ${themeClasses.textPrimary} border-b-transparent`
- : `border-transparent ${themeClasses.textMuted} hover:text-stone-800 dark:hover:text-stone-100`
+ : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
  }`}
  >
  <Info className="w-3.5 h-3.5" />
@@ -491,11 +495,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  value={snapshotLabel}
  onChange={(e) => setSnapshotLabel(e.target.value)}
  placeholder="スナップショット名 (例: ひらがな完成時点)"
- className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
- isLight
- ? 'bg-white border-stone-300 text-stone-800'
- : 'bg-[#0f1711] border-[#25362b] text-emerald-100'
- }`}
+ className={`flex-1 px-3 py-1.5 text-xs rounded-xl border focus:outline-none focus:ring-2 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
  autoFocus
  onKeyDown={(e) => {
  if (e.key === 'Enter') handleCreateSnapshot();
@@ -504,13 +504,13 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  />
  <button
  onClick={handleCreateSnapshot}
- className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+ className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer ${themeClasses.accentBtn}`}
  >
  作成
  </button>
  <button
  onClick={() => setIsCreatingSnapshot(false)}
- className="px-2.5 py-1.5 rounded-xl text-xs font-medium border border-stone-300 dark:border-stone-700 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+ className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
  >
  取消
  </button>
@@ -518,7 +518,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  ) : (
  <button
  onClick={() => setIsCreatingSnapshot(true)}
- className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center space-x-1.5 transition-transform active:scale-95"
+ className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-transform active:scale-95 cursor-pointer ${themeClasses.accentBtn}`}
  >
  <Plus className="w-3.5 h-3.5" />
  <span>現在の状態をスナップショット保存</span>
@@ -528,21 +528,17 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <div className="flex items-center space-x-2">
  <button
  onClick={handleCleanCache}
- className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-colors flex items-center space-x-1 ${
- isLight
- ? 'border-stone-200 hover:bg-stone-100 text-stone-700'
- : 'border-[#25362b] hover:bg-[#1f2b23] text-stone-300'
- }`}
+ className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-colors flex items-center space-x-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
  title="作業画面の一時キャッシュをクリアして空き容量を確保"
  >
- <RefreshCw className="w-3.5 h-3.5 text-stone-500" />
+ <RefreshCw className={`w-3.5 h-3.5 ${themeClasses.textMuted}`} />
  <span>キャッシュ整理</span>
  </button>
 
  {snapshots.length > 0 && (
  <button
  onClick={() => setConfirmClearAll(true)}
- className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-center space-x-1 transition-colors"
+ className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-center space-x-1 transition-colors cursor-pointer"
  >
  <Trash2 className="w-3.5 h-3.5" />
  <span>全スナップショット削除</span>
@@ -554,20 +550,18 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* Snapshots Grid / List */}
  {snapshots.length === 0 ? (
  <div
- className={`text-center py-12 px-4 rounded-2xl border border-dashed ${
- isLight ? 'border-stone-300 bg-stone-50/50' : 'border-stone-800 bg-[#101712]/50'
- }`}
+ className={`text-center py-12 px-4 rounded-2xl border border-dashed ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
  >
- <FolderArchive className="w-10 h-10 mx-auto text-stone-400 dark:text-stone-600 mb-2 opacity-60" />
- <h3 className="text-sm font-bold text-stone-700 dark:text-stone-300">
+ <FolderArchive className={`w-10 h-10 mx-auto mb-2 opacity-60 ${themeClasses.textMuted}`} />
+ <h3 className={`text-sm font-bold ${themeClasses.textPrimary}`}>
  保存されたスナップショットはありません
  </h3>
- <p className="text-xs text-stone-500 dark:text-stone-500 max-w-sm mx-auto mt-1">
+ <p className={`text-xs max-w-sm mx-auto mt-1 ${themeClasses.textMuted}`}>
  「現在の状態をスナップショット保存」を押すと、作業の節目で復元可能なバックアップをブラウザ内に保存できます。
  </p>
  <button
  onClick={() => setIsCreatingSnapshot(true)}
- className="mt-3.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center space-x-1.5 transition-colors"
+ className={`mt-3.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs inline-flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  <Plus className="w-3.5 h-3.5" />
  <span>最初のスナップショットを作成</span>
@@ -581,22 +575,22 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  className={`p-3.5 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${themeClasses.cardBg}`}
  >
  <div className="flex items-start space-x-3 min-w-0 flex-1">
- <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
+ <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
  <FileJson className="w-4 h-4" />
  </div>
  <div className="min-w-0 flex-1">
  <div className="flex items-center space-x-2 flex-wrap">
- <span className="text-xs font-extrabold text-stone-800 dark:text-emerald-100 truncate">
+ <span className={`text-xs font-extrabold truncate ${themeClasses.textPrimary}`}>
  {snap.label || snap.familyName || '手書きフォント'}
  </span>
- <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
+ <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
  {snap.glyphCount} 文字
  </span>
- <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono">
+ <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.accentBadge}`}>
  {formatBytes(snap.sizeBytes)}
  </span>
  </div>
- <div className="flex items-center space-x-2 text-[11px] text-stone-400 dark:text-stone-500 mt-0.5">
+ <div className={`flex items-center space-x-2 text-[11px] mt-0.5 ${themeClasses.textMuted}`}>
  <Clock className="w-3 h-3" />
  <span>{snap.formattedDate}</span>
  <span>({formatRelativeTime(snap.timestamp)})</span>
@@ -608,11 +602,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  <div className="flex items-center space-x-1.5 shrink-0 self-end sm:self-center">
  <button
  onClick={() => setConfirmRestoreId(snap.id)}
- className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border flex items-center space-x-1 transition-colors ${
- isLight
- ? 'border-emerald-300 text-emerald-800 bg-emerald-50/60 hover:bg-emerald-100/80'
- : 'border-emerald-800 text-emerald-200 bg-emerald-950/40 hover:bg-emerald-900/60'
- }`}
+ className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.accentBadge} ${themeClasses.activeToolHover}`}
  title="このスナップショットを作業キャンバスに復元"
  >
  <RotateCcw className="w-3.5 h-3.5" />
@@ -621,11 +611,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => downloadSnapshotJsonFile(snap)}
- className={`p-1.5 rounded-lg text-xs border transition-colors ${
- isLight
- ? 'border-stone-200 text-stone-600 hover:bg-stone-100'
- : 'border-[#25362b] text-stone-300 hover:bg-[#202d24]'
- }`}
+ className={`p-1.5 rounded-lg text-xs border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
  title="JSONファイルとしてダウンロード"
  >
  <Download className="w-3.5 h-3.5" />
@@ -633,7 +619,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  <button
  onClick={() => setConfirmDeleteId(snap.id)}
- className="p-1.5 rounded-lg text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 transition-colors"
+ className="p-1.5 rounded-lg text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 transition-colors cursor-pointer"
  title="スナップショットを削除"
  >
  <Trash2 className="w-3.5 h-3.5" />
@@ -646,13 +632,11 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
  )}
 
- {/* TAB 2: INDEXEDB AUTOSAVE RECOVERY HISTORY */}
+ {/* TAB 2: INDEXEDDB AUTOSAVE RECOVERY HISTORY */}
  {activeTab === 'autosave' && (
  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
- <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start space-x-3 ${
- isLight ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
- }`}>
- <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+ <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start space-x-3 ${themeClasses.accentBadge}`}>
+ <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
  <div>
  <div className="font-bold mb-0.5">IndexedDB オートセーブ履歴</div>
  <p className="text-[11px] opacity-90">
@@ -662,7 +646,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  {autosaveEntries.length === 0 ? (
- <div className="py-12 text-center text-stone-400 dark:text-stone-500 text-xs">
+ <div className={`py-12 text-center text-xs ${themeClasses.textMuted}`}>
  IndexedDB のオートセーブ履歴はまだありません。作図変更を行うと自動保存されます。
  </div>
  ) : (
@@ -673,25 +657,25 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  className={`p-3.5 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${themeClasses.cardBg}`}
  >
  <div className="flex items-start space-x-3 min-w-0 flex-1">
- <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
+ <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs ${themeClasses.accentBadge}`}>
  {idx === 0 ? '最新' : `#${idx + 1}`}
  </div>
  <div className="min-w-0 flex-1">
  <div className="flex items-center space-x-2 flex-wrap">
- <span className="text-xs font-extrabold text-stone-800 dark:text-emerald-100 truncate">
+ <span className={`text-xs font-extrabold truncate ${themeClasses.textPrimary}`}>
  {entry.projectName || '手書きフォント'}
  </span>
- <span className="text-[11px] px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono">
+ <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
  {entry.glyphCount} 文字収録
  </span>
  {idx === 0 && (
- <span className="text-[11px] px-1.5 py-0.5 rounded font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className={`text-[11px] px-1.5 py-0.5 rounded font-bold border ${themeClasses.accentBadge}`}>
  直近の自動保護ポイント
  </span>
  )}
  </div>
- <div className="flex items-center space-x-2 text-[11px] text-stone-400 dark:text-stone-500 mt-0.5">
- <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+ <div className={`flex items-center space-x-2 text-[11px] mt-0.5 ${themeClasses.textMuted}`}>
+ <Clock className={`w-3 h-3 ${themeClasses.accentText}`} />
  <span>{formatDateTime(entry.timestamp)}</span>
  <span>({formatRelativeTime(entry.timestamp)})</span>
  </div>
@@ -715,7 +699,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* TAB 2: DETAILED STORAGE BREAKDOWN */}
  {activeTab === 'breakdown' && (
  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
- <div className="text-xs text-stone-600 dark:text-stone-300">
+ <div className={`text-xs ${themeClasses.textMuted}`}>
  ブラウザ（localStorage）内に保管されている全データの内訳と専有サイズ一覧です。
  </div>
 
@@ -726,7 +710,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  className={`p-3 rounded-lg border flex items-center justify-between text-xs ${themeClasses.cardBg}`}
  >
  <div className="min-w-0 flex-1 pr-3">
- <div className="font-bold text-stone-800 dark:text-emerald-200 truncate">
+ <div className={`font-bold truncate ${themeClasses.textPrimary}`}>
  {item.label}
  </div>
  <div className={`font-mono text-[11px] ${themeClasses.textMuted} truncate`}>
@@ -734,13 +718,13 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
  </div>
  <div className="flex items-center space-x-3 shrink-0">
- <span className="font-mono font-bold text-stone-700 dark:text-emerald-300">
+ <span className={`font-mono font-bold ${themeClasses.accentText}`}>
  {formatBytes(item.sizeBytes)}
  </span>
  {item.removable && (
  <button
  onClick={() => setConfirmDeleteBreakdownItem({ key: item.key, label: item.label })}
- className="p-1 rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+ className="p-1 rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
  title="手動削除"
  >
  <Trash2 className="w-3.5 h-3.5" />
@@ -755,7 +739,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* TAB 3: SAFETY & STORAGE GUIDE */}
  {activeTab === 'guide' && (
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 text-xs leading-relaxed text-stone-700 dark:text-emerald-200/90">
+ <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
  <div
  className={`p-4 rounded-xl border space-y-2 ${
  isLight ? 'bg-amber-50/60 border-amber-200 text-amber-950' : 'bg-amber-950/20 border-amber-800/40 text-amber-200'
@@ -779,12 +763,10 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  <div
- className={`p-4 rounded-xl border space-y-2 ${
- isLight ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950' : 'bg-emerald-950/20 border-emerald-800/40 text-emerald-200'
- }`}
+ className={`p-4 rounded-xl border space-y-2 ${themeClasses.accentBadge}`}
  >
  <div className="font-bold flex items-center gap-1.5">
- <ShieldCheck className="w-4 h-4 text-emerald-600" />
+ <ShieldCheck className="w-4 h-4 shrink-0" />
  <span>制作データのバックアップ手順</span>
  </div>
  <ul className="list-disc list-inside space-y-1.5 text-[11px] opacity-90 pl-1">

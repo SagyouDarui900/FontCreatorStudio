@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { PIXEL_STUDIO_CATEGORIES } from './constants';
 
 interface PixelGlyphDrawerProps {
@@ -14,6 +14,8 @@ interface PixelGlyphDrawerProps {
   isMobile?: boolean;
 }
 
+const PIXEL_DRAWER_PAGE_SIZE = 150;
+
 export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
   displayedGlyphList,
   currentUnicode,
@@ -25,6 +27,29 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
   isLight,
   isMobile = false,
 }) => {
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategory, glyphSearchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(displayedGlyphList.length / PIXEL_DRAWER_PAGE_SIZE));
+  const validPage = Math.max(1, Math.min(page, totalPages));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const pagedGlyphList = useMemo(() => {
+    if (displayedGlyphList.length <= PIXEL_DRAWER_PAGE_SIZE) {
+      return displayedGlyphList;
+    }
+    const start = (validPage - 1) * PIXEL_DRAWER_PAGE_SIZE;
+    return displayedGlyphList.slice(start, start + PIXEL_DRAWER_PAGE_SIZE);
+  }, [displayedGlyphList, validPage]);
+
   if (isMobile) {
     return (
       <div
@@ -76,7 +101,7 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
         {/* Glyph Cards Grid with Generous Touch Targets */}
         <div className="flex-1 overflow-y-auto p-2">
           <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
-            {displayedGlyphList.map((item) => {
+            {pagedGlyphList.map((item) => {
               const isSelected = item.unicode === currentUnicode;
               return (
                 <button
@@ -114,6 +139,32 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="px-2 py-1.5 border-t border-stone-300 dark:border-stone-800 flex items-center justify-between text-xs shrink-0">
+            <button
+              type="button"
+              disabled={validPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="px-2.5 py-1 border border-stone-300 dark:border-stone-700 disabled:opacity-30 flex items-center gap-1 cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>前へ</span>
+            </button>
+            <span className="font-mono font-bold">
+              {validPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={validPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="px-2.5 py-1 border border-stone-300 dark:border-stone-700 disabled:opacity-30 flex items-center gap-1 cursor-pointer"
+            >
+              <span>次へ</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -168,7 +219,7 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
       {/* Glyph Cards Grid */}
       <div className="flex-1 overflow-y-auto p-2">
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-          {displayedGlyphList.map((item) => {
+          {pagedGlyphList.map((item) => {
             const isSelected = item.unicode === currentUnicode;
             return (
               <button
@@ -204,6 +255,31 @@ export const PixelGlyphDrawer: React.FC<PixelGlyphDrawerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Pagination when list exceeds page size */}
+      {totalPages > 1 && (
+        <div className="px-2 py-1 border-t border-stone-300 dark:border-stone-800 flex items-center justify-between text-[10.5px] shrink-0">
+          <button
+            type="button"
+            disabled={validPage <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="px-1.5 py-0.5 border border-stone-300 dark:border-stone-700 disabled:opacity-30 cursor-pointer"
+          >
+            前へ
+          </button>
+          <span className="font-mono font-bold">
+            {validPage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={validPage >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="px-1.5 py-0.5 border border-stone-300 dark:border-stone-700 disabled:opacity-30 cursor-pointer"
+          >
+            次へ
+          </button>
+        </div>
+      )}
 
       {/* Bottom Summary */}
       <div className="p-2 border-t border-stone-300 dark:border-stone-800 text-[10.5px] flex items-center justify-between opacity-70">

@@ -363,6 +363,14 @@ export function useUndoRedo({
     }
   }, [selectedUnicode, applyEvictionToMaps]);
 
+  const clearHistory = useCallback(() => {
+    undoStacksRef.current = {};
+    redoStacksRef.current = {};
+    historyOrderRef.current = [];
+    setUndoStacks({});
+    setRedoStacks({});
+  }, []);
+
   return {
     undoStack: currentUndoStack,
     redoStack: currentRedoStack,
@@ -371,6 +379,7 @@ export function useUndoRedo({
     setUndoStack,
     pushSnapshot,
     commitHistory,
+    clearHistory,
     handleUndo,
     handleRedo,
     canUndo: currentUndoStack.length > 0,

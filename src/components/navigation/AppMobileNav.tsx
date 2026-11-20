@@ -27,8 +27,8 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         onClick={() => handleSwitchMobileTab('canvas')}
         className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'canvas'
-            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-            : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+            ? `${themeClasses.accentText} font-bold`
+            : `${themeClasses.textMuted}`
         }`}
       >
         <PenTool className="w-5 h-5" />
@@ -42,8 +42,8 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         onClick={() => handleSwitchMobileTab('grid')}
         className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'grid'
-            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-            : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+            ? `${themeClasses.accentText} font-bold`
+            : `${themeClasses.textMuted}`
         }`}
       >
         <Grid className="w-5 h-5" />
@@ -57,8 +57,8 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         onClick={() => handleSwitchMobileTab('metrics')}
         className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'metrics'
-            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-            : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+            ? `${themeClasses.accentText} font-bold`
+            : `${themeClasses.textMuted}`
         }`}
       >
         <Ruler className="w-5 h-5" />
@@ -72,8 +72,8 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
         onClick={() => handleSwitchMobileTab('radicals')}
         className={`flex-1 h-full flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
           mobileActiveTab === 'radicals'
-            ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-            : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+            ? `${themeClasses.accentText} font-bold`
+            : `${themeClasses.textMuted}`
         }`}
       >
         <Shapes className="w-5 h-5" />

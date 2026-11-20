@@ -42,6 +42,18 @@ import { toStoredTraceSettings, areStoredTraceSettingsEqual } from './utils/trac
 
 const EMPTY_CONTOURS: PathContour[] = [];
 
+const DEFAULT_TRACE_SETTINGS: TraceSettings = {
+  enabled: true,
+  type: 'char',
+  text: '',
+  fontFamily: "'Noto Sans JP', sans-serif",
+  fontSize: 1000,
+  opacity: 0.18,
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
+
 interface AppMainProps {
   theme: ThemeMode;
   themeClasses: ThemeClasses;
@@ -107,6 +119,7 @@ function AppMain({
     handleUndo,
     handleRedo,
     commitHistory,
+    clearHistory,
     clipboardContours,
     handleQuickSaveCurrentGlyph,
     handleSimplifyCurrentGlyph,
@@ -158,17 +171,16 @@ function AppMain({
   } = useToolState();
 
   // Trace Guidelines Settings
-  const [traceSettings, setTraceSettings] = useState<TraceSettings>({
-    enabled: true,
-    type: 'char',
-    text: '',
-    fontFamily: "'Noto Sans JP', sans-serif",
-    fontSize: 1000,
-    opacity: 0.18,
-    scale: 1,
-    offsetX: 0,
-    offsetY: 0,
-  });
+  const [traceSettings, setTraceSettings] = useState<TraceSettings>(() => ({
+    ...DEFAULT_TRACE_SETTINGS,
+    ...(project.traceSettings || {}),
+  }));
+
+  const [projectReplaceSeq, setProjectReplaceSeq] = useState(0);
+  const handleProjectReplaced = useCallback(() => {
+    clearHistory();
+    setProjectReplaceSeq((seq) => seq + 1);
+  }, [clearHistory]);
 
   // Clear a manually entered display character when the selected glyph
   // changes, so the underdrawing follows the new character. While staying
@@ -179,28 +191,58 @@ function AppMain({
   }, [selectedUnicode]);
 
   // Persist trace settings in the project, without image data (data URLs
-  // are large and stay in memory only). Restoring applies stored settings
-  // once per stored value; later edits write back through this effect.
-  const appliedTraceSettingsRef = useRef<import('./types').StoredTraceSettings | null>(null);
-  useEffect(() => {
-    const stored = toStoredTraceSettings(traceSettings);
-    setProject((prev) => {
-      if (areStoredTraceSettingsEqual(prev.traceSettings ?? null, stored)) return prev;
-      return { ...prev, traceSettings: stored, updatedAt: Date.now() };
-    });
-  }, [traceSettings, setProject]);
+  // are large and stay in memory only). Hydration/project replacement runs
+  // before write-back so stale trace settings never overwrite or leak into
+  // a newly loaded/restored project.
+  const appliedTraceSettingsRef = useRef<import('./types').StoredTraceSettings | null>(
+    project.traceSettings ?? null
+  );
+  const prevTraceProjectIdRef = useRef<string>(project.id);
+  const prevReplaceSeqRef = useRef<number>(projectReplaceSeq);
+  const skipNextTraceWritebackRef = useRef<boolean>(false);
 
   useEffect(() => {
+    const isProjectSwitch =
+      prevTraceProjectIdRef.current !== project.id ||
+      prevReplaceSeqRef.current !== projectReplaceSeq;
+
+    if (isProjectSwitch) {
+      prevTraceProjectIdRef.current = project.id;
+      prevReplaceSeqRef.current = projectReplaceSeq;
+      const nextSettings: TraceSettings = {
+        ...DEFAULT_TRACE_SETTINGS,
+        ...(project.traceSettings || {}),
+      };
+      appliedTraceSettingsRef.current = project.traceSettings ?? null;
+      skipNextTraceWritebackRef.current = true;
+      setTraceSettings(nextSettings);
+      return;
+    }
+
     const stored = project.traceSettings;
     if (!stored) return;
     if (areStoredTraceSettingsEqual(stored, appliedTraceSettingsRef.current)) return;
-    if (areStoredTraceSettingsEqual(stored, toStoredTraceSettings(traceSettings))) {
-      appliedTraceSettingsRef.current = stored;
+    appliedTraceSettingsRef.current = stored;
+    skipNextTraceWritebackRef.current = true;
+    setTraceSettings((prev) => ({ ...prev, ...stored }));
+  }, [project.id, project.traceSettings, projectReplaceSeq]);
+
+  useEffect(() => {
+    if (skipNextTraceWritebackRef.current) {
+      skipNextTraceWritebackRef.current = false;
       return;
     }
-    appliedTraceSettingsRef.current = stored;
-    setTraceSettings((prev) => ({ ...prev, ...stored }));
-  }, [project.traceSettings]);
+    const stored = toStoredTraceSettings(traceSettings);
+    const defaultStored = toStoredTraceSettings(DEFAULT_TRACE_SETTINGS);
+    setProject((prev) => {
+      if (!prev.traceSettings && areStoredTraceSettingsEqual(stored, defaultStored)) {
+        return prev;
+      }
+      if (areStoredTraceSettingsEqual(prev.traceSettings ?? null, stored)) return prev;
+      appliedTraceSettingsRef.current = stored;
+      return { ...prev, traceSettings: stored, updatedAt: Date.now() };
+    });
+  }, [traceSettings, setProject]);
 
   // Grid & Guideline Settings
   const [gridSettings, setGridSettings] = useState<GridSettings>({
@@ -525,6 +567,7 @@ function AppMain({
       <Header
         project={project}
         setProject={setProject}
+        onProjectReplaced={handleProjectReplaced}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={handleUndo}
@@ -674,7 +717,10 @@ function AppMain({
               onSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
               isGlyphLocked={isGlyphLocked}
               onCommitHistory={commitHistory}
-              onCopyFromChar={(char) => handleCopyGlyph(char.charCodeAt(0))}
+              onCopyFromChar={(char) => {
+                const code = char.codePointAt(0);
+                if (code) handleCopyGlyph(code);
+              }}
               onGenerateDakutenTarget={handleGenerateDakutenTarget}
               onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
               onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
@@ -780,6 +826,7 @@ function AppMain({
       <AppModalsHost
         project={project}
         setProject={setProject}
+        onProjectReplaced={handleProjectReplaced}
         selectedChar={selectedChar}
         selectedUnicode={selectedUnicode}
         onSelectGlyph={handleSelectGlyph}
@@ -825,20 +872,20 @@ function AppMain({
       {needRefresh && (
         <div
           role="alert"
-          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 right-4 z-[70] flex items-center gap-2 max-sm:left-4 max-sm:max-w-[calc(100vw-32px)] max-sm:flex-wrap rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-100 px-3 py-2 text-xs font-medium shadow-md"
+          className={`fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 right-4 z-[70] flex items-center gap-2 max-sm:left-4 max-sm:max-w-[calc(100vw-32px)] max-sm:flex-wrap rounded-lg border px-3 py-2 text-xs font-medium shadow-md ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
         >
           <span>新しいバージョンが利用できます。再読み込みすると更新が反映されます。</span>
           <button
             type="button"
             onClick={() => void updateServiceWorker(true)}
-            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold shrink-0 cursor-pointer"
+            className={`px-2 py-1 rounded font-bold shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
           >
             再読み込み
           </button>
           <button
             type="button"
             onClick={() => setNeedRefresh(false)}
-            className="px-2 py-1 rounded text-slate-300 hover:bg-slate-800 shrink-0 cursor-pointer"
+            className={`px-2 py-1 rounded shrink-0 cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             後で
           </button>
@@ -918,8 +965,11 @@ function AppContent() {
     return (
       <div className={`w-screen h-screen flex flex-col items-center justify-center ${themeClasses.canvasOuterBg}`}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-mono font-medium text-stone-500 dark:text-stone-400">
+          <div
+            className="w-8 h-8 border-3 rounded-full animate-spin"
+            style={{ borderColor: themeClasses.accentHex, borderTopColor: 'transparent' }}
+          />
+          <span className={`text-xs font-mono font-medium ${themeClasses.textMuted}`}>
             プロジェクトを読み込み中...
           </span>
         </div>

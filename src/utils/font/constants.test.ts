@@ -4,6 +4,7 @@ import {
   DEFAULT_DESCENDER,
   SCREEN_BASELINE_Y,
   resolveBaselineY,
+  resolveCanvasMetrics,
 } from './constants';
 
 describe('resolveBaselineY', () => {
@@ -24,6 +25,57 @@ describe('resolveBaselineY', () => {
     expect(resolveBaselineY(0, 1000)).toBe(800);
     expect(resolveBaselineY(-100, 1000)).toBe(800);
     expect(resolveBaselineY('800', 1000)).toBe(800);
+  });
+});
+
+describe('resolveCanvasMetrics', () => {
+  it('resolves default 1000 UPM project metrics accurately in screen coordinates', () => {
+    expect(
+      resolveCanvasMetrics({
+        unitsPerEm: 1000,
+        ascender: 800,
+        descender: -200,
+        capHeight: 700,
+        xHeight: 500,
+      })
+    ).toEqual({
+      upm: 1000,
+      baselineY: 800,
+      ascenderY: 0,
+      capHeightY: 100,
+      xHeightY: 300,
+      descenderY: 1000,
+    });
+  });
+
+  it('aligns custom CJK ascender/descender and cap/xHeight relative to baselineY', () => {
+    expect(
+      resolveCanvasMetrics({
+        unitsPerEm: 1000,
+        ascender: 880,
+        descender: -120,
+        capHeight: 740,
+        xHeight: 520,
+      })
+    ).toEqual({
+      upm: 1000,
+      baselineY: 880,
+      ascenderY: 0,
+      capHeightY: 140,
+      xHeightY: 360,
+      descenderY: 1000,
+    });
+  });
+
+  it('scales proportionally for custom UPM when metadata fields are missing or invalid', () => {
+    expect(resolveCanvasMetrics({ ascender: 'bad', descender: 10 }, 2000)).toEqual({
+      upm: 2000,
+      baselineY: 1600,
+      ascenderY: 0,
+      capHeightY: 200,
+      xHeightY: 600,
+      descenderY: 2000,
+    });
   });
 });
 

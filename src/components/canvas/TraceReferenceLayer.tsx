@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { TraceSettings, ToolMode } from '../../types';
 import { computeTraceCharMetrics } from './traceCharMetrics';
 import { TRACE_DEFAULT_OPACITY } from './traceOptions';
+import { resolveBaselineY } from '../../utils/font/constants';
 
 // Corner handles only. All four corners scale from the center by the
 // pointer distance ratio, so no edge (n/s/e/w) handle exists.
@@ -14,6 +15,7 @@ interface TraceReferenceLayerProps {
   selectedUnicode?: string;
   toolMode: ToolMode;
   unitsPerEm?: number;
+  ascender?: number;
   advanceWidth?: number;
   onPointerDownImage?: (e: React.PointerEvent) => void;
   onPointerDownResize?: (e: React.PointerEvent, handle: TraceResizeHandle) => void;
@@ -30,6 +32,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     selectedUnicode,
     toolMode,
     unitsPerEm = 1000,
+    ascender,
     advanceWidth,
     onPointerDownImage,
     onPointerDownResize,
@@ -38,6 +41,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
   }) => {
     const upm = unitsPerEm || 1000;
     const half = upm / 2;
+    const baselineY = resolveBaselineY(ascender, upm);
 
     const scale = traceSettings.scale ?? 1;
     const offsetX = traceSettings.offsetX ?? 0;
@@ -58,6 +62,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
       unitsPerEm: upm,
       fontSize: traceSettings.fontSize,
       advanceWidth,
+      baselineY,
     });
 
     const fontFamily = traceSettings.fontFamily || "'Noto Sans JP', sans-serif";

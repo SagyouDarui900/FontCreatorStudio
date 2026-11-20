@@ -33,6 +33,12 @@ export const GlyphGridCard = memo(
   }: GlyphGridCardProps) => {
     const strokeCount = glyphData?.contours?.length || 0;
     const hasContours = strokeCount > 0;
+    const hasPixel = Boolean(
+      glyphData?.pixelData &&
+        Array.isArray(glyphData.pixelData.data) &&
+        glyphData.pixelData.data.some((d) => d === 1)
+    );
+    const isCompleted = hasContours || hasPixel;
     const renderGroups = useMemo(() => {
       if (!hasContours || !glyphData?.contours) return [];
       return groupContoursForRendering(glyphData.contours);
@@ -117,6 +123,9 @@ export const GlyphGridCard = memo(
 
     return (
       <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={isSelected}
         onClick={() => {
           if (longPressTriggeredRef.current) {
             longPressTriggeredRef.current = false;
@@ -124,20 +133,27 @@ export const GlyphGridCard = memo(
           }
           onSelectGlyph(item.code, item.char);
         }}
+        onKeyDown={(e) => {
+          if (e.target !== e.currentTarget) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelectGlyph(item.code, item.char);
+          }
+        }}
         onContextMenu={(e) => onContextMenu(e, item)}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={clearLongPress}
         onTouchCancel={clearLongPress}
         title={`「${item.char}」 U+${item.code.toString(16).toUpperCase().padStart(4, '0')} (${item.code})${
-          hasContours ? ` · 作成済 (${strokeCount}画)` : ' · 未作成'
+          hasContours ? ` · 作成済 (${strokeCount}画)` : hasPixel ? ' · 作成済 (ドット)' : ' · 未作成'
         } - 右クリック・長押しでメニュー`}
-        className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
+        className={`group relative flex flex-col items-center justify-between p-1 rounded-lg border w-full ${cardDimensionClass} cursor-pointer transition-colors duration-150 select-none overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 ${
           isSelected
             ? isLight
               ? `bg-white ${themeClasses?.accentBorder || 'border-emerald-600'} ring-2 ring-offset-1 ring-emerald-600/40 z-10 shadow-sm`
               : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.accentBorder || 'border-emerald-400'} ring-2 ring-offset-1 ring-offset-stone-900 ring-emerald-500/40 z-10 shadow-sm`
-            : hasContours
+            : isCompleted
             ? isLight
               ? `bg-white ${themeClasses?.border || 'border-stone-200'} text-stone-900 hover:border-emerald-400`
               : `${themeClasses?.cardBg || 'bg-[#18231c]'} ${themeClasses?.border || 'border-[#223026]'} text-stone-100 hover:border-emerald-400`
@@ -158,7 +174,7 @@ export const GlyphGridCard = memo(
             className={`font-mono text-[9px] tracking-tight truncate max-w-[80%] ${
               isSelected
                 ? `${themeClasses?.accentText || (isLight ? 'text-emerald-900' : 'text-emerald-300')} font-bold`
-                : hasContours
+                : isCompleted
                 ? isLight
                   ? 'text-stone-800 font-semibold'
                   : 'text-stone-200 font-semibold'
@@ -175,14 +191,14 @@ export const GlyphGridCard = memo(
                 <Lock className="w-2.5 h-2.5 text-amber-500 shrink-0" />
               </span>
             )}
-            {hasContours ? (
+            {isCompleted ? (
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
                   isSelected
                     ? 'bg-current ' + (themeClasses?.accentText || (isLight ? 'text-emerald-600' : 'text-emerald-400'))
                     : isLight ? 'bg-emerald-600' : 'bg-emerald-400'
                 }`}
-                title={`作成済 (${strokeCount}画)`}
+                title={hasContours ? `作成済 (${strokeCount}画)` : '作成済 (ドット)'}
               />
             ) : (
               <span className="inline-block w-1 h-1 rounded-full bg-stone-300 dark:bg-stone-700 opacity-30 shrink-0" />
@@ -304,9 +320,12 @@ export const GlyphGridCard = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.item.code === nextProps.item.code &&
+      prevProps.item.char === nextProps.item.char &&
+      prevProps.item.name === nextProps.item.name &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.isLight === nextProps.isLight &&
       prevProps.density === nextProps.density &&
+      prevProps.unitsPerEm === nextProps.unitsPerEm &&
       prevProps.themeClasses === nextProps.themeClasses &&
       prevProps.glyphData === nextProps.glyphData &&
       prevProps.glyphData?.locked === nextProps.glyphData?.locked &&

@@ -88,6 +88,7 @@ const IvsVariantManagerModal = lazy(() =>
 export interface AppModalsHostProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
+  onProjectReplaced?: () => void;
   selectedChar: string;
   selectedUnicode: number;
   onSelectGlyph: (unicode: number, char?: string) => void;
@@ -131,6 +132,7 @@ export interface AppModalsHostProps {
 export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   project,
   setProject,
+  onProjectReplaced,
   selectedChar,
   selectedUnicode,
   onSelectGlyph,
@@ -218,7 +220,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       fallback={
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" role="status" aria-label="読み込み中">
           <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border ${themeClasses.modalBg} ${themeClasses.border}`}>
-            <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div
+              className="w-5 h-5 border-2 rounded-full animate-spin"
+              style={{ borderColor: themeClasses.accentHex, borderTopColor: 'transparent' }}
+            />
             <span className="text-xs font-medium">読み込み中...</span>
             <button
               type="button"
@@ -545,6 +550,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
           onClose={closeModal}
           project={project}
           setProject={setProject}
+          onProjectReplaced={onProjectReplaced}
           theme={theme}
           onShowToast={showToast}
         />

@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2 } from 'lucide-react';
+import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2, Lock } from 'lucide-react';
 import { FontProject } from '../../types';
+import { ThemeMode, getThemeClasses } from '../../utils/theme';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { ContextMenuState } from './types';
@@ -10,6 +11,7 @@ interface GlyphGridContextMenuProps {
   contextMenu: ContextMenuState | null;
   onClose: () => void;
   isLight: boolean;
+  theme?: ThemeMode;
   project: FontProject;
   hasClipboard?: boolean;
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
@@ -25,6 +27,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
   contextMenu,
   onClose,
   isLight,
+  theme,
   project,
   hasClipboard,
   contextMenuRef,
@@ -67,24 +70,30 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
   const { item } = contextMenu;
   const glyph = project.glyphs[item.code];
   const hasContours = Boolean(glyph?.contours?.length);
+  const isLocked = Boolean(glyph?.locked);
+  const resolvedTheme: ThemeMode = theme ?? (isLight ? 'light' : 'dark');
+  const themeClasses = getThemeClasses(resolvedTheme);
 
   return createPortal(
     <div
       ref={contextMenuRef}
       style={{ top: pos.top, left: pos.left }}
-      className={`fixed z-[60] w-52 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto p-1.5 rounded-md border shadow-xl anim-pop ${
-        isLight
-          ? 'bg-white border-[#c8ded3] text-stone-800'
-          : 'bg-[#16211a] border-[#2e4235] text-emerald-100'
-      }`}
+      className={`fixed z-[60] w-52 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto p-1.5 rounded-md border shadow-xl anim-pop ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
     >
-      <div className="px-2 py-1 border-b border-stone-200 dark:border-stone-800 text-[11px] font-bold flex items-center justify-between text-emerald-800 dark:text-emerald-300 mb-1">
-        <span>
-          「{item.char}」 U+{item.code.toString(16).toUpperCase().padStart(4, '0')}
+      <div className={`px-2 py-1 border-b text-[11px] font-bold flex items-center justify-between mb-1 ${themeClasses.border} ${themeClasses.accentText}`}>
+        <span className="flex items-center gap-1 min-w-0 truncate">
+          <span>
+            「{item.char}」 U+{item.code.toString(16).toUpperCase().padStart(4, '0')}
+          </span>
+          {isLocked && (
+            <span title="編集ロック中">
+              <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+            </span>
+          )}
         </span>
         <button
           onClick={onClose}
-          className="text-stone-400 hover:text-stone-600 cursor-pointer"
+          className={`cursor-pointer shrink-0 ${themeClasses.textMuted}`}
         >
           <X className="w-3 h-3" />
         </button>
@@ -96,7 +105,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
             onSelectGlyph(item.code, item.char);
             onClose();
           }}
-          className="w-full text-left px-2 py-1 rounded hover:bg-emerald-100 dark:hover:bg-[#203024] font-medium transition-colors cursor-pointer"
+          className={`w-full text-left px-2 py-1 rounded font-medium transition-colors cursor-pointer ${themeClasses.activeToolHover}`}
         >
           この文字を編集
         </button>
@@ -108,9 +117,9 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
               onCopyGlyph(item.code);
               onClose();
             }}
-            className="w-full text-left px-2 py-1 rounded hover:bg-emerald-100 dark:hover:bg-[#203024] flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
+            className={`w-full text-left px-2 py-1 rounded flex items-center gap-1.5 font-medium transition-colors cursor-pointer ${themeClasses.activeToolHover}`}
           >
-            <Copy className="w-3.5 h-3.5 text-emerald-600" />
+            <Copy className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
             <span>形をコピー</span>
           </button>
         ) : null}
@@ -118,15 +127,16 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
         {/* Paste */}
         {hasClipboard && (
           <button
+            disabled={isLocked}
             onClick={() => {
-              onSelectGlyph(item.code, item.char);
               onPasteGlyph(item.code);
               onClose();
             }}
-            className="w-full text-left px-2 py-1 rounded hover:bg-emerald-100 dark:hover:bg-[#203024] flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer"
+            title={isLocked ? '編集ロック中のため貼り付けできません' : 'コピーした字形をこの文字に貼り付け'}
+            className={`w-full text-left px-2 py-1 rounded flex items-center gap-1.5 font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
           >
-            <Clipboard className="w-3.5 h-3.5 text-emerald-600" />
-            <span>コピーした形を貼り付け</span>
+            <Clipboard className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+            <span>{isLocked ? '貼り付け (ロック中)' : 'コピーした形を貼り付け'}</span>
           </button>
         )}
 
@@ -139,7 +149,6 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
                 {dakuInfo.daku && (
                   <button
                     onClick={() => {
-                      onSelectGlyph(item.code, item.char);
                       onGenerateDakutenTarget(dakuInfo.daku!, false, item.char);
                       onClose();
                     }}
@@ -152,7 +161,6 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
                 {dakuInfo.handaku && (
                   <button
                     onClick={() => {
-                      onSelectGlyph(item.code, item.char);
                       onGenerateDakutenTarget(dakuInfo.handaku!, true, item.char);
                       onClose();
                     }}
@@ -191,14 +199,16 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
         {/* Clear */}
         {hasContours ? (
           <button
+            disabled={isLocked}
             onClick={() => {
               onClearGlyph(item.code);
               onClose();
             }}
-            className="w-full text-left px-2 py-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950/60 flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+            title={isLocked ? '編集ロック中のため消去できません' : 'この文字のパスを消去'}
+            className="w-full text-left px-2 py-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950/60 flex items-center gap-1.5 font-medium text-rose-600 dark:text-rose-400 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>パスを消去</span>
+            <span>{isLocked ? 'パスを消去 (ロック中)' : 'パスを消去'}</span>
           </button>
         ) : null}
       </div>

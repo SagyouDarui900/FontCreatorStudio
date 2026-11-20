@@ -4,10 +4,11 @@ export interface MetricsTargets {
   lsb: number;
   advanceWidth: number;
   baseline?: number; // 800
-  ascender?: number; // 200
-  capHeight?: number; // 300
-  xHeight?: number; // 500
+  ascender?: number; // 0
+  capHeight?: number; // 100
+  xHeight?: number; // 300
   descender?: number; // 1000
+  upm?: number; // 1000
 }
 
 export interface CustomGuideTarget {

@@ -95,8 +95,8 @@ export function useGridFittingState({
 
   const fittedGlyph = useMemo(() => {
     if (!enablePreview) return currentGlyph;
-    return applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config);
-  }, [currentGlyph, selectedPpem, upm, config, enablePreview]);
+    return applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config, project.metadata);
+  }, [currentGlyph, selectedPpem, upm, config, enablePreview, project.metadata]);
 
   const detectedStems = useMemo(() => {
     return detectGlyphStems(
@@ -150,7 +150,7 @@ export function useGridFittingState({
       onShowToast(`「${currentGlyph.char}」には整列する輪郭パスがありません`, 'warning');
       return;
     }
-    const updated = applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config);
+    const updated = applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config, project.metadata);
     setProject((prev) => ({
       ...prev,
       glyphs: {
@@ -163,7 +163,7 @@ export function useGridFittingState({
       `「${currentGlyph.char}」のステムを ${selectedPpem}px グリッドに最適化整列しました`,
       'success'
     );
-  }, [currentGlyph, selectedPpem, upm, config, setProject, selectedUnicode, onShowToast]);
+  }, [currentGlyph, selectedPpem, upm, config, project.metadata, setProject, selectedUnicode, onShowToast]);
 
   const handleBatchApplyHinting = useCallback(() => {
     let updatedCount = 0;
@@ -173,7 +173,7 @@ export function useGridFittingState({
       const uni = Number(uniStr);
       const original = newGlyphs[uni];
       if (original && original.contours && original.contours.length > 0) {
-        newGlyphs[uni] = applyGridFittingToGlyph(original, selectedPpem, upm, config);
+        newGlyphs[uni] = applyGridFittingToGlyph(original, selectedPpem, upm, config, project.metadata);
         updatedCount++;
       }
     }
@@ -188,7 +188,7 @@ export function useGridFittingState({
       `全 ${updatedCount} 文字のステムを ${selectedPpem}px グリッドに最適化整列しました`,
       'success'
     );
-  }, [project.glyphs, selectedPpem, upm, config, setProject, onShowToast]);
+  }, [project.glyphs, project.metadata, selectedPpem, upm, config, setProject, onShowToast]);
 
   const applyPreset = useCallback(
     (presetType: GridFittingPresetType) => {

@@ -85,7 +85,7 @@ export function snapContourMovement(
   }
 
   // Check magnetic grid snap candidate
-  const gridCenterOrigin = (metrics.descender ?? 1000) / 2;
+  const gridCenterOrigin = (metrics.upm ?? metrics.descender ?? 1000) / 2;
   let bestGridSnapY: { delta: number; nearestGridY: number; source: typeof ySources[0]; diff: number } | null = null;
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {
     const step = gridSettings.gridSize;
@@ -280,7 +280,7 @@ export function snapSinglePoint(
   }
 
   // Evaluate grid snap for Y
-  const gridCenterOrigin = (metrics.descender ?? 1000) / 2;
+  const gridCenterOrigin = (metrics.upm ?? metrics.descender ?? 1000) / 2;
   let gridSnapY: number | null = null;
   let gridDiffY = threshold + 1;
   if (gridSettings?.snapToGrid && gridSettings.gridSize > 1) {

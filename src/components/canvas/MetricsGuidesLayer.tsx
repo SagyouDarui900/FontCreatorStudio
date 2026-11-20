@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveCanvasMetrics } from '../../utils/font/constants';
 
 interface MetricsGuidesLayerProps {
   showMetrics: boolean;
@@ -9,6 +10,10 @@ interface MetricsGuidesLayerProps {
   showVerticalCenter?: boolean;
   gridOpacity?: number;
   unitsPerEm?: number;
+  ascender?: number;
+  descender?: number;
+  capHeight?: number;
+  xHeight?: number;
 }
 
 export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
@@ -21,10 +26,15 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     showVerticalCenter = true,
     gridOpacity = 30,
     unitsPerEm = 1000,
+    ascender,
+    descender,
+    capHeight,
+    xHeight,
   }) => {
     if (!showMetrics) return null;
 
-    const upm = unitsPerEm || 1000;
+    const { upm, baselineY, ascenderY, capHeightY, xHeightY, descenderY } =
+      resolveCanvasMetrics({ unitsPerEm, ascender, descender, capHeight, xHeight }, unitsPerEm);
     const isKana = /[ぁ-んァ-ヶー]/.test(activeChar);
     const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar);
     const isJapanese = isKana || isKanji;
@@ -34,13 +44,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     // When drafting Japanese characters, dim Western-specific metrics to avoid visual confusion
     const latinMetricsOpacity = (isJapanese ? 0.25 : 0.65) * opacityScale;
 
-    // Proportional metrics offsets based on UPM (e.g. 1000, 1200, 1500)
-    const ascenderY = Math.round(upm * 0.2);
-    const capHeightY = Math.round(upm * 0.3);
-    const xHeightY = Math.round(upm * 0.5);
-    const baselineY = Math.round(upm * 0.8);
-    const descenderY = upm;
     const centerX = upm / 2;
+    const verticalTopY = Math.min(0, ascenderY);
+    const verticalBottomY = Math.max(upm, descenderY);
+    const ascenderLabelY = ascenderY <= 20 ? ascenderY + 14 : ascenderY - 8;
 
     return (
       <g className="metrics-guides-layer select-none font-mono text-[11px] pointer-events-none">
@@ -67,7 +74,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
           />
           <text
             x={12}
-            y={ascenderY - 8}
+            y={ascenderLabelY}
             fill="#3b82f6"
             fontWeight="bold"
             opacity={0.9}
@@ -235,9 +242,9 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
           <g opacity={0.7 * opacityScale}>
             <line
               x1={centerX}
-              y1={0}
+              y1={verticalTopY}
               x2={centerX}
-              y2={upm}
+              y2={verticalBottomY}
               stroke={isLight ? '#ffffff' : '#000000'}
               strokeWidth={2.8}
               strokeDasharray="6 4"
@@ -245,9 +252,9 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             />
             <line
               x1={centerX}
-              y1={0}
+              y1={verticalTopY}
               x2={centerX}
-              y2={upm}
+              y2={verticalBottomY}
               stroke="#8b5cf6"
               strokeWidth={1.3}
               strokeDasharray="6 4"
@@ -272,9 +279,9 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
         <g opacity={0.65 * opacityScale}>
           <line
             x1={lsb}
-            y1={0}
+            y1={verticalTopY}
             x2={lsb}
-            y2={upm}
+            y2={verticalBottomY}
             stroke="#10b981"
             strokeWidth={1.4}
             strokeDasharray="4 2"
@@ -286,9 +293,9 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
         <g opacity={0.65 * opacityScale}>
           <line
             x1={advanceWidth}
-            y1={0}
+            y1={verticalTopY}
             x2={advanceWidth}
-            y2={upm}
+            y2={verticalBottomY}
             stroke="#10b981"
             strokeWidth={1.4}
             strokeDasharray="4 2"

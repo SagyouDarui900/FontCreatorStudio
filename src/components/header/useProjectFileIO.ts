@@ -11,6 +11,7 @@ import {
 interface UseProjectFileIOProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
+  onProjectReplaced?: () => void;
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   onOpenExportModal?: () => void;
 }
@@ -18,6 +19,7 @@ interface UseProjectFileIOProps {
 export function useProjectFileIO({
   project,
   setProject,
+  onProjectReplaced,
   onShowToast,
   onOpenExportModal,
 }: UseProjectFileIOProps) {
@@ -38,6 +40,7 @@ export function useProjectFileIO({
     newProj.name = finalName;
     newProj.metadata.familyName = finalName;
     setProject(newProj);
+    onProjectReplaced?.();
     setIsConfirmingNew(false);
     notify(`新しいフォント『${finalName}』を作成・キャンバスをリセットしました`, 'success');
   };
@@ -66,6 +69,7 @@ export function useProjectFileIO({
         const { project: validated, removed } = normalizeValidatedProject(validateStoredFontProjectWithReport(json));
         if (validated) {
           setProject(validated);
+          onProjectReplaced?.();
           notify('プロジェクトセーブデータを読み込みました', 'success');
           const removedNotice = formatRemovedDataNotice(removed);
           if (removedNotice) {

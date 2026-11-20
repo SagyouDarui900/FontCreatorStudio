@@ -357,7 +357,16 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       const query = glyphSearchQuery.trim().toLowerCase();
       pool = pool.filter((item) => {
         const hex = item.unicode.toString(16).toLowerCase();
-        return item.char.toLowerCase().includes(query) || hex.includes(query);
+        const hexPadded = hex.padStart(4, '0');
+        return (
+          item.char.toLowerCase().includes(query) ||
+          hex.includes(query) ||
+          hexPadded.includes(query) ||
+          `u+${hex}`.includes(query) ||
+          `u+${hexPadded}`.includes(query) ||
+          `0x${hex}`.includes(query) ||
+          `0x${hexPadded}`.includes(query)
+        );
       });
     }
 

@@ -8,7 +8,28 @@ export interface UseGlyphGridFilterProps {
   project: FontProject;
   onSelectGlyph: (unicode: number, char: string) => void;
   onClose: () => void;
+  isOverlay?: boolean;
 }
+
+const CATEGORY_COUNT_MAP: Record<string, number> = (() => {
+  const map: Record<string, number> = {};
+  for (const cat of UNICODE_CATEGORIES) {
+    map[cat.id] = getCategoryCharList(cat).length;
+  }
+  return map;
+})();
+
+const formatCategoryCount = (id: string): string =>
+  `${(CATEGORY_COUNT_MAP[id] ?? 0).toLocaleString()}字`;
+
+export const isGlyphCompleted = (g?: GlyphData | null): boolean => {
+  if (!g) return false;
+  const hasVector = Array.isArray(g.contours) && g.contours.length > 0;
+  if (hasVector) return true;
+  return Boolean(
+    g.pixelData && Array.isArray(g.pixelData.data) && g.pixelData.data.some((d) => d === 1)
+  );
+};
 
 const getDefaultSidebarWidth = () => {
   if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
@@ -29,6 +50,7 @@ export function useGlyphGridFilter({
   project,
   onSelectGlyph,
   onClose,
+  isOverlay = false,
 }: UseGlyphGridFilterProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('hiragana');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -43,16 +65,25 @@ export function useGlyphGridFilter({
     setCurrentPage(1);
   }, [activeCategoryId, searchQuery, statusFilter, gridDensity]);
 
-  // Close custom category dropdown on outside click
+  // Close custom category dropdown on outside pointerdown or Escape
   useEffect(() => {
-    const handleCategoryClickOutside = (e: MouseEvent) => {
+    const handleCategoryClickOutside = (e: PointerEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
         setIsCategoryDropdownOpen(false);
       }
     };
+    const handleDropdownKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
     if (isCategoryDropdownOpen) {
-      document.addEventListener('mousedown', handleCategoryClickOutside);
-      return () => document.removeEventListener('mousedown', handleCategoryClickOutside);
+      document.addEventListener('pointerdown', handleCategoryClickOutside);
+      window.addEventListener('keydown', handleDropdownKeyDown);
+      return () => {
+        document.removeEventListener('pointerdown', handleCategoryClickOutside);
+        window.removeEventListener('keydown', handleDropdownKeyDown);
+      };
     }
   }, [isCategoryDropdownOpen]);
 
@@ -169,7 +200,9 @@ export function useGlyphGridFilter({
   // Compute character list for current category
   const rawCategoryList = useMemo(() => {
     if (activeCategoryId === 'modified') {
-      const glyphs = Object.values(project.glyphs) as GlyphData[];
+      const glyphs = (Object.values(project.glyphs) as GlyphData[])
+        .filter((g) => isGlyphCompleted(g))
+        .sort((a, b) => a.unicode - b.unicode);
       return glyphs.map((g) => {
         let displayChar = g.char;
         if (!displayChar) {
@@ -189,12 +222,12 @@ export function useGlyphGridFilter({
     return getCategoryCharList(activeCategory);
   }, [activeCategory, activeCategoryId, project.glyphs]);
 
-  // Stable key representing which glyphs have at least 1 contour
+  // Stable key representing which glyphs are completed (vector contours or pixel grid data)
   const completedGlyphKeys = useMemo(() => {
     const completedCodes: number[] = [];
     for (const [codeStr, item] of Object.entries(project.glyphs)) {
       const g = item as GlyphData | undefined;
-      if (g && g.contours && g.contours.length > 0) {
+      if (isGlyphCompleted(g)) {
         completedCodes.push(Number(codeStr));
       }
     }
@@ -240,13 +273,21 @@ export function useGlyphGridFilter({
     const query = searchQuery.trim().toLowerCase();
     return list.filter((item) => {
       const hex = item.code.toString(16).toLowerCase();
+      const hexPadded = hex.padStart(4, '0');
       const uHex = `u+${hex}`;
+      const uHexPadded = `u+${hexPadded}`;
+      const oxHex = `0x${hex}`;
+      const oxHexPadded = `0x${hexPadded}`;
       const char = item.char.toLowerCase();
       const name = (item.name || '').toLowerCase();
       return (
         char.includes(query) ||
         hex.includes(query) ||
+        hexPadded.includes(query) ||
         uHex.includes(query) ||
+        uHexPadded.includes(query) ||
+        oxHex.includes(query) ||
+        oxHexPadded.includes(query) ||
         name.includes(query) ||
         (query === '全角' && (item.code === 0x3000 || (item.code >= 0xff01 && item.code <= 0xff5e))) ||
         (query === '空白' && (item.code === 0x3000 || item.code === 0x0020)) ||
@@ -289,93 +330,93 @@ export function useGlyphGridFilter({
       onSelectGlyph(code, char);
     }
     setCustomCharInput('');
-    if (window.innerWidth < 640) {
+    if (isOverlay || window.innerWidth < 640) {
       onClose();
     }
   };
 
-  const modifiedCount = Object.keys(project.glyphs).length;
+  const modifiedCount = completedSet.size;
 
   const categoryGroups = useMemo(() => [
     {
       groupName: '作成状況',
       items: [
-        { id: 'modified', name: '作成済み文字', count: `${modifiedCount}字` },
+        { id: 'modified', name: '作成済み文字', count: `${modifiedCount.toLocaleString()}字` },
       ],
     },
     {
       groupName: 'かな',
       items: [
-        { id: 'hiragana', name: 'ひらがな', count: '86字' },
-        { id: 'katakana', name: 'カタカナ', count: '90字' },
+        { id: 'hiragana', name: 'ひらがな', count: formatCategoryCount('hiragana') },
+        { id: 'katakana', name: 'カタカナ', count: formatCategoryCount('katakana') },
       ],
     },
     {
       groupName: '英数・記号',
       items: [
-        { id: 'basic_latin_alnum', name: '半角英数', count: '62字' },
-        { id: 'ascii_symbols', name: '半角記号', count: '33字' },
-        { id: 'fullwidth_alnum', name: '全角英数', count: '62字' },
-        { id: 'symbols', name: '和文約物・全角記号', count: '65字' },
-        { id: 'vertical_forms', name: '縦書き約物・記号', count: '22字' },
+        { id: 'basic_latin_alnum', name: '半角英数', count: formatCategoryCount('basic_latin_alnum') },
+        { id: 'ascii_symbols', name: '半角記号', count: formatCategoryCount('ascii_symbols') },
+        { id: 'fullwidth_alnum', name: '全角英数', count: formatCategoryCount('fullwidth_alnum') },
+        { id: 'symbols', name: '和文約物・全角記号', count: formatCategoryCount('symbols') },
+        { id: 'vertical_forms', name: '縦書き約物・記号', count: formatCategoryCount('vertical_forms') },
       ],
     },
     {
       groupName: '小学校配当漢字 (教育漢字)',
       items: [
-        { id: 'grade1', name: '小学1年漢字', count: '80字' },
-        { id: 'grade2', name: '小学2年漢字', count: '160字' },
-        { id: 'grade3', name: '小学3年漢字', count: '200字' },
-        { id: 'grade4', name: '小学4年漢字', count: '202字' },
-        { id: 'grade5', name: '小学5年漢字', count: '193字' },
-        { id: 'grade6', name: '小学6年漢字', count: '191字' },
+        { id: 'grade1', name: '小学1年漢字', count: formatCategoryCount('grade1') },
+        { id: 'grade2', name: '小学2年漢字', count: formatCategoryCount('grade2') },
+        { id: 'grade3', name: '小学3年漢字', count: formatCategoryCount('grade3') },
+        { id: 'grade4', name: '小学4年漢字', count: formatCategoryCount('grade4') },
+        { id: 'grade5', name: '小学5年漢字', count: formatCategoryCount('grade5') },
+        { id: 'grade6', name: '小学6年漢字', count: formatCategoryCount('grade6') },
       ],
     },
     {
       groupName: '常用・JIS水準漢字',
       items: [
-        { id: 'jouyou', name: '常用漢字', count: '2,136字' },
-        { id: 'jis_1', name: 'JIS第1水準漢字', count: '2,965字' },
-        { id: 'jis_2', name: 'JIS第2水準漢字', count: '3,390字' },
-        { id: 'jis_3', name: 'JIS第3水準漢字', count: '1,259字' },
-        { id: 'jis_4', name: 'JIS第4水準漢字', count: '2,436字' },
+        { id: 'jouyou', name: '常用漢字', count: formatCategoryCount('jouyou') },
+        { id: 'jis_1', name: 'JIS第1水準漢字', count: formatCategoryCount('jis_1') },
+        { id: 'jis_2', name: 'JIS第2水準漢字', count: formatCategoryCount('jis_2') },
+        { id: 'jis_3', name: 'JIS第3水準漢字', count: formatCategoryCount('jis_3') },
+        { id: 'jis_4', name: 'JIS第4水準漢字', count: formatCategoryCount('jis_4') },
       ],
     },
     {
       groupName: 'その他',
       items: [
-        { id: 'halfwidth', name: '半角カタカナ', count: '63字' },
-        { id: 'gaiji', name: '外字 (私用領域)', count: '64字' },
+        { id: 'halfwidth', name: '半角カタカナ', count: formatCategoryCount('halfwidth') },
+        { id: 'gaiji', name: '外字 (私用領域)', count: formatCategoryCount('gaiji') },
       ],
     },
   ], [modifiedCount]);
 
   const activeCategoryDisplayName = useMemo(() => {
     if (activeCategoryId === 'modified') {
-      return `作成済み (${modifiedCount}字)`;
+      return `作成済み (${modifiedCount.toLocaleString()}字)`;
     }
     const found = UNICODE_CATEGORIES.find((c) => c.id === activeCategoryId);
-    if (!found) return 'ひらがな (86字)';
-    if (found.id === 'hiragana') return 'ひらがな (86字)';
-    if (found.id === 'katakana') return 'カタカナ (90字)';
-    if (found.id === 'basic_latin_alnum') return '半角英数 (62字)';
-    if (found.id === 'ascii_symbols') return '半角記号 (33字)';
-    if (found.id === 'fullwidth_alnum') return '全角英数 (62字)';
-    if (found.id === 'symbols') return '和文約物・記号 (65字)';
-    if (found.id === 'vertical_forms') return '縦書き約物 (22字)';
-    if (found.id === 'grade1') return '小学1年漢字 (80字)';
-    if (found.id === 'grade2') return '小学2年漢字 (160字)';
-    if (found.id === 'grade3') return '小学3年漢字 (200字)';
-    if (found.id === 'grade4') return '小学4年漢字 (202字)';
-    if (found.id === 'grade5') return '小学5年漢字 (193字)';
-    if (found.id === 'grade6') return '小学6年漢字 (191字)';
-    if (found.id === 'jouyou') return '常用漢字 (2,136字)';
-    if (found.id === 'jis_1') return 'JIS第1水準 (2,965字)';
-    if (found.id === 'jis_2') return 'JIS第2水準 (3,390字)';
-    if (found.id === 'jis_3') return 'JIS第3水準 (1,259字)';
-    if (found.id === 'jis_4') return 'JIS第4水準 (2,436字)';
-    if (found.id === 'halfwidth') return '半角カタカナ (63字)';
-    if (found.id === 'gaiji') return '外字・私用領域 (64字)';
+    if (!found) return `ひらがな (${formatCategoryCount('hiragana')})`;
+    if (found.id === 'hiragana') return `ひらがな (${formatCategoryCount('hiragana')})`;
+    if (found.id === 'katakana') return `カタカナ (${formatCategoryCount('katakana')})`;
+    if (found.id === 'basic_latin_alnum') return `半角英数 (${formatCategoryCount('basic_latin_alnum')})`;
+    if (found.id === 'ascii_symbols') return `半角記号 (${formatCategoryCount('ascii_symbols')})`;
+    if (found.id === 'fullwidth_alnum') return `全角英数 (${formatCategoryCount('fullwidth_alnum')})`;
+    if (found.id === 'symbols') return `和文約物・記号 (${formatCategoryCount('symbols')})`;
+    if (found.id === 'vertical_forms') return `縦書き約物 (${formatCategoryCount('vertical_forms')})`;
+    if (found.id === 'grade1') return `小学1年漢字 (${formatCategoryCount('grade1')})`;
+    if (found.id === 'grade2') return `小学2年漢字 (${formatCategoryCount('grade2')})`;
+    if (found.id === 'grade3') return `小学3年漢字 (${formatCategoryCount('grade3')})`;
+    if (found.id === 'grade4') return `小学4年漢字 (${formatCategoryCount('grade4')})`;
+    if (found.id === 'grade5') return `小学5年漢字 (${formatCategoryCount('grade5')})`;
+    if (found.id === 'grade6') return `小学6年漢字 (${formatCategoryCount('grade6')})`;
+    if (found.id === 'jouyou') return `常用漢字 (${formatCategoryCount('jouyou')})`;
+    if (found.id === 'jis_1') return `JIS第1水準 (${formatCategoryCount('jis_1')})`;
+    if (found.id === 'jis_2') return `JIS第2水準 (${formatCategoryCount('jis_2')})`;
+    if (found.id === 'jis_3') return `JIS第3水準 (${formatCategoryCount('jis_3')})`;
+    if (found.id === 'jis_4') return `JIS第4水準 (${formatCategoryCount('jis_4')})`;
+    if (found.id === 'halfwidth') return `半角カタカナ (${formatCategoryCount('halfwidth')})`;
+    if (found.id === 'gaiji') return `外字・私用領域 (${formatCategoryCount('gaiji')})`;
     return found.name;
   }, [activeCategoryId, modifiedCount]);
 
