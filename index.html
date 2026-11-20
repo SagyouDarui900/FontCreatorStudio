@@ -52,20 +52,34 @@
     <script>
       (function() {
         try {
-          var t = localStorage.getItem('font_editor_theme_mode') || 'light';
+          var t = localStorage.getItem('fcs_theme_mode') || localStorage.getItem('font_editor_theme_mode') || 'light';
+          var valid = ['light', 'dark', 'sepia', 'warm', 'nord', 'monochrome'];
+          if (valid.indexOf(t) === -1) t = 'light';
           document.documentElement.setAttribute('data-theme', t);
           if (t === 'dark' || t === 'nord') {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');
           }
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            var colors = {
+              light: '#f7faf8',
+              dark: '#0f1712',
+              sepia: '#f4ede2',
+              warm: '#fbf3e8',
+              nord: '#2e3440',
+              monochrome: '#f4f4f5'
+            };
+            meta.setAttribute('content', colors[t] || '#f7faf8');
+          }
         } catch (e) {}
       })();
     </script>
-    <script type="module" crossorigin src="./assets/index-C2YLk1Hs.js"></script>
+    <script type="module" crossorigin src="./assets/index-D2wYOLhg.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/vendor-react-BaP0JKTu.js">
     <link rel="modulepreload" crossorigin href="./assets/vendor-paper-IsAtwPBh.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-Bk_sa35I.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-Ci840fMq.css">
   <link rel="manifest" href="./manifest.webmanifest"></head>
   <body class="antialiased overflow-hidden select-none bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
     <div id="root" class="h-full w-full"></div>
