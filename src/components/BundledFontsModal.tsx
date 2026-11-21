@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X,
   BookOpen,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BUNDLED_FONTS_INFO, BundledFontInfo } from '../data/bundledFontsInfo';
+import { useDialogFocusTrap } from './modals/ModalStackFrame';
 
 interface BundledFontsModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   const themeClasses = getThemeClasses(theme);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -63,6 +66,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="内蔵フォントライセンス情報"

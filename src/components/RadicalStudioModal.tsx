@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useDialogFocusTrap } from './modals/ModalStackFrame';
 import {
   X,
   Shapes,
@@ -181,6 +182,12 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     void flushSaveParts();
     onClose();
   }, [flushSaveParts, onClose]);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(
+    dialogRef,
+    isOpen && !showPenShortcutsHelp && !pendingDeletePart && !showExtractModal && !isLicenseModalOpen
+  );
 
   const {
     svgCanvasRef,
@@ -430,6 +437,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
       const {
         activePenContour: penContour,
         selectedNodeId: nodeId,
@@ -622,6 +630,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="部首・作字パーツ工房"

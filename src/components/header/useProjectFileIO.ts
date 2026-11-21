@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FontProject } from '../../types';
+import { FontMetadata, FontProject, GlyphData } from '../../types';
 import { createDefaultProject } from '../../utils/font/projectDefaults';
 import { validateStoredFontProjectWithReport } from '../../utils/font/validation';
 import {
@@ -7,6 +7,7 @@ import {
   normalizeValidatedProject,
   formatRemovedDataNotice,
 } from '../../utils/storageManager';
+import type { PendingFontImportSummary } from './ImportFontConfirmModal';
 
 interface UseProjectFileIOProps {
   project: FontProject;
@@ -27,6 +28,11 @@ export function useProjectFileIO({
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmingNew, setIsConfirmingNew] = useState(false);
   const [newProjectName, setNewProjectName] = useState<string>('新規手書きフォント');
+  const [pendingFontImportData, setPendingFontImportData] = useState<{
+    summary: PendingFontImportSummary;
+    metadata: Partial<FontMetadata>;
+    glyphs: Record<number, GlyphData>;
+  } | null>(null);
 
   const notify = (text: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
     if (onShowToast) {
@@ -93,12 +99,14 @@ export function useProjectFileIO({
     e.target.value = '';
   };
 
-  const handleImportTtf = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const { loadFontFromFile } = await import('../../utils/font/io');
-      const { metadata, glyphs } = await loadFontFromFile(file);
+  const commitFontImport = (
+    metadata: Partial<FontMetadata>,
+    glyphs: Record<number, GlyphData>,
+    mode: 'overwrite' | 'addOnly',
+    fileName: string
+  ) => {
+    if (mode === 'overwrite') {
+      const importedCount = Object.keys(glyphs).length;
       setProject((prev) => ({
         ...prev,
         metadata: {
@@ -111,12 +119,92 @@ export function useProjectFileIO({
         },
         updatedAt: Date.now(),
       }));
-      notify(`フォント「${metadata.familyName || file.name}」から ${Object.keys(glyphs).length} 文字をインポートしました`, 'success');
+      notify(
+        `フォント「${metadata.familyName || fileName}」から ${importedCount} 文字をインポートしました`,
+        'success'
+      );
+      return;
+    }
+
+    let addedCount = 0;
+    setProject((prev) => {
+      const nextGlyphs: Record<number, GlyphData> = { ...prev.glyphs };
+      for (const [k, glyph] of Object.entries(glyphs)) {
+        const u = Number(k);
+        if (!nextGlyphs[u]) {
+          nextGlyphs[u] = glyph;
+          addedCount++;
+        }
+      }
+      return {
+        ...prev,
+        glyphs: nextGlyphs,
+        updatedAt: Date.now(),
+      };
+    });
+    notify(
+      `フォント「${metadata.familyName || fileName}」から未作成の ${addedCount} 文字を追加しました`,
+      'success'
+    );
+  };
+
+  const applyPendingFontImport = (mode: 'overwrite' | 'addOnly') => {
+    if (!pendingFontImportData) return;
+    commitFontImport(
+      pendingFontImportData.metadata,
+      pendingFontImportData.glyphs,
+      mode,
+      pendingFontImportData.summary.fileName
+    );
+    setPendingFontImportData(null);
+  };
+
+  const cancelPendingFontImport = () => {
+    setPendingFontImportData(null);
+  };
+
+  const handleImportTtf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { loadFontFromFile } = await import('../../utils/font/io');
+      const { metadata, glyphs } = await loadFontFromFile(file);
+      const importedKeys = Object.keys(glyphs);
+      const existingKeys = Object.keys(project.glyphs || {});
+      if (existingKeys.length === 0) {
+        commitFontImport(metadata, glyphs, 'overwrite', file.name);
+      } else {
+        let overwriteCount = 0;
+        let newOnlyCount = 0;
+        for (const k of importedKeys) {
+          if (project.glyphs[Number(k)]) {
+            overwriteCount++;
+          } else {
+            newOnlyCount++;
+          }
+        }
+        setPendingFontImportData({
+          summary: {
+            fileName: file.name,
+            familyName: metadata.familyName || file.name.replace(/\.[^/.]+$/, ''),
+            totalImportedCount: importedKeys.length,
+            overwriteCount,
+            newOnlyCount,
+          },
+          metadata,
+          glyphs,
+        });
+      }
     } catch (err) {
       console.error(err);
-      notify('フォントファイルの読み込みに失敗しました。TTFまたはOTF形式であることを確認してください。', 'error');
+      const msg =
+        err instanceof Error && err.message.includes('サイズ')
+          ? err.message
+          : 'フォントファイルの読み込みに失敗しました。TTFまたはOTF形式であることを確認してください。';
+      notify(msg, 'error');
+    } finally {
+      e.target.value = '';
     }
-    e.target.value = '';
   };
 
   const handleExportTtf = () => {
@@ -130,6 +218,9 @@ export function useProjectFileIO({
     setIsConfirmingNew,
     newProjectName,
     setNewProjectName,
+    pendingFontImport: pendingFontImportData?.summary ?? null,
+    applyPendingFontImport,
+    cancelPendingFontImport,
     handleNewProjectWithCustomName,
     handleSaveProjectJson,
     handleLoadProjectJson,

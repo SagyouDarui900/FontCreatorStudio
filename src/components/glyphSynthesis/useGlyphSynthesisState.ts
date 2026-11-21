@@ -21,6 +21,7 @@ import {
   SmallKanaSourceItem,
   SynthesisTab,
 } from './types';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 
 interface UseGlyphSynthesisStateParams {
   isOpen: boolean;
@@ -92,9 +93,11 @@ export function useGlyphSynthesisState({
     [onShowToast, showToast]
   );
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -118,7 +121,7 @@ export function useGlyphSynthesisState({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   const availableDakutenSources = useMemo<DakutenSourceItem[]>(() => {
     return Object.entries(DAKUTEN_MAPPINGS)

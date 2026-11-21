@@ -118,7 +118,6 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               <button
                 type="button"
                 onClick={() => {
-                  onClose();
                   onOpenTestPreview();
                 }}
                 className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors duration-150 ${

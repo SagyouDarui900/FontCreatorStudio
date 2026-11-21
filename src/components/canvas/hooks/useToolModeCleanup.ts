@@ -1,13 +1,9 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { ToolMode, Point, SnapGuideLine } from '../../../types';
+import type { TouchLoupeState } from '../overlays/CanvasTouchLoupe';
 import { isShapeToolMode } from './useShapeCreation';
 
-export interface TouchLoupeState {
-  visible: boolean;
-  screenX: number;
-  screenY: number;
-  canvasPos: Point | null;
-}
+export type { TouchLoupeState };
 
 export interface UseToolModeCleanupOptions {
   toolMode: ToolMode;
@@ -79,6 +75,8 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       opts.resetBrushDrawing();
     }
     if (toolMode !== 'pen') {
+      opts.isPenDrawingRef.current = false;
+      opts.setActivePenContour(null);
       opts.setPenMousePos?.(null);
     }
     if (toolMode !== 'ruler' || opts.gridSettingsShowRulers === false) {

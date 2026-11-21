@@ -33,6 +33,7 @@ import { pixelGridToContours, rasterizeGlyphToPixelGrid, resamplePixelGrid, norm
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
 import { PixelFontStudioModalProps } from './types';
 import { usePixelGridState } from './hooks/usePixelGridState';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 import { usePixelTrace } from './hooks/usePixelTrace';
 import { usePixelDrawing } from './hooks/usePixelDrawing';
 import { PixelToolbar } from './PixelToolbar';
@@ -180,9 +181,11 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     canvasRef,
   });
 
+  const isTopModal = useIsTopModal();
+
   // Dedicated Keyboard Shortcuts
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
 
     const handleStudioKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
@@ -279,7 +282,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     return () => {
       window.removeEventListener('keydown', handleStudioKeyDown, true);
     };
-  }, [isOpen, handleUndo, handleRedo, onClose, handleShift, setTool, isDrawing, commitCurrentStroke]);
+  }, [isOpen, isTopModal, handleUndo, handleRedo, onClose, handleShift, setTool, isDrawing, commitCurrentStroke]);
 
   // Project Glyphs & Categories
   const projectGlyphUnicodes = useMemo(() => {

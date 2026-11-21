@@ -6,6 +6,34 @@ import { openTypePathToContours } from './paths';
 import { SCREEN_BASELINE_Y, resolveBaselineY } from './constants';
 import { isIOSDevice } from '../platform';
 
+export const MAX_IMPORT_FONT_BYTES = 30 * 1024 * 1024; // 30 MB
+
+/**
+ * Sanitize a filename component so path traversal (../, /, \) or illegal characters
+ * cannot leak into downloaded file names or ZIP archive entries.
+ */
+export function sanitizeFontFilenamePart(value: string | undefined, fallback: string): string {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) return fallback;
+  const safe = trimmed
+    .replace(/\.\.+/g, '_')
+    .replace(/[^a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff-]/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return safe || fallback;
+}
+
+/**
+ * Build the consistent export filename used by downloads, shares, and @font-face CSS snippets.
+ */
+export function buildExportFontFilename(
+  metadata: Partial<FontMetadata> | undefined,
+  format: 'otf' = 'otf'
+): string {
+  const safeFamily = sanitizeFontFilenamePart(metadata?.familyName, 'CustomFont');
+  const safeStyle = sanitizeFontFilenamePart(metadata?.styleName, 'Regular');
+  return `${safeFamily}-${safeStyle}.${format}`;
+}
+
 /**
  * Throw when the project fails validation, so callers never receive a
  * font built from invalid outlines. compileFont throws the same error,
@@ -32,12 +60,10 @@ export async function shareOrDownloadFont(
   project: FontProject,
   format: 'otf' = 'otf',
   options?: CompileFontOptions
-): Promise<{ method: 'share' | 'download'; filename: string }> {
+): Promise<{ method: 'share' | 'download' | 'cancelled'; filename: string }> {
   assertValidFontProject(project);
   const { buffer } = compileFont(project, { ...options, skipBlobUrl: true });
-  const rawName = project.metadata.familyName || 'CustomFont';
-  const safeName = rawName.replace(/[^a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff-]/g, '_');
-  const filename = `${safeName}-${project.metadata.styleName || 'Regular'}.${format}`;
+  const filename = buildExportFontFilename(project.metadata, format);
   const mimeType = 'font/otf';
   const blob = new Blob([buffer], { type: mimeType });
 
@@ -57,8 +83,8 @@ export async function shareOrDownloadFont(
         return { method: 'share', filename };
       }
     } catch (shareErr: any) {
-      if (shareErr.name === 'AbortError') {
-        return { method: 'share', filename };
+      if (shareErr?.name === 'AbortError') {
+        return { method: 'cancelled', filename };
       }
       console.warn('Web Share failed, falling back to download:', shareErr);
     }
@@ -98,9 +124,8 @@ export function downloadFont(
     const blob = new Blob([buffer], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const safeName = (project.metadata.familyName || 'CustomFont').replace(/[^a-zA-Z0-9_-]/g, '_');
     a.href = url;
-    a.download = `${safeName}-${project.metadata.styleName || 'Regular'}.${format}`;
+    a.download = buildExportFontFilename(project.metadata, format);
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     document.body.appendChild(a);
@@ -123,7 +148,17 @@ export function downloadFont(
 export async function loadFontFromFile(
   file: File
 ): Promise<{ metadata: Partial<FontMetadata>; glyphs: Record<number, GlyphData> }> {
+  if (typeof file.size === 'number' && file.size > MAX_IMPORT_FONT_BYTES) {
+    throw new Error(
+      `ファイルサイズが大きすぎます（${Math.round(file.size / (1024 * 1024))}MB / 上限 ${Math.round(MAX_IMPORT_FONT_BYTES / (1024 * 1024))}MB）。`
+    );
+  }
   const arrayBuffer = await file.arrayBuffer();
+  if (arrayBuffer.byteLength > MAX_IMPORT_FONT_BYTES) {
+    throw new Error(
+      `ファイルサイズが大きすぎます（上限 ${Math.round(MAX_IMPORT_FONT_BYTES / (1024 * 1024))}MB）。`
+    );
+  }
   const font = opentype.parse(arrayBuffer);
 
   const upm = font.unitsPerEm || 1000;

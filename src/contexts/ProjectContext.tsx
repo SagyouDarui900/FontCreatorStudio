@@ -76,6 +76,7 @@ interface ProjectProviderProps {
 }
 
 const EMPTY_CONTOURS: PathContour[] = [];
+const NOOP_SET_TOOL_MODE = (_mode: ToolMode) => {};
 
 export function ProjectProvider({
   project,
@@ -83,11 +84,22 @@ export function ProjectProvider({
   projectRef,
   saveProjectToIndexedDbWhenIdle,
   showToast,
-  setToolMode = () => {},
+  setToolMode = NOOP_SET_TOOL_MODE,
   children,
 }: ProjectProviderProps) {
   const [selectedUnicode, setSelectedUnicode] = useState<number>(12354); // 'あ' (U+3042)
-  const [selectedChar, setSelectedChar] = useState<string>('あ');
+
+  const selectedChar = useMemo(() => {
+    const fromGlyph = project.glyphs[selectedUnicode]?.char;
+    if (fromGlyph) return fromGlyph;
+    try {
+      return selectedUnicode > 0 ? String.fromCodePoint(selectedUnicode) : '';
+    } catch {
+      return '';
+    }
+  }, [project.glyphs, selectedUnicode]);
+
+  const setSelectedChar = useCallback((_char: string) => {}, []);
 
   const currentGlyph: GlyphData = useMemo(() => {
     return (
@@ -124,7 +136,6 @@ export function ProjectProvider({
     selectedUnicode,
     selectedChar,
     setSelectedUnicode,
-    setSelectedChar,
     setProject,
   });
 
@@ -136,13 +147,8 @@ export function ProjectProvider({
     }
   }, [project.id, clearHistory]);
 
-  const handleSelectGlyph = useCallback((unicode: number, char?: string) => {
+  const handleSelectGlyph = useCallback((unicode: number, _char?: string) => {
     setSelectedUnicode(unicode);
-    try {
-      setSelectedChar(char || String.fromCodePoint(unicode));
-    } catch {
-      setSelectedChar(char || '');
-    }
   }, []);
 
   const handleSelectPrevGlyph = useCallback(() => {
@@ -219,8 +225,12 @@ export function ProjectProvider({
     return false;
   }, [selectedUnicode, selectedChar, showToast, projectRef]);
 
-  const handleUpdateContours = useCallback(
-    (newContours: PathContour[], options?: { skipHistory?: boolean }) => {
+  const updateCurrentGlyphField = useCallback(
+    <K extends 'contours' | 'advanceWidth' | 'lsb'>(
+      field: K,
+      value: GlyphData[K],
+      options?: { skipHistory?: boolean }
+    ) => {
       if (checkIsLockedAndNotify()) return;
       if (!options?.skipHistory) {
         commitHistory();
@@ -229,10 +239,10 @@ export function ProjectProvider({
         currentGlyphRef.current.unicode === selectedUnicode
           ? currentGlyphRef.current
           : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
-      if (latest.contours !== newContours) {
+      if (latest[field] !== value) {
         currentGlyphRef.current = {
           ...latest,
-          contours: newContours,
+          [field]: value,
           modified: true,
         };
       }
@@ -243,17 +253,17 @@ export function ProjectProvider({
           name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
           advanceWidth: prev.metadata?.unitsPerEm || 1000,
           lsb: 50,
+          contours: [],
+          modified: false,
         };
-
-        if (existing.contours === newContours) return prev;
-
+        if (existing[field] === value) return prev;
         return {
           ...prev,
           glyphs: {
             ...prev.glyphs,
             [selectedUnicode]: {
               ...existing,
-              contours: newContours,
+              [field]: value,
               modified: true,
             },
           },
@@ -262,96 +272,24 @@ export function ProjectProvider({
       });
     },
     [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
+  );
+
+  const handleUpdateContours = useCallback(
+    (newContours: PathContour[], options?: { skipHistory?: boolean }) =>
+      updateCurrentGlyphField('contours', newContours, options),
+    [updateCurrentGlyphField]
   );
 
   const handleUpdateAdvanceWidth = useCallback(
-    (val: number, options?: { skipHistory?: boolean }) => {
-      if (checkIsLockedAndNotify()) return;
-      if (!options?.skipHistory) {
-        commitHistory();
-      }
-      const latest =
-        currentGlyphRef.current.unicode === selectedUnicode
-          ? currentGlyphRef.current
-          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
-      if (latest.advanceWidth !== val) {
-        currentGlyphRef.current = {
-          ...latest,
-          advanceWidth: val,
-          modified: true,
-        };
-      }
-      setProject((prev) => {
-        const existing = prev.glyphs[selectedUnicode] || {
-          unicode: selectedUnicode,
-          char: selectedChar,
-          name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: prev.metadata?.unitsPerEm || 1000,
-          lsb: 50,
-          contours: [],
-          modified: false,
-        };
-        if (existing.advanceWidth === val) return prev;
-        return {
-          ...prev,
-          glyphs: {
-            ...prev.glyphs,
-            [selectedUnicode]: {
-              ...existing,
-              advanceWidth: val,
-              modified: true,
-            },
-          },
-          updatedAt: Date.now(),
-        };
-      });
-    },
-    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
+    (val: number, options?: { skipHistory?: boolean }) =>
+      updateCurrentGlyphField('advanceWidth', val, options),
+    [updateCurrentGlyphField]
   );
 
   const handleUpdateLsb = useCallback(
-    (val: number, options?: { skipHistory?: boolean }) => {
-      if (checkIsLockedAndNotify()) return;
-      if (!options?.skipHistory) {
-        commitHistory();
-      }
-      const latest =
-        currentGlyphRef.current.unicode === selectedUnicode
-          ? currentGlyphRef.current
-          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
-      if (latest.lsb !== val) {
-        currentGlyphRef.current = {
-          ...latest,
-          lsb: val,
-          modified: true,
-        };
-      }
-      setProject((prev) => {
-        const existing = prev.glyphs[selectedUnicode] || {
-          unicode: selectedUnicode,
-          char: selectedChar,
-          name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: prev.metadata?.unitsPerEm || 1000,
-          lsb: 50,
-          contours: [],
-          modified: false,
-        };
-        if (existing.lsb === val) return prev;
-        return {
-          ...prev,
-          glyphs: {
-            ...prev.glyphs,
-            [selectedUnicode]: {
-              ...existing,
-              lsb: val,
-              modified: true,
-            },
-          },
-          updatedAt: Date.now(),
-        };
-      });
-    },
-    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
+    (val: number, options?: { skipHistory?: boolean }) =>
+      updateCurrentGlyphField('lsb', val, options),
+    [updateCurrentGlyphField]
   );
 
   const handleQuickSaveCurrentGlyph = useCallback(() => {

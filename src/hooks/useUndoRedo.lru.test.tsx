@@ -233,4 +233,130 @@ describe('useUndoRedo LRU eviction & ProjectContext same-frame Undo/Redo sync', 
     });
     container.remove();
   });
+
+  it('evicts oldest inactive glyphs first when byte budget is exceeded and protects active unicode', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const projectRef = { current: makeProject() };
+    const currentGlyphRef: { current: GlyphData } = {
+      current: {
+        unicode: 0x3042,
+        char: 'あ',
+        name: 'uni3042',
+        advanceWidth: 1000,
+        lsb: 50,
+        contours: [],
+      },
+    };
+    let api!: ReturnType<typeof useUndoRedo>;
+
+    // Pixel data with 100 pixels -> 128 + 800 + 256 = 1184 bytes per snapshot
+    const makePixelGlyph = (unicode: number): GlyphData => ({
+      unicode,
+      char: String.fromCodePoint(unicode),
+      name: `uni${unicode.toString(16)}`,
+      advanceWidth: 1000,
+      lsb: 50,
+      contours: [],
+      pixelData: { width: 10, height: 10, data: new Array(100).fill(1) },
+    });
+
+    function Harness() {
+      const [, setProject] = React.useState<FontProject>(projectRef.current);
+      api = useUndoRedo({
+        projectRef,
+        currentGlyphRef,
+        selectedUnicode: 0x3042,
+        selectedChar: 'あ',
+        setProject,
+        maxHistoryBytes: 2600,
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    act(() => {
+      api.pushSnapshot(makePixelGlyph(0x3042), 0x3042); // active glyph (~1184B)
+      api.pushSnapshot(makePixelGlyph(0x3044), 0x3044); // older inactive (~1184B -> total ~2368B)
+      api.pushSnapshot(makePixelGlyph(0x3046), 0x3046); // pushes over 2600B -> 0x3044 evicted, 0x3042 protected
+    });
+
+    expect(api.undoStacks[0x3042]?.length).toBe(1);
+    expect(api.undoStacks[0x3044]).toBeUndefined();
+    expect(api.undoStacks[0x3046]?.length).toBe(1);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('derives selectedChar from selectedUnicode and keeps glyph action handler identities stable across unrelated updates', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const contexts: Array<ReturnType<typeof useProjectContext>> = [];
+    function Consumer() {
+      const ctx = useProjectContext();
+      contexts.push(ctx);
+      return null;
+    }
+
+    function Wrapper() {
+      const [project, setProject] = React.useState<FontProject>(() => makeProject());
+      const [tick, setTick] = React.useState(0);
+      const projectRef = React.useRef(project);
+      projectRef.current = project;
+      const saveFn = React.useCallback(async () => true, []);
+      const toastFn = React.useCallback(() => {}, []);
+      return (
+        <ProjectProvider
+          project={project}
+          setProject={setProject}
+          projectRef={projectRef}
+          saveProjectToIndexedDbWhenIdle={saveFn}
+          showToast={toastFn}
+        >
+          <button type="button" onClick={() => setTick((t) => t + 1)} data-tick={tick}>
+            rerender
+          </button>
+          <Consumer />
+        </ProjectProvider>
+      );
+    }
+
+    act(() => {
+      root.render(<Wrapper />);
+    });
+
+    const first = contexts[contexts.length - 1];
+    expect(first.selectedChar).toBe('あ');
+
+    // Trigger parent re-render without changing project or selection
+    act(() => {
+      container.querySelector('button')?.click();
+    });
+    const afterRerender = contexts[contexts.length - 1];
+    expect(afterRerender).toBe(first);
+    expect(afterRerender.handleClearGlyph).toBe(first.handleClearGlyph);
+
+    // Selecting a new glyph updates selectedChar automatically without needing separate setSelectedChar
+    act(() => {
+      afterRerender.handleSelectGlyph(0x6f22); // '漢'
+    });
+    const afterSelect = contexts[contexts.length - 1];
+    expect(afterSelect.selectedUnicode).toBe(0x6f22);
+    expect(afterSelect.selectedChar).toBe('漢');
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

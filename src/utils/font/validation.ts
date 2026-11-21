@@ -126,6 +126,39 @@ function checkMetadata(
   if (typeof gap === 'number' && Number.isFinite(gap) && gap < 0) {
     warnings.push('メタデータの行間が負の値です。');
   }
+  const upm = metadata.unitsPerEm;
+  if (typeof upm !== 'number' || !Number.isFinite(upm) || upm < 16 || upm > 16384) {
+    warnings.push('メタデータの UPM (unitsPerEm) が範囲外のため、書き出し時に補正されます。');
+  }
+  if (
+    metadata.usWeightClass !== undefined &&
+    (typeof metadata.usWeightClass !== 'number' ||
+      !Number.isFinite(metadata.usWeightClass) ||
+      metadata.usWeightClass < 1 ||
+      metadata.usWeightClass > 1000)
+  ) {
+    warnings.push('メタデータのウェイトクラス (usWeightClass) が範囲外（1〜1000）のため、書き出し時に補正されます。');
+  }
+  if (
+    metadata.usWidthClass !== undefined &&
+    (typeof metadata.usWidthClass !== 'number' ||
+      !Number.isFinite(metadata.usWidthClass) ||
+      metadata.usWidthClass < 1 ||
+      metadata.usWidthClass > 9)
+  ) {
+    warnings.push('メタデータの幅クラス (usWidthClass) が範囲外（1〜9）のため、書き出し時に補正されます。');
+  }
+  if (
+    (metadata.winAscent !== undefined &&
+      (typeof metadata.winAscent !== 'number' || !Number.isFinite(metadata.winAscent) || metadata.winAscent < 0)) ||
+    (metadata.winDescent !== undefined &&
+      (typeof metadata.winDescent !== 'number' || !Number.isFinite(metadata.winDescent) || metadata.winDescent < 0))
+  ) {
+    warnings.push('メタデータの Win Ascent / Win Descent が負または無効な値のため、書き出し時に補正されます。');
+  }
+  if (typeof metadata.vendorId === 'string' && /[^\x20-\x7e]/.test(metadata.vendorId)) {
+    warnings.push('メタデータのベンダーID (vendorId) に非ASCII文字が含まれているため、書き出し時に置換されます。');
+  }
 }
 
 /**
@@ -474,10 +507,11 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
   }
 
   const validatedGlyphs: Record<number, any> = {};
+  const seenUnicodes = new Set<number>();
 
   for (const [key, rawGlyph] of Object.entries(proj.glyphs)) {
     const unicodeNum = Number(key);
-    if (!Number.isFinite(unicodeNum) || unicodeNum < 0) {
+    if (!Number.isInteger(unicodeNum) || unicodeNum <= 0) {
       removed.glyphs++;
       continue;
     }
@@ -491,9 +525,24 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
       removed.glyphs++;
       continue;
     }
+    if (unicodeNum !== g.unicode) {
+      removed.glyphs++;
+      warnings.push(
+        `格納キー（${key}）とUnicode値（${g.unicode}）が一致しないグリフデータを除外しました。`
+      );
+      continue;
+    }
+    if (seenUnicodes.has(g.unicode)) {
+      removed.glyphs++;
+      warnings.push(
+        `重複しているUnicode（U+${g.unicode.toString(16).toUpperCase()}）のグリフデータを除外しました。`
+      );
+      continue;
+    }
+    seenUnicodes.add(g.unicode);
 
     // AdvanceWidth & LSB
-    const advValid = typeof g.advanceWidth === 'number' && Number.isFinite(g.advanceWidth);
+    const advValid = typeof g.advanceWidth === 'number' && Number.isFinite(g.advanceWidth) && g.advanceWidth > 0;
     const lsbValid = typeof g.lsb === 'number' && Number.isFinite(g.lsb);
     if (!advValid) removed.replacedAdvanceWidth++;
     if (!lsbValid) removed.replacedLsb++;
@@ -542,6 +591,11 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
           handleIn,
           handleOut,
         });
+      }
+
+      if (validNodes.length < 2) {
+        removed.contours++;
+        continue;
       }
 
       validContours.push({

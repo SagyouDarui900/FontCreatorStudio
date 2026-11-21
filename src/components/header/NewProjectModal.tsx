@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { RotateCcw, X, Type, Save } from 'lucide-react';
 import { FontProject } from '../../types';
 import { ThemeMode, getThemeClasses } from '../../utils/theme';
+import { useDialogFocusTrap } from '../modals/ModalStackFrame';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -29,6 +30,9 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   onSaveAndReset,
   onResetWithoutSave,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, isOpen, onClose);
+
   if (!isOpen || typeof document === 'undefined') return null;
   const resolvedTheme: ThemeMode = theme ?? (isLight ? 'light' : 'dark');
   const themeClasses = getThemeClasses(resolvedTheme);
@@ -36,6 +40,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   return createPortal(
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-[60] anim-fade">
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="新規プロジェクト作成・リセット"
         className={`w-full max-w-md rounded-2xl p-5 border shadow-xl space-y-4 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         <div className={`flex items-center justify-between border-b pb-3 ${themeClasses.border}`}>
@@ -44,7 +52,9 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             <h3 className="text-base font-extrabold">新規プロジェクト作成・リセット</h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="閉じる"
             className={`p-1 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-4 h-4" />

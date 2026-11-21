@@ -33,6 +33,7 @@ import { PenPreviewSection } from './PenPreviewSection';
 import { PenScratchpad } from './PenScratchpad';
 import { PenPresetsSidebar } from './PenPresetsSidebar';
 import { BasicTab } from './tabs/BasicTab';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 import { TaperTab } from './tabs/TaperTab';
 import { ShapeTab } from './tabs/ShapeTab';
 import { RandomTab } from './tabs/RandomTab';
@@ -262,8 +263,10 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
   // part deletion in the radicals drawer.
   const [pendingDeletePreset, setPendingDeletePreset] = useState<UserPenPreset | null>(null);
 
+  const isTopModal = useIsTopModal();
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -278,7 +281,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, pendingDeletePreset, isRenaming, onClose]);
+  }, [isOpen, isTopModal, pendingDeletePreset, isRenaming, onClose]);
 
   const isDefaultPreset = workingPreset.isCustom === false;
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontProject } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { validateStoredFontProjectWithReport } from '../utils/font/validation';
+import { useIsTopModal } from './modals/ModalStackFrame';
 import {
  StorageUsageBreakdown,
  ProjectBackupSnapshot,
@@ -107,9 +108,11 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  }
  }, [isOpen, refreshStorageData]);
 
+ const isTopModal = useIsTopModal();
+
  // Keyboard shortcut listener: Escape, Tabs (1/2/3/4), Refresh (R)
  useEffect(() => {
- if (!isOpen) return;
+ if (!isOpen || !isTopModal) return;
 
  const handleKeyDown = (e: KeyboardEvent) => {
  const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -155,6 +158,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  return () => window.removeEventListener('keydown', handleKeyDown);
  }, [
  isOpen,
+ isTopModal,
  onClose,
  refreshStorageData,
  onShowToast,

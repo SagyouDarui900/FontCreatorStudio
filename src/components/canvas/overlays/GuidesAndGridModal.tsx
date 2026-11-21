@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Grid,
@@ -8,6 +8,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { CustomGuideline, GridSettings, JapaneseGuidePattern, VerticalGuidePattern } from '../../../types';
+import { useDialogFocusTrap } from '../../modals/ModalStackFrame';
 
 export const JAPANESE_GUIDE_OPTIONS: { id: JapaneseGuidePattern; label: string; sub: string }[] = [
   { id: 'none', label: 'なし', sub: '非表示' },
@@ -65,12 +66,16 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
   setLockGuidelines,
   showCanvasToast,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, isOpen, onClose);
+
   if (!isOpen || typeof document === 'undefined') return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4">
       <div className="fixed inset-0 bg-black/75 anim-fade" onClick={onClose} />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="ガイド枠・方眼グリッド設定"

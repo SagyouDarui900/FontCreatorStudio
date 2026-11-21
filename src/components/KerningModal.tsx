@@ -23,6 +23,7 @@ import {
 import { contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
 
 import { ThemeMode, getThemeClasses, isLightTheme } from '../utils/theme';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface KerningModalProps {
  isOpen: boolean;
@@ -77,9 +78,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
  const [isConfirmingClearAll, setIsConfirmingClearAll] = useState<boolean>(false);
 
+ const isTopModal = useIsTopModal();
+
  // Keyboard shortcut listener: Escape and F
  useEffect(() => {
- if (!isOpen) return;
+ if (!isOpen || !isTopModal) return;
  const handleKeyDown = (e: KeyboardEvent) => {
  const activeTag = document.activeElement?.tagName.toLowerCase();
  const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -97,7 +100,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  };
  window.addEventListener('keydown', handleKeyDown);
  return () => window.removeEventListener('keydown', handleKeyDown);
- }, [isOpen, isFullscreen, onClose]);
+ }, [isOpen, isTopModal, isFullscreen, onClose]);
 
  const kerningPairs = project.kerning || {};
 

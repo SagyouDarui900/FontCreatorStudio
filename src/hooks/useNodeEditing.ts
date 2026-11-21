@@ -476,7 +476,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         const otherContours = contours.filter((c) => c.id !== activeContourId);
         const activeContour = contours.find((c) => c.id === activeContourId);
         const currentContourNodes = activeContour ? activeContour.nodes : undefined;
-        const snapThreshold = 8; // Requirement 4: 8px threshold
+        const snapThreshold = Math.max(7, Math.round(12 / (zoom || 1)));
         const snapResult = snapSinglePoint(
           pos,
           otherContours,

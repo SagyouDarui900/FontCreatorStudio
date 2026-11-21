@@ -44,6 +44,8 @@ import {
   useCanvasContourActions,
 } from './canvas/hooks';
 
+const NOOP_CHANGE_GRID_SETTINGS: React.Dispatch<React.SetStateAction<import('../types').GridSettings>> = () => {};
+
 import {
   HIGH_CONTRAST_GRAB_CURSOR,
   HIGH_CONTRAST_GRABBING_CURSOR,
@@ -737,11 +739,18 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     [screenToCanvas, contours, zoom, setSelectedContourIds, setSelectedContourId, setSelectedNodeId, setSelectedNodeIds]
   );
 
+  const handleCloseContextMenu = useCallback(() => setContextMenuState(null), []);
+  const handleTraceImageError = useCallback(
+    () => showCanvasToast('下絵画像を読み込めませんでした', '画像ファイルを確認してください'),
+    [showCanvasToast]
+  );
+
   // ---------------- POINTER EVENT DISPATCHER ----------------
   const {
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerCancel,
     clearHoverPos,
     isPenDrawingRef,
     lastPenActiveTimeRef,
@@ -861,10 +870,16 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     showCanvasToast,
     isGlyphLocked,
     isContextMenuOpen: contextMenuState !== null,
-    onCloseContextMenu: () => setContextMenuState(null),
+    onCloseContextMenu: handleCloseContextMenu,
   });
 
-  const handlePointerCancel = handlePointerUp;
+  const handleCopySelectedContextMenu = useMemo(
+    () =>
+      onCopySelectedContours
+        ? () => onCopySelectedContours(selectedContourIds)
+        : undefined,
+    [onCopySelectedContours, selectedContourIds]
+  );
 
   const handlePointerLeave = useCallback(() => {
     if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
@@ -996,6 +1011,12 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   });
 
   handleDeleteSelectedRef.current = handleDeleteSelected;
+
+  const handleRotateSelectedWithDefault = useCallback(
+    (deg?: number) => handleRotateSelected(deg ?? 90),
+    [handleRotateSelected]
+  );
+  const handleRotateMenu90 = useCallback(() => handleRotateSelected(90), [handleRotateSelected]);
 
   // Canvas keyboard shortcuts & spacebar pan navigation
   useCanvasShortcuts({
@@ -1233,9 +1254,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handlePointerDownTraceImage={handlePointerDownTraceImage}
           handlePointerDownTraceResize={handlePointerDownTraceResize}
           handleResetTracePosition={handleResetTracePosition}
-          onTraceImageError={() =>
-            showCanvasToast('下絵画像を読み込めませんでした', '画像ファイルを確認してください')
-          }
+          onTraceImageError={handleTraceImageError}
           isResizingTrace={isResizingTrace}
           hoverCanvasPos={hoverCanvasPos}
           customGuidelines={customGuidelines}
@@ -1272,7 +1291,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           eraserSize={eraserSize}
           activeShapeContours={activeShapeContours}
           rotateDisplayAngle={rotateDisplayAngle ?? 0}
-          handleRotateSelected={(deg?: number) => handleRotateSelected(deg ?? 90)}
+          handleRotateSelected={handleRotateSelectedWithDefault}
           handleFlipHSelected={handleFlipHSelected}
           handleFlipVSelected={handleFlipVSelected}
           handleDuplicateSelected={handleDuplicateSelected}
@@ -1328,7 +1347,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           resetView={resetView}
           handleZoomStep={handleZoomStep}
           zoom={zoom}
-          onChangeGridSettings={onChangeGridSettings || (() => {})}
+          onChangeGridSettings={onChangeGridSettings || NOOP_CHANGE_GRID_SETTINGS}
           gridSettings={gridSettings}
           palmRejectionMode={palmRejectionMode}
           handleSetPalmRejectionMode={handleSetPalmRejectionMode}
@@ -1350,7 +1369,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           setSelectedNodeId={setSelectedNodeId}
           handleFlipHSelected={handleFlipHSelected}
           handleFlipVSelected={handleFlipVSelected}
-          handleRotateSelected={(deg?: number) => handleRotateSelected(deg ?? 90)}
+          handleRotateSelected={handleRotateSelectedWithDefault}
           handleSlantSelected={handleSlantSelected}
           handleScaleSelected={handleScaleSelected}
           handleSmoothStrokeSelected={handleSmoothStrokeSelected}
@@ -1387,22 +1406,18 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           isOpen={contextMenuState !== null}
           x={contextMenuState?.x ?? 0}
           y={contextMenuState?.y ?? 0}
-          onClose={() => setContextMenuState(null)}
+          onClose={handleCloseContextMenu}
           theme={theme}
           hasSelection={selectedContourIds.length > 0}
           selectedContourCount={selectedContourIds.length}
           contourCount={contours.length}
           isGlyphLocked={isGlyphLocked}
           hasClipboard={hasClipboard}
-          onCopySelected={
-            onCopySelectedContours
-              ? () => onCopySelectedContours(selectedContourIds)
-              : undefined
-          }
+          onCopySelected={handleCopySelectedContextMenu}
           onPasteSelected={onPasteSelectedContours}
           onFlipH={handleFlipHSelected}
           onFlipV={handleFlipVSelected}
-          onRotate={() => handleRotateSelected(90)}
+          onRotate={handleRotateMenu90}
           onDuplicate={handleDuplicateSelected}
           onDelete={handleDeleteSelected}
           onReverseWinding={handleReverseWindingSelected}

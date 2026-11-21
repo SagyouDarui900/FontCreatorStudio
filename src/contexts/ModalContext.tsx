@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { useViewportWidth, getResponsiveOverlayFlags } from '../utils/viewportLayout';
 
 export type ModalId =
   | 'mobileTheme'
@@ -12,7 +13,6 @@ export type ModalId =
   | 'kerning'
   | 'weightInterp'
   | 'glyphCompare'
-  | 'radicalStudio'
   | 'storageManager'
   | 'shortcuts'
   | 'export'
@@ -25,10 +25,12 @@ export type ModalId =
   | 'ivsManager';
 
 export interface ModalContextType {
-  // Active modal ID state & direct controllers
+  // Modal stack & active (top) modal ID state & direct controllers
+  modalStack: ModalId[];
   activeModal: ModalId | null;
   openModal: (id: ModalId) => void;
   closeModal: () => void;
+  closeModalById: (id: ModalId) => void;
   isModalOpen: (id: ModalId) => boolean;
 
   // Mobile drawer / panels (managed independently from full modals)
@@ -62,8 +64,6 @@ export interface ModalContextType {
   setIsWeightInterpModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGlyphCompareModalOpen: boolean;
   setIsGlyphCompareModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isRadicalStudioOpen: boolean;
-  setIsRadicalStudioOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isStorageManagerOpen: boolean;
   setIsStorageManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isShortcutsModalOpen: boolean;
@@ -93,8 +93,9 @@ export interface ModalContextType {
 const ModalContext = createContext<ModalContextType | null>(null);
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
-  // Single active modal identifier
-  const [activeModal, setActiveModal] = useState<ModalId | null>(null);
+  // Ordered stack of open modals (last entry is the topmost active modal)
+  const [modalStack, setModalStack] = useState<ModalId[]>([]);
+  const activeModal = modalStack.length > 0 ? modalStack[modalStack.length - 1] : null;
 
   // Independent drawers / side panels
   const [showRadicals, setShowRadicals] = useState(false);
@@ -103,54 +104,55 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
   });
   const [showMetricsDrawer, setShowMetricsDrawer] = useState(false);
 
-  // Viewport width, tracked the same way as useAppLayout, to tell overlay
-  // drawers apart from docked side panels (see isAnyModalOpen below).
-  const [viewportWidth, setViewportWidth] = useState<number>(() => {
-    return typeof window !== 'undefined'
-      ? Math.round(window.visualViewport ? window.visualViewport.width : window.innerWidth)
-      : 1280;
-  });
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-      setViewportWidth(Math.round(w));
-    };
-    window.addEventListener('resize', handleResize);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-    };
-  }, []);
+  const viewportWidth = useViewportWidth();
 
-  // Primary controllers
+  // Primary stack controllers
   const openModal = useCallback((id: ModalId) => {
-    setActiveModal(id);
+    setModalStack((prev) => {
+      if (prev.length > 0 && prev[prev.length - 1] === id) return prev;
+      return [...prev.filter((m) => m !== id), id];
+    });
   }, []);
 
   const closeModal = useCallback(() => {
-    setActiveModal(null);
+    setModalStack((prev) => (prev.length > 0 ? prev.slice(0, -1) : prev));
   }, []);
 
-  const isModalOpen = useCallback((id: ModalId) => activeModal === id, [activeModal]);
+  const closeModalById = useCallback((id: ModalId) => {
+    setModalStack((prev) => {
+      if (!prev.includes(id)) return prev;
+      return prev.filter((m) => m !== id);
+    });
+  }, []);
+
+  const isModalOpen = useCallback((id: ModalId) => modalStack.includes(id), [modalStack]);
+
+  const { isGridOverlay, isMetricsOverlay, isRadicalsOverlay } = getResponsiveOverlayFlags(
+    viewportWidth,
+    showGridDrawer
+  );
 
   const closeAllModals = useCallback(() => {
-    setActiveModal(null);
+    setModalStack([]);
     setShowRadicals(false);
-  }, []);
+    setShowMetricsDrawer(false);
+    if (isGridOverlay) {
+      setShowGridDrawer(false);
+    }
+  }, [isGridOverlay]);
 
   // Stable setter factory for backward compatibility
   const createModalSetter = useCallback(
     (id: ModalId): React.Dispatch<React.SetStateAction<boolean>> =>
       (action) => {
-        setActiveModal((curr) => {
-          const isCurr = curr === id;
+        setModalStack((curr) => {
+          const isCurr = curr.includes(id);
           const next = typeof action === 'function' ? action(isCurr) : action;
-          return next ? id : curr === id ? null : curr;
+          if (next) {
+            if (curr.length > 0 && curr[curr.length - 1] === id) return curr;
+            return [...curr.filter((m) => m !== id), id];
+          }
+          return isCurr ? curr.filter((m) => m !== id) : curr;
         });
       },
     []
@@ -169,7 +171,6 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       setIsKerningModalOpen: createModalSetter('kerning'),
       setIsWeightInterpModalOpen: createModalSetter('weightInterp'),
       setIsGlyphCompareModalOpen: createModalSetter('glyphCompare'),
-      setIsRadicalStudioOpen: createModalSetter('radicalStudio'),
       setIsStorageManagerOpen: createModalSetter('storageManager'),
       setIsShortcutsModalOpen: createModalSetter('shortcuts'),
       setIsExportModalOpen: createModalSetter('export'),
@@ -184,26 +185,19 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     [createModalSetter]
   );
 
-  // B7: an open overlay drawer also blocks canvas/app shortcuts, the same
-  // way an open modal does. Only overlay drawers count: the same breakpoints
-  // as useAppLayout.ts (grid < 1280, metrics/radicals < 1280 or < 1440 while
-  // the grid drawer is open). Docked panels do not count: showGridDrawer is
-  // open by default on wide screens as a docked panel, and counting it would
-  // disable the canvas (pointer-events-none) and every shortcut on desktop.
-  const isGridOverlay = viewportWidth < 1280;
-  const isMetricsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
-  const isRadicalsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
   const isAnyModalOpen =
-    activeModal !== null ||
+    modalStack.length > 0 ||
     (showRadicals && isRadicalsOverlay) ||
     (showGridDrawer && isGridOverlay) ||
     (showMetricsDrawer && isMetricsOverlay);
 
   const value = useMemo<ModalContextType>(
     () => ({
+      modalStack,
       activeModal,
       openModal,
       closeModal,
+      closeModalById,
       isModalOpen,
       showRadicals,
       setShowRadicals,
@@ -211,36 +205,37 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       setShowGridDrawer,
       showMetricsDrawer,
       setShowMetricsDrawer,
-      isMobileThemeModalOpen: activeModal === 'mobileTheme',
-      isTestModalOpen: activeModal === 'test',
-      isFontInfoModalOpen: activeModal === 'fontInfo',
-      isTraceModalOpen: activeModal === 'trace',
-      isSvgModalOpen: activeModal === 'svg',
-      isBatchNormalizeModalOpen: activeModal === 'batchNormalize',
-      isQualityModalOpen: activeModal === 'quality',
-      isSynthesisModalOpen: activeModal === 'synthesis',
-      isKerningModalOpen: activeModal === 'kerning',
-      isWeightInterpModalOpen: activeModal === 'weightInterp',
-      isGlyphCompareModalOpen: activeModal === 'glyphCompare',
-      isRadicalStudioOpen: activeModal === 'radicalStudio',
-      isStorageManagerOpen: activeModal === 'storageManager',
-      isShortcutsModalOpen: activeModal === 'shortcuts',
-      isExportModalOpen: activeModal === 'export',
-      isOpenTypeFeaturesModalOpen: activeModal === 'openTypeFeatures',
-      isGridFittingModalOpen: activeModal === 'gridFitting',
-      isPixelStudioOpen: activeModal === 'pixelStudio',
-      isMojikumiStudioOpen: activeModal === 'mojikumi',
-      isPenPresetsModalOpen: activeModal === 'penPresets',
-      isJisProgressModalOpen: activeModal === 'jisProgress',
-      isIvsManagerOpen: activeModal === 'ivsManager',
+      isMobileThemeModalOpen: modalStack.includes('mobileTheme'),
+      isTestModalOpen: modalStack.includes('test'),
+      isFontInfoModalOpen: modalStack.includes('fontInfo'),
+      isTraceModalOpen: modalStack.includes('trace'),
+      isSvgModalOpen: modalStack.includes('svg'),
+      isBatchNormalizeModalOpen: modalStack.includes('batchNormalize'),
+      isQualityModalOpen: modalStack.includes('quality'),
+      isSynthesisModalOpen: modalStack.includes('synthesis'),
+      isKerningModalOpen: modalStack.includes('kerning'),
+      isWeightInterpModalOpen: modalStack.includes('weightInterp'),
+      isGlyphCompareModalOpen: modalStack.includes('glyphCompare'),
+      isStorageManagerOpen: modalStack.includes('storageManager'),
+      isShortcutsModalOpen: modalStack.includes('shortcuts'),
+      isExportModalOpen: modalStack.includes('export'),
+      isOpenTypeFeaturesModalOpen: modalStack.includes('openTypeFeatures'),
+      isGridFittingModalOpen: modalStack.includes('gridFitting'),
+      isPixelStudioOpen: modalStack.includes('pixelStudio'),
+      isMojikumiStudioOpen: modalStack.includes('mojikumi'),
+      isPenPresetsModalOpen: modalStack.includes('penPresets'),
+      isJisProgressModalOpen: modalStack.includes('jisProgress'),
+      isIvsManagerOpen: modalStack.includes('ivsManager'),
       ...modalSetters,
       isAnyModalOpen,
       closeAllModals,
     }),
     [
+      modalStack,
       activeModal,
       openModal,
       closeModal,
+      closeModalById,
       isModalOpen,
       showRadicals,
       showGridDrawer,

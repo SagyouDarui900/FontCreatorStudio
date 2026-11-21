@@ -80,6 +80,9 @@ export const STORAGE_KEYS = {
   RADICALS_DENSITY: {
     primary: 'fcs_radicals_density',
   },
+  GRID_SETTINGS: {
+    primary: 'fcs_grid_settings',
+  },
 } as const;
 
 export function getStorageItem(keyDef: StorageKeyDefinition, defaultValue: string | null = null): string | null {

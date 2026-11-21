@@ -229,6 +229,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     eraserReticleRef,
     drawingReticleRef,
     generalCrosshairRef,
+    resetEraserVisuals,
     activePenContour,
     setActivePenContour,
     setPenMousePos,
@@ -264,6 +265,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
   // Active pointer isolation to prevent concurrent pointer collisions
   const activeDrawingPointerIdRef = useRef<number | null>(null);
+  const activePanPointerIdRef = useRef<number | null>(null);
 
   // Stylus state refs
   const isPenDrawingRef = useRef<boolean>(false);
@@ -368,6 +370,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setSvgGesturing(false);
     twoFingerCachedContainerRectRef.current = null;
     activeDrawingPointerIdRef.current = null;
+    activePanPointerIdRef.current = null;
     touchPointersRef.current.clear();
     pointerTypesRef.current.clear();
     isTwoFingerGestureRef.current = false;
@@ -471,6 +474,13 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Spacebar or Middle Mouse or Hand tool = Pan canvas
     if (toolMode === 'hand' || e.button === 1 || isSpacePressed) {
+      if (
+        isPanningRef.current &&
+        activePanPointerIdRef.current !== null &&
+        activePanPointerIdRef.current !== e.pointerId
+      ) {
+        return;
+      }
       if (e.button === 1 && e.cancelable) {
         e.preventDefault();
       }
@@ -479,6 +489,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       } catch {
         // Ignored
       }
+      activePanPointerIdRef.current = e.pointerId;
       isPanningRef.current = true;
       setIsPanning(true);
       const curPan = panRef.current as { x: number; y: number };
@@ -959,107 +970,111 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Multi-touch gestures (Pinch-to-zoom & 2-finger Pan)
-    if (isTwoFingerGestureRef.current && activeTwoFingerIdsRef.current) {
-      const [id1, id2] = activeTwoFingerIdsRef.current;
-      const p1 = touchPointersRef.current.get(id1);
-      const p2 = touchPointersRef.current.get(id2);
+    if (isTwoFingerGestureRef.current) {
+      if (activeTwoFingerIdsRef.current) {
+        const [id1, id2] = activeTwoFingerIdsRef.current;
+        const p1 = touchPointersRef.current.get(id1);
+        const p2 = touchPointersRef.current.get(id2);
 
-      if (p1 && p2) {
-        const curDist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
-        const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        if (p1 && p2) {
+          const curDist = Math.max(10, Math.hypot(p1.x - p2.x, p1.y - p2.y));
+          const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
 
-        if (twoFingerLastDistRef.current && twoFingerLastCenterRef.current && twoFingerStartCenterRef.current && twoFingerStartDistRef.current) {
-          // Detect gesture movement from start to avoid accidental undo on touch release
-          const totalCenterDist = Math.hypot(curCenter.x - twoFingerStartCenterRef.current.x, curCenter.y - twoFingerStartCenterRef.current.y);
-          const totalPinchDelta = Math.abs(curDist - twoFingerStartDistRef.current);
-          if (totalCenterDist > 8 || totalPinchDelta > 8) {
-            hasMovedSignificantRef.current = true;
-          }
-
-          const distDelta = Math.abs(curDist - twoFingerLastDistRef.current);
-          const centerDelta = Math.hypot(curCenter.x - twoFingerLastCenterRef.current.x, curCenter.y - twoFingerLastCenterRef.current.y);
-
-          // Sub-pixel jitter deadband: skip minuscule finger trembling under 0.25px
-          if (distDelta > 0.25 || centerDelta > 0.25) {
-            // A3: any pinch movement means this is a pinch, not a tap.
-            pinchStartedRef.current = true;
-            // Use cached container rect to avoid synchronous layout reflow
-            let cachedRect = twoFingerCachedContainerRectRef.current;
-            if (!cachedRect) {
-              const fastRect = getContainerRectFast?.();
-              if (fastRect) {
-                cachedRect = {
-                  left: fastRect.left,
-                  top: fastRect.top,
-                  width: fastRect.width,
-                  height: fastRect.height,
-                };
-              } else if (containerRef.current) {
-                const rect = containerRef.current.getBoundingClientRect();
-                cachedRect = {
-                  left: rect.left,
-                  top: rect.top,
-                  width: rect.width,
-                  height: rect.height,
-                };
-              } else {
-                cachedRect = { left: 0, top: 0, width: 0, height: 0 };
-              }
-              twoFingerCachedContainerRectRef.current = cachedRect;
+          if (twoFingerLastDistRef.current && twoFingerLastCenterRef.current && twoFingerStartCenterRef.current && twoFingerStartDistRef.current) {
+            // Detect gesture movement from start to avoid accidental undo on touch release
+            const totalCenterDist = Math.hypot(curCenter.x - twoFingerStartCenterRef.current.x, curCenter.y - twoFingerStartCenterRef.current.y);
+            const totalPinchDelta = Math.abs(curDist - twoFingerStartDistRef.current);
+            if (totalCenterDist > 8 || totalPinchDelta > 8) {
+              hasMovedSignificantRef.current = true;
             }
 
-            const curPan = panRef.current as { x: number; y: number };
-            const transformed = computePinchTransform({
-              currentZoom: zoomRef.current,
-              currentPan: curPan,
-              prevDist: twoFingerLastDistRef.current,
-              curDist,
-              prevCenter: twoFingerLastCenterRef.current,
-              curCenter,
-              containerLeft: cachedRect.left,
-              containerTop: cachedRect.top,
-              upm,
-              viewportWidth: cachedRect.width,
-              viewportHeight: cachedRect.height,
-            });
+            const distDelta = Math.abs(curDist - twoFingerLastDistRef.current);
+            const centerDelta = Math.hypot(curCenter.x - twoFingerLastCenterRef.current.x, curCenter.y - twoFingerLastCenterRef.current.y);
 
-            // Immediately update refs so successive pointermove events read exact state
-            zoomRef.current = transformed.zoom;
-            (panRef.current as { x: number; y: number }) = transformed.pan;
-
-            // Batch direct SVG DOM transform updates in requestAnimationFrame with zero React re-renders during pinch
-            pendingPinchUpdateRef.current = transformed;
-            if (pinchRafIdRef.current === null) {
-              pinchRafIdRef.current = requestAnimationFrame(() => {
-                pinchRafIdRef.current = null;
-                const pending = pendingPinchUpdateRef.current;
-                if (!pending) return;
-                pendingPinchUpdateRef.current = null;
-                const g = canvasGroupRef?.current;
-                if (g) {
-                  setSvgGesturing(true);
-                  g.setAttribute('transform', `translate(${pending.pan.x}, ${pending.pan.y}) scale(${pending.zoom})`);
+            // Sub-pixel jitter deadband: skip minuscule finger trembling under 0.25px
+            if (distDelta > 0.25 || centerDelta > 0.25) {
+              // A3: any pinch movement means this is a pinch, not a tap.
+              pinchStartedRef.current = true;
+              // Use cached container rect to avoid synchronous layout reflow
+              let cachedRect = twoFingerCachedContainerRectRef.current;
+              if (!cachedRect) {
+                const fastRect = getContainerRectFast?.();
+                if (fastRect) {
+                  cachedRect = {
+                    left: fastRect.left,
+                    top: fastRect.top,
+                    width: fastRect.width,
+                    height: fastRect.height,
+                  };
+                } else if (containerRef.current) {
+                  const rect = containerRef.current.getBoundingClientRect();
+                  cachedRect = {
+                    left: rect.left,
+                    top: rect.top,
+                    width: rect.width,
+                    height: rect.height,
+                  };
                 } else {
-                  setZoom(pending.zoom);
-                  setPan(pending.pan);
+                  cachedRect = { left: 0, top: 0, width: 0, height: 0 };
                 }
-              });
-            }
+                twoFingerCachedContainerRectRef.current = cachedRect;
+              }
 
+              const curPan = panRef.current as { x: number; y: number };
+              const transformed = computePinchTransform({
+                currentZoom: zoomRef.current,
+                currentPan: curPan,
+                prevDist: twoFingerLastDistRef.current,
+                curDist,
+                prevCenter: twoFingerLastCenterRef.current,
+                curCenter,
+                containerLeft: cachedRect.left,
+                containerTop: cachedRect.top,
+                upm,
+                viewportWidth: cachedRect.width,
+                viewportHeight: cachedRect.height,
+              });
+
+              // Immediately update refs so successive pointermove events read exact state
+              zoomRef.current = transformed.zoom;
+              (panRef.current as { x: number; y: number }) = transformed.pan;
+
+              // Batch direct SVG DOM transform updates in requestAnimationFrame with zero React re-renders during pinch
+              pendingPinchUpdateRef.current = transformed;
+              if (pinchRafIdRef.current === null) {
+                pinchRafIdRef.current = requestAnimationFrame(() => {
+                  pinchRafIdRef.current = null;
+                  const pending = pendingPinchUpdateRef.current;
+                  if (!pending) return;
+                  pendingPinchUpdateRef.current = null;
+                  const g = canvasGroupRef?.current;
+                  if (g) {
+                    setSvgGesturing(true);
+                    g.setAttribute('transform', `translate(${pending.pan.x}, ${pending.pan.y}) scale(${pending.zoom})`);
+                  } else {
+                    setZoom(pending.zoom);
+                    setPan(pending.pan);
+                  }
+                });
+              }
+
+              twoFingerLastDistRef.current = curDist;
+              twoFingerLastCenterRef.current = curCenter;
+            }
+          } else {
             twoFingerLastDistRef.current = curDist;
             twoFingerLastCenterRef.current = curCenter;
           }
-        } else {
-          twoFingerLastDistRef.current = curDist;
-          twoFingerLastCenterRef.current = curCenter;
         }
-
-        return;
       }
+      return;
     }
 
     // Spacebar / Hand Pan
     if (isPanningRef.current) {
+      if (activePanPointerIdRef.current !== null && e.pointerId !== activePanPointerIdRef.current) {
+        return;
+      }
       const rawPan = {
         x: e.clientX - panStartRef.current.x,
         y: e.clientY - panStartRef.current.y,
@@ -1422,12 +1437,16 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Reset dragging states and commit pan if we were dragging with Hand/Space
     if (isPanningRef.current) {
+      if (activePanPointerIdRef.current !== null && e.pointerId !== activePanPointerIdRef.current) {
+        return;
+      }
       const finalPan = clampPan
         ? clampPan(panRef.current as { x: number; y: number }, zoomRef.current)
         : (panRef.current as { x: number; y: number });
       (panRef.current as { x: number; y: number }) = finalPan;
       setPan(finalPan);
     }
+    activePanPointerIdRef.current = null;
     isPanningRef.current = false;
     setIsPanning(false);
     resetTraceDragState();
@@ -1613,10 +1632,126 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     penMode,
   ]);
 
+  const handlePointerCancel = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    try {
+      if ((e.currentTarget as Element).hasPointerCapture?.(e.pointerId)) {
+        (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+      }
+    } catch {
+      // Ignored
+    }
+
+    if (activeDrawingPointerIdRef.current === e.pointerId) {
+      activeDrawingPointerIdRef.current = null;
+    }
+    if (activePanPointerIdRef.current === e.pointerId) {
+      activePanPointerIdRef.current = null;
+    }
+
+    const cancelledPointerType = pointerTypesRef.current.get(e.pointerId) || e.pointerType;
+    pointerTypesRef.current.delete(e.pointerId);
+    touchPointersRef.current.delete(e.pointerId);
+
+    if (cancelledPointerType === 'pen' || isPenDrawingRef.current) {
+      isPenDrawingRef.current = false;
+      setLiveStylusPressure(0);
+    }
+
+    if (pinchRafIdRef.current !== null) {
+      cancelAnimationFrame(pinchRafIdRef.current);
+      pinchRafIdRef.current = null;
+    }
+    pendingPinchUpdateRef.current = null;
+    setSvgGesturing(false);
+
+    if (isTwoFingerGestureRef.current || touchPointersRef.current.size < 2) {
+      isTwoFingerGestureRef.current = false;
+      pinchStartedRef.current = false;
+      activeTwoFingerIdsRef.current = null;
+      twoFingerLastCenterRef.current = null;
+      twoFingerLastDistRef.current = null;
+      twoFingerStartDistRef.current = null;
+      twoFingerStartCenterRef.current = null;
+      twoFingerCachedContainerRectRef.current = null;
+      if (touchPointersRef.current.size === 0) {
+        maxTouchCountRef.current = 0;
+        hasMovedSignificantRef.current = false;
+      }
+      setZoom(zoomRef.current);
+      const syncedPan = clampPan
+        ? clampPan(panRef.current as { x: number; y: number }, zoomRef.current)
+        : (panRef.current as { x: number; y: number });
+      (panRef.current as { x: number; y: number }) = syncedPan;
+      setPan(syncedPan);
+    }
+
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      setIsPanning(false);
+    }
+
+    // Discard in-progress interactions without committing partial work or triggering tap undo/redo
+    penDragHandleSessionRef.current = null;
+    nodeDragSessionRef.current = null;
+    marqueeSelectionRef.current = null;
+    setMarqueeSelection(null);
+    setShapeStartPoint(null);
+    setShapeCurrentPoint(null);
+    setDraggingMetric(null);
+    setDraggingGuidelineId(null);
+    setActiveSnapGuides([]);
+    setTouchLoupeState((prev: any) => (prev.visible ? { ...prev, visible: false } : prev));
+    resetTraceDragState();
+    resetBrushDrawing?.();
+    if (activeBrushPathRef.current) {
+      activeBrushPathRef.current.setAttribute('d', '');
+    }
+    isErasingRef.current = false;
+    lastErasePosRef.current = null;
+    resetEraserVisuals();
+    if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
+    if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
+    if (generalCrosshairRef?.current) generalCrosshairRef.current.style.display = 'none';
+    if (cancelTransformSession) {
+      cancelTransformSession();
+    } else {
+      setTransformSession(null);
+    }
+  }, [
+    setLiveStylusPressure,
+    setSvgGesturing,
+    setZoom,
+    setPan,
+    zoomRef,
+    panRef,
+    clampPan,
+    setIsPanning,
+    nodeDragSessionRef,
+    setMarqueeSelection,
+    setShapeStartPoint,
+    setShapeCurrentPoint,
+    setDraggingMetric,
+    setDraggingGuidelineId,
+    setActiveSnapGuides,
+    setTouchLoupeState,
+    resetTraceDragState,
+    resetBrushDrawing,
+    activeBrushPathRef,
+    isErasingRef,
+    lastErasePosRef,
+    resetEraserVisuals,
+    drawingReticleRef,
+    eraserReticleRef,
+    generalCrosshairRef,
+    cancelTransformSession,
+    setTransformSession,
+  ]);
+
   return {
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePointerCancel,
     clearHoverPos,
     isPenDrawingRef,
     lastPenActiveTimeRef,

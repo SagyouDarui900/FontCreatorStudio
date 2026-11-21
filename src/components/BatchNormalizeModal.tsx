@@ -17,6 +17,7 @@ import {
   BatchPreviewSection,
   BatchOptionsSection,
 } from './batch';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 export type { TargetScope } from './batch';
 
@@ -70,9 +71,11 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     }
   }, [isOpen, selectedUnicode]);
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -90,7 +93,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   // Apply preset values
   const handlePresetChange = (preset: SizePreset) => {

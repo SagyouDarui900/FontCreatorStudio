@@ -10,8 +10,9 @@ import {
   ThemeClasses,
 } from '../../types';
 import { ThemeMode, THEME_PRESETS } from '../../utils/theme';
-import { useModalContext } from '../../contexts/ModalContext';
+import { ModalId, useModalContext } from '../../contexts/ModalContext';
 import { Palette, Check, X } from 'lucide-react';
+import { ModalStackFrame } from './ModalStackFrame';
 // [group d] Lifted Test Preview / Mojikumi Studio editing state (3-A1).
 // Imported from the small persistedState files (no compileFont dependency)
 // so this host does not pull opentype.js into the startup bundle.
@@ -167,7 +168,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   onResetCanvasPrefs,
   onRequestNewProject,
 }) => {
-  const { activeModal, openModal, closeModal } = useModalContext();
+  const { modalStack, openModal, closeModal, closeModalById, closeAllModals } = useModalContext();
 
   // Export modal settings kept here so they survive closing and reopening
   // the modal (ExportModal unmounts when activeModal changes).
@@ -215,6 +216,445 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
     }
   }, [project]);
 
+  const renderModalContent = (modalId: ModalId) => {
+    const closeThis = () => closeModalById(modalId);
+    switch (modalId) {
+      case 'mobileTheme':
+        return (
+          <div className="sm:hidden fixed inset-0 z-[60] flex flex-col justify-end">
+            <div
+              className="fixed inset-0 bg-black/60 anim-fade"
+              onClick={closeThis}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="カラーテーマ設定"
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[85dvh] flex flex-col anim-slide-up pb-[calc(1rem+env(safe-area-inset-bottom,0px))] ${themeClasses.modalBg} ${themeClasses.border}`}
+            >
+              <div className={`flex items-center justify-between pb-2.5 border-b mb-3 shrink-0 ${themeClasses.border}`}>
+                <div className="flex items-center space-x-2">
+                  <Palette className="w-5 h-5 text-amber-500" />
+                  <span className="font-extrabold text-sm">カラーテーマ設定</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeThis}
+                  aria-label="閉じる"
+                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                  title="閉じる"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2 overflow-y-auto pr-0.5 flex-1 min-h-0">
+                {THEME_PRESETS.map((p) => {
+                  const isActive = theme === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changeTheme(p.id);
+                        showToast(`テーマを「${p.name}」に変更しました`, 'info');
+                        closeThis();
+                      }}
+                      className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer ${
+                        isActive
+                          ? `${themeClasses.activeTool} border-transparent`
+                          : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+                      }`}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg border shrink-0 flex items-center justify-center relative overflow-hidden mt-0.5"
+                        style={{
+                          backgroundColor: p.previewBg,
+                          borderColor: p.previewBorder,
+                        }}
+                      >
+                        <div
+                          className="w-4 h-4 rounded-sm border"
+                          style={{
+                            backgroundColor: p.previewCard,
+                            borderColor: p.previewAccent,
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold truncate">{p.name}</span>
+                          <span className={`text-[11px] px-1.5 py-0.5 rounded border font-semibold ${p.badgeClass}`}>
+                            {p.badge}
+                          </span>
+                        </div>
+                        <p className={`text-xs leading-snug mt-0.5 ${isActive ? 'opacity-85' : themeClasses.textMuted}`}>
+                          {p.description}
+                        </p>
+                      </div>
+
+                      {isActive && (
+                        <Check className="w-4 h-4 shrink-0 mt-1" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'test':
+        return (
+          <TestPreviewModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            onSelectGlyphForEdit={(unicode) => {
+              const g = project.glyphs?.[unicode];
+              const char = g?.char || String.fromCodePoint(unicode);
+              onSelectGlyph(unicode, char);
+              closeAllModals();
+            }}
+            theme={theme}
+            onShowToast={showToast}
+            onOpenMojikumiStudio={() => openModal('mojikumi')}
+            persistedState={testPreviewPersisted}
+            onPersistedStateChange={setTestPreviewPersisted}
+          />
+        );
+
+      case 'fontInfo':
+        return (
+          <FontInfoModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'trace':
+        return (
+          <TraceSettingsModal
+            isOpen
+            onClose={closeThis}
+            traceSettings={traceSettings}
+            setTraceSettings={setTraceSettings}
+            activeChar={selectedChar}
+            selectedUnicode={selectedUnicode}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'svg':
+        return (
+          <SvgVectorizerModal
+            isOpen
+            onClose={closeThis}
+            onApplyContours={onApplySvgContours}
+            selectedChar={selectedChar}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'batchNormalize':
+        return (
+          <BatchNormalizeModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            selectedUnicode={selectedUnicode}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'quality':
+        return (
+          <FontQualityModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            onSelectGlyph={(unicode) => {
+              const g = project.glyphs?.[unicode];
+              const char = g?.char || String.fromCodePoint(unicode);
+              onSelectGlyph(unicode, char);
+            }}
+            theme={theme}
+            onShowToast={showToast}
+            commitHistory={commitHistory}
+          />
+        );
+
+      case 'synthesis':
+        return (
+          <GlyphSynthesisModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            onUpdateProject={setProject}
+            commitHistory={commitHistory}
+            theme={theme}
+            onShowToast={showToast}
+            showToast={showToast}
+          />
+        );
+
+      case 'kerning':
+        return (
+          <KerningModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            onUpdateProject={setProject}
+            theme={theme}
+            onShowToast={showToast}
+            showToast={showToast}
+          />
+        );
+
+      case 'weightInterp':
+        return (
+          <WeightInterpolationModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            selectedUnicode={selectedUnicode}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'glyphCompare':
+        return (
+          <GlyphCompareModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            activeChar={selectedChar}
+            activeUnicode={selectedUnicode}
+            overlaySettings={overlaySettings}
+            onChangeOverlaySettings={setOverlaySettings}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'penPresets':
+        return (
+          <PenPresetsModal
+            isOpen
+            onClose={closeThis}
+            currentParams={{
+              brushStyle,
+              brushWidth,
+              pressureSensitivity,
+              pressureCurve,
+              smoothingIntensity,
+              autoSmoothBrush,
+              smoothStrength,
+              smoothPreserveCorners,
+              autoUnionBrush,
+              taperStartLength: activePenPreset?.taperStartLength,
+              taperEndLength: activePenPreset?.taperEndLength,
+              taperStartWidth: activePenPreset?.taperStartWidth,
+              taperEndWidth: activePenPreset?.taperEndWidth,
+              taperStartOpacity: activePenPreset?.taperStartOpacity,
+              taperEndOpacity: activePenPreset?.taperEndOpacity,
+              taperStartTime: activePenPreset?.taperStartTime,
+              taperEndTime: activePenPreset?.taperEndTime,
+              forceTaper: activePenPreset?.forceTaper,
+              forceTaperEnd: activePenPreset?.forceTaperEnd,
+              taperTipShape: activePenPreset?.taperTipShape,
+              nibAngle: activePenPreset?.nibAngle,
+              nibAspectRatio: activePenPreset?.nibAspectRatio,
+              nibFollowDirection: activePenPreset?.nibFollowDirection,
+              nibSpacing: activePenPreset?.nibSpacing,
+              constantWidth: activePenPreset?.constantWidth,
+              antiAlias: activePenPreset?.antiAlias,
+              jitterPosition: activePenPreset?.jitterPosition,
+              jitterConstrainPerp: activePenPreset?.jitterConstrainPerp,
+              jitterSize: activePenPreset?.jitterSize,
+              jitterOpacity: activePenPreset?.jitterOpacity,
+              jitterAngle: activePenPreset?.jitterAngle,
+              jitterSpacing: activePenPreset?.jitterSpacing,
+              speedWidthFactor: activePenPreset?.speedWidthFactor,
+              speedOpacityFactor: activePenPreset?.speedOpacityFactor,
+              speedFeatherFactor: activePenPreset?.speedFeatherFactor,
+              pressureWidthFactor: activePenPreset?.pressureWidthFactor,
+              pressureOpacityFactor: activePenPreset?.pressureOpacityFactor,
+              pressureFeatherFactor: activePenPreset?.pressureFeatherFactor,
+              stabilizationMethod: activePenPreset?.stabilizationMethod,
+              speedStabilization: activePenPreset?.speedStabilization,
+              legacyStabilization: activePenPreset?.legacyStabilization,
+              inkBleed: activePenPreset?.inkBleed,
+              axisSlant: activePenPreset?.axisSlant,
+              edgeRoughness: activePenPreset?.edgeRoughness,
+              tipSharpness: activePenPreset?.tipSharpness,
+              pressureGamma: activePenPreset?.pressureGamma,
+            }}
+            onApplyPreset={onApplyPenPreset}
+            onChangePressureCurve={onChangePressureCurve}
+            presets={penPresets}
+            onUpdatePresets={setPenPresets}
+            activePenPreset={activePenPreset}
+            onClearActivePenPreset={onClearActivePenPreset}
+            onResetCanvasPrefs={onResetCanvasPrefs}
+            theme={theme}
+          />
+        );
+
+      case 'shortcuts':
+        return (
+          <ShortcutsHelpModal
+            isOpen
+            onClose={closeThis}
+            theme={theme}
+          />
+        );
+
+      case 'storageManager':
+        return (
+          <StorageManagerModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            onProjectReplaced={onProjectReplaced}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'export':
+        return (
+          <ExportModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            theme={theme}
+            onShowToast={showToast}
+            onRequestNewProject={onRequestNewProject}
+            onOpenQualityModal={() => openModal('quality')}
+            format={exportFormat}
+            onFormatChange={setExportFormat}
+            sizePreset={exportSizePreset}
+            onSizePresetChange={setExportSizePreset}
+            customScale={exportCustomScale}
+            onCustomScaleChange={setExportCustomScale}
+            previewText={exportPreviewText}
+            onPreviewTextChange={setExportPreviewText}
+            previewFontSize={exportPreviewFontSize}
+            onPreviewFontSizeChange={setExportPreviewFontSize}
+            mergeOverlaps={exportMergeOverlaps}
+            onMergeOverlapsChange={setExportMergeOverlaps}
+            balanceSideBearings={exportBalanceSideBearings}
+            onBalanceSideBearingsChange={setExportBalanceSideBearings}
+          />
+        );
+
+      case 'openTypeFeatures':
+        return (
+          <OpenTypeFeaturesModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            isLight={isLight}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'gridFitting':
+        return (
+          <GridFittingModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            isLight={isLight}
+            theme={theme}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'pixelStudio':
+        return (
+          <PixelFontStudioModal
+            project={project}
+            setProject={setProject}
+            isOpen
+            onClose={closeThis}
+            isLight={isLight}
+            theme={theme}
+            selectedUnicode={selectedUnicode}
+            onSelectGlyph={(u) => onSelectGlyph(u)}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'mojikumi':
+        return (
+          <MojikumiStudioModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            setProject={setProject}
+            theme={theme}
+            onShowToast={showToast}
+            onOpenOpenTypeModal={() => openModal('openTypeFeatures')}
+            onOpenTestPreview={() => openModal('test')}
+            persistedState={mojikumiPersisted}
+            onPersistedStateChange={setMojikumiPersisted}
+          />
+        );
+
+      case 'jisProgress':
+        return (
+          <JisProgressDashboardModal
+            isOpen
+            onClose={closeThis}
+            project={project}
+            theme={theme}
+            onSelectGlyph={(u) => onSelectGlyph(u)}
+            onShowToast={showToast}
+          />
+        );
+
+      case 'ivsManager':
+        return (
+          <IvsVariantManagerModal
+            isOpen
+            onClose={closeThis}
+            selectedUnicode={selectedUnicode}
+            selectedChar={selectedChar}
+            glyphs={project.glyphs || {}}
+            onSelectGlyph={(u) => onSelectGlyph(u)}
+            onShowToast={showToast}
+            theme={theme}
+          />
+        );
+    }
+  };
+
+  if (modalStack.length === 0) return null;
+
   return (
     <Suspense
       fallback={
@@ -238,433 +678,16 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
         </div>
       }
     >
-      {/* Mobile Theme Selection Drawer */}
-      {activeModal === 'mobileTheme' && (
-        <div className="sm:hidden fixed inset-0 z-[60] flex flex-col justify-end">
-          <div
-            className="fixed inset-0 bg-black/60 anim-fade"
-            onClick={closeModal}
-          />
-          <div
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            className={`relative z-10 w-full rounded-t-2xl p-4 border-t shadow-2xl max-h-[85dvh] flex flex-col anim-slide-up pb-[calc(1rem+env(safe-area-inset-bottom,0px))] ${themeClasses.modalBg} ${themeClasses.border}`}
-          >
-            <div className={`flex items-center justify-between pb-2.5 border-b mb-3 shrink-0 ${themeClasses.border}`}>
-              <div className="flex items-center space-x-2">
-                <Palette className="w-5 h-5 text-amber-500" />
-                <span className="font-extrabold text-sm">カラーテーマ設定</span>
-              </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                className={`p-1.5 rounded-lg cursor-pointer transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-                title="閉じる"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2 overflow-y-auto pr-0.5 flex-1 min-h-0">
-              {THEME_PRESETS.map((p) => {
-                const isActive = theme === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      changeTheme(p.id);
-                      showToast(`テーマを「${p.name}」に変更しました`, 'info');
-                      closeModal();
-                    }}
-                    className={`w-full text-left p-2.5 rounded-xl border flex items-start space-x-3 transition-colors cursor-pointer ${
-                      isActive
-                        ? `${themeClasses.activeTool} border-transparent`
-                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
-                    }`}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-lg border shrink-0 flex items-center justify-center relative overflow-hidden mt-0.5"
-                      style={{
-                        backgroundColor: p.previewBg,
-                        borderColor: p.previewBorder,
-                      }}
-                    >
-                      <div
-                        className="w-4 h-4 rounded-sm border"
-                        style={{
-                          backgroundColor: p.previewCard,
-                          borderColor: p.previewAccent,
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold truncate">{p.name}</span>
-                        <span className={`text-[11px] px-1.5 py-0.5 rounded border font-semibold ${p.badgeClass}`}>
-                          {p.badge}
-                        </span>
-                      </div>
-                      <p className={`text-xs leading-snug mt-0.5 ${isActive ? 'opacity-85' : themeClasses.textMuted}`}>
-                        {p.description}
-                      </p>
-                    </div>
-
-                    {isActive && (
-                      <Check className="w-4 h-4 shrink-0 mt-1" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Test Preview Modal */}
-      {activeModal === 'test' && (
-        <TestPreviewModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          onSelectGlyphForEdit={(unicode) => {
-            const g = project.glyphs?.[unicode];
-            const char = g?.char || String.fromCodePoint(unicode);
-            onSelectGlyph(unicode, char);
-            closeModal();
-          }}
-          theme={theme}
-          onShowToast={showToast}
-          onOpenMojikumiStudio={() => openModal('mojikumi')}
-          persistedState={testPreviewPersisted}
-          onPersistedStateChange={setTestPreviewPersisted}
-        />
-      )}
-
-      {/* Font Info Modal */}
-      {activeModal === 'fontInfo' && (
-        <FontInfoModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Trace Settings Modal */}
-      {activeModal === 'trace' && (
-        <TraceSettingsModal
-          isOpen
-          onClose={closeModal}
-          traceSettings={traceSettings}
-          setTraceSettings={setTraceSettings}
-          activeChar={selectedChar}
-          selectedUnicode={selectedUnicode}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* SVG Vectorizer Modal */}
-      {activeModal === 'svg' && (
-        <SvgVectorizerModal
-          isOpen
-          onClose={closeModal}
-          onApplyContours={onApplySvgContours}
-          selectedChar={selectedChar}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Batch Normalize Modal */}
-      {activeModal === 'batchNormalize' && (
-        <BatchNormalizeModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          selectedUnicode={selectedUnicode}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Font Quality Modal */}
-      {activeModal === 'quality' && (
-        <FontQualityModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          onSelectGlyph={(unicode) => {
-            const g = project.glyphs?.[unicode];
-            const char = g?.char || String.fromCodePoint(unicode);
-            onSelectGlyph(unicode, char);
-          }}
-          theme={theme}
-          onShowToast={showToast}
-          commitHistory={commitHistory}
-        />
-      )}
-
-      {/* Glyph Synthesis Modal */}
-      {activeModal === 'synthesis' && (
-        <GlyphSynthesisModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          onUpdateProject={setProject}
-          commitHistory={commitHistory}
-          theme={theme}
-          onShowToast={showToast}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Kerning Modal */}
-      {activeModal === 'kerning' && (
-        <KerningModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          onUpdateProject={setProject}
-          theme={theme}
-          onShowToast={showToast}
-          showToast={showToast}
-        />
-      )}
-
-      {/* Weight Interpolation Modal */}
-      {activeModal === 'weightInterp' && (
-        <WeightInterpolationModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          selectedUnicode={selectedUnicode}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Glyph Compare Modal */}
-      {activeModal === 'glyphCompare' && (
-        <GlyphCompareModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          activeChar={selectedChar}
-          activeUnicode={selectedUnicode}
-          overlaySettings={overlaySettings}
-          onChangeOverlaySettings={setOverlaySettings}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Pen Presets Modal */}
-      {activeModal === 'penPresets' && (
-        <PenPresetsModal
-          isOpen
-          onClose={closeModal}
-          currentParams={{
-            brushStyle,
-            brushWidth,
-            pressureSensitivity,
-            pressureCurve,
-            smoothingIntensity,
-            autoSmoothBrush,
-            smoothStrength,
-            smoothPreserveCorners,
-            autoUnionBrush,
-            taperStartLength: activePenPreset?.taperStartLength,
-            taperEndLength: activePenPreset?.taperEndLength,
-            taperStartWidth: activePenPreset?.taperStartWidth,
-            taperEndWidth: activePenPreset?.taperEndWidth,
-            taperStartOpacity: activePenPreset?.taperStartOpacity,
-            taperEndOpacity: activePenPreset?.taperEndOpacity,
-            taperStartTime: activePenPreset?.taperStartTime,
-            taperEndTime: activePenPreset?.taperEndTime,
-            forceTaper: activePenPreset?.forceTaper,
-            forceTaperEnd: activePenPreset?.forceTaperEnd,
-            taperTipShape: activePenPreset?.taperTipShape,
-            nibAngle: activePenPreset?.nibAngle,
-            nibAspectRatio: activePenPreset?.nibAspectRatio,
-            nibFollowDirection: activePenPreset?.nibFollowDirection,
-            nibSpacing: activePenPreset?.nibSpacing,
-            constantWidth: activePenPreset?.constantWidth,
-            antiAlias: activePenPreset?.antiAlias,
-            jitterPosition: activePenPreset?.jitterPosition,
-            jitterConstrainPerp: activePenPreset?.jitterConstrainPerp,
-            jitterSize: activePenPreset?.jitterSize,
-            jitterOpacity: activePenPreset?.jitterOpacity,
-            jitterAngle: activePenPreset?.jitterAngle,
-            jitterSpacing: activePenPreset?.jitterSpacing,
-            speedWidthFactor: activePenPreset?.speedWidthFactor,
-            speedOpacityFactor: activePenPreset?.speedOpacityFactor,
-            speedFeatherFactor: activePenPreset?.speedFeatherFactor,
-            pressureWidthFactor: activePenPreset?.pressureWidthFactor,
-            pressureOpacityFactor: activePenPreset?.pressureOpacityFactor,
-            pressureFeatherFactor: activePenPreset?.pressureFeatherFactor,
-            stabilizationMethod: activePenPreset?.stabilizationMethod,
-            speedStabilization: activePenPreset?.speedStabilization,
-            legacyStabilization: activePenPreset?.legacyStabilization,
-            inkBleed: activePenPreset?.inkBleed,
-            axisSlant: activePenPreset?.axisSlant,
-            edgeRoughness: activePenPreset?.edgeRoughness,
-            tipSharpness: activePenPreset?.tipSharpness,
-            pressureGamma: activePenPreset?.pressureGamma,
-          }}
-          onApplyPreset={onApplyPenPreset}
-          onChangePressureCurve={onChangePressureCurve}
-          presets={penPresets}
-          onUpdatePresets={setPenPresets}
-          activePenPreset={activePenPreset}
-          onClearActivePenPreset={onClearActivePenPreset}
-          onResetCanvasPrefs={onResetCanvasPrefs}
-          theme={theme}
-        />
-      )}
-
-      {/* Shortcuts Help Modal */}
-      {activeModal === 'shortcuts' && (
-        <ShortcutsHelpModal
-          isOpen
-          onClose={closeModal}
-          theme={theme}
-        />
-      )}
-
-      {/* Storage Manager Modal */}
-      {activeModal === 'storageManager' && (
-        <StorageManagerModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          onProjectReplaced={onProjectReplaced}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Export Modal */}
-      {activeModal === 'export' && (
-        <ExportModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          theme={theme}
-          onShowToast={showToast}
-          onRequestNewProject={onRequestNewProject}
-          onOpenQualityModal={() => openModal('quality')}
-          format={exportFormat}
-          onFormatChange={setExportFormat}
-          sizePreset={exportSizePreset}
-          onSizePresetChange={setExportSizePreset}
-          customScale={exportCustomScale}
-          onCustomScaleChange={setExportCustomScale}
-          previewText={exportPreviewText}
-          onPreviewTextChange={setExportPreviewText}
-          previewFontSize={exportPreviewFontSize}
-          onPreviewFontSizeChange={setExportPreviewFontSize}
-          mergeOverlaps={exportMergeOverlaps}
-          onMergeOverlapsChange={setExportMergeOverlaps}
-          balanceSideBearings={exportBalanceSideBearings}
-          onBalanceSideBearingsChange={setExportBalanceSideBearings}
-        />
-      )}
-
-      {/* OpenType Features Modal */}
-      {activeModal === 'openTypeFeatures' && (
-        <OpenTypeFeaturesModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          isLight={isLight}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Grid Fitting Modal */}
-      {activeModal === 'gridFitting' && (
-        <GridFittingModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          isLight={isLight}
-          theme={theme}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Pixel Font Studio Modal */}
-      {activeModal === 'pixelStudio' && (
-        <PixelFontStudioModal
-          project={project}
-          setProject={setProject}
-          isOpen
-          onClose={closeModal}
-          isLight={isLight}
-          theme={theme}
-          selectedUnicode={selectedUnicode}
-          onSelectGlyph={(u) => onSelectGlyph(u)}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* Mojikumi Studio Modal */}
-      {activeModal === 'mojikumi' && (
-        <MojikumiStudioModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          setProject={setProject}
-          theme={theme}
-          onShowToast={showToast}
-          onOpenOpenTypeModal={() => openModal('openTypeFeatures')}
-          onOpenTestPreview={() => openModal('test')}
-          persistedState={mojikumiPersisted}
-          onPersistedStateChange={setMojikumiPersisted}
-        />
-      )}
-
-      {/* JIS Progress Dashboard Modal */}
-      {activeModal === 'jisProgress' && (
-        <JisProgressDashboardModal
-          isOpen
-          onClose={closeModal}
-          project={project}
-          theme={theme}
-          onSelectGlyph={(u) => onSelectGlyph(u)}
-          onShowToast={showToast}
-        />
-      )}
-
-      {/* IVS Variant Manager Modal */}
-      {activeModal === 'ivsManager' && (
-        <IvsVariantManagerModal
-          isOpen
-          onClose={closeModal}
-          selectedUnicode={selectedUnicode}
-          selectedChar={selectedChar}
-          glyphs={project.glyphs || {}}
-          onSelectGlyph={(u) => onSelectGlyph(u)}
-          onShowToast={showToast}
-          theme={theme}
-        />
-      )}
+      {modalStack.map((modalId, index) => (
+        <ModalStackFrame
+          key={modalId}
+          stackIndex={index}
+          isTop={index === modalStack.length - 1}
+          onRequestClose={() => closeModalById(modalId)}
+        >
+          {renderModalContent(modalId)}
+        </ModalStackFrame>
+      ))}
     </Suspense>
   );
 };

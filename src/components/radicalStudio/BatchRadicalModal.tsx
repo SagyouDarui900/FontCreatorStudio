@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { useDialogFocusTrap } from '../modals/ModalStackFrame';
 import {
   X,
   Layers,
@@ -41,6 +42,8 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   baselineY,
 }) => {
   const themeClasses = getThemeClasses(theme);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, isOpen, onClose);
 
   const [placement, setPlacement] = useState<RadicalPlacement>('hen');
   const [selectedChars, setSelectedChars] = useState<Set<string>>(() => {
@@ -119,8 +122,10 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-label="部首パーツの一括流し込み"
       className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/75 anim-fade"
     >
       <div
@@ -144,7 +149,9 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="閉じる"
             className={`p-2 rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             <X className="w-5 h-5" />

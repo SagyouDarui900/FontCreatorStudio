@@ -10,6 +10,7 @@ import {
   parseUnicodeCodePoint,
 } from './openTypePresets';
 import { OpenTypeTab } from './types';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 
 interface UseOpenTypeFeaturesStateParams {
   project: FontProject;
@@ -50,17 +51,20 @@ export function useOpenTypeFeaturesState({
     setOpticalSideBearingPercent(project.openTypeFeatures?.palt?.opticalSideBearingPercent ?? 5);
   }, [isOpen, project.id, project.openTypeFeatures?.palt?.opticalSideBearingPercent]);
 
+  const isTopModal = useIsTopModal();
+
   // Close on Escape
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isTopModal, onClose]);
 
   const config: OpenTypeFeaturesConfig = useMemo(() => {
     const defaults = buildDefaultOpenTypeFeaturesConfig(

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useViewportWidth, getResponsiveOverlayFlags } from '../utils/viewportLayout';
 
 export interface UseAppLayoutOptions {
   showGridDrawer: boolean;
@@ -21,37 +22,11 @@ export function useAppLayout({
   setShowRadicals,
   showToast,
 }: UseAppLayoutOptions) {
-  // Responsive layout tracking with visualViewport support
-  const [viewportWidth, setViewportWidth] = useState<number>(() => {
-    return typeof window !== 'undefined'
-      ? Math.round(window.visualViewport ? window.visualViewport.width : window.innerWidth)
-      : 1280;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-      setViewportWidth(Math.round(w));
-    };
-    window.addEventListener('resize', handleResize);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-    };
-  }, []);
-
-  // Consistent breakpoints:
-  // < 1280: Grid, Metrics, and Radicals act as overlay drawers to protect canvas space on tablets & small laptops (1024-1279px)
-  // 1280 - 1439: Grid is inline sidebar; Metrics / Radicals is overlay if Grid is open
-  // >= 1440: Both Grid and Metrics / Radicals can be inline simultaneously
-  const isGridOverlay = viewportWidth < 1280;
-  const isMetricsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
-  const isRadicalsOverlay = viewportWidth < 1280 || (viewportWidth < 1440 && showGridDrawer);
+  const viewportWidth = useViewportWidth();
+  const { isGridOverlay, isMetricsOverlay, isRadicalsOverlay } = getResponsiveOverlayFlags(
+    viewportWidth,
+    showGridDrawer
+  );
 
   const isZenMode = !showGridDrawer && !showMetricsDrawer && !showRadicals;
 

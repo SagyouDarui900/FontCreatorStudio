@@ -25,8 +25,9 @@ import {
   interpolateContours,
   groupContoursForRendering,
 } from '../utils/path';
-import { compileFont } from '../utils/font';
+import { compileFont, sanitizeFontFilenamePart } from '../utils/font';
 import { resolveBaselineY } from '../utils/font/constants';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface WeightInterpolationModalProps {
   isOpen: boolean;
@@ -99,9 +100,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     }
   }, [isOpen, selectedUnicode]);
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -119,7 +122,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   // Master interpolation settings
   const [masterAUnicode, setMasterAUnicode] = useState<number>(selectedUnicode);
@@ -308,7 +311,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
     try {
       const zip = new JSZip();
-      const familyName = project.metadata.familyName || 'MyCustomFont';
+      const safeFamilyName = sanitizeFontFilenamePart(project.metadata.familyName, 'MyCustomFont');
 
       const exportPresets = [
         { name: 'Light', delta: -22 },
@@ -349,7 +352,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
         });
 
         if (result?.buffer) {
-          zip.file(`${familyName}-${p.name}.ttf`, result.buffer);
+          const safeStyleName = sanitizeFontFilenamePart(p.name, 'Regular');
+          zip.file(`${safeFamilyName}-${safeStyleName}.otf`, result.buffer);
         }
       }
 
@@ -357,11 +361,17 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${familyName}-FontFamily-Weights.zip`;
+      a.download = `${safeFamilyName}-FontFamily-Weights.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      }, 10000);
 
       onShowToast?.(
         `全5ウェイトのフォントファミリー（ZIP）を出力しました！`,

@@ -4,7 +4,7 @@ import {
   Point,
 } from "../../types";
 import {
-  booleanUnionContours,
+  tryBooleanUnionContours,
   booleanSubtractContours,
   booleanIntersectContours,
 } from "../vectorBoolean";
@@ -29,17 +29,39 @@ export function getLineSegmentIntersection(
   const dx2 = p4.x - p3.x;
   const dy2 = p4.y - p3.y;
 
+  const len1Sq = dx1 * dx1 + dy1 * dy1;
+  const len2Sq = dx2 * dx2 + dy2 * dy2;
+  if (len1Sq < 1e-9 || len2Sq < 1e-9) return null;
+
   const det = dx1 * dy2 - dy1 * dx2;
-  if (Math.abs(det) < 1e-6) return null; // 平行または同一直線
+  // Parallel or collinear case
+  if (Math.abs(det) <= 1e-6 * Math.sqrt(len1Sq * len2Sq)) {
+    const cross = (p3.x - p1.x) * dy1 - (p3.y - p1.y) * dx1;
+    if ((cross * cross) / len1Sq > 1e-4) {
+      return null; // Parallel and disjoint
+    }
+    const u3 = ((p3.x - p1.x) * dx1 + (p3.y - p1.y) * dy1) / len1Sq;
+    const u4 = ((p4.x - p1.x) * dx1 + (p4.y - p1.y) * dy1) / len1Sq;
+    const overlapStart = Math.max(0, Math.min(u3, u4));
+    const overlapEnd = Math.min(1, Math.max(u3, u4));
+    if (overlapEnd < overlapStart - 1e-4) {
+      return null;
+    }
+    const uMid = Math.max(0, Math.min(1, (overlapStart + overlapEnd) / 2));
+    return {
+      x: Math.round(p1.x + uMid * dx1),
+      y: Math.round(p1.y + uMid * dy1),
+    };
+  }
 
   const s = ((p3.x - p1.x) * dy2 - (p3.y - p1.y) * dx2) / det;
   const t = ((p3.x - p1.x) * dy1 - (p3.y - p1.y) * dx1) / det;
 
-  // 線分の内分点（端点のすぐ近傍 0.05〜0.95 での交差のみを判定し、接続ノードの誤検知を防ぐ）
-  if (s > 0.05 && s < 0.95 && t > 0.05 && t < 0.95) {
+  if (s >= -1e-4 && s <= 1 + 1e-4 && t >= -1e-4 && t <= 1 + 1e-4) {
+    const clampedS = Math.max(0, Math.min(1, s));
     return {
-      x: Math.round(p1.x + s * dx1),
-      y: Math.round(p1.y + s * dy1),
+      x: Math.round(p1.x + clampedS * dx1),
+      y: Math.round(p1.y + clampedS * dy1),
     };
   }
 
@@ -65,15 +87,26 @@ export function findContourIntersections(contours: PathContour[]): Point[] {
   }
 
   const allSegments: FastSegment[] = [];
+  const segCountByContour: number[] = [];
+  const isClosedByContour: boolean[] = [];
 
   contours.forEach((contour, cIdx) => {
-    if (!contour.nodes || contour.nodes.length < 2) return;
+    isClosedByContour[cIdx] = Boolean(contour.closed);
+    if (!contour.nodes || contour.nodes.length < 2) {
+      segCountByContour[cIdx] = 0;
+      return;
+    }
     const points = sampleContourPoints(contour, 3);
-    if (points.length < 2) return;
+    if (points.length < 2) {
+      segCountByContour[cIdx] = 0;
+      return;
+    }
 
+    let count = 0;
     for (let i = 0; i < points.length - 1; i++) {
       const p1 = points[i];
       const p2 = points[i + 1];
+      if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 1e-4) continue;
       allSegments.push({
         p1,
         p2,
@@ -82,24 +115,27 @@ export function findContourIntersections(contours: PathContour[]): Point[] {
         minY: p1.y < p2.y ? p1.y : p2.y,
         maxY: p1.y > p2.y ? p1.y : p2.y,
         contourIdx: cIdx,
-        segIdx: i,
+        segIdx: count++,
       });
     }
 
     if (contour.closed && points.length > 2) {
       const p1 = points[points.length - 1];
       const p2 = points[0];
-      allSegments.push({
-        p1,
-        p2,
-        minX: p1.x < p2.x ? p1.x : p2.x,
-        maxX: p1.x > p2.x ? p1.x : p2.x,
-        minY: p1.y < p2.y ? p1.y : p2.y,
-        maxY: p1.y > p2.y ? p1.y : p2.y,
-        contourIdx: cIdx,
-        segIdx: points.length - 1,
-      });
+      if (Math.hypot(p2.x - p1.x, p2.y - p1.y) >= 1e-4) {
+        allSegments.push({
+          p1,
+          p2,
+          minX: p1.x < p2.x ? p1.x : p2.x,
+          maxX: p1.x > p2.x ? p1.x : p2.x,
+          minY: p1.y < p2.y ? p1.y : p2.y,
+          maxY: p1.y > p2.y ? p1.y : p2.y,
+          contourIdx: cIdx,
+          segIdx: count++,
+        });
+      }
     }
+    segCountByContour[cIdx] = count;
   });
 
   const segCount = allSegments.length;
@@ -111,10 +147,13 @@ export function findContourIntersections(contours: PathContour[]): Point[] {
     for (let j = i + step; j < segCount; j += step) {
       const s2 = allSegments[j];
 
-      // 同一輪郭で隣接するセグメントは端点を共有するため除外
+      // 同一輪郭で隣接するセグメントは端点を共有するため除外（閉じた輪郭の先頭・末尾を含む）
       if (s1.contourIdx === s2.contourIdx) {
         const diff = Math.abs(s1.segIdx - s2.segIdx);
-        if (diff <= 1) continue;
+        const count = segCountByContour[s1.contourIdx] || 0;
+        if (diff <= 1 || (isClosedByContour[s1.contourIdx] && count > 2 && diff >= count - 1)) {
+          continue;
+        }
       }
 
       // Fast AABB bounding box overlap rejection
@@ -451,9 +490,9 @@ export function unionContours(
     }
 
     try {
-      const united = booleanUnionContours(cluster);
-      if (united && united.length > 0) {
-        resultContours.push(...united);
+      const unionRes = tryBooleanUnionContours(cluster);
+      if (unionRes.ok && unionRes.contours.length > 0) {
+        resultContours.push(...unionRes.contours);
         continue;
       }
     } catch {

@@ -31,6 +31,19 @@ html, body, #root {
   user-select: none;
 }
 
+input,
+textarea,
+[contenteditable="true"],
+[role="dialog"] p,
+[role="dialog"] pre,
+[role="dialog"] code,
+[role="dialog"] li,
+[role="dialog"] td,
+[role="dialog"] th {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Instant theme switching without gradual color transitions or gradient lag */
 html[data-theme-switching],
 html[data-theme-switching] *,

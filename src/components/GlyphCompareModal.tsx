@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FontProject, GlyphData, GlyphOverlaySettings } from '../types';
 import { ThemeMode, getThemeClasses } from '../utils/theme';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface GlyphCompareModalProps {
   isOpen: boolean;
@@ -95,9 +96,11 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [glyphSearchQuery, setGlyphSearchQuery] = useState('');
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -115,7 +118,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   // Get recommendations for activeChar
   const recommendedChars = useMemo(() => {

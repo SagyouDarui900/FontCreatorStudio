@@ -23,6 +23,7 @@ import { LicensePresetSection, LICENSE_PRESETS } from './fontinfo/LicensePresetS
 import { MetricsSettingsSection } from './fontinfo/MetricsSettingsSection';
 import { OpenTypeMetricsSection } from './fontinfo/OpenTypeMetricsSection';
 import { JsonBackupSection } from './fontinfo/JsonBackupSection';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface FontInfoModalProps {
   isOpen: boolean;
@@ -73,9 +74,11 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   React.useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isBundledFontsModalOpen) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -94,7 +97,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, isBundledFontsModalOpen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, isBundledFontsModalOpen, onClose]);
 
   if (!isOpen) return null;
 

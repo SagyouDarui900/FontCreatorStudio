@@ -21,7 +21,91 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
 
           return (
             <g key={guide.id}>
-              {guide.type === 'h' ? (
+              {guide.type === 'diagonal' ? (
+                (() => {
+                  const origin = guide.p1 || guide.snapPoint || { x: 500, y: 500 };
+                  let dx = 1;
+                  let dy = 0;
+                  if (
+                    guide.p2 &&
+                    (Math.abs(guide.p2.x - origin.x) > 0.001 || Math.abs(guide.p2.y - origin.y) > 0.001)
+                  ) {
+                    dx = guide.p2.x - origin.x;
+                    dy = guide.p2.y - origin.y;
+                  } else if (guide.angle !== undefined) {
+                    const rad = (guide.angle * Math.PI) / 180;
+                    dx = Math.cos(rad);
+                    dy = Math.sin(rad);
+                  }
+                  const len = Math.hypot(dx, dy) || 1;
+                  const ux = dx / len;
+                  const uy = dy / len;
+                  const span = 2000;
+                  const x1 = origin.x - ux * span;
+                  const y1 = origin.y - uy * span;
+                  const x2 = origin.x + ux * span;
+                  const y2 = origin.y + uy * span;
+                  const badgeAnchor = guide.snapPoint || origin;
+
+                  return (
+                    <>
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={lineColor}
+                        strokeWidth={strokeW * 3}
+                        strokeOpacity={0.35}
+                      />
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={lineColor}
+                        strokeWidth={strokeW}
+                        strokeDasharray="6 4"
+                      />
+                      {guide.snapPoint && (
+                        <g transform={`translate(${guide.snapPoint.x}, ${guide.snapPoint.y})`}>
+                          <circle r={8 / zoom} fill={lineColor} fillOpacity={0.35} />
+                          <circle r={4.5 / zoom} fill="#ffffff" stroke={lineColor} strokeWidth={2 / zoom} />
+                          <line x1={-12 / zoom} y1={0} x2={12 / zoom} y2={0} stroke={lineColor} strokeWidth={1.8 / zoom} />
+                          <line x1={0} y1={-12 / zoom} x2={0} y2={12 / zoom} stroke={lineColor} strokeWidth={1.8 / zoom} />
+                        </g>
+                      )}
+                      <g
+                        transform={`translate(${
+                          Math.max(30, Math.min(850, badgeAnchor.x + 10 / zoom))
+                        }, ${Math.max(30, Math.min(940, badgeAnchor.y - 16 / zoom))})`}
+                      >
+                        <rect
+                          x={-4 / zoom}
+                          y={-12 / zoom}
+                          width={(guide.targetName.length * 11 + 28) / zoom}
+                          height={18 / zoom}
+                          rx={4 / zoom}
+                          fill="#082f49"
+                          fillOpacity={0.94}
+                          stroke={lineColor}
+                          strokeWidth={1.2 / zoom}
+                        />
+                        <text
+                          x={5 / zoom}
+                          y={1 / zoom}
+                          fill="#7dd3fc"
+                          fontSize={10.5 / zoom}
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                        >
+                          {guide.targetName}
+                        </text>
+                      </g>
+                    </>
+                  );
+                })()
+              ) : guide.type === 'h' ? (
                 <>
                   {/* Outer Glow line */}
                   <line

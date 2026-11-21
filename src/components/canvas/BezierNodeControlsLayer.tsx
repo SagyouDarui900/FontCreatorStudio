@@ -225,6 +225,25 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
 
                 return (
                   <g key={node.id}>
+                    {/* Anchor Node: Invisible generous hit box rendered underneath handle hit boxes so short handles remain grabbable */}
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={14 / zoom}
+                      fill="transparent"
+                      className={isNodeInteractive ? 'cursor-pointer' : 'pointer-events-none'}
+                      pointerEvents={isNodeInteractive ? 'all' : 'none'}
+                      onPointerDown={(e) => {
+                        if (!isNodeInteractive) return;
+                        startNodeOrHandleDrag(e, contour, node, 'node');
+                      }}
+                      onDoubleClick={(e) => {
+                        if (!isNodeInteractive) return;
+                        e.stopPropagation();
+                        handleToggleNodeType(contour.id, node.id);
+                      }}
+                    />
+
                     {/* Control Handle Lines (handles shown if showHandles, or in node tool, or node is selected) */}
                     {(gridSettings.showHandles || isSelected || (toolMode === 'node' && isContourActive)) && (
                       <>
@@ -304,25 +323,6 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
                         )}
                       </>
                     )}
-
-                    {/* Anchor Node: Invisible generous hit box for effortless clicking */}
-                    <circle
-                      cx={node.x}
-                      cy={node.y}
-                      r={14 / zoom}
-                      fill="transparent"
-                      className={isNodeInteractive ? 'cursor-pointer' : 'pointer-events-none'}
-                      pointerEvents={isNodeInteractive ? 'all' : 'none'}
-                      onPointerDown={(e) => {
-                        if (!isNodeInteractive) return;
-                        startNodeOrHandleDrag(e, contour, node, 'node');
-                      }}
-                      onDoubleClick={(e) => {
-                        if (!isNodeInteractive) return;
-                        e.stopPropagation();
-                        handleToggleNodeType(contour.id, node.id);
-                      }}
-                    />
 
                     {/* Anchor Node Point Visual: Sleek rounded dot with clear selection ring & geometric differentiation */}
                     {isClean ? (

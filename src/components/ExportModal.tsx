@@ -21,6 +21,7 @@ import {
   compileFont,
   downloadFont,
   shareOrDownloadFont,
+  buildExportFontFilename,
   validateFontProject,
   stripInvalidPixelData,
   FontValidationResult,
@@ -28,6 +29,7 @@ import {
 } from '../utils/font';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { isIOSDevice, isIPadOS } from '../utils/platform';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -150,10 +152,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  const isTopModal = useIsTopModal();
 
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -171,7 +174,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   // Effective scale factor. Pixel projects always export at 1.0 with no
   // centering: the pixel studio already places dots at their final size,
@@ -329,9 +332,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     setIsExporting(true);
     try {
       if (action === 'share') {
-        await shareOrDownloadFont(exportProject, format, compileOptions);
+        const res = await shareOrDownloadFont(exportProject, format, compileOptions);
         if (onShowToast) {
-          onShowToast('フォントの共有・保存ダイアログを開きました', 'success');
+          if (res.method === 'cancelled') {
+            onShowToast('フォントの共有・保存をキャンセルしました', 'info');
+          } else {
+            onShowToast('フォントの共有・保存ダイアログを開きました', 'success');
+          }
         }
       } else {
         downloadFont(exportProject, format, compileOptions);
@@ -354,10 +361,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   const fontFamily = project.metadata.familyName || 'MyFont';
-  const fileName = `${fontFamily.toLowerCase().replace(/\s+/g, '-')}.${format}`;
+  const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const fileName = buildExportFontFilename(project.metadata, format);
 
   const cssSnippet = `@font-face {
-  font-family: '${fontFamily}';
+  font-family: '${escapedFontFamily}';
   src: url('${fileName}') format('opentype');
   font-weight: normal;
   font-style: normal;
@@ -591,7 +599,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onClose();
                   onOpenQualityModal();
                 }}
                 className={`w-full sm:w-auto min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border shrink-0 text-center cursor-pointer ${

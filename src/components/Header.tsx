@@ -19,6 +19,7 @@ import {
   HeaderProps,
   useProjectFileIO,
   NewProjectModal,
+  ImportFontConfirmModal,
   ThemeMenuDropdown,
   ToolsMenuDropdown,
 } from './header/index';
@@ -89,6 +90,9 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     setIsConfirmingNew,
     newProjectName,
     setNewProjectName,
+    pendingFontImport,
+    applyPendingFontImport,
+    cancelPendingFontImport,
     handleNewProjectWithCustomName,
     handleSaveProjectJson,
     handleLoadProjectJson,
@@ -429,6 +433,16 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           handleNewProjectWithCustomName(newProjectName);
         }}
         onResetWithoutSave={() => handleNewProjectWithCustomName(newProjectName)}
+      />
+
+      {/* In-app Font Import Overwrite / Merge Confirmation Modal */}
+      <ImportFontConfirmModal
+        pendingImport={pendingFontImport}
+        isLight={isLight}
+        theme={theme}
+        onConfirmOverwrite={() => applyPendingFontImport('overwrite')}
+        onConfirmAddOnly={() => applyPendingFontImport('addOnly')}
+        onCancel={cancelPendingFontImport}
       />
     </header>
   );

@@ -26,7 +26,11 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
   const themeClasses = getThemeClasses(theme);
 
   return (
-    <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none">
+    <div
+      role="region"
+      aria-label="通知"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[80] flex flex-col items-center sm:items-end space-y-1.5 w-auto max-w-[calc(100vw-24px)] sm:max-w-sm pointer-events-none"
+    >
       {toasts.map((toast) => {
         const isSuccess = toast.type === 'success' || !toast.type;
         const isError = toast.type === 'error';
@@ -35,6 +39,9 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
         return (
           <div
             key={toast.id}
+            role={isError ? 'alert' : 'status'}
+            aria-live={isError ? 'assertive' : 'polite'}
+            aria-atomic="true"
             className={`pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border shadow-md text-[11px] sm:text-xs font-medium max-w-full ${
               isError
                 ? isLight
@@ -61,6 +68,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
             <span className="leading-tight truncate max-w-[70vw] sm:max-w-none">{toast.text}</span>
             {toast.action && (
               <button
+                type="button"
                 onClick={() => {
                   toast.action?.onAction();
                   onDismiss(toast.id);
@@ -72,7 +80,9 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss, theme }) => {
               </button>
             )}
             <button
+              type="button"
               onClick={() => onDismiss(toast.id)}
+              aria-label="閉じる"
               className={`p-0.5 rounded-full hover:opacity-75 shrink-0 cursor-pointer ${themeClasses.textMuted}`}
               title="閉じる"
             >

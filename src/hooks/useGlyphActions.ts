@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
 import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates, getContoursBoundingBox } from '../utils/path';
 import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper';
@@ -530,20 +530,37 @@ export function useGlyphActions({
     [project.glyphs, commitHistory, setProject, onShowToast]
   );
 
-  return {
-    clipboardContours,
-    setClipboardContours,
-    handleSimplifyCurrentGlyph,
-    handleAutoSpaceCurrentGlyph,
-    handleClearGlyph,
-    handleCopyGlyph,
-    handlePasteGlyph,
-    handleCopySelectedContours,
-    handlePasteClipboardContours,
-    handleDuplicateAsSmallKana,
-    handleGenerateDakutenTarget,
-    handleCopyFromChar,
-    handleInsertRadical,
-    handleBatchInsertRadical,
-  };
+  return useMemo(
+    () => ({
+      clipboardContours,
+      setClipboardContours,
+      handleSimplifyCurrentGlyph,
+      handleAutoSpaceCurrentGlyph,
+      handleClearGlyph,
+      handleCopyGlyph,
+      handlePasteGlyph,
+      handleCopySelectedContours,
+      handlePasteClipboardContours,
+      handleDuplicateAsSmallKana,
+      handleGenerateDakutenTarget,
+      handleCopyFromChar,
+      handleInsertRadical,
+      handleBatchInsertRadical,
+    }),
+    [
+      clipboardContours,
+      handleSimplifyCurrentGlyph,
+      handleAutoSpaceCurrentGlyph,
+      handleClearGlyph,
+      handleCopyGlyph,
+      handlePasteGlyph,
+      handleCopySelectedContours,
+      handlePasteClipboardContours,
+      handleDuplicateAsSmallKana,
+      handleGenerateDakutenTarget,
+      handleCopyFromChar,
+      handleInsertRadical,
+      handleBatchInsertRadical,
+    ]
+  );
 }

@@ -22,6 +22,7 @@ import { parseSvgStringToContours, SvgFitMode } from '../utils/svgParser';
 import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
 import { contoursToSvgPath, getSafeGlyphViewBox } from '../utils/path';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 /** Maximum SVG text size accepted for parsing (1 MB). */
 const SVG_TEXT_MAX_BYTES = 1024 * 1024;
@@ -103,9 +104,11 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -123,7 +126,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   // Debounced auto-vectorization
   const runVectorize = useCallback(async () => {

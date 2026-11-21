@@ -171,6 +171,7 @@ export function subtractEraserStrokeFromClosedContours(
       let curr = nextP;
       let steps = 0;
       const maxSteps = canvasW * canvasH * 4;
+      let isClosedLoop = false;
 
       while (steps++ < maxSteps) {
         const currKey = `${curr.x},${curr.y}`;
@@ -193,10 +194,13 @@ export function subtractEraserStrokeFromClosedContours(
         visitedEdges.add(`${curr.x},${curr.y}->${chosen.x},${chosen.y}`);
         loop.push(chosen);
         curr = chosen;
-        if (curr.x === startPt.x && curr.y === startPt.y) break;
+        if (curr.x === startPt.x && curr.y === startPt.y) {
+          isClosedLoop = true;
+          break;
+        }
       }
 
-      if (loop.length >= 6) {
+      if (isClosedLoop && loop.length >= 6) {
         let cleanLoop = loop;
         if (cleanLoop.length >= 2) {
           const first = cleanLoop[0];
@@ -337,21 +341,23 @@ export function sliceOpenContourWithEraser(
     const curr = contour.nodes[i];
     const next = contour.nodes[i + 1];
 
-    if (curr.handleOut && next.handleIn) {
-      // Cubic Bezier curve
+    if (curr.handleOut || next.handleIn) {
+      // Cubic Bezier curve (supports single-handle curves by defaulting missing control point to anchor)
+      const cp1 = curr.handleOut || { x: curr.x, y: curr.y };
+      const cp2 = next.handleIn || { x: next.x, y: next.y };
       const steps = 18;
       for (let s = 0; s < steps; s++) {
         const t = s / steps;
         const mt = 1 - t;
         const x =
           mt * mt * mt * curr.x +
-          3 * mt * mt * t * curr.handleOut.x +
-          3 * mt * t * t * next.handleIn.x +
+          3 * mt * mt * t * cp1.x +
+          3 * mt * t * t * cp2.x +
           t * t * t * next.x;
         const y =
           mt * mt * mt * curr.y +
-          3 * mt * mt * t * curr.handleOut.y +
-          3 * mt * t * t * next.handleIn.y +
+          3 * mt * mt * t * cp1.y +
+          3 * mt * t * t * cp2.y +
           t * t * t * next.y;
         sampledPoints.push({ x, y });
       }

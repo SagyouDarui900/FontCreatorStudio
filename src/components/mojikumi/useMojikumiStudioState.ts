@@ -19,6 +19,7 @@ import {
   MojikumiMobileTab,
   MojikumiSidebarTab,
 } from './types';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 // Persisted editing state lives in ./persistedState (no heavy imports) so
 // AppModalsHost can hold it without pulling this hook's compileFont
 // dependency into the startup bundle. Re-exported here for existing users.
@@ -176,17 +177,20 @@ export function useMojikumiStudioState({
     persistedDefaults.currentConfig
   );
 
+  const isTopModal = useIsTopModal();
+
   // Escape key closes modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isTopModal, onClose]);
 
   const releaseCompiledFont = useCallback(() => {
     if (activeFontFaceRef.current && typeof document !== 'undefined' && document.fonts) {

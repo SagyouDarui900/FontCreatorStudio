@@ -131,7 +131,10 @@ export function compileFont(
   let maxAdvanceWidth = 0;
 
   const rawUpm = project.metadata?.unitsPerEm;
-  const upm = Number.isFinite(rawUpm) && (rawUpm as number) > 0 ? (rawUpm as number) : DEFAULT_UPM;
+  const upm =
+    typeof rawUpm === 'number' && Number.isFinite(rawUpm) && rawUpm > 0
+      ? Math.max(16, Math.min(16384, Math.round(rawUpm)))
+      : DEFAULT_UPM;
   const rawAscender = project.metadata?.ascender;
   const baselineY = resolveBaselineY(rawAscender, upm);
   const featureConfig = project.openTypeFeatures;
@@ -435,12 +438,21 @@ export function compileFont(
   const isItalic = rawStyle.toLowerCase().includes('italic');
   const avgWidth = glyphsList.length > 0 ? Math.round(totalAdvanceWidth / glyphsList.length) : 500;
 
+  const safeAscender =
+    typeof project.metadata.ascender === 'number' && Number.isFinite(project.metadata.ascender)
+      ? Math.round(project.metadata.ascender)
+      : DEFAULT_ASCENDER;
+  const safeDescender =
+    typeof project.metadata.descender === 'number' && Number.isFinite(project.metadata.descender)
+      ? Math.round(project.metadata.descender)
+      : DEFAULT_DESCENDER;
+
   const font = new opentype.Font({
     familyName: rawFamily,
     styleName: rawStyle,
-    unitsPerEm: project.metadata.unitsPerEm || DEFAULT_UPM,
-    ascender: project.metadata.ascender || DEFAULT_ASCENDER,
-    descender: project.metadata.descender || DEFAULT_DESCENDER,
+    unitsPerEm: upm,
+    ascender: safeAscender,
+    descender: safeDescender,
     designer: project.metadata.designer || '',
     designerURL: project.metadata.designerUrl || '',
     manufacturer: project.metadata.manufacturer || '',
@@ -458,10 +470,23 @@ export function compileFont(
     font.tables.os2 = {} as any;
   }
 
+  const rawWeight = project.metadata.usWeightClass;
+  const safeWeightClass =
+    typeof rawWeight === 'number' && Number.isFinite(rawWeight)
+      ? Math.max(1, Math.min(1000, Math.round(rawWeight)))
+      : isBold
+        ? 700
+        : 400;
+  const rawWidth = project.metadata.usWidthClass;
+  const safeWidthClass =
+    typeof rawWidth === 'number' && Number.isFinite(rawWidth)
+      ? Math.max(1, Math.min(9, Math.round(rawWidth)))
+      : 5;
+
   font.tables.os2.version = 4;
   font.tables.os2.xAvgCharWidth = avgWidth;
-  font.tables.os2.usWeightClass = project.metadata.usWeightClass ?? (isBold ? 700 : 400);
-  font.tables.os2.usWidthClass = project.metadata.usWidthClass ?? 5; // Medium (normal)
+  font.tables.os2.usWeightClass = safeWeightClass;
+  font.tables.os2.usWidthClass = safeWidthClass; // Medium (normal)
   font.tables.os2.fsType = 0x0000; // Installable embedding (no DRM restrictions)
   font.tables.os2.sFamilyClass = 0;
   font.tables.os2.panose = [2, 0, 5, 3, 0, 0, 0, 0, 0, 0];
@@ -508,20 +533,58 @@ export function compileFont(
   font.tables.os2.ulUnicodeRange2 = uRange2;
   font.tables.os2.ulUnicodeRange3 = uRange3;
   font.tables.os2.ulUnicodeRange4 = uRange4;
-  font.tables.os2.achVendID = (project.metadata.vendorId || 'OTED').padEnd(4, ' ').slice(0, 4);
+  const safeVendorId = (project.metadata.vendorId || 'OTED')
+    .replace(/[^\x20-\x7e]/g, ' ')
+    .padEnd(4, ' ')
+    .slice(0, 4);
+  font.tables.os2.achVendID = safeVendorId;
 
   // OS/2 Table: Windows & Typographic Line Metrics
-  const asc = project.metadata.ascender || DEFAULT_ASCENDER;
-  const desc = project.metadata.descender || DEFAULT_DESCENDER;
-  const lineGap = project.metadata.lineGap ?? 0;
+  const asc = safeAscender;
+  const desc = safeDescender;
+  const lineGap =
+    typeof project.metadata.lineGap === 'number' && Number.isFinite(project.metadata.lineGap)
+      ? Math.round(project.metadata.lineGap)
+      : 0;
 
-  font.tables.os2.usWinAscent = project.metadata.winAscent ?? Math.max(asc, 800);
-  font.tables.os2.usWinDescent = project.metadata.winDescent ?? Math.abs(desc);
-  font.tables.os2.sTypoAscender = project.metadata.typoAscender ?? asc;
-  font.tables.os2.sTypoDescender = project.metadata.typoDescender ?? desc;
-  font.tables.os2.sTypoLineGap = project.metadata.typoLineGap ?? lineGap;
-  font.tables.os2.sCapHeight = project.metadata.capHeight || 700;
-  font.tables.os2.sxHeight = project.metadata.xHeight || 500;
+  const rawWinAscent = project.metadata.winAscent;
+  const rawWinDescent = project.metadata.winDescent;
+  font.tables.os2.usWinAscent = Math.max(
+    0,
+    Math.round(
+      typeof rawWinAscent === 'number' && Number.isFinite(rawWinAscent)
+        ? rawWinAscent
+        : Math.max(asc, 800)
+    )
+  );
+  font.tables.os2.usWinDescent = Math.max(
+    0,
+    Math.round(
+      typeof rawWinDescent === 'number' && Number.isFinite(rawWinDescent)
+        ? rawWinDescent
+        : Math.abs(desc)
+    )
+  );
+  font.tables.os2.sTypoAscender =
+    typeof project.metadata.typoAscender === 'number' && Number.isFinite(project.metadata.typoAscender)
+      ? Math.round(project.metadata.typoAscender)
+      : asc;
+  font.tables.os2.sTypoDescender =
+    typeof project.metadata.typoDescender === 'number' && Number.isFinite(project.metadata.typoDescender)
+      ? Math.round(project.metadata.typoDescender)
+      : desc;
+  font.tables.os2.sTypoLineGap =
+    typeof project.metadata.typoLineGap === 'number' && Number.isFinite(project.metadata.typoLineGap)
+      ? Math.round(project.metadata.typoLineGap)
+      : lineGap;
+  font.tables.os2.sCapHeight =
+    typeof project.metadata.capHeight === 'number' && Number.isFinite(project.metadata.capHeight)
+      ? Math.round(project.metadata.capHeight)
+      : 700;
+  font.tables.os2.sxHeight =
+    typeof project.metadata.xHeight === 'number' && Number.isFinite(project.metadata.xHeight)
+      ? Math.round(project.metadata.xHeight)
+      : 500;
   // bit 7 (0x0080) = USE_TYPO_METRICS (essential for Windows DirectWrite/AviUtl2/GDI consistent line metrics)
   font.tables.os2.fsSelection =
     (isBold ? (isItalic ? 0x0021 : 0x0020) : isItalic ? 0x0001 : 0x0040) | 0x0080;

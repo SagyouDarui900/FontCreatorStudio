@@ -54,6 +54,37 @@ const DEFAULT_TRACE_SETTINGS: TraceSettings = {
   offsetY: 0,
 };
 
+const DEFAULT_GRID_SETTINGS: GridSettings = {
+  showGrid: true,
+  gridSize: 50,
+  snapToGrid: false,
+  snapToPoints: false,
+  snapToGuides: false,
+  showMetrics: true,
+  showPoints: true,
+  showHandles: true,
+  japaneseGuide: 'cross',
+  showBodyFrame: true,
+  showKanaFrame: true,
+  highContrastCursor: true,
+  showCursorCrosshair: false,
+};
+
+function loadPersistedGridSettings(): GridSettings {
+  try {
+    const saved = getStorageItem(STORAGE_KEYS.GRID_SETTINGS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return { ...DEFAULT_GRID_SETTINGS, ...parsed };
+      }
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+  return DEFAULT_GRID_SETTINGS;
+}
+
 interface AppMainProps {
   theme: ThemeMode;
   themeClasses: ThemeClasses;
@@ -101,6 +132,7 @@ function AppMain({
   const {
     project,
     setProject,
+    projectRef,
     selectedUnicode,
     selectedChar,
     currentGlyph,
@@ -170,96 +202,108 @@ function AppMain({
     handleApplyPenPreset,
   } = useToolState();
 
-  // Trace Guidelines Settings
-  const [traceSettings, setTraceSettings] = useState<TraceSettings>(() => ({
-    ...DEFAULT_TRACE_SETTINGS,
-    ...(project.traceSettings || {}),
-  }));
-
   const [projectReplaceSeq, setProjectReplaceSeq] = useState(0);
+  const projectReplaceSeqRef = useRef(projectReplaceSeq);
+  projectReplaceSeqRef.current = projectReplaceSeq;
+
   const handleProjectReplaced = useCallback(() => {
     clearHistory();
     setProjectReplaceSeq((seq) => seq + 1);
   }, [clearHistory]);
 
-  // Clear a manually entered display character when the selected glyph
-  // changes, so the underdrawing follows the new character. While staying
-  // on one glyph, a manual entry is kept; an empty text falls back to the
-  // selected character in the reference layer and the settings modal.
-  useEffect(() => {
-    setTraceSettings((prev) => (prev.text ? { ...prev, text: '' } : prev));
-  }, [selectedUnicode]);
+  // Underdrawing images are large data URLs so they stay in session memory scoped to
+  // the current project instance; persistent trace properties live directly on project.traceSettings.
+  const traceScope = `${project.id}:${projectReplaceSeq}`;
+  const [traceMedia, setTraceMedia] = useState<{
+    scope: string;
+    imageSrc?: string;
+    charImages?: Record<number, string>;
+  }>(() => ({ scope: traceScope }));
 
-  // Persist trace settings in the project, without image data (data URLs
-  // are large and stay in memory only). Hydration/project replacement runs
-  // before write-back so stale trace settings never overwrite or leak into
-  // a newly loaded/restored project.
-  const appliedTraceSettingsRef = useRef<import('./types').StoredTraceSettings | null>(
-    project.traceSettings ?? null
+  const traceMediaRef = useRef(traceMedia);
+  traceMediaRef.current = traceMedia;
+
+  const traceSettings = useMemo<TraceSettings>(
+    () => ({
+      ...DEFAULT_TRACE_SETTINGS,
+      ...(project.traceSettings || {}),
+      ...(traceMedia.scope === traceScope
+        ? {
+            ...(traceMedia.imageSrc !== undefined ? { imageSrc: traceMedia.imageSrc } : {}),
+            ...(traceMedia.charImages !== undefined ? { charImages: traceMedia.charImages } : {}),
+          }
+        : {}),
+    }),
+    [project.traceSettings, traceMedia, traceScope]
   );
-  const prevTraceProjectIdRef = useRef<string>(project.id);
-  const prevReplaceSeqRef = useRef<number>(projectReplaceSeq);
-  const skipNextTraceWritebackRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    const isProjectSwitch =
-      prevTraceProjectIdRef.current !== project.id ||
-      prevReplaceSeqRef.current !== projectReplaceSeq;
-
-    if (isProjectSwitch) {
-      prevTraceProjectIdRef.current = project.id;
-      prevReplaceSeqRef.current = projectReplaceSeq;
-      const nextSettings: TraceSettings = {
+  const setTraceSettings: React.Dispatch<React.SetStateAction<TraceSettings>> = useCallback(
+    (action) => {
+      const scope = `${projectRef.current.id}:${projectReplaceSeqRef.current}`;
+      const currentMedia =
+        traceMediaRef.current.scope === scope ? traceMediaRef.current : { scope };
+      const currentSettings: TraceSettings = {
         ...DEFAULT_TRACE_SETTINGS,
-        ...(project.traceSettings || {}),
+        ...(projectRef.current.traceSettings || {}),
+        ...(currentMedia.imageSrc !== undefined ? { imageSrc: currentMedia.imageSrc } : {}),
+        ...(currentMedia.charImages !== undefined
+          ? { charImages: currentMedia.charImages }
+          : {}),
       };
-      appliedTraceSettingsRef.current = project.traceSettings ?? null;
-      skipNextTraceWritebackRef.current = true;
-      setTraceSettings(nextSettings);
-      return;
-    }
+      const next = typeof action === 'function' ? action(currentSettings) : action;
 
-    const stored = project.traceSettings;
-    if (!stored) return;
-    if (areStoredTraceSettingsEqual(stored, appliedTraceSettingsRef.current)) return;
-    appliedTraceSettingsRef.current = stored;
-    skipNextTraceWritebackRef.current = true;
-    setTraceSettings((prev) => ({ ...prev, ...stored }));
-  }, [project.id, project.traceSettings, projectReplaceSeq]);
+      if (
+        next.imageSrc !== currentMedia.imageSrc ||
+        next.charImages !== currentMedia.charImages ||
+        traceMediaRef.current.scope !== scope
+      ) {
+        const nextMedia = {
+          scope,
+          imageSrc: next.imageSrc,
+          charImages: next.charImages,
+        };
+        traceMediaRef.current = nextMedia;
+        setTraceMedia(nextMedia);
+      }
+
+      const stored = toStoredTraceSettings(next);
+      const defaultStored = toStoredTraceSettings(DEFAULT_TRACE_SETTINGS);
+      setProject((prev) => {
+        if (!prev.traceSettings && areStoredTraceSettingsEqual(stored, defaultStored)) {
+          return prev;
+        }
+        if (areStoredTraceSettingsEqual(prev.traceSettings ?? null, stored)) {
+          return prev;
+        }
+        return { ...prev, traceSettings: stored, updatedAt: Date.now() };
+      });
+    },
+    [projectRef, setProject]
+  );
+
+  // Clear any manually entered display character when switching glyphs so the
+  // reference layer tracks the newly selected character.
+  useEffect(() => {
+    setProject((prev) => {
+      if (!prev.traceSettings?.text) return prev;
+      return {
+        ...prev,
+        traceSettings: { ...prev.traceSettings, text: '' },
+        updatedAt: Date.now(),
+      };
+    });
+  }, [selectedUnicode, setProject]);
+
+  // Grid & Guideline Settings (persisted to localStorage)
+  const [gridSettings, setGridSettings] = useState<GridSettings>(loadPersistedGridSettings);
 
   useEffect(() => {
-    if (skipNextTraceWritebackRef.current) {
-      skipNextTraceWritebackRef.current = false;
-      return;
+    try {
+      setStorageItem(STORAGE_KEYS.GRID_SETTINGS, JSON.stringify(gridSettings));
+    } catch {
+      // ignore storage quota / private mode failures
     }
-    const stored = toStoredTraceSettings(traceSettings);
-    const defaultStored = toStoredTraceSettings(DEFAULT_TRACE_SETTINGS);
-    setProject((prev) => {
-      if (!prev.traceSettings && areStoredTraceSettingsEqual(stored, defaultStored)) {
-        return prev;
-      }
-      if (areStoredTraceSettingsEqual(prev.traceSettings ?? null, stored)) return prev;
-      appliedTraceSettingsRef.current = stored;
-      return { ...prev, traceSettings: stored, updatedAt: Date.now() };
-    });
-  }, [traceSettings, setProject]);
-
-  // Grid & Guideline Settings
-  const [gridSettings, setGridSettings] = useState<GridSettings>({
-    showGrid: true,
-    gridSize: 50,
-    snapToGrid: false,
-    snapToPoints: false,
-    snapToGuides: false,
-    showMetrics: true,
-    showPoints: true,
-    showHandles: true,
-    japaneseGuide: 'cross',
-    showBodyFrame: true,
-    showKanaFrame: true,
-    highContrastCursor: true,
-    showCursorCrosshair: false,
-  });
+  }, [gridSettings]);
 
   // Quick profile for handwriting-optimized settings
   const handleApplyHandwritingPreset = useCallback(() => {
@@ -325,7 +369,6 @@ function AppMain({
     setIsKerningModalOpen,
     setIsWeightInterpModalOpen,
     setIsGlyphCompareModalOpen,
-    setIsRadicalStudioOpen,
     setIsStorageManagerOpen,
     setIsShortcutsModalOpen,
     setIsExportModalOpen,
@@ -532,10 +575,10 @@ function AppMain({
       commitHistory();
       if (append) {
         const existing = currentGlyph.contours || [];
-        handleUpdateContours([...existing, ...svgContours]);
+        handleUpdateContours([...existing, ...svgContours], { skipHistory: true });
         showToast(`SVGベクトル輪郭 (${svgContours.length}パス) を追加統合しました`, 'success');
       } else {
-        handleUpdateContours(svgContours);
+        handleUpdateContours(svgContours, { skipHistory: true });
         showToast(`SVGベクトル輪郭 (${svgContours.length}パス) に置換しました`, 'success');
       }
     },

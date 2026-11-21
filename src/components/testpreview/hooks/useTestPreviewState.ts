@@ -5,6 +5,7 @@ import { getContoursBoundingBox } from '../../../utils/path';
 import { ThemeMode, isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
 import { transformGlyphContours } from '../previewUtils';
+import { useIsTopModal } from '../../modals/ModalStackFrame';
 // Persisted editing state lives in ./persistedState (no heavy imports) so
 // AppModalsHost can hold it without pulling this hook's compileFont
 // dependency into the startup bundle. Re-exported here for existing users.
@@ -340,10 +341,11 @@ const [testText, setTestText] = usePersistedField(
   }, []);
 
   const isLight = isLightTheme(theme);
+  const isTopModal = useIsTopModal();
 
   // Handle keyboard shortcuts (Escape to exit fullscreen / close, F for fullscreen, Z for Zen/collapse)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // If typing in input or textarea, don't trigger shortcut
@@ -356,6 +358,7 @@ const [testText, setTestText] = usePersistedField(
           e.preventDefault();
           setIsFullscreen(false);
         } else {
+          e.preventDefault();
           onClose();
         }
       } else if ((e.key === 'f' || e.key === 'F') && !isInputFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -373,7 +376,7 @@ const [testText, setTestText] = usePersistedField(
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, layoutMode, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, layoutMode, onClose]);
 
   const cleanupActivePreviewFont = useCallback(() => {
     if (compileTimerRef.current) {

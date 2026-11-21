@@ -51,6 +51,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
       const {
         isAnyModalOpen,
         toolMode,
@@ -99,7 +100,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       if (isInputActive || isAnyModalOpen) return;
 
       // In-progress Pen Drawing Shortcuts
-      if (activePenContour) {
+      if (toolMode === 'pen' && activePenContour) {
         // Ctrl+Z / Cmd+Z: undo last placed node (prevents triggering full glyph history undo)
         // stopImmediatePropagation() is required here: stopPropagation() does not
         // stop the separate window keydown listener in useAppShortcuts, which
@@ -161,7 +162,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       }
 
       // Toggle Grid with 'G' key
-      if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey && !activePenContour) {
+      if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey && !(toolMode === 'pen' && activePenContour)) {
         e.preventDefault();
         if (onChangeGridSettings) {
           onChangeGridSettings((prev) => {
@@ -247,7 +248,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
 
       // Tool Operation Shortcuts
       if (e.key === 'Escape') {
-        if (activePenContour) {
+        if (toolMode === 'pen' && activePenContour) {
           e.preventDefault();
           handleResetPenContour();
         } else if (selectedContourIds.length > 0) {
@@ -261,7 +262,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
         } else if (isGlyphLocked) {
           e.preventDefault();
           showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
-        } else if (activePenContour) {
+        } else if (toolMode === 'pen' && activePenContour) {
           e.preventDefault();
           handleUndoPenNode();
         } else if (selectedNodeId || (selectedNodeIds && selectedNodeIds.length > 0)) {
@@ -314,7 +315,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           return next;
         });
       } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (activePenContour) {
+        if (toolMode === 'pen' && activePenContour) {
           e.preventDefault();
           if (isGlyphLocked) {
             showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
@@ -346,7 +347,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           handleDrawRulerAsStroke();
           return;
         }
-        if (activePenContour) {
+        if (toolMode === 'pen' && activePenContour) {
           if (isGlyphLocked) {
             showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             return;

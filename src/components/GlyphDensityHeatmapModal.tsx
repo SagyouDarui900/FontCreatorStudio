@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useDialogFocusTrap } from './modals/ModalStackFrame';
 import {
   X,
   Flame,
@@ -52,6 +53,8 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(dialogRef, isOpen && unicode !== null);
 
   // Interaction State
   const [tolerance, setTolerance] = useState<number>(3.5);
@@ -310,6 +313,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
       const {
         selectedNode: nodeSel,
         isFullscreen: fullscreen,
@@ -408,6 +412,7 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="輪郭ノード密度ヒートマップ"
@@ -505,7 +510,9 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
             </button>
 
             <button
+              type="button"
               onClick={onClose}
+              aria-label="閉じる"
               className={`p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >

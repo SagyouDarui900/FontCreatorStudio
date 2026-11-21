@@ -36,6 +36,7 @@ import { BeginnerTutorialTab } from './help/BeginnerTutorialTab';
 import { GlossaryTab } from './help/GlossaryTab';
 import { FeedbackTab } from './help/FeedbackTab';
 import { Github, MessageSquare } from 'lucide-react';
+import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface ShortcutsHelpModalProps {
  isOpen: boolean;
@@ -148,16 +149,17 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
  const isLight = isLightTheme(theme);
  const themeClasses = getThemeClasses(theme);
+ const isTopModal = useIsTopModal();
 
- // B7: move focus into the modal when it opens.
+ // B7: move focus into the modal when it opens standalone.
  useEffect(() => {
- if (!isOpen) return;
+ if (!isOpen || !isTopModal) return;
  modalRef.current?.focus();
- }, [isOpen]);
+ }, [isOpen, isTopModal]);
 
  // Keyboard shortcut listener: Escape and F
  useEffect(() => {
- if (!isOpen) return;
+ if (!isOpen || !isTopModal) return;
  const handleKeyDown = (e: KeyboardEvent) => {
  const activeTag = document.activeElement?.tagName.toLowerCase();
  const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -200,7 +202,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
  };
  window.addEventListener('keydown', handleKeyDown);
  return () => window.removeEventListener('keydown', handleKeyDown);
- }, [isOpen, isFullscreen, onClose]);
+ }, [isOpen, isTopModal, isFullscreen, onClose]);
 
  const filteredShortcuts = useMemo(() => {
  return SHORTCUTS.filter((item) => {
