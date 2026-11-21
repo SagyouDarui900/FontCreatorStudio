@@ -43,6 +43,7 @@ import {
   useToolModeCleanup,
   useCanvasContourActions,
 } from './canvas/hooks';
+import { setHoverCanvasPos } from './canvas/hoverStore';
 
 const NOOP_CHANGE_GRID_SETTINGS: React.Dispatch<React.SetStateAction<import('../types').GridSettings>> = () => {};
 
@@ -274,9 +275,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     }, 3200);
   }, []);
 
-  // Real-time Hover Position in Font Canvas Coordinates
-  const [hoverCanvasPos, setHoverCanvasPos] = useState<Point | null>(null);
-
   // Throttled RAF references for ultra-smooth 60fps canvas operations
   const generalCrosshairRef = useRef<SVGGElement | null>(null);
   const eraserReticleRef = useRef<SVGGElement | null>(null);
@@ -487,7 +485,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     eraserStrokePointsRef,
     activeEraserPathRef,
     activeEraserSvgDRef,
-    targetedEraserNodeCount,
     resetEraserVisuals,
     handleEraserPointerDown,
     handleEraserPointerMove,
@@ -496,7 +493,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     toolMode,
     contours,
     contoursRef,
-    hoverCanvasPos,
     onChangeContours,
     onCommitHistory,
     showCanvasToast,
@@ -861,8 +857,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     snapMetrics,
     customGuidelines,
     setActiveSnapGuides,
-    hoverCanvasPos,
-    setHoverCanvasPos,
     onChangeContours,
     onCommitHistory,
     onUndo,
@@ -1256,7 +1250,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleResetTracePosition={handleResetTracePosition}
           onTraceImageError={handleTraceImageError}
           isResizingTrace={isResizingTrace}
-          hoverCanvasPos={hoverCanvasPos}
           customGuidelines={customGuidelines}
           isGuideEraserActive={isGuideEraserActive}
           lockGuidelines={lockGuidelines}
@@ -1436,7 +1429,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         toolMode={toolMode}
         onSetToolMode={onSetToolMode}
         isSpacePressed={isSpacePressed}
-        hoverCanvasPos={hoverCanvasPos}
         activeChar={activeChar}
         selectedUnicode={selectedUnicode}
         onSelectPrevGlyph={onSelectPrevGlyph}

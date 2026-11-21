@@ -40,13 +40,13 @@ import {
   RulerMeasurement,
 } from '../../../types';
 import { GuideAssistOverlay } from './GuideAssistOverlay';
+import { useHoverCanvasPos } from '../hoverStore';
 
 export interface CanvasStatusBarProps {
   isLight: boolean;
   toolMode: ToolMode;
   onSetToolMode?: (mode: ToolMode) => void;
   isSpacePressed: boolean;
-  hoverCanvasPos: Point | null;
   activeChar?: string;
   selectedUnicode?: number;
   onSelectPrevGlyph?: () => void;
@@ -132,7 +132,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   toolMode,
   onSetToolMode,
   isSpacePressed,
-  hoverCanvasPos,
   activeChar = '',
   selectedUnicode,
   onSelectPrevGlyph,
@@ -182,6 +181,9 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   canUndo,
   canRedo,
 }) => {
+  // Coordinates are read from the external hoverStore so only the status
+  // bar re-renders on pointer moves, not the canvas above it.
+  const hoverCanvasPos = useHoverCanvasPos();
   const isShapeTool = [
     'rect',
     'square',

@@ -224,8 +224,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         snapMetrics: { ascender: 800, capHeight: 700, xHeight: 500, baseline: 800, descender: 1000, advanceWidth: 1000, lsb: 50 },
         customGuidelines: [],
         setActiveSnapGuides: vi.fn(),
-        hoverCanvasPos: null,
-        setHoverCanvasPos: vi.fn(),
         onChangeContours: vi.fn(),
         onUndo: vi.fn(),
         onRedo: vi.fn(),
@@ -367,6 +365,48 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         { id: 'b4', x: 150, y: 300, type: 'corner' },
       ],
     };
+
+    const result = unionContours([r1, r2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(createSpy).toHaveBeenCalledWith('canvas');
+    expect(result.length).toBe(2);
+
+    spy.mockRestore();
+    createSpy.mockRestore();
+  });
+
+  it('falls back to raster union when Paper.js returns the input unchanged (silent bypass)', () => {
+    const r1: PathContour = {
+      id: 'r1',
+      closed: true,
+      nodes: [
+        { id: 'a1', x: 100, y: 100, type: 'corner' },
+        { id: 'a2', x: 250, y: 100, type: 'corner' },
+        { id: 'a3', x: 250, y: 250, type: 'corner' },
+        { id: 'a4', x: 100, y: 250, type: 'corner' },
+      ],
+    };
+    const r2: PathContour = {
+      id: 'r2',
+      closed: true,
+      nodes: [
+        { id: 'b1', x: 150, y: 150, type: 'corner' },
+        { id: 'b2', x: 300, y: 150, type: 'corner' },
+        { id: 'b3', x: 300, y: 300, type: 'corner' },
+        { id: 'b4', x: 150, y: 300, type: 'corner' },
+      ],
+    };
+    // Paper.js silent bypass: ok:true but the input contours returned as-is.
+    const spy = vi
+      .spyOn(vectorBoolean, 'tryBooleanUnionContours')
+      .mockReturnValue({ ok: true, contours: [r1, r2], unchanged: true });
+    const origCreateElement = document.createElement.bind(document);
+    const createSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        return { width: 0, height: 0, getContext: () => null } as unknown as HTMLCanvasElement;
+      }
+      return origCreateElement(tag);
+    });
 
     const result = unionContours([r1, r2]);
     expect(spy).toHaveBeenCalledTimes(1);

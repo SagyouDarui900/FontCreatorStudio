@@ -12,6 +12,7 @@ interface JapaneseGuidesLayerProps {
   activeChar?: string;
   gridOpacity?: number;
   unitsPerEm?: number;
+  zoom?: number;
 }
 
 export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.memo(
@@ -25,6 +26,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     activeChar = '',
     gridOpacity = 30,
     unitsPerEm = 1000,
+    zoom = 1,
   }) => {
     if (
       guideType === 'none' &&
@@ -36,6 +38,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     }
 
     const upm = unitsPerEm || 1000;
+    const z = zoom && zoom > 0 ? zoom : 1;
     const half = upm / 2;
     const third1 = Number((upm / 3).toFixed(1));
     const third2 = Number(((upm * 2) / 3).toFixed(1));
@@ -163,20 +166,20 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
                 d={verticalGuidePath}
                 stroke={verticalGuideColor}
                 strokeDasharray="5 3"
-                strokeWidth={1.2}
+                strokeWidth={1.2} vectorEffect="non-scaling-stroke"
               />
             </g>
             {verticalGuide === 'center' && (
-              <text x={half} y={16} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11} opacity={1.0}>
+              <text x={half} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
                 X:{half} (中心)
               </text>
             )}
             {verticalGuide === 'thirds' && (
               <>
-                <text x={third1} y={16} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11} opacity={1.0}>
+                <text x={third1} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
                   X:{third1}
                 </text>
-                <text x={third2} y={16} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11} opacity={1.0}>
+                <text x={third2} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
                   X:{third2}
                 </text>
               </>
@@ -191,9 +194,9 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               d={paths.cross}
               stroke={primaryColor}
               strokeDasharray="6 4"
-              strokeWidth={1.2}
+              strokeWidth={1.2} vectorEffect="non-scaling-stroke"
             />
-            <circle cx={half} cy={half} r={3} fill={primaryColor} />
+            <circle cx={half} cy={half} r={3 / z} fill={primaryColor} />
           </g>
         )}
 
@@ -203,13 +206,13 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               d={paths.jiugong}
               stroke={primaryColor}
               strokeDasharray="5 3"
-              strokeWidth={1.1}
+              strokeWidth={1.1} vectorEffect="non-scaling-stroke"
             />
             <path
               d={paths.mi}
               stroke={secondaryColor}
               strokeDasharray="4 4"
-              strokeWidth={0.9}
+              strokeWidth={0.9} vectorEffect="non-scaling-stroke"
               opacity={0.6}
             />
           </g>
@@ -221,19 +224,19 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               d={paths.sixteen}
               stroke={primaryColor}
               strokeDasharray="5 3"
-              strokeWidth={1.1}
+              strokeWidth={1.1} vectorEffect="non-scaling-stroke"
             />
             <path
               d={paths.cross}
               stroke={secondaryColor}
-              strokeWidth={1.0}
+              strokeWidth={1.0} vectorEffect="non-scaling-stroke"
               opacity={0.7}
             />
             <path
               d={paths.mi}
               stroke={secondaryColor}
               strokeDasharray="4 4"
-              strokeWidth={0.8}
+              strokeWidth={0.8} vectorEffect="non-scaling-stroke"
               opacity={0.5}
             />
           </g>
@@ -245,15 +248,15 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               d={paths.mi}
               stroke={primaryColor}
               strokeDasharray="5 3"
-              strokeWidth={1.2}
+              strokeWidth={1.2} vectorEffect="non-scaling-stroke"
             />
             <path
               d={paths.cross}
               stroke={secondaryColor}
               strokeDasharray="4 4"
-              strokeWidth={1.0}
+              strokeWidth={1.0} vectorEffect="non-scaling-stroke"
             />
-            <circle cx={half} cy={half} r={3} fill={primaryColor} />
+            <circle cx={half} cy={half} r={3 / z} fill={primaryColor} />
           </g>
         )}
 
@@ -268,7 +271,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={bodySize}
               fill="none"
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
+              strokeWidth={3} vectorEffect="non-scaling-stroke"
               strokeDasharray="12 4 2 4"
               strokeOpacity={0.6}
               rx={4}
@@ -281,20 +284,20 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={bodySize}
               fill="none"
               stroke={kanjiFrameColor}
-              strokeWidth={1.5}
+              strokeWidth={1.5} vectorEffect="non-scaling-stroke"
               strokeDasharray="12 4 2 4"
               rx={4}
             />
             {/* Tag badge for immediate identification without relying on color */}
             <text
-              x={bodyInset + 6}
-              y={bodyInset + 14}
+              x={bodyInset + 6 / z}
+              y={bodyInset + 14 / z}
               fill={kanjiFrameColor}
-              fontSize={10}
+              fontSize={10 / z}
               fontWeight="bold"
               paintOrder="stroke"
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
+              strokeWidth={3} vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
             >
               漢字枠 (85%) ─・
@@ -313,7 +316,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={kanaSize}
               fill="none"
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
+              strokeWidth={3} vectorEffect="non-scaling-stroke"
               strokeDasharray="3 3"
               strokeOpacity={0.6}
               rx={4}
@@ -326,20 +329,20 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={kanaSize}
               fill="none"
               stroke={kanaFrameColor}
-              strokeWidth={1.5}
+              strokeWidth={1.5} vectorEffect="non-scaling-stroke"
               strokeDasharray="3 3"
               rx={4}
             />
             {/* Tag badge for immediate identification without relying on color */}
             <text
-              x={kanaInset + 6}
-              y={kanaInset + 14}
+              x={kanaInset + 6 / z}
+              y={kanaInset + 14 / z}
               fill={kanaFrameColor}
-              fontSize={10}
+              fontSize={10 / z}
               fontWeight="bold"
               paintOrder="stroke"
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
+              strokeWidth={3} vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
             >
               かな枠 (78%) ・・・

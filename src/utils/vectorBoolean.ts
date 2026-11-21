@@ -699,6 +699,13 @@ function booleanUnionContoursOrNull(contours: PathContour[]): PathContour[] | nu
 export interface BooleanOperationResult {
   ok: boolean;
   contours: PathContour[];
+  /**
+   * True when Paper.js returned the input contours unchanged (same contour
+   * objects, same count): no closed contours, no self-intersections, or a
+   * failed unite/subtract that bailed out silently. Callers must not treat
+   * this as a successful union — the overlaps were not resolved.
+   */
+  unchanged?: boolean;
 }
 
 /**
@@ -712,7 +719,13 @@ export function booleanUnionContours(contours: PathContour[]): PathContour[] {
 
 export function tryBooleanUnionContours(contours: PathContour[]): BooleanOperationResult {
   const result = booleanUnionContoursOrNull(contours);
-  return result === null ? { ok: false, contours } : { ok: true, contours: result };
+  if (result === null) return { ok: false, contours };
+  // Paper.js bail-outs return the input contours themselves (or the same
+  // contour objects regrouped). Detect that so callers can fall back to
+  // the raster union instead of treating "nothing happened" as success.
+  const unchanged =
+    result.length === contours.length && result.every((c) => contours.includes(c));
+  return { ok: true, contours: result, unchanged };
 }
 
 /**

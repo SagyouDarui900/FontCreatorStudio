@@ -6,7 +6,6 @@ interface UseCanvasEraserOptions {
   toolMode: ToolMode;
   contours: PathContour[];
   contoursRef: React.MutableRefObject<PathContour[]>;
-  hoverCanvasPos: Point | null;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
   showCanvasToast: (message: string, subText?: string) => void;
@@ -19,7 +18,6 @@ export function useCanvasEraser({
   toolMode,
   contours,
   contoursRef,
-  hoverCanvasPos,
   onChangeContours,
   onCommitHistory,
   showCanvasToast,
@@ -36,20 +34,6 @@ export function useCanvasEraser({
   const eraserStrokePointsRef = useRef<Point[]>([]);
   const activeEraserPathRef = useRef<SVGPathElement | null>(null);
   const activeEraserSvgDRef = useRef<string>('');
-
-  const targetedEraserNodeCount = useMemo(() => {
-    if (toolMode !== 'eraser' || eraserMode !== 'node' || !hoverCanvasPos) return 0;
-    const radius = Math.max(2, eraserSize / 2);
-    let count = 0;
-    for (const c of contours) {
-      for (const n of c.nodes) {
-        if (Math.hypot(n.x - hoverCanvasPos.x, n.y - hoverCanvasPos.y) <= radius) {
-          count++;
-        }
-      }
-    }
-    return count;
-  }, [toolMode, eraserMode, hoverCanvasPos, eraserSize, contours]);
 
   const resetEraserVisuals = useCallback(() => {
     isErasingRef.current = false;
@@ -233,7 +217,6 @@ export function useCanvasEraser({
     eraserStrokePointsRef,
     activeEraserPathRef,
     activeEraserSvgDRef,
-    targetedEraserNodeCount,
     resetEraserVisuals,
     reset: resetEraserVisuals,
     handleEraserPointerDown,

@@ -8,10 +8,12 @@ interface CanvasBackgroundLayerProps {
   gridSize: number;
   gridOpacity?: number;
   unitsPerEm?: number;
+  zoom?: number;
 }
 
 export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React.memo(
-  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = 30, unitsPerEm = 1000 }) => {
+  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = 30, unitsPerEm = 1000, zoom = 1 }) => {
+    const z = zoom && zoom > 0 ? zoom : 1;
     const size = gridSize || 50;
     const upm = unitsPerEm || 1000;
     const center = upm / 2;
@@ -100,7 +102,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
               d={`M ${size} 0 L 0 0 0 ${size}`}
               fill="none"
               stroke={gridStroke}
-              strokeWidth={1.25}
+              strokeWidth={1.25 / z}
             />
           </pattern>
         </defs>
@@ -120,19 +122,19 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
           height={upm}
           fill={emBoxFill}
           stroke={emBoxStroke}
-          strokeWidth={1.5}
+          strokeWidth={1.5 / z}
         />
 
         {/* Professional Font Drafting Corner Crop/Register Marks (トンボ) */}
         <g opacity={0.4}>
           {/* Top-Left */}
-          <path d="M -30 0 L 0 0 M 0 -30 L 0 0" stroke={cropMarkStroke} strokeWidth={1.2} />
+          <path d="M -30 0 L 0 0 M 0 -30 L 0 0" stroke={cropMarkStroke} strokeWidth={1.2 / z} />
           {/* Top-Right */}
-          <path d={`M ${upm + 30} 0 L ${upm} 0 M ${upm} -30 L ${upm} 0`} stroke={cropMarkStroke} strokeWidth={1.2} />
+          <path d={`M ${upm + 30} 0 L ${upm} 0 M ${upm} -30 L ${upm} 0`} stroke={cropMarkStroke} strokeWidth={1.2 / z} />
           {/* Bottom-Left */}
-          <path d={`M -30 ${upm} L 0 ${upm} M 0 ${upm + 30} L 0 ${upm}`} stroke={cropMarkStroke} strokeWidth={1.2} />
+          <path d={`M -30 ${upm} L 0 ${upm} M 0 ${upm + 30} L 0 ${upm}`} stroke={cropMarkStroke} strokeWidth={1.2 / z} />
           {/* Bottom-Right */}
-          <path d={`M ${upm + 30} ${upm} L ${upm} ${upm} M ${upm} ${upm + 30} L ${upm} ${upm}`} stroke={cropMarkStroke} strokeWidth={1.2} />
+          <path d={`M ${upm + 30} ${upm} L ${upm} ${upm} M ${upm} ${upm + 30} L ${upm} ${upm}`} stroke={cropMarkStroke} strokeWidth={1.2 / z} />
         </g>
 
         {/* Grid Overlay with configurable opacity */}

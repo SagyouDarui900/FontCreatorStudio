@@ -1,5 +1,6 @@
 import React from 'react';
 import { PathContour, Point } from '../../types';
+import { useHoverCanvasPos } from './hoverStore';
 
 export interface ActivePenPreviewLayerProps {
   activePenContour: PathContour | null;
@@ -7,7 +8,6 @@ export interface ActivePenPreviewLayerProps {
   penStrokeWidth: number;
   penCapStyle: 'round' | 'square' | 'butt';
   penMousePos: Point | null;
-  hoverCanvasPos: Point | null;
   zoom: number;
   selectionColor: string;
 }
@@ -19,10 +19,10 @@ export const ActivePenPreviewLayer: React.FC<ActivePenPreviewLayerProps> = React
     penStrokeWidth,
     penCapStyle,
     penMousePos,
-    hoverCanvasPos,
     zoom,
     selectionColor,
   }) => {
+    const hoverCanvasPos = useHoverCanvasPos();
     if (!activePenContour) return null;
 
     return (

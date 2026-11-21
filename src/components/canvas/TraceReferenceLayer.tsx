@@ -22,6 +22,7 @@ interface TraceReferenceLayerProps {
   onDoubleClickReset?: () => void;
   isResizing?: boolean;
   onTraceImageError?: () => void;
+  zoom?: number;
 }
 
 export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.memo(
@@ -38,7 +39,9 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     onPointerDownResize,
     onDoubleClickReset,
     onTraceImageError,
+    zoom = 1,
   }) => {
+    const z = zoom && zoom > 0 ? zoom : 1;
     const upm = unitsPerEm || 1000;
     const half = upm / 2;
     const baselineY = resolveBaselineY(ascender, upm);
@@ -193,7 +196,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={charBoxSize}
                   fill="transparent"
                   stroke={handleStroke}
-                  strokeWidth={2}
+                  strokeWidth={2} vectorEffect="non-scaling-stroke"
                   strokeDasharray="6 4"
                   className="cursor-move pointer-events-auto hover:stroke-emerald-500 transition-colors"
                   onPointerDown={onPointerDownImage}
@@ -241,7 +244,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                         height={imgBoxH}
                         fill="none"
                         stroke="#e11d48"
-                        strokeWidth={2}
+                        strokeWidth={2} vectorEffect="non-scaling-stroke"
                         strokeDasharray="6 4"
                       />
                       <text
@@ -249,7 +252,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                         y={half}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        fontSize={28}
+                        fontSize={28 / z}
                         fill="#e11d48"
                         fontFamily="sans-serif"
                         className="pointer-events-none select-none"
@@ -278,7 +281,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                       height={imgBoxH}
                       fill="transparent"
                       stroke={handleStroke}
-                      strokeWidth={2}
+                      strokeWidth={2} vectorEffect="non-scaling-stroke"
                       strokeDasharray="6 4"
                       className="cursor-move pointer-events-auto hover:stroke-emerald-500 transition-colors"
                       onPointerDown={onPointerDownImage}
@@ -303,20 +306,20 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
             <g className="trace-adjust-handles pointer-events-auto select-none">
               {/* Center Cross Indicator */}
               <line
-                x1={half - 15}
+                x1={half - 15 / z}
                 y1={half}
-                x2={half + 15}
+                x2={half + 15 / z}
                 y2={half}
                 stroke={handleStroke}
-                strokeWidth={1.5}
+                strokeWidth={1.5} vectorEffect="non-scaling-stroke"
               />
               <line
                 x1={half}
-                y1={half - 15}
+                y1={half - 15 / z}
                 x2={half}
-                y2={half + 15}
+                y2={half + 15 / z}
                 stroke={handleStroke}
-                strokeWidth={1.5}
+                strokeWidth={1.5} vectorEffect="non-scaling-stroke"
               />
 
               {/* Corner Resize Handles */}
@@ -327,14 +330,14 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 onPointerDown={(e) => onPointerDownResize?.(e, 'nw')}
               >
                 <rect
-                  x={-9}
-                  y={-9}
-                  width={18}
-                  height={18}
+                  x={-9 / z}
+                  y={-9 / z}
+                  width={18 / z}
+                  height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5}
-                  rx={3}
+                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
               </g>
@@ -346,14 +349,14 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 onPointerDown={(e) => onPointerDownResize?.(e, 'ne')}
               >
                 <rect
-                  x={-9}
-                  y={-9}
-                  width={18}
-                  height={18}
+                  x={-9 / z}
+                  y={-9 / z}
+                  width={18 / z}
+                  height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5}
-                  rx={3}
+                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
               </g>
@@ -365,14 +368,14 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 onPointerDown={(e) => onPointerDownResize?.(e, 'se')}
               >
                 <rect
-                  x={-9}
-                  y={-9}
-                  width={18}
-                  height={18}
+                  x={-9 / z}
+                  y={-9 / z}
+                  width={18 / z}
+                  height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5}
-                  rx={3}
+                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
               </g>
@@ -384,32 +387,32 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 onPointerDown={(e) => onPointerDownResize?.(e, 'sw')}
               >
                 <rect
-                  x={-9}
-                  y={-9}
-                  width={18}
-                  height={18}
+                  x={-9 / z}
+                  y={-9 / z}
+                  width={18 / z}
+                  height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5}
-                  rx={3}
+                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
               </g>
 
               {/* Scale % Tag at Top-Center of Bounding Box */}
               <g
-                transform={`translate(${half}, ${activeBoxY - 14})`}
+                transform={`translate(${half}, ${activeBoxY - 14 / z})`}
                 className="pointer-events-none"
               >
                 <rect
-                  x={-42}
-                  y={-14}
-                  width={84}
-                  height={20}
-                  rx={10}
+                  x={-42 / z}
+                  y={-14 / z}
+                  width={84 / z}
+                  height={20 / z}
+                  rx={10 / z}
                   fill={isLight ? '#0284c7' : '#0369a1'}
                   stroke="#ffffff"
-                  strokeWidth={1.5}
+                  strokeWidth={1.5} vectorEffect="non-scaling-stroke"
                 />
                 <text
                   x={0}
@@ -417,7 +420,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   textAnchor="middle"
                   dominantBaseline="central"
                   fill="#ffffff"
-                  fontSize={11}
+                  fontSize={11 / z}
                   fontWeight="bold"
                   fontFamily="sans-serif"
                 >
@@ -430,7 +433,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
           {/* Trace font load status for character underdrawings */}
           {traceSettings.type === 'char' && traceFontStatus !== 'ready' && (
             <g
-              transform={`translate(${half}, ${activeBoxY + activeBoxH + 18})`}
+              transform={`translate(${half}, ${activeBoxY + activeBoxH + 18 / z})`}
               className="pointer-events-none"
             >
               <text
@@ -439,7 +442,7 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 textAnchor="middle"
                 dominantBaseline="central"
                 fill={traceFontStatus === 'error' ? '#e11d48' : isLight ? '#b45309' : '#fbbf24'}
-                fontSize={12}
+                fontSize={12 / z}
                 fontFamily="sans-serif"
               >
                 {traceFontStatus === 'error'

@@ -238,6 +238,13 @@ export function useContourTransforms({
       showCanvasToast('重なり白抜き解消に失敗しました');
       return;
     }
+    // unionContours returns the input unchanged when there is nothing to
+    // merge (no overlaps, no self-intersection). Do not report that as a
+    // successful merge, and do not commit a no-op change to history.
+    if (merged.length === targets.length && merged.every((m) => targets.includes(m))) {
+      showCanvasToast('結合する重なりがありませんでした', '重なっているパスを選択して実行してください');
+      return;
+    }
 
     const otherContours = isExplicit
       ? contours.filter((c) => !selectedContourIds.includes(c.id))

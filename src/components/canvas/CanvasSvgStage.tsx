@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   PathContour,
   BezierNode,
@@ -75,7 +75,6 @@ export interface CanvasSvgStageProps {
   handleResetTracePosition: () => void;
   isResizingTrace: boolean;
   onTraceImageError?: () => void;
-  hoverCanvasPos: Point | null;
   customGuidelines: CustomGuideline[];
   isGuideEraserActive: boolean;
   lockGuidelines: boolean;
@@ -175,7 +174,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   handleResetTracePosition,
   isResizingTrace,
   onTraceImageError,
-  hoverCanvasPos,
   customGuidelines,
   isGuideEraserActive,
   lockGuidelines,
@@ -259,8 +257,23 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
     [selContours]
   );
 
+  // Viewport size for the rulers, which live outside the panning/zooming
+  // <g> below so they stay fixed at the top and left edges of the screen.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const update = () => setViewportSize({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <svg
+      ref={svgRef}
       className="absolute inset-0 w-full h-full touch-none select-none block"
       style={{
         touchAction: 'none',
@@ -317,6 +330,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           gridSize={gridSettings.gridSize || 50}
           gridOpacity={gridSettings.gridOpacity ?? 30}
           unitsPerEm={upm}
+          zoom={zoom}
         />
 
         {/* 2. Japanese Calligraphy / Layout Guides */}
@@ -330,6 +344,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           activeChar={activeChar}
           gridOpacity={gridSettings.gridOpacity ?? 30}
           unitsPerEm={upm}
+          zoom={zoom}
         />
 
         {/* 3. Adjacent Character Context Boxes */}
@@ -365,16 +380,9 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             onDoubleClickReset={handleResetTracePosition}
             isResizing={isResizingTrace}
             onTraceImageError={onTraceImageError}
+            zoom={zoom}
           />
         )}
-
-        {/* 5. Top & Left Ruler Scales */}
-        <CanvasRulersLayer
-          showRulers={gridSettings.showRulers !== false}
-          isLight={isLight}
-          hoverPos={hoverCanvasPos}
-          unitsPerEm={upm}
-        />
 
         {/* 6. Typography Metrics Guidelines */}
         <MetricsGuidesLayer
@@ -390,6 +398,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           descender={project?.metadata?.descender}
           capHeight={project?.metadata?.capHeight}
           xHeight={project?.metadata?.xHeight}
+          zoom={zoom}
         />
 
         {/* 7. User Custom Guidelines */}
@@ -543,7 +552,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           nodeStyle={nodeStyle}
           zoom={zoom}
           isLight={isLight}
-          hoverCanvasPos={hoverCanvasPos}
           eraserSize={eraserSize}
           startNodeOrHandleDrag={startNodeOrHandleDrag}
           handleToggleNodeType={handleToggleNodeType}
@@ -557,7 +565,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           penStrokeWidth={penStrokeWidth}
           penCapStyle={penCapStyle}
           penMousePos={penMousePos}
-          hoverCanvasPos={hoverCanvasPos}
           zoom={zoom}
           selectionColor={selectionColor}
         />
@@ -565,7 +572,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         {/* High-Contrast Cursor Crosshair & Drawing Reticles */}
         <CursorReticleOverlay
           gridSettings={gridSettings}
-          hoverCanvasPos={hoverCanvasPos}
           toolMode={toolMode}
           zoom={zoom}
           selectionColor={selectionColor}
@@ -584,6 +590,19 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           zoom={zoom}
         />
       </g>
+
+      {/* Top & Left Ruler Scales — outside the panning/zooming <g> so the
+          rulers stay fixed at the viewport edges instead of scrolling away
+          with the glyph. Positions are computed in screen coordinates. */}
+      <CanvasRulersLayer
+        showRulers={gridSettings.showRulers !== false}
+        isLight={isLight}
+        unitsPerEm={upm}
+        pan={panRef?.current ?? pan}
+        zoom={zoomRef?.current ?? zoom}
+        width={viewportSize.width}
+        height={viewportSize.height}
+      />
     </svg>
   );
 });

@@ -17,6 +17,7 @@ import { usePointerMetricsDrag } from './usePointerMetricsDrag';
 import { usePointerTransformDispatch } from './usePointerTransformDispatch';
 import { usePointerGuidelineDrag } from './usePointerGuidelineDrag';
 import { computePinchTransform } from './viewportMath';
+import { setHoverCanvasPos, getHoverCanvasPos } from '../hoverStore';
 
 export interface UseCanvasPointerDispatcherOptions {
   // Viewport
@@ -147,9 +148,6 @@ export interface UseCanvasPointerDispatcherOptions {
   snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   setActiveSnapGuides: (guides: SnapGuideLine[]) => void;
-  hoverCanvasPos: Point | null;
-  setHoverCanvasPos: (pos: Point | null) => void;
-
   // History & Toasts
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
@@ -251,8 +249,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     snapMetrics,
     customGuidelines,
     setActiveSnapGuides,
-    hoverCanvasPos,
-    setHoverCanvasPos,
     onChangeContours,
     onCommitHistory,
     onUndo,
@@ -289,9 +285,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
   }, [setLiveStylusPressure]);
 
-  // Throttled hover position mirror and rAF cancellation helper
-  const hoverCanvasPosRef = useRef<Point | null>(hoverCanvasPos);
-  hoverCanvasPosRef.current = hoverCanvasPos;
+  // Throttled hover position mirror and rAF cancellation helper.
+  // Hover lives in the external hoverStore now (not in GlyphCanvas state),
+  // so writing it here does not re-render the canvas or the stage.
+  const hoverCanvasPosRef = useRef<Point | null>(getHoverCanvasPos());
   const hoverRafIdRef = useRef<number | null>(null);
   const pendingHoverPosRef = useRef<Point | null>(null);
   const clearHoverPos = useCallback(() => {
@@ -302,7 +299,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     pendingHoverPosRef.current = null;
     hoverCanvasPosRef.current = null;
     setHoverCanvasPos(null);
-  }, [setHoverCanvasPos]);
+  }, []);
 
   // Synchronous mirrors for panning & marquee selection so rapid single-frame sequences never miss updates
   const isPanningRef = useRef<boolean>(isPanning);
@@ -1296,7 +1293,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     toolMode,
     gridSettings.showCursorCrosshair,
     isSpacePressed,
-    setHoverCanvasPos,
     clearHoverPos,
     updateLivePressureThrottled,
     handleGuidelinePointerMove,

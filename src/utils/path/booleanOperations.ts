@@ -504,8 +504,18 @@ export function unionContours(
     try {
       const unionRes = tryBooleanUnionContours(cluster);
       if (unionRes.ok && unionRes.contours.length > 0) {
-        resultContours.push(...unionRes.contours);
-        continue;
+        if (!unionRes.unchanged) {
+          resultContours.push(...unionRes.contours);
+          continue;
+        }
+        // Paper.js silently returned the input unchanged: the overlaps were
+        // not resolved. A clean single contour needs nothing more, but an
+        // overlapping or self-intersecting cluster falls through to the
+        // raster fallback below instead of being reported as merged.
+        if (cluster.length === 1 && !hasContourIntersections(cluster)) {
+          resultContours.push(...cluster);
+          continue;
+        }
       }
     } catch {
       // Fallback to raster algorithm below

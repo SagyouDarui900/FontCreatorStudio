@@ -3,7 +3,6 @@ import { GridSettings, Point, ToolMode } from '../../../types';
 
 export interface CursorReticleOverlayProps {
   gridSettings: GridSettings;
-  hoverCanvasPos: Point | null;
   toolMode: ToolMode;
   zoom: number;
   selectionColor: string;
@@ -17,7 +16,6 @@ export interface CursorReticleOverlayProps {
 
 export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.memo(({
   gridSettings,
-  hoverCanvasPos,
   toolMode,
   zoom,
   selectionColor,

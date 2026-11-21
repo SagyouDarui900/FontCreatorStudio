@@ -1,6 +1,7 @@
 import React from 'react';
 import { PathContour, BezierNode, Point, ToolMode, GridSettings } from '../../types';
 import { contoursToSvgPath } from '../../utils/path';
+import { useHoverCanvasPos } from './hoverStore';
 
 export interface BezierNodeControlsLayerProps {
   showNodes?: boolean;
@@ -9,7 +10,6 @@ export interface BezierNodeControlsLayerProps {
   toolMode: ToolMode;
   eraserMode: 'stroke' | 'cut' | 'all' | 'node' | 'point';
   eraserSize: number;
-  hoverCanvasPos: Point | null;
   selectedContourId: string | null;
   selectedNodeId: string | null;
   selectedNodeIds?: string[];
@@ -35,7 +35,6 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     toolMode,
     eraserMode,
     eraserSize,
-    hoverCanvasPos,
     selectedContourId,
     selectedNodeId,
     selectedNodeIds,
@@ -47,6 +46,9 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     handleToggleNodeType,
     isGlyphLocked = false,
   }) => {
+    // Hover is read from the external hoverStore so only this layer
+    // re-renders on pointer moves, not the whole stage.
+    const hoverCanvasPos = useHoverCanvasPos();
     if (!showNodes && !(toolMode === 'eraser' && eraserMode === 'node')) {
       return null;
     }

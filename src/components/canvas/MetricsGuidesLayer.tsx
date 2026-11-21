@@ -14,6 +14,7 @@ interface MetricsGuidesLayerProps {
   descender?: number;
   capHeight?: number;
   xHeight?: number;
+  zoom?: number;
 }
 
 export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
@@ -30,9 +31,11 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     descender,
     capHeight,
     xHeight,
+    zoom = 1,
   }) => {
     if (!showMetrics) return null;
 
+    const z = zoom && zoom > 0 ? zoom : 1;
     const { upm, baselineY, ascenderY, capHeightY, xHeightY, descenderY } =
       resolveCanvasMetrics({ unitsPerEm, ascender, descender, capHeight, xHeight }, unitsPerEm);
     const isKana = /[ぁ-んァ-ヶー]/.test(activeChar);
@@ -47,7 +50,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     const centerX = upm / 2;
     const verticalTopY = Math.min(0, ascenderY);
     const verticalBottomY = Math.max(upm, descenderY);
-    const ascenderLabelY = ascenderY <= 20 ? ascenderY + 14 : ascenderY - 8;
+    const ascenderLabelY = ascenderY <= 20 ? ascenderY + 14 / z : ascenderY - 8 / z;
 
     return (
       <g className="metrics-guides-layer select-none font-mono text-[11px] pointer-events-none">
@@ -59,7 +62,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={ascenderY}
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={2.8}
+            strokeWidth={2.8} vectorEffect="non-scaling-stroke"
             strokeDasharray="10 4"
             strokeOpacity={0.6}
           />
@@ -69,18 +72,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={ascenderY}
             stroke="#3b82f6"
-            strokeWidth={1.3}
+            strokeWidth={1.3} vectorEffect="non-scaling-stroke"
             strokeDasharray="10 4"
           />
-          <text
-            x={12}
+          <text fontSize={11 / z}
+            x={12 / z}
             y={ascenderLabelY}
             fill="#3b82f6"
             fontWeight="bold"
             opacity={0.9}
             paintOrder="stroke"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3}
+            strokeWidth={3} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
           >
             Ascender ──
@@ -95,7 +98,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={capHeightY}
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={2.5}
+            strokeWidth={2.5} vectorEffect="non-scaling-stroke"
             strokeDasharray="4 2"
             strokeOpacity={0.5}
           />
@@ -105,18 +108,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={capHeightY}
             stroke="#0ea5e9"
-            strokeWidth={1.1}
+            strokeWidth={1.1} vectorEffect="non-scaling-stroke"
             strokeDasharray="4 2"
           />
-          <text
-            x={12}
-            y={capHeightY - 8}
+          <text fontSize={11 / z}
+            x={12 / z}
+            y={capHeightY - 8 / z}
             fill="#0ea5e9"
             fontWeight="bold"
             opacity={0.9}
             paintOrder="stroke"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3}
+            strokeWidth={3} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
           >
             Cap Height ┄┄
@@ -131,7 +134,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={xHeightY}
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={2.5}
+            strokeWidth={2.5} vectorEffect="non-scaling-stroke"
             strokeDasharray="2 2"
             strokeOpacity={0.5}
           />
@@ -141,18 +144,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={xHeightY}
             stroke="#0284c7"
-            strokeWidth={1.1}
+            strokeWidth={1.1} vectorEffect="non-scaling-stroke"
             strokeDasharray="2 2"
           />
-          <text
-            x={12}
-            y={xHeightY - 8}
+          <text fontSize={11 / z}
+            x={12 / z}
+            y={xHeightY - 8 / z}
             fill="#0284c7"
             fontWeight="bold"
             opacity={0.9}
             paintOrder="stroke"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3}
+            strokeWidth={3} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
           >
             x-Height ┈┈
@@ -167,7 +170,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={baselineY}
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3.2}
+            strokeWidth={3.2} vectorEffect="non-scaling-stroke"
             strokeOpacity={0.7}
           />
           <line
@@ -176,25 +179,25 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={baselineY}
             stroke="#ef4444"
-            strokeWidth={isJapanese ? 1.4 : 1.8}
+            strokeWidth={isJapanese ? 1.4 : 1.8} vectorEffect="non-scaling-stroke"
             strokeDasharray={isJapanese ? '8 4' : undefined}
           />
           {/* Distinct Shape Marker (Filled Triangle) at origin for color-blind identification */}
           <polygon
-            points={`0,${baselineY - 5} 8,${baselineY} 0,${baselineY + 5}`}
+            points={`0,${baselineY - 5 / z} ${8 / z},${baselineY} 0,${baselineY + 5 / z}`}
             fill="#ef4444"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={1}
+            strokeWidth={1} vectorEffect="non-scaling-stroke"
           />
-          <text
-            x={14}
-            y={baselineY - 7}
+          <text fontSize={11 / z}
+            x={14 / z}
+            y={baselineY - 7 / z}
             fill="#ef4444"
             fontWeight="bold"
             opacity={0.95}
             paintOrder="stroke"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3}
+            strokeWidth={3} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
           >
             ▶ Baseline {isJapanese ? '(欧文底線)' : '(底線)'}
@@ -209,7 +212,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={descenderY}
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={2.8}
+            strokeWidth={2.8} vectorEffect="non-scaling-stroke"
             strokeDasharray="6 2 2 2"
             strokeOpacity={0.6}
           />
@@ -219,18 +222,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={Math.max(upm, advanceWidth)}
             y2={descenderY}
             stroke="#f97316"
-            strokeWidth={1.3}
+            strokeWidth={1.3} vectorEffect="non-scaling-stroke"
             strokeDasharray="6 2 2 2"
           />
-          <text
-            x={12}
-            y={descenderY - 8}
+          <text fontSize={11 / z}
+            x={12 / z}
+            y={descenderY - 8 / z}
             fill="#f97316"
             fontWeight="bold"
             opacity={0.9}
             paintOrder="stroke"
             stroke={isLight ? '#ffffff' : '#000000'}
-            strokeWidth={3}
+            strokeWidth={3} vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
           >
             Descender ─・
@@ -246,7 +249,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
               x2={centerX}
               y2={verticalBottomY}
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={2.8}
+              strokeWidth={2.8} vectorEffect="non-scaling-stroke"
               strokeDasharray="6 4"
               strokeOpacity={0.6}
             />
@@ -256,18 +259,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
               x2={centerX}
               y2={verticalBottomY}
               stroke="#8b5cf6"
-              strokeWidth={1.3}
+              strokeWidth={1.3} vectorEffect="non-scaling-stroke"
               strokeDasharray="6 4"
             />
-            <text
-              x={centerX + 6}
-              y={24}
+            <text fontSize={11 / z}
+              x={centerX + 6 / z}
+              y={24 / z}
               fill="#8b5cf6"
               fontWeight="bold"
               opacity={0.95}
               paintOrder="stroke"
               stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
+              strokeWidth={3} vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
             >
               | Center ({centerX})
@@ -283,10 +286,10 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={lsb}
             y2={verticalBottomY}
             stroke="#10b981"
-            strokeWidth={1.4}
+            strokeWidth={1.4} vectorEffect="non-scaling-stroke"
             strokeDasharray="4 2"
           />
-          <text x={lsb + 6} y={42} fill="#10b981" fontWeight="bold" opacity={0.9}>LSB: {lsb}</text>
+          <text fontSize={11 / z} x={lsb + 6 / z} y={42 / z} fill="#10b981" fontWeight="bold" opacity={0.9}>LSB: {lsb}</text>
         </g>
 
         {/* RSB / Advance Width */}
@@ -297,13 +300,13 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             x2={advanceWidth}
             y2={verticalBottomY}
             stroke="#10b981"
-            strokeWidth={1.4}
+            strokeWidth={1.4} vectorEffect="non-scaling-stroke"
             strokeDasharray="4 2"
           />
-          <text
-            x={advanceWidth > lsb + 160 ? advanceWidth - 6 : advanceWidth + 6}
+          <text fontSize={11 / z}
+            x={advanceWidth > lsb + 160 ? advanceWidth - 6 / z : advanceWidth + 6 / z}
             textAnchor={advanceWidth > lsb + 160 ? 'end' : 'start'}
-            y={42}
+            y={42 / z}
             fill="#10b981"
             fontWeight="bold"
             opacity={0.9}
