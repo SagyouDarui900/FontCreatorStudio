@@ -1518,6 +1518,15 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.hasClipboard !== next.hasClipboard) return false;
   if (prev.onCopySelectedContours !== next.onCopySelectedContours) return false;
   if (prev.onPasteSelectedContours !== next.onPasteSelectedContours) return false;
+  if (prev.onUndo !== next.onUndo) return false;
+  if (prev.onRedo !== next.onRedo) return false;
+  if (prev.onChangeContours !== next.onChangeContours) return false;
+  if (prev.onCommitHistory !== next.onCommitHistory) return false;
+  if (prev.onSetToolMode !== next.onSetToolMode) return false;
+  if (prev.onSelectPrevGlyph !== next.onSelectPrevGlyph) return false;
+  if (prev.onSelectNextGlyph !== next.onSelectNextGlyph) return false;
+  if (prev.onChangeAdvanceWidth !== next.onChangeAdvanceWidth) return false;
+  if (prev.onChangeLsb !== next.onChangeLsb) return false;
   if (prev.project?.metadata?.unitsPerEm !== next.project?.metadata?.unitsPerEm) return false;
   if (prev.project?.metadata?.ascender !== next.project?.metadata?.ascender) return false;
   if (prev.project?.metadata?.descender !== next.project?.metadata?.descender) return false;

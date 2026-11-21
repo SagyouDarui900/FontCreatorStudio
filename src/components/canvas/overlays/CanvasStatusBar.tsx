@@ -266,7 +266,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 type="button"
                 onClick={onSelectPrevGlyph}
                 className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="前の文字 ([ または Alt+←)"
+                title="前の文字 (Alt+←)"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -274,7 +274,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 type="button"
                 onClick={onSelectNextGlyph}
                 className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="次の文字 (] または Alt+→)"
+                title="次の文字 (Alt+→)"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>

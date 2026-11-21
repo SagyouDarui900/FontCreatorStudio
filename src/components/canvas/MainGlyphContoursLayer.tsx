@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ThemeMode } from '../../utils/theme';
 import { PathContour } from '../../types';
 import { contoursToSvgPath, groupContoursForRendering, RenderGroup } from '../../utils/path';
+import { getCachedContourSvgPath } from './cursors';
 
 export interface MainGlyphContoursLayerProps {
   contours?: PathContour[];
@@ -74,7 +75,7 @@ export const MainGlyphContoursLayer: React.FC<MainGlyphContoursLayerProps> = Rea
         <g id="main-glyph-contours-layer">
           {contours && contours.length > 0 ? (
             contours.map((contour: PathContour, idx: number) => {
-              const d = contoursToSvgPath([contour]);
+              const d = getCachedContourSvgPath(contour);
               if (!d) return null;
               return (
                 <path

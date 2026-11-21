@@ -66,7 +66,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
             setEraserSize((prev) => Math.max(8, prev - 6));
           }}
           className="w-5 h-5 flex items-center justify-center font-bold text-xs rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer"
-          title="消しゴムを小さく ([ キー)"
+          title="消しゴムを小さく (Shift+{ キー)"
         >
           -
         </button>
@@ -79,7 +79,7 @@ export const EraserSubToolbar: React.FC<EraserSubToolbarProps> = ({
             setEraserSize((prev) => Math.min(160, prev + 6));
           }}
           className="w-5 h-5 flex items-center justify-center font-bold text-xs rounded hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 cursor-pointer"
-          title="消しゴムを大きく (] キー)"
+          title="消しゴムを大きく (Shift+} キー)"
         >
           +
         </button>

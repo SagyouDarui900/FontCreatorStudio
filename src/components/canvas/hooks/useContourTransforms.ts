@@ -94,7 +94,6 @@ export function useContourTransforms({
         selectedContourIds.includes(c.id) ? slantSingleContour(c, angleDeg) : c
       );
       onChangeContours(updated);
-      onCommitHistory?.();
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
@@ -114,7 +113,6 @@ export function useContourTransforms({
         const rotatedMap = new Map(rotated.map((c) => [c.id, c]));
         onChangeContours(contours.map((c) => rotatedMap.get(c.id) || c));
       }
-      onCommitHistory?.();
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
@@ -134,7 +132,6 @@ export function useContourTransforms({
         const scaledMap = new Map(scaled.map((c) => [c.id, c]));
         onChangeContours(contours.map((c) => scaledMap.get(c.id) || c));
       }
-      onCommitHistory?.();
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
@@ -153,7 +150,6 @@ export function useContourTransforms({
       const flippedMap = new Map(flipped.map((c) => [c.id, c]));
       onChangeContours(contours.map((c) => flippedMap.get(c.id) || c));
     }
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]);
 
   const handleFlipVSelected = useCallback(() => {
@@ -170,7 +166,6 @@ export function useContourTransforms({
       const flippedMap = new Map(flipped.map((c) => [c.id, c]));
       onChangeContours(contours.map((c) => flippedMap.get(c.id) || c));
     }
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]);
 
   const handleDuplicateSelected = useCallback(() => {
@@ -188,7 +183,6 @@ export function useContourTransforms({
       onChangeContours([...contours, ...dups]);
       setSelectedContourIds(dups.map((d) => d.id));
     }
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, setSelectedContourIds, onCommitHistory]);
 
   const handleDeleteSelected = useCallback(() => {
@@ -210,7 +204,6 @@ export function useContourTransforms({
     setSelectedContourIds([]);
     setSelectedNodeId(null);
     setSelectedHandleType(null);
-    onCommitHistory?.();
   }, [
     blockIfLocked,
     contours,
@@ -252,7 +245,6 @@ export function useContourTransforms({
     const newContours = [...otherContours, ...merged];
     onChangeContours(newContours);
     setSelectedContourIds(merged.map((m) => m.id));
-    onCommitHistory?.();
 
     if (targets.length === 1) {
       showCanvasToast(
@@ -298,7 +290,6 @@ export function useContourTransforms({
     const updated = [...other, ...result.contours];
     onChangeContours(updated);
     setSelectedContourIds(result.contours.map((r) => r.id));
-    onCommitHistory?.();
     showCanvasToast('パスを型抜き（前面で背面を切り抜き）しました');
   }, [
     blockIfLocked,
@@ -333,7 +324,6 @@ export function useContourTransforms({
     const updated = [...other, ...result.contours];
     onChangeContours(updated);
     setSelectedContourIds(result.contours.map((r) => r.id));
-    onCommitHistory?.();
     showCanvasToast('パスの交差重なり部分を抽出しました');
   }, [
     blockIfLocked,
@@ -354,7 +344,6 @@ export function useContourTransforms({
       return reverseContour(c);
     });
     onChangeContours(updated);
-    onCommitHistory?.();
     showCanvasToast(
       '輪郭の向き（回転方向）を反転しました',
       '重なりが白抜き/黒塗りに反転します'
@@ -373,7 +362,6 @@ export function useContourTransforms({
       if (contours.length === 0) return;
       const result = smoothContoursPreservingShape(contours, { level, preserveCorners });
       onChangeContours(result.contours);
-      onCommitHistory?.();
 
       const levelName = level === 'mild' ? 'マイルド' : level === 'strong' ? '強力' : '標準';
       showCanvasToast(
@@ -400,7 +388,6 @@ export function useContourTransforms({
         return smoothStrokeContour(c, { level, preserveCorners }).contour;
       });
       onChangeContours(updated);
-      onCommitHistory?.();
 
       const levelName = level === 'mild' ? 'マイルド' : level === 'strong' ? '強力' : '標準';
       showCanvasToast(
@@ -426,7 +413,6 @@ export function useContourTransforms({
     if (contours.length === 0) return;
     const updated = contours.map((c) => straightenWobblyContour(c));
     onChangeContours(updated);
-    onCommitHistory?.();
     showCanvasToast('全ストロークの歪み・うねりを直線化補正しました', `${contours.length}個のパーツ`);
   }, [blockIfLocked, contours, onChangeContours, onCommitHistory, showCanvasToast]);
 
@@ -442,7 +428,6 @@ export function useContourTransforms({
       return straightenWobblyContour(c);
     });
     onChangeContours(updated);
-    onCommitHistory?.();
     showCanvasToast('選択パスの歪み・うねりを直線化補正しました', `${selectedContourIds.length}個のパーツ`);
   }, [blockIfLocked, contours, selectedContourIds, handleStraightenWobblyAll, onChangeContours, onCommitHistory, showCanvasToast]);
 
@@ -453,7 +438,6 @@ export function useContourTransforms({
       if (contours.length === 0) return;
       const simplified = contours.map((c) => simplifyContour(c, tolerance));
       onChangeContours(simplified);
-      onCommitHistory?.();
     },
     [blockIfLocked, contours, onChangeContours, onCommitHistory]
   );
@@ -466,7 +450,6 @@ export function useContourTransforms({
         selectedContourIds.includes(c.id) ? simplifyContour(c, tolerance) : c
       );
       onChangeContours(updated);
-      onCommitHistory?.();
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]
   );
@@ -478,7 +461,6 @@ export function useContourTransforms({
       selectedContourIds.includes(c.id) ? convertContourToCorners(c) : c
     );
     onChangeContours(updated);
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]);
 
   const handleConvertToSmoothSelected = useCallback(() => {
@@ -488,7 +470,6 @@ export function useContourTransforms({
       selectedContourIds.includes(c.id) ? convertContourToSmooth(c) : c
     );
     onChangeContours(updated);
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]);
 
   const handleToggleClosedSelected = useCallback(() => {
@@ -498,7 +479,6 @@ export function useContourTransforms({
       selectedContourIds.includes(c.id) ? { ...c, closed: !c.closed } : c
     );
     onChangeContours(updated);
-    onCommitHistory?.();
   }, [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory]);
 
   const handleExpandStrokeSelected = useCallback(() => {
@@ -511,7 +491,6 @@ export function useContourTransforms({
       onChangeContours([...nonTargetContours, ...expanded]);
       setSelectedContourIds(expanded.map((e) => e.id));
       setSelectedContourId(expanded[0].id);
-      onCommitHistory?.();
       showCanvasToast(
         `選択パスを太さ ${penStrokeWidth}px の線輪郭に変換しました`,
         `${expanded.length} 個の輪郭 (端点: ${penCapStyle === 'round' ? '丸' : penCapStyle === 'butt' ? '平' : '角'})`
@@ -536,7 +515,6 @@ export function useContourTransforms({
       if (selectedContourIds.length === 0) return;
       const updated = alignContours(contours, selectedContourIds, direction);
       onChangeContours(updated);
-      onCommitHistory?.();
       showCanvasToast('パスを整列しました');
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory, showCanvasToast]
@@ -551,7 +529,6 @@ export function useContourTransforms({
       }
       const updated = distributeContours(contours, selectedContourIds, direction);
       onChangeContours(updated);
-      onCommitHistory?.();
       showCanvasToast('パスを等間隔に分布しました');
     },
     [blockIfLocked, contours, selectedContourIds, onChangeContours, onCommitHistory, showCanvasToast]

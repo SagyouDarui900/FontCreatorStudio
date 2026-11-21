@@ -268,8 +268,8 @@ export function useShapeCreation({
       onCommitHistory?.();
       contoursRef.current = nextContours;
       onChangeContours(nextContours, { skipHistory: true });
-      setSelectedContourIds([]);
-      setSelectedContourId(null);
+      setSelectedContourIds(newContours.map((c) => c.id));
+      setSelectedContourId(newContours[0]?.id ?? null);
       latestShapePointRef.current = null;
       setShapeStartPoint(null);
       setShapeCurrentPoint(null);

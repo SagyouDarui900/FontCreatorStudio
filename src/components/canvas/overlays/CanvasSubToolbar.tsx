@@ -470,7 +470,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                   type="button"
                   onClick={onSelectPrevGlyph}
                   className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                  title="前の文字 ([ または Alt+←)"
+                  title="前の文字 (Alt+←)"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -484,7 +484,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                   type="button"
                   onClick={onSelectNextGlyph}
                   className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                  title="次の文字 (] または Alt+→)"
+                  title="次の文字 (Alt+→)"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>

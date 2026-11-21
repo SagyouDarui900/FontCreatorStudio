@@ -15,12 +15,12 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
     const upm = unitsPerEm || 1000;
 
     const rulerTicks = useMemo(() => {
-      const ticks = [];
+      const ticks: { value: number; minor: number }[] = [];
       const step = upm > 1500 ? 200 : upm > 1000 ? 150 : 100;
       for (let i = 0; i <= upm; i += step) {
-        ticks.push(i);
+        ticks.push({ value: i, minor: i + step / 2 });
       }
-      if (ticks[ticks.length - 1] !== upm) ticks.push(upm);
+      if (ticks[ticks.length - 1]?.value !== upm) ticks.push({ value: upm, minor: upm });
       return ticks;
     }, [upm]);
 
@@ -53,7 +53,7 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
           />
 
           {/* Top Ruler Ticks & Numbers */}
-          {rulerTicks.map((x) => (
+          {rulerTicks.map(({ value: x, minor }) => (
             <g key={`top-tick-${x}`}>
               <line
                 x1={x}
@@ -72,11 +72,11 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
                 {x}
               </text>
               {/* Minor tick */}
-              {x < upm && (
+              {x < upm && minor < upm && (
                 <line
-                  x1={x + 50}
+                  x1={minor}
                   y1={-10}
-                  x2={x + 50}
+                  x2={minor}
                   y2={0}
                   stroke={strokeMinor}
                   strokeWidth={1}
@@ -86,7 +86,7 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
           ))}
 
           {/* Left Ruler Ticks & Numbers */}
-          {rulerTicks.map((y) => (
+          {rulerTicks.map(({ value: y, minor }) => (
             <g key={`left-tick-${y}`}>
               <line
                 x1={-18}
@@ -105,12 +105,12 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
                 {y}
               </text>
               {/* Minor tick */}
-              {y < upm && (
+              {y < upm && minor < upm && (
                 <line
                   x1={-10}
-                  y1={y + 50}
+                  y1={minor}
                   x2={0}
-                  y2={y + 50}
+                  y2={minor}
                   stroke={strokeMinor}
                   strokeWidth={1}
                 />

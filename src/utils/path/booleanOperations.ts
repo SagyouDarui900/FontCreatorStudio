@@ -201,16 +201,19 @@ export function hasContourIntersections(contours: PathContour[]): boolean {
 
   const allSegments: FastSegment[] = [];
   const segCountByContour: number[] = [];
+  const isClosedByContour: boolean[] = [];
 
   for (let cIdx = 0; cIdx < contours.length; cIdx++) {
     const contour = contours[cIdx];
     if (!contour.nodes || contour.nodes.length < 2) {
       segCountByContour.push(0);
+      isClosedByContour.push(false);
       continue;
     }
     const points = sampleContourPoints(contour, 3);
     if (points.length < 2) {
       segCountByContour.push(0);
+      isClosedByContour.push(false);
       continue;
     }
 
@@ -218,6 +221,7 @@ export function hasContourIntersections(contours: PathContour[]): boolean {
     for (let i = 0; i < points.length - 1; i++) {
       const p1 = points[i];
       const p2 = points[i + 1];
+      if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 1e-4) continue;
       allSegments.push({
         p1,
         p2,
@@ -233,6 +237,11 @@ export function hasContourIntersections(contours: PathContour[]): boolean {
     if (contour.closed && points.length > 2) {
       const p1 = points[points.length - 1];
       const p2 = points[0];
+      if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 1e-4) {
+        segCountByContour.push(segCount);
+        isClosedByContour.push(true);
+        continue;
+      }
       allSegments.push({
         p1,
         p2,
@@ -245,6 +254,7 @@ export function hasContourIntersections(contours: PathContour[]): boolean {
       });
     }
     segCountByContour.push(segCount);
+    isClosedByContour.push(contour.closed && points.length > 2);
   }
 
   // 1D Sweep-line sorted by minX for 100% complete intersection check with zero segment skipping
@@ -262,11 +272,13 @@ export function hasContourIntersections(contours: PathContour[]): boolean {
       // Prune by Y: Fast AABB rejection
       if (s1.maxY < s2.minY || s1.minY > s2.maxY) continue;
 
-      // Adjacent segments on the same contour share an endpoint; exclude
+      // Adjacent segments on the same contour share an endpoint; exclude.
+      // The first/last pair is adjacent only for closed contours: an open
+      // contour whose end returns to its start is a real self-intersection.
       if (s1.contourIdx === s2.contourIdx) {
         const diff = Math.abs(s1.segIdx - s2.segIdx);
         const count = segCountByContour[s1.contourIdx] || 0;
-        if (diff <= 1 || (count > 2 && diff >= count - 1)) continue;
+        if (diff <= 1 || (isClosedByContour[s1.contourIdx] && count > 2 && diff >= count - 1)) continue;
       }
 
       if (getLineSegmentIntersection(s1.p1, s1.p2, s2.p1, s2.p2)) {

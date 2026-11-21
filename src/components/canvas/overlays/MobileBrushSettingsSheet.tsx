@@ -222,10 +222,10 @@ export const MobileBrushSettingsSheet: React.FC<MobileBrushSettingsSheetProps> =
                   <button
                     key={preset.id}
                     onClick={() => {
+                      // Do not overwrite the width with the preset default:
+                      // onChangeBrushStyle restores the width saved for the
+                      // selected style, as the desktop brush menu does.
                       onChangeBrushStyle?.(preset.id);
-                      if (preset.defaultWidth && onChangeBrushWidth) {
-                        onChangeBrushWidth(preset.defaultWidth);
-                      }
                       onClose();
                     }}
                     className={`p-2.5 rounded-xl border text-left transition-colors ${

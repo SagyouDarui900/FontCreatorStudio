@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Point } from '../../../types';
-import { clampPanToViewport, MIN_CANVAS_ZOOM } from './viewportMath';
+import { clampPanToViewport, MIN_CANVAS_ZOOM, MAX_CANVAS_ZOOM } from './viewportMath';
 
 interface UseCanvasViewportOptions {
   upm: number;
@@ -135,7 +135,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const prevZoom = zoomRef.current;
-      const nextZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(5.0, prevZoom * factor));
+      const nextZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(MAX_CANVAS_ZOOM, prevZoom * factor));
       const scale = nextZoom / prevZoom;
       const prevPan = panRef.current;
       const nextPan = clampPan(

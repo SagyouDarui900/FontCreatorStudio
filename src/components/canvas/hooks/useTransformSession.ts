@@ -457,9 +457,13 @@ export function useTransformSession({
     }
     pendingTransformContoursRef.current = null;
     hasCommittedTransformHistoryRef.current = false;
+    if (transformSession) {
+      const initialMap = new Map(transformSession.initialContours.map((c) => [c.id, c]));
+      onChangeContours(contours.map((c) => initialMap.get(c.id) || c), { skipHistory: true });
+    }
     setTransformSession(null);
     setRotateDisplayAngle(null);
-  }, []);
+  }, [transformSession, contours, onChangeContours]);
 
   return {
     transformSession,
