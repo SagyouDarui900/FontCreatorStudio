@@ -1,5 +1,6 @@
-import React from 'react';
-import { BookOpen, X, PenTool, Paintbrush, MousePointer } from 'lucide-react';
+import React, { useRef } from 'react';
+import { X } from 'lucide-react';
+import { useDialogFocusTrap } from '../modals/ModalStackFrame';
 
 interface RadicalShortcutsHelpModalProps {
   isOpen: boolean;
@@ -7,81 +8,104 @@ interface RadicalShortcutsHelpModalProps {
   isLight: boolean;
 }
 
+const RADICAL_SHORTCUTS = [
+  { key: 'V', label: '選択・頂点編集' },
+  { key: 'P', label: 'ベジェペン' },
+  { key: 'B', label: '筆ツール' },
+  { key: 'E', label: '消しゴム' },
+  { key: 'Space / H', label: '画面移動' },
+  { key: 'Ctrl + Z / Y', label: '元に戻す / やり直す' },
+];
+
 export const RadicalShortcutsHelpModal: React.FC<RadicalShortcutsHelpModalProps> = ({
   isOpen,
   onClose,
   isLight,
 }) => {
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  useDialogFocusTrap(modalRef, isOpen, onClose);
+
   if (!isOpen) return null;
 
+  const dividerClass = isLight ? 'border-stone-200' : 'border-[#25362b]';
+  const headingText = isLight ? 'text-stone-900' : 'text-stone-100';
+  const mutedText = isLight ? 'text-stone-600' : 'text-stone-300';
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 anim-fade">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75">
       <div
-        className={`w-full max-w-md rounded-2xl border shadow-2xl flex flex-col overflow-hidden ${
-          isLight ? 'bg-white border-[#c8ded3]' : 'bg-[#16221a] border-[#25362b]'
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="部首工房 ショートカット・操作ガイド"
+        tabIndex={-1}
+        className={`w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden ${
+          isLight ? 'bg-white border-stone-200' : 'bg-[#16221a] border-[#25362b]'
         }`}
       >
-        <div className="p-3.5 border-b flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <BookOpen className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-            <h3 className="text-sm font-bold">部首工房 ショートカット・操作ガイド</h3>
-          </div>
+        <div className={`px-4 py-3 border-b flex items-center justify-between ${dividerClass}`}>
+          <h3 className={`text-sm font-bold ${headingText}`}>
+            部首工房 操作ガイド
+          </h3>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded text-stone-400 hover:text-stone-700"
+            aria-label="閉じる"
+            className="p-1.5 rounded-md text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-4 space-y-3.5 text-xs text-stone-700 dark:text-stone-300">
-          <div>
-            <h4 className="font-bold text-emerald-800 dark:text-emerald-300 mb-1.5 flex items-center space-x-1">
-              <PenTool className="w-3.5 h-3.5" />
-              <span>ベジェペンツール (P)</span>
-            </h4>
-            <ul className="space-y-1 list-disc list-inside text-[11.5px] text-stone-600 dark:text-stone-300">
-              <li><strong>クリック</strong>: 直線の角頂点（Corner Node）を追加</li>
-              <li><strong>クリック＆ドラッグ</strong>: 滑らかな曲率ハンドル（Smooth Node）を伸ばす</li>
-              <li><strong>始点クリック / Enter</strong>: パスを閉じて輪郭として確定</li>
-              <li><strong>Backspace / 1点戻す</strong>: 直前に打った頂点を取り消す</li>
-              <li><strong>Esc</strong>: 作図中のパスをリセット</li>
+        <div className={`p-5 space-y-5 text-xs ${mutedText}`}>
+          <section className="space-y-1.5">
+            <h4 className={`font-bold ${headingText}`}>ペンツール (P)</h4>
+            <ul className="space-y-1 list-disc list-inside leading-relaxed">
+              <li>クリック: コーナー点（角）を追加</li>
+              <li>ドラッグ: ハンドル付きスムーズ点（曲線）を追加</li>
+              <li>始点クリック / Enter: パスを閉じて確定</li>
+              <li>Backspace: 直前の頂点を取り消し</li>
+              <li>Esc: 作成中のパスを破棄</li>
             </ul>
-          </div>
+          </section>
 
-          <div>
-            <h4 className="font-bold text-emerald-800 dark:text-emerald-300 mb-1.5 flex items-center space-x-1">
-              <Paintbrush className="w-3.5 h-3.5" />
-              <span>手書き筆・ブラシツール (B)</span>
-            </h4>
-            <ul className="space-y-1 list-disc list-inside text-[11.5px] text-stone-600 dark:text-stone-300">
-              <li><strong>低遅延RAF描画</strong>: 筆先ストロークが遅れずリアルタイムに追従</li>
-              <li><strong>筆圧・描画速度連動</strong>: 毛筆・明朝・ゴシック・マーカー等で自然な止め・払い・抑揚を再現</li>
-              <li><strong>Shiftキー / 直線モード</strong>: 押下しながら描くことで直線ストロークを作成</li>
-              <li><strong>自動重なり結合</strong>: 描いたストロークが自動で既存輪郭と結合し、白抜けを防止</li>
+          <section className={`pt-4 border-t ${dividerClass} space-y-1.5`}>
+            <h4 className={`font-bold ${headingText}`}>筆ツール (B)</h4>
+            <ul className="space-y-1 list-disc list-inside leading-relaxed">
+              <li>筆圧と移動速度に応じて線幅を変化させます</li>
+              <li>Shift + ドラッグ: 直線ストロークを描画</li>
+              <li>既存の輪郭と重なる場合、設定に応じて外周を統合します</li>
             </ul>
-          </div>
+          </section>
 
-          <div>
-            <h4 className="font-bold text-emerald-800 dark:text-emerald-300 mb-1.5 flex items-center space-x-1">
-              <MousePointer className="w-3.5 h-3.5" />
-              <span>ツール切替 & 共通キー</span>
-            </h4>
-            <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">V</strong>: 選択 / 頂点編集</div>
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">P</strong>: ベジェペン</div>
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">B</strong>: 手書きブラシ</div>
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">E</strong>: 消しゴム</div>
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">Space / H</strong>: 画面スクロール</div>
-              <div className="p-1.5 rounded bg-stone-100 dark:bg-[#1a281f]"><strong className="text-emerald-700 dark:text-emerald-300">Ctrl+Z / Y</strong>: 取消 / やり直し</div>
-            </div>
-          </div>
+          <section className={`pt-4 border-t ${dividerClass} space-y-2`}>
+            <h4 className={`font-bold ${headingText}`}>ショートカットキー</h4>
+            <dl className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'} border-t ${dividerClass}`}>
+              {RADICAL_SHORTCUTS.map((item) => (
+                <div key={item.key} className="py-1.5 flex items-center justify-between gap-3">
+                  <dt className={mutedText}>{item.label}</dt>
+                  <dd>
+                    <kbd
+                      className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold border ${
+                        isLight
+                          ? 'bg-stone-50 border-stone-300 text-stone-800'
+                          : 'bg-[#121c16] border-[#2c3d31] text-stone-200'
+                      }`}
+                    >
+                      {item.key}
+                    </kbd>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         </div>
 
-        <div className="p-3 border-t bg-stone-50 dark:bg-[#131d16] flex justify-end">
+        <div className={`px-4 py-3 border-t ${dividerClass} flex justify-end`}>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-emerald-800 text-white font-bold text-xs hover:bg-emerald-900"
+            className="px-4 py-1.5 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs cursor-pointer"
           >
             閉じる
           </button>

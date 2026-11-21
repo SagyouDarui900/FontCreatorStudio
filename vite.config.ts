@@ -5,11 +5,33 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
+  const isHmrDisabled = process.env.DISABLE_HMR === 'true';
+
   return {
     base: './',
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'safe-pwa-dev-entry',
+        apply: 'serve',
+        enforce: 'pre',
+        resolveId(id) {
+          if (isHmrDisabled && id === '/@vite-plugin-pwa/pwa-entry-point-loaded') {
+            return '\0safe-pwa-dev-entry';
+          }
+          return undefined;
+        },
+        load(id) {
+          if (id === '\0safe-pwa-dev-entry') {
+            // When DISABLE_HMR=true, Vite does not open an HMR WebSocket, so
+            // vite-plugin-pwa's default import.meta.hot.send() rejects with
+            // "send was called before connect". Return a safe no-op instead.
+            return 'export default function registerDevSW() {}\n';
+          }
+          return undefined;
+        },
+      },
       VitePWA({
         registerType: 'prompt',
         // includeManifestIcons は false にする。既定値 true では manifest

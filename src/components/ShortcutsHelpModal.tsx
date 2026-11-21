@@ -1,822 +1,526 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import {
- Keyboard,
- X,
- Search,
- Paintbrush,
- PenTool,
- Move,
- Maximize2,
- Minimize2,
- Undo2,
- BookOpen,
- Sparkles,
- Layers,
- Download,
- HelpCircle,
- FileCode,
- ShieldCheck,
- Wand2,
- ArrowLeftRight,
- Shapes,
- CheckCircle2,
- Lightbulb,
- ExternalLink,
- Laptop,
- Tablet,
- Grid,
- Sliders,
- Database,
- Hand,
- Book,
- Mouse,
-} from 'lucide-react';
+import { X, Search, Maximize2, Minimize2 } from 'lucide-react';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BeginnerTutorialTab } from './help/BeginnerTutorialTab';
 import { GlossaryTab } from './help/GlossaryTab';
 import { FeedbackTab } from './help/FeedbackTab';
-import { Github, MessageSquare } from 'lucide-react';
-import { useIsTopModal } from './modals/ModalStackFrame';
+import { useIsTopModal, useDialogFocusTrap } from './modals/ModalStackFrame';
 
 interface ShortcutsHelpModalProps {
- isOpen: boolean;
- onClose: () => void;
- theme: ThemeMode;
- initialTab?: 'tutorial' | 'glossary' | 'features' | 'shortcuts' | 'faq' | 'feedback';
+  isOpen: boolean;
+  onClose: () => void;
+  theme: ThemeMode;
+  initialTab?: 'tutorial' | 'glossary' | 'features' | 'shortcuts' | 'faq' | 'feedback';
 }
 
+type ShortcutCategoryId = 'mouse' | 'tools' | 'drawing' | 'view' | 'nav' | 'edit' | 'modal';
+
 interface ShortcutItem {
- keys: string[];
- description: string;
- category: 'tools' | 'drawing' | 'view' | 'nav' | 'edit' | 'mouse';
- badge?: string;
+  keys: string[];
+  description: string;
+  category: ShortcutCategoryId;
 }
 
 const SHORTCUTS: ShortcutItem[] = [
- // マウス・ホイール・クリック操作
- { keys: ['通常ホイール'], description: '画面の上下スクロール移動 (Pan Y)', category: 'mouse', badge: '基本' },
- { keys: ['Shift', '+', 'ホイール'], description: '画面の左右スクロール移動 (Pan X)', category: 'mouse' },
- { keys: ['Ctrl / ⌘', '+', 'ホイール'], description: 'マウスカーソル位置を中心とした拡大・縮小（10%〜3200%）', category: 'mouse', badge: '便利' },
- { keys: ['Alt', '+', 'ホイール'], description: 'ブラシ・消しゴムサイズのホイール拡縮調整', category: 'mouse', badge: 'サイズ調整' },
- { keys: ['中ボタン (ホイール押し込みドラッグ)'], description: 'キャンバスのパン移動（手のひらツール相当）', category: 'mouse', badge: '画面移動' },
- { keys: ['Space', '+', '左ドラッグ'], description: 'キャンバスのパン移動（手のひらツール相当）', category: 'mouse' },
- { keys: ['パスをダブルクリック'], description: '当該輪郭の全ノード選択およびノード編集モードへの切り替え', category: 'mouse', badge: 'ノード編集' },
- { keys: ['Shift', '+', '左クリック (選択時)'], description: '複数輪郭パーツの追加選択・除外（複数選択トグル）', category: 'mouse' },
- { keys: ['右クリック (キャンバス)'], description: '反転・回転・2次/3次ベジェ変換・部首登録・文字送りメニューを表示', category: 'mouse', badge: 'コンテキスト' },
- { keys: ['Shift', '+', '左ドラッグ (筆描画時)'], description: '直前位置から水平・垂直・45度方向への直線描画', category: 'mouse' },
+  // マウス・ホイール
+  { keys: ['ホイール'], description: 'キャンバスを上下にスクロール', category: 'mouse' },
+  { keys: ['Shift', '+', 'ホイール'], description: 'キャンバスを左右にスクロール', category: 'mouse' },
+  { keys: ['Ctrl / ⌘', '+', 'ホイール'], description: 'カーソル位置を中心に拡大・縮小（10%〜3200%）', category: 'mouse' },
+  { keys: ['Alt', '+', 'ホイール'], description: 'ブラシ・消しゴムのサイズを変更', category: 'mouse' },
+  { keys: ['中ボタンドラッグ'], description: 'キャンバスをパン移動', category: 'mouse' },
+  { keys: ['Space', '+', '左ドラッグ'], description: 'キャンバスをパン移動', category: 'mouse' },
+  { keys: ['パスをダブルクリック'], description: '対象輪郭の全ノードを選択', category: 'mouse' },
+  { keys: ['Shift', '+', '左クリック'], description: '選択中の輪郭・ノードへの追加と除外を切り替え', category: 'mouse' },
+  { keys: ['右クリック'], description: '反転・回転・2次/3次ベジェ変換・部首登録メニューを表示', category: 'mouse' },
+  { keys: ['Shift', '+', 'ドラッグ'], description: '筆描画時に直前位置から水平・垂直・45 度の直線を描画', category: 'mouse' },
 
- // ツール切替
- { keys: ['B'], description: '筆・毛筆ブラシツールに切り替え', category: 'tools', badge: '手書き' },
- { keys: ['P'], description: 'ベクターペンツール（ベジェ曲線）に切り替え', category: 'tools', badge: 'ベジェ' },
- { keys: ['V'], description: '選択・移動ツールに切り替え', category: 'tools' },
- { keys: ['E'], description: '消しゴムツールに切り替え', category: 'tools' },
- { keys: ['R'], description: '長方形ツールに切り替え', category: 'tools' },
- { keys: ['O'], description: '楕円・円ツールに切り替え', category: 'tools' },
- { keys: ['M'], description: '定規・距離計測ツールに切り替え', category: 'tools' },
- { keys: ['H'], description: '照準ポインター・十字線の表示 / 非表示切り替え', category: 'view' },
+  // ツール切替
+  { keys: ['B'], description: '筆ツールに切り替え', category: 'tools' },
+  { keys: ['P'], description: 'ペンツール（ベジェ曲線）に切り替え', category: 'tools' },
+  { keys: ['V'], description: '選択ツール（輪郭移動・ノード編集）に切り替え', category: 'tools' },
+  { keys: ['E'], description: '消しゴムツールに切り替え', category: 'tools' },
+  { keys: ['R'], description: '長方形ツールに切り替え（下絵調整中は位置リセット）', category: 'tools' },
+  { keys: ['O'], description: '楕円ツールに切り替え', category: 'tools' },
+  { keys: ['M'], description: '定規（距離計測）ツールに切り替え', category: 'tools' },
 
- // 描画・編集操作
- { keys: ['Ctrl / ⌘', '+', 'C'], description: '選択した輪郭パスをクリップボードにコピー', category: 'drawing', badge: '便利' },
- { keys: ['Ctrl / ⌘', '+', 'V'], description: 'クリップボードの輪郭パスを現在の文字に貼り付け', category: 'drawing', badge: '便利' },
- { keys: ['↑', '↓', '←', '→'], description: '選択したノードや輪郭を矢印キーで移動（Shiftで10px、Altで0.1px単位）', category: 'drawing' },
- { keys: ['C'], description: 'ペン作図中はパスを閉じて確定 / 選択中ノードのスムーズ（曲線）／コーナー（角）属性の切り替え', category: 'drawing', badge: 'ノード属性' },
- { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小 (-4px)', category: 'drawing' },
- { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大 (+4px)', category: 'drawing' },
- { keys: ['['], description: 'ブラシサイズを縮小 (-4px)', category: 'drawing' },
- { keys: [']'], description: 'ブラシサイズを拡大 (+4px)', category: 'drawing' },
- { keys: ['Shift', '+', 'ドラッグ'], description: '水平・垂直・45度の直線ストロークを描画', category: 'drawing', badge: '直線' },
- { keys: ['Enter'], description: 'ペンツールでのパス作成を開いた線のまま確定（始点クリックで自動閉合）', category: 'drawing' },
- { keys: ['Backspace', '/', 'Delete'], description: 'ペン作図中は直前の1点を削除。通常時は選択要素を削除', category: 'drawing' },
+  // 描画・パス編集
+  { keys: ['Ctrl / ⌘', '+', 'C'], description: '現在の文字の輪郭をコピー', category: 'drawing' },
+  { keys: ['Ctrl / ⌘', '+', 'V'], description: 'コピーした輪郭を貼り付け', category: 'drawing' },
+  { keys: ['↑', '↓', '←', '→'], description: '選択要素を 1 単位移動（Shift で 10 単位、Alt で 0.1 単位）', category: 'drawing' },
+  { keys: ['C'], description: 'ペン描画中はパスを閉じて確定 / ノード選択中はスムーズとコーナーを切り替え', category: 'drawing' },
+  { keys: ['Alt', '+', 'S'], description: 'パスの単純化を実行（ノード数を削減）', category: 'drawing' },
+  { keys: ['Shift', '+', 'Alt', '+', 'S'], description: '左右余白（サイドベアリング）と送り幅を自動設定', category: 'drawing' },
+  { keys: ['Shift', '+', 'S'], description: '選択ストロークを平滑化', category: 'drawing' },
+  { keys: ['['], description: 'ブラシサイズを縮小（-4px、筆ツール時）', category: 'drawing' },
+  { keys: [']'], description: 'ブラシサイズを拡大（+4px、筆ツール時）', category: 'drawing' },
+  { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小（消しゴムツール時）', category: 'drawing' },
+  { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大（消しゴムツール時）', category: 'drawing' },
+  { keys: ['Enter'], description: 'ペン描画中は開いたパスとして確定 / 定規計測中は計測線をストローク化', category: 'drawing' },
+  { keys: ['Backspace', '/', 'Delete'], description: 'ペン描画中は直前の 1 点を削除 / 通常時は選択要素を削除', category: 'drawing' },
 
- // 表示・ズーム・レイアウト
- { keys: ['Space', '+', 'ドラッグ'], description: '一時的に手のひらツールになりキャンバスをパン移動', category: 'view', badge: '必須' },
- { keys: ['0'], description: 'キャンバス全体を画面に最適フィット', category: 'view' },
- { keys: ['1'], description: '原寸・等倍表示 (100%)', category: 'view' },
- { keys: ['W'], description: 'キャンバス幅いっぱいに拡大フィット', category: 'view' },
- { keys: ['+'], description: 'ズームイン (拡大)', category: 'view' },
- { keys: ['-'], description: 'ズームアウト (縮小)', category: 'view' },
- { keys: ['F'], description: '集中モード（全画面表示）の切り替え', category: 'view', badge: '全画面' },
- { keys: ['Shift', '+', 'O', 'または', 'Alt + O'], description: 'パス輪郭のみ表示（ワイヤーフレーム表示 / 塗りつぶし）の切り替え', category: 'view', badge: '輪郭モード' },
- { keys: ['N'], description: 'パス頂点（ノード）とハンドルの表示 / 非表示切り替え', category: 'view', badge: '頂点表示' },
- { keys: ['G'], description: '方眼グリッドの表示 / 非表示切り替え', category: 'view' },
+  // 表示・ズーム
+  { keys: ['0'], description: 'キャンバス全体を画面にフィット', category: 'view' },
+  { keys: ['1'], description: '等倍表示（100%）', category: 'view' },
+  { keys: ['W'], description: 'キャンバス幅に合わせて拡大', category: 'view' },
+  { keys: ['+'], description: 'ズームイン', category: 'view' },
+  { keys: ['-'], description: 'ズームアウト', category: 'view' },
+  { keys: ['F'], description: '全画面表示の切り替え', category: 'view' },
+  { keys: ['Shift', '+', 'O', 'または', 'Alt + O'], description: '輪郭線表示と塗りつぶし表示を切り替え', category: 'view' },
+  { keys: ['N'], description: 'ノードとハンドルの表示を切り替え', category: 'view' },
+  { keys: ['G'], description: '方眼グリッドの表示を切り替え', category: 'view' },
+  { keys: ['H'], description: '照準ポインター・十字線の表示を切り替え', category: 'view' },
 
- // 各専用モーダル内の効率ショートカット
- { keys: ['R'], description: '【品質診断】フォントの品質を再スキャン / 【ストレージ】再読込', category: 'view' },
- { keys: ['H'], description: '【品質診断】過密アンカー文字の輪郭密度ヒートマップ診断を即起動', category: 'view', badge: 'ヒートマップ' },
- { keys: ['/'], description: '【品質診断】文字・Unicode検索バーにフォーカス', category: 'view' },
- { keys: ['1 ~ 7'], description: '【品質診断】検査カテゴリ（重複・交差・過密・極値等）を瞬時に切替', category: 'view' },
- { keys: ['Enter'], description: '【ヒートマップ診断】表示中文字の全過密輪郭を一括単純化', category: 'drawing', badge: '一括単純化' },
- { keys: ['1 / 2 / 3'], description: '【ヒートマップ診断】単純化強度（軽度 2px / 標準 3.5px / 強力 5px）を切替', category: 'drawing' },
- { keys: ['P'], description: '【ヒートマップ診断】アンカー密集度ドットの表示 / 非表示切替', category: 'drawing' },
+  // 文字移動
+  { keys: ['Alt', '+', '→'], description: '次の文字に移動', category: 'nav' },
+  { keys: ['Alt', '+', '←'], description: '前の文字に移動', category: 'nav' },
 
- // 文字送り・ナビゲーション
- { keys: ['Alt', '+', '→'], description: '次の文字へ進む（選択がない場合）', category: 'nav', badge: '連続作字' },
- { keys: ['Alt', '+', '←'], description: '前の文字へ戻る（選択がない場合）', category: 'nav', badge: '連続作字' },
+  // 履歴・保存
+  { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す（ペン描画中は直前の 1 点を取り消し）', category: 'edit' },
+  { keys: ['Ctrl / ⌘', '+', 'Shift', '+', 'Z'], description: 'やり直す', category: 'edit' },
+  { keys: ['Ctrl / ⌘', '+', 'Y'], description: 'やり直す', category: 'edit' },
+  { keys: ['Ctrl / ⌘', '+', 'S'], description: '現在の作業を保存', category: 'edit' },
+  { keys: ['Esc'], description: 'ペン描画の中止 / 選択解除 / モーダルを閉じる', category: 'edit' },
+  { keys: ['?'], description: 'この説明書・ショートカットモーダルを開く', category: 'edit' },
 
- // 編集・プロジェクト保存
- { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す (Undo) / ペン作図中は直前の1点の取り消し', category: 'edit' },
- { keys: ['Ctrl / ⌘', '+', 'Shift', '+', 'Z'], description: 'やり直す (Redo)', category: 'edit' },
- { keys: ['Ctrl / ⌘', '+', 'Y'], description: 'やり直す (Redo)', category: 'edit' },
- { keys: ['Ctrl / ⌘', '+', 'S'], description: 'プロジェクトをブラウザに即時保存', category: 'edit', badge: '保存' },
- { keys: ['Esc'], description: 'パス描画中止 / 選択解除 / モーダルを閉じる', category: 'edit' },
+  // 各モーダル内ショートカット
+  { keys: ['R'], description: '品質診断: 再スキャンを実行 / ストレージ管理: 一覧を再読込', category: 'modal' },
+  { keys: ['H'], description: '品質診断・密度ヒートマップ: 密度ヒートマップの表示を切り替え', category: 'modal' },
+  { keys: ['/'], description: '品質診断: 検索入力欄にフォーカス', category: 'modal' },
+  { keys: ['1 ~ 7'], description: '品質診断: 検査カテゴリを切り替え', category: 'modal' },
+  { keys: ['Enter'], description: '密度ヒートマップ: 過密な輪郭を一括単純化', category: 'modal' },
+  { keys: ['1 / 2 / 3'], description: '密度ヒートマップ: 単純化強度（2px / 3.5px / 5px）を切り替え', category: 'modal' },
+  { keys: ['P'], description: '密度ヒートマップ: アンカー密集度ドットの表示を切り替え', category: 'modal' },
 ];
 
-const SHORTCUT_CATEGORIES = [
- { id: 'all', label: 'すべて', icon: Keyboard },
- { id: 'mouse', label: 'マウス・ホイール', icon: Mouse },
- { id: 'tools', label: 'ツール切替', icon: Paintbrush },
- { id: 'drawing', label: '描画・パス編集', icon: PenTool },
- { id: 'view', label: '表示・ズーム', icon: Maximize2 },
- { id: 'nav', label: '文字送り・移動', icon: Move },
- { id: 'edit', label: '履歴・保存', icon: Undo2 },
+const SHORTCUT_CATEGORIES: { id: 'all' | ShortcutCategoryId; label: string }[] = [
+  { id: 'all', label: 'すべて' },
+  { id: 'mouse', label: 'マウス・ホイール' },
+  { id: 'tools', label: 'ツール' },
+  { id: 'drawing', label: '描画・編集' },
+  { id: 'view', label: '表示・ズーム' },
+  { id: 'nav', label: '文字移動' },
+  { id: 'edit', label: '履歴・保存' },
+  { id: 'modal', label: '各画面内' },
+];
+
+const FEATURE_ITEMS = [
+  {
+    title: '筆ツールと手振れ補正',
+    body: '毛筆・万年筆・丸ペンなどの筆スタイルを選択し、手書き座標を平滑化して閉じたベクター輪郭を生成します。',
+  },
+  {
+    title: '濁点・半濁点・小書き合成',
+    body: '「か・さ・た・は」などの清音グリフを基に、濁点（゛）・半濁点（゜）付き文字や「っ・ゃ・ゅ・ょ」を一括生成します。',
+  },
+  {
+    title: '部首・パーツ管理',
+    body: '「さんずい」「きへん」などのパーツを部首として保存し、別の漢字キャンバスへ配置・統合して再利用できます。',
+  },
+  {
+    title: '下絵トレース',
+    body: 'PNG / JPG / SVG 画像をキャンバス背面に表示し、不透明度・拡大率・位置を調整しながら輪郭をなぞれます。',
+  },
+  {
+    title: 'SVG ベクター取り込み',
+    body: 'Illustrator や Figma 等で作成した SVG データを読み込み、パス構造をフォント座標系（1000 UPM）の輪郭に変換します。',
+  },
+  {
+    title: '品質診断と輪郭修正',
+    body: '極値ノード不足、パスの向き不整合、自己交差、重複頂点、過剰ノードを検出し、文字単位または一括で修復できます。',
+  },
+  {
+    title: '作図ガイドとスナップ',
+    body: '十文字・田字格・九宮格・米字格・十六宮格などの目安線、縦分割ガイド、欧文基準線を表示し、グリッド・ガイド・頂点へのスナップを行えます。',
+  },
+  {
+    title: 'タッチジェスチャーとパームリジェクション',
+    body: 'スタイラス入力時に手の接触による誤描画を抑える設定と、2 本指タップ（元に戻す）・3 本指タップ（やり直す）・2 本指ピンチ（拡大縮小）に対応します。',
+  },
+  {
+    title: 'ウェイト展開（ZIP 出力）',
+    body: '基準ウェイトの輪郭から Light / Regular / Medium / Bold / ExtraBold の 5 段階の .otf を生成し、ZIP アーカイブでまとめてダウンロードします。',
+  },
+  {
+    title: 'プロジェクト保存とスナップショット',
+    body: 'ブラウザ（IndexedDB / localStorage）への自動保存に加え、任意時点のスナップショット作成や .json ファイルの書き出し・読み込みができます。',
+  },
+];
+
+const FAQ_ITEMS = [
+  {
+    question: '作成したフォントは商用利用や再配布ができますか。',
+    answer:
+      '自分で描画・作成したグリフの権利は制作者に帰属するため、商業印刷、Web サイト、ゲーム、動画字幕など用途を問わず利用・配布できます。既存の外部フォントを読み込んで改変する場合は、元フォントのライセンス条件に従ってください。',
+  },
+  {
+    question: '出力した .otf ファイルを Windows / macOS にインストールする手順は。',
+    answer:
+      'Windows ではダウンロードした .otf ファイルを右クリックして「インストール」（または「すべてのユーザーに対してインストール」）を実行します。macOS ではファイルをダブルクリックして Font Book を開き、「フォントをインストール」を選択します。',
+  },
+  {
+    question: 'iPad や iPhone で作成したフォントを使うにはどうすればよいですか。',
+    answer:
+      '書き出し時に共有メニューから「ファイル」アプリへ保存したのち、Fontcase や iFont などのフォント管理アプリに .otf を取り込んで構成プロファイルをインストールすると、Pages や CLIP STUDIO PAINT 等で利用できます。',
+  },
+  {
+    question: '作業途中のデータを端末外にバックアップできますか。',
+    answer:
+      'ヘッダーの「保存」メニューからプロジェクトファイル（.fontproj.json）をダウンロードできます。別端末や別ブラウザで作業を再開する場合は、同メニューから読み込んでください。',
+  },
+  {
+    question: 'Apple Pencil で筆圧に応じて線の太さを変える設定はどこにありますか。',
+    answer:
+      '筆ツール選択時のサブツールバーにある筆圧設定から、筆圧の有効・無効と感度（高 / 標準 / 低）を変更できます。手の接触を防ぐパームリジェクションは設定メニューから切り替えられます。',
+  },
+  {
+    question: '画数の多い漢字でノード数が増えすぎた場合はどうすればよいですか。',
+    answer:
+      'Alt + S（パスの単純化）を実行すると、輪郭形状の誤差を抑えたまま不要なノードを削減できます。品質診断内の「密度ヒートマップ」から文字全体を一括で単純化することも可能です。',
+  },
+  {
+    question: '不具合を見つけた場合はどこに報告すればよいですか。',
+    answer:
+      '「不具合報告」タブのリンクから GitHub Issue を作成してください。再現手順、使用端末・ブラウザ、プロジェクト JSON ファイルを添えると原因調査が行いやすくなります。',
+  },
 ];
 
 type MainTab = 'tutorial' | 'glossary' | 'features' | 'shortcuts' | 'faq' | 'feedback';
 
+const TABS: { id: MainTab; label: string; mobileLabel?: string }[] = [
+  { id: 'tutorial', label: '操作手順' },
+  { id: 'glossary', label: '用語辞典' },
+  { id: 'features', label: '機能一覧' },
+  { id: 'shortcuts', label: 'ショートカット' },
+  { id: 'faq', label: 'よくある質問' },
+  { id: 'feedback', label: '不具合報告' },
+];
+
 export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
- isOpen,
- onClose,
- theme,
- initialTab = 'tutorial',
+  isOpen,
+  onClose,
+  theme,
+  initialTab = 'tutorial',
 }) => {
- const [activeTab, setActiveTab] = useState<MainTab>(initialTab);
- const [selectedCategory, setSelectedCategory] = useState<string>('all');
- const [searchQuery, setSearchQuery] = useState<string>('');
- const [isFullscreen, setIsFullscreen] = useState(false);
- // B7: dialog focus management. No shared focus-trap helper exists in this
- // codebase, so this modal traps Tab focus itself (see keydown handler).
- const modalRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState<MainTab>(initialTab);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | ShortcutCategoryId>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
- const isLight = isLightTheme(theme);
- const themeClasses = getThemeClasses(theme);
- const isTopModal = useIsTopModal();
+  const isLight = isLightTheme(theme);
+  const themeClasses = getThemeClasses(theme);
+  const isTopModal = useIsTopModal();
 
- // B7: move focus into the modal when it opens standalone.
- useEffect(() => {
- if (!isOpen || !isTopModal) return;
- modalRef.current?.focus();
- }, [isOpen, isTopModal]);
+  useDialogFocusTrap(modalRef, isOpen && isTopModal, () => {
+    if (isFullscreen) {
+      setIsFullscreen(false);
+    } else {
+      onClose();
+    }
+  });
 
- // Keyboard shortcut listener: Escape and F
- useEffect(() => {
- if (!isOpen || !isTopModal) return;
- const handleKeyDown = (e: KeyboardEvent) => {
- const activeTag = document.activeElement?.tagName.toLowerCase();
- const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
- // B7: simple focus trap. Tab cycles within the modal instead of moving
- // focus to the canvas or header behind it.
- if (e.key === 'Tab') {
- const root = modalRef.current;
- if (!root) return;
- const focusables = Array.from(
- root.querySelectorAll<HTMLElement>(
- 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
- )
- ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
- if (focusables.length === 0) {
- e.preventDefault();
- return;
- }
- const first = focusables[0];
- const last = focusables[focusables.length - 1];
- if (e.shiftKey && document.activeElement === first) {
- e.preventDefault();
- last.focus();
- } else if (!e.shiftKey && document.activeElement === last) {
- e.preventDefault();
- first.focus();
- }
- return;
- }
- if (e.key === 'Escape') {
- e.preventDefault();
- if (isFullscreen) {
- setIsFullscreen(false);
- } else {
- onClose();
- }
- } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
- e.preventDefault();
- setIsFullscreen((prev) => !prev);
- }
- };
- window.addEventListener('keydown', handleKeyDown);
- return () => window.removeEventListener('keydown', handleKeyDown);
- }, [isOpen, isTopModal, isFullscreen, onClose]);
+  // Keyboard shortcut: F toggles fullscreen outside form fields
+  useEffect(() => {
+    if (!isOpen || !isTopModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInput =
+        activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+      if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsFullscreen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isTopModal]);
 
- const filteredShortcuts = useMemo(() => {
- return SHORTCUTS.filter((item) => {
- if (selectedCategory !== 'all' && item.category !== selectedCategory) {
- return false;
- }
- if (searchQuery.trim()) {
- const q = searchQuery.toLowerCase();
- const matchesDesc = item.description.toLowerCase().includes(q);
- const matchesKey = item.keys.some((k) => k.toLowerCase().includes(q));
- return matchesDesc || matchesKey;
- }
- return true;
- });
- }, [selectedCategory, searchQuery]);
+  const filteredShortcuts = useMemo(() => {
+    return SHORTCUTS.filter((item) => {
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesDesc = item.description.toLowerCase().includes(q);
+        const matchesKey = item.keys.some((k) => k.toLowerCase().includes(q));
+        return matchesDesc || matchesKey;
+      }
+      return true;
+    });
+  }, [selectedCategory, searchQuery]);
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
- return (
- <div
- className={`fixed inset-0 z-[60] ${
- isFullscreen
- ? 'p-0 w-screen h-screen bg-black/85 flex flex-col'
- : 'flex items-center justify-center p-2 sm:p-4 bg-black/75 anim-fade'
- }`}
- >
- <div
- ref={modalRef}
- role="dialog"
- aria-modal="true"
- aria-label="FontCreator 説明書 & ガイド"
- tabIndex={-1}
- className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
- isFullscreen
- ? 'w-screen h-screen rounded-none border-none shadow-none'
- : `w-full max-w-3xl xl:max-w-4xl border ${themeClasses.border} rounded-2xl shadow-2xl max-h-[92vh]`
- }`}
- >
- {/* Modal Top Header */}
- <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
- >
- <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
- <div
- className={`p-2 rounded-xl border flex items-center justify-center shrink-0 ${themeClasses.accentBadge}`}
- >
- <BookOpen className="w-5 h-5" />
- </div>
- <div className="min-w-0 flex-1">
- <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2 min-w-0">
- <span className="truncate">FontCreator 説明書 & ガイド</span>
- <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-normal border ${themeClasses.accentBadge}`}>
- v2.0
- </span>
- {isFullscreen && (
- <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${themeClasses.accentBtn}`}>
- 全画面モード
- </span>
- )}
- </h2>
- <p className={`text-xs ${themeClasses.textMuted}`}>作字手順・機能説明・ショートカットキー一覧</p>
- </div>
- </div>
- <div className="flex items-center space-x-1.5">
- {/* Fullscreen Toggle */}
- <button
- onClick={() => setIsFullscreen(!isFullscreen)}
- className={`p-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 transition-colors cursor-pointer ${
- isFullscreen
- ? themeClasses.activeTool
- : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
- }`}
- title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
- >
- {isFullscreen ? (
- <>
- <Minimize2 className="w-3.5 h-3.5" />
- <span className="hidden sm:inline">通常</span>
- </>
- ) : (
- <>
- <Maximize2 className="w-3.5 h-3.5" />
- <span className="hidden sm:inline">全画面</span>
- </>
- )}
- </button>
- <button
- onClick={onClose}
- className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
- title="閉じる (Esc)"
- >
- <X className="w-5 h-5" />
- </button>
- </div>
- </div>
+  const dividerClass = isLight ? 'border-stone-200' : 'border-[#25362b]';
+  const headingText = isLight ? 'text-stone-900' : 'text-stone-100';
+  const mutedText = isLight ? 'text-stone-600' : 'text-stone-300';
+  const subtleText = isLight ? 'text-stone-500' : 'text-stone-400';
 
- {/* Tab Navigation */}
- <div
- className={`flex items-center px-4 sm:px-6 border-b shrink-0 gap-2 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs font-bold ${themeClasses.subtoolbarBg}`}
- >
- <button
- onClick={() => setActiveTab('tutorial')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'tutorial'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <BookOpen className="w-4 h-4 shrink-0" />
- <span>初心者入門ガイド</span>
- </button>
+  return (
+    <div
+      className={`fixed inset-0 z-[60] ${
+        isFullscreen
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75'
+      }`}
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="操作ガイドとショートカット"
+        tabIndex={-1}
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+          isFullscreen
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full max-w-4xl border ${themeClasses.border} rounded-xl shadow-2xl max-h-[92dvh]`
+        }`}
+      >
+        {/* Header */}
+        <div
+          className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
+        >
+          <div className="min-w-0 flex-1 pr-3">
+            <h2 className={`text-sm sm:text-base font-bold truncate ${headingText}`}>
+              操作ガイド・ショートカット
+            </h2>
+            <p className={`text-xs truncate ${themeClasses.textMuted}`}>
+              作字手順、用語解説、機能概要、キーボード操作
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`px-2.5 py-1.5 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+                isFullscreen
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+              }`}
+              title={isFullscreen ? '通常サイズに戻す (F)' : '全画面で表示する (F)'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">通常表示</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">全画面</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="閉じる"
+              className={`p-1.5 rounded-md border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              title="閉じる (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
- <button
- onClick={() => setActiveTab('glossary')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'glossary'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <Book className="w-4 h-4 shrink-0" />
- <span>用語・概念辞典</span>
- </button>
+        {/* Tab Navigation */}
+        <nav
+          aria-label="ガイド項目"
+          className={`flex items-center px-4 sm:px-6 border-b shrink-0 gap-4 sm:gap-6 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs ${themeClasses.subtoolbarBg}`}
+        >
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-3 border-b-2 shrink-0 transition-colors whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-bold`
+                    : `border-transparent ${themeClasses.textMuted} hover:text-stone-900 dark:hover:text-stone-100 font-medium`
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
 
- <button
- onClick={() => setActiveTab('features')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'features'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <Lightbulb className="w-4 h-4 shrink-0" />
- <span>制作機能・自動化</span>
- </button>
+        {/* Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6">
+          {activeTab === 'tutorial' && (
+            <BeginnerTutorialTab
+              isLight={isLight}
+              onOpenGlossary={() => setActiveTab('glossary')}
+              onOpenFaq={() => setActiveTab('faq')}
+            />
+          )}
 
- <button
- onClick={() => setActiveTab('shortcuts')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'shortcuts'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <Keyboard className="w-4 h-4 text-indigo-500 shrink-0" />
- <span>ショートカット一覧</span>
- </button>
+          {activeTab === 'glossary' && <GlossaryTab isLight={isLight} />}
 
- <button
- onClick={() => setActiveTab('faq')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'faq'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <HelpCircle className="w-4 h-4 text-sky-500 shrink-0" />
- <span>よくあるご質問・導入</span>
- </button>
+          {activeTab === 'features' && (
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <h3 className={`text-sm font-bold ${headingText}`}>主な機能</h3>
+                <p className={`text-xs ${mutedText}`}>
+                  文字の描画から品質検査・書き出しまでに利用する機能の一覧です。
+                </p>
+              </div>
 
- <button
- onClick={() => setActiveTab('feedback')}
- className={`py-3 px-3 border-b-2 shrink-0 flex items-center space-x-1.5 transition-colors whitespace-nowrap cursor-pointer ${
- activeTab === 'feedback'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-extrabold`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <Github className="w-4 h-4 shrink-0" />
- <span className="max-sm:hidden">フィードバック & 不具合報告 (GitHub)</span>
- <span className="hidden max-sm:inline">フィードバック</span>
- </button>
- </div>
+              <div className={`grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 pt-4 border-t ${dividerClass}`}>
+                {FEATURE_ITEMS.map((item) => (
+                  <div
+                    key={item.title}
+                    className={`pt-4 border-t first:border-t-0 md:[&:nth-child(2)]:border-t-0 ${dividerClass} space-y-1`}
+                  >
+                    <h4 className={`text-xs font-bold ${headingText}`}>{item.title}</h4>
+                    <p className={`text-xs leading-relaxed ${mutedText}`}>{item.body}</p>
+                  </div>
+                ))}
+              </div>
 
- {/* Tab Content Body */}
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6">
- {/* TAB 1: チュートリアル */}
- {activeTab === 'tutorial' && (
- <BeginnerTutorialTab
- isLight={isLight}
- onOpenGlossary={() => setActiveTab('glossary')}
- />
- )}
+              <div className={`pt-5 border-t ${dividerClass} space-y-1.5`}>
+                <h4 className={`text-xs font-bold ${headingText}`}>
+                  字面枠と余白（サイドベアリング）の目安
+                </h4>
+                <p className={`text-xs leading-relaxed ${mutedText}`}>
+                  文字が隣り合って重ならないように、キャンバス内の字面枠を目安に輪郭を配置します。文字描画後に Shift + Alt + S を押すと、輪郭の幅に応じて左右余白と送り幅を自動設定できます。
+                </p>
+              </div>
+            </div>
+          )}
 
- {/* TAB 2: 専門用語図解辞典 */}
- {activeTab === 'glossary' && (
- <GlossaryTab isLight={isLight} />
- )}
+          {activeTab === 'shortcuts' && (
+            <div className="space-y-4">
+              {/* Search & Filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${subtleText}`} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="操作名やキーで検索（例: 単純化, ズーム, Ctrl, Shift）"
+                    className={`w-full pl-9 pr-3 py-2 rounded-md border text-xs outline-none transition-colors ${
+                      isLight
+                        ? 'bg-white border-stone-300 text-stone-900 focus:border-emerald-600'
+                        : 'bg-[#121c16] border-[#2c3d31] text-stone-100 focus:border-emerald-500'
+                    }`}
+                  />
+                </div>
+                <span className={`text-xs font-mono tabular-nums shrink-0 ${subtleText}`}>
+                  {filteredShortcuts.length} 件
+                </span>
+              </div>
 
- {/* TAB 3: 機能解説・制作のコツ */}
- {activeTab === 'features' && (
- <div className="space-y-4">
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
- {/* Feature 1 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
- <Paintbrush className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">筆ツール & 手振れ補正</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 毛筆・万年筆・丸ペン・サインペンなどの筆スタイルを搭載。手書き時のヨレを平滑化する「手振れ補正」と「自動パス結合」でベクター輪郭を生成します。
- </p>
- </div>
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs no-scrollbar">
+                {SHORTCUT_CATEGORIES.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`px-3 py-1.5 rounded-md font-medium shrink-0 whitespace-nowrap transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-700 text-white'
+                          : isLight
+                          ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+                          : 'bg-[#1a261f] hover:bg-[#23332a] text-stone-300'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
 
- {/* Feature 2 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300">
- <Wand2 className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">濁点・小書き自動合成</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 「か・さ・た・は」などの清音から、濁点（゛）・半濁点（゜）付き文字や「っ・ゃ・ゅ・ょ」の小書き文字を一括自動生成できます。
- </p>
- </div>
+              {/* Shortcut Table */}
+              {filteredShortcuts.length > 0 ? (
+                <div className={`border-t border-b ${dividerClass} divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'}`}>
+                  {filteredShortcuts.map((item, idx) => (
+                    <div
+                      key={`${item.category}-${idx}`}
+                      className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    >
+                      <span className={`jp-wrap leading-relaxed ${isLight ? 'text-stone-800' : 'text-stone-200'}`}>
+                        {item.description}
+                      </span>
+                      <div className="flex items-center flex-wrap gap-1 shrink-0">
+                        {item.keys.map((k, kIdx) =>
+                          k === 'または' || k === '+' || k === '/' ? (
+                            <span key={kIdx} className={`px-0.5 text-[11px] ${subtleText}`}>
+                              {k}
+                            </span>
+                          ) : (
+                            <kbd
+                              key={kIdx}
+                              className={`px-2 py-0.5 rounded font-mono font-semibold text-[11px] border ${
+                                isLight
+                                  ? 'bg-stone-50 border-stone-300 text-stone-800'
+                                  : 'bg-[#121c16] border-[#2c3d31] text-stone-200'
+                              }`}
+                            >
+                              {k}
+                            </kbd>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-center py-8 text-xs ${subtleText}`}>
+                  一致するショートカットはありません。
+                </p>
+              )}
+            </div>
+          )}
 
- {/* Feature 3 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
- <Shapes className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">部首・パーツ機能</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 「さんずい」「きへん」「しんにょう」などのへん・つくりパーツを一度作れば、他の漢字にドラッグ＆ドロップで何度でも再利用・合成可能です。
- </p>
- </div>
+          {activeTab === 'faq' && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <h3 className={`text-sm font-bold ${headingText}`}>よくある質問</h3>
+                <p className={`text-xs ${mutedText}`}>
+                  フォントの利用範囲、OS への導入手順、バックアップに関する質問と回答です。
+                </p>
+              </div>
+              <dl className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'} border-t ${dividerClass}`}>
+                {FAQ_ITEMS.map((item) => (
+                  <div key={item.question} className="py-4 space-y-1.5">
+                    <dt className={`text-xs font-bold ${headingText}`}>{item.question}</dt>
+                    <dd className={`text-xs leading-relaxed ${mutedText}`}>{item.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
 
- {/* Feature 4 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
- <Layers className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">下絵・写真トレース</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 紙のノートに書いた文字や看板の写真をキャンバス背景に下絵として表示。不透明度や拡大縮小を調整しながら、正確になぞり描きできます。
- </p>
- </div>
+          {activeTab === 'feedback' && <FeedbackTab isLight={isLight} />}
+        </div>
 
- {/* Feature 5 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
- <FileCode className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">SVGベクターインポート</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- Adobe IllustratorやFigma、Inkscape等でデザインしたSVGベクターデータを読み込み、自動でフォントのベジェ輪郭に変換して取り込めます。
- </p>
- </div>
-
- {/* Feature 6 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
- <ShieldCheck className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">フォント品質チェック & 最適化（全画面対応）</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- TrueType/OpenType規格に適合しているかを自動検査。極点ノードの自動挿入や輪郭の向き、線幅均一化、重複頂点・過剰ノード削除を一括修正可能。「F」キーまたは全画面ボタンで広い画面いっぱいに字形を一覧点検できます。
- </p>
- </div>
-
- {/* Feature 7 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
- <Grid className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">10種類の作図基準ガイド & 凡例カード</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 十文字格・米字格・九宮格・田字格・同心円格・黄金比・3x3ブロック・六角グリッド・欧文4線など、作図ガイドを表示・切り替えできます。キャンバス右上の「ガイド凡例」で各基準線の定義や余白の目安を確認できます。
- </p>
- </div>
-
- {/* Feature 8 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300">
- <Hand className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">パームリジェクション & タッチジェスチャー</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- Apple Pencilやスタイラスペン描画時の手の接触による誤動作を抑制するパームリジェクションを搭載しています。また「2本指タップで取り消し (Undo)」「3本指タップでやり直し (Redo)」「2本指ピンチでズーム」などのジェスチャー操作に対応しています。
- </p>
- </div>
-
- {/* Feature 9 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300">
- <Sliders className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">複数ウェイト自動補間 (ファミリー展開)</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 作成したRegularフォントから、Thin（極細）・Light（細字）・Regular・Bold（太字）・Heavy（極太）の全5ウェイトを一括自動生成。一連のフォントファミリーとしてZIP形式でまとめて書き出せます。
- </p>
- </div>
-
- {/* Feature 10 */}
- <div
- className={`p-3.5  border space-y-2 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <div className="flex items-center space-x-2">
- <div className="p-1.5  bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300">
- <Database className="w-4 h-4" />
- </div>
- <h4 className="text-xs font-bold">ストレージ管理 & スナップショット復元</h4>
- </div>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
- 自動保存に加えて、スナップショット履歴からの復元が可能です。ストレージの消費量内訳の確認や、単一文字のJSONバックアップ書き出しに対応しています。
- </p>
- </div>
- </div>
-
- {/* Pro Tip Callout */}
- <div
- className={`p-4  border space-y-2 ${
- isLight
- ? 'bg-amber-50/70 border-amber-200 text-amber-950'
- : 'bg-amber-950/30 border-amber-800/60 text-amber-100'
- }`}
- >
- <div className="flex items-center space-x-2 font-bold text-xs">
- <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400" />
- <span>字面枠（仮想ボディ）と余白の調整</span>
- </div>
- <p className="text-xs leading-relaxed opacity-90">
- 文字を書くときは、キャンバスの薄緑の枠（字面枠・900×900）の内側に収めると、文章にしたときに文字同士が重ならず並びます。<strong>Shift+Alt+S</strong> を押すと、文字の左右余白（サイドベアリング）を自動で設定できます。
- </p>
- </div>
- </div>
- )}
-
- {/* TAB 3: キーボードショートカット集 */}
- {activeTab === 'shortcuts' && (
- <div className="space-y-4">
- {/* Search & Category Filter Bar */}
- <div className="space-y-2.5">
- <div className="relative">
- <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${themeClasses.textMuted}`} />
- <input
- type="text"
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- placeholder="ショートカットや機能を検索（例: ブラシ, 移動, 保存, 拡大）..."
- className={`w-full pl-9 pr-3 py-2 rounded-lg border text-xs outline-none transition-colors ${themeClasses.cardBg}`}
- />
- </div>
-
- <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
- {SHORTCUT_CATEGORIES.map((cat) => {
- const Icon = cat.icon;
- const isActive = selectedCategory === cat.id;
- return (
- <button
- key={cat.id}
- onClick={() => setSelectedCategory(cat.id)}
- className={`px-2.5 py-1 rounded-lg border font-medium flex items-center space-x-1.5 shrink-0 transition-colors cursor-pointer ${
- isActive
- ? `${themeClasses.activeTool} border-transparent`
- : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
- }`}
- >
- <Icon className="w-3.5 h-3.5" />
- <span>{cat.label}</span>
- </button>
- );
- })}
- </div>
- </div>
-
- {/* Shortcuts List */}
- <div className="space-y-1.5">
- {filteredShortcuts.length > 0 ? (
- filteredShortcuts.map((item, idx) => (
- <div
- key={idx}
- className={`flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-lg border text-xs transition-colors ${themeClasses.subtoolbarBg}`}
- >
- <div className="flex items-center space-x-2 min-w-0 pr-1">
- <span className="jp-wrap">{item.description}</span>
- {item.badge && (
- <span className={`text-[9.5px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${themeClasses.accentBadge}`}>
- {item.badge}
- </span>
- )}
- </div>
- <div className="flex items-center flex-wrap gap-1 shrink-0 self-start sm:self-auto">
- {item.keys.map((k, kIdx) => (
- <kbd
- key={kIdx}
- className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] border ${
- k === 'または' || k === '+' || k === '/'
- ? `bg-transparent border-transparent shadow-none font-sans text-xs px-0.5 ${themeClasses.textMuted}`
- : themeClasses.cardBg
- }`}
- >
- {k}
- </kbd>
- ))}
- </div>
- </div>
- ))
- ) : (
- <div className={`text-center py-8 text-xs ${themeClasses.textMuted}`}>
- 一致するショートカットが見つかりませんでした
- </div>
- )}
- </div>
- </div>
- )}
-
- {/* TAB 4: よくある質問・インストール方法 */}
- {activeTab === 'faq' && (
- <div className="space-y-4">
- {/* FAQ 1 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. 作成したフォントは商用利用・配布できますか？</span>
- </h4>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5">
- <strong>A. はい、商用・非商用問わず自由に利用できます。</strong> 自身が描画・作成したフォントの著作権は制作者に帰属します。商業印刷、Webサイト、ゲーム、動画テロップなど、用途を問わず利用可能です。
- </p>
- </div>
-
- {/* FAQ 2 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. 出力したフォントをWindowsやMacにインストールするには？</span>
- </h4>
- <div className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5 space-y-1">
- <p><strong>Windows:</strong> ダウンロードした <code>.otf</code> ファイルを右クリックして「すべてのユーザーに対してインストール」をクリックします。</p>
- <p><strong>Mac:</strong> ファイルをダブルクリックして「Font Book」を開き、「フォントをインストール」をクリックします。</p>
- </div>
- </div>
-
- {/* FAQ 3 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. iPadやiPhoneでフォントを使うには？</span>
- </h4>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5">
- 無料のフォント管理アプリ（<strong>Fontcase</strong> や <strong>iFont</strong> 等）にエクスポートした <code>.otf</code> ファイルを取り込み、構成プロファイルをインストールすることで、Pages, Keynote, CLIP STUDIO PAINT, Procreate, ibisPaint 等のアプリで直接使用できます。
- </p>
- </div>
-
- {/* FAQ 4 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. 途中で作業を中断・保存したい場合は？</span>
- </h4>
- <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5">
- ブラウザのローカルストレージおよびIndexedDBに自動保存されますが、端末の変更やキャッシュ削除に備えて、「機能」メニュー内の「<strong>セーブ保存 (.fontproj.json)</strong>」からプロジェクトファイルを定期的に保存してください。いつでも「セーブ読込」から再開できます。
- </p>
- </div>
-
- {/* FAQ 5 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. iPadやApple Pencilで描く時の筆圧感知の設定方法は？</span>
- </h4>
- <div className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5 space-y-1.5">
- <p>
- <strong>リアルタイム筆圧表示:</strong> Apple Pencilで画面に触れると、筆ツールバーの筆圧項目横に緑色の「筆圧: ○○%」バッジがリアルタイム表示されます。
- </p>
- <p>
- <strong>筆圧感度の調整:</strong> 筆圧バーの「感度: 高 / 標準 / 低」から筆圧の利き具合を切り替えられます。万年筆・Gペン・毛筆・和風墨筆スタイルを選ぶと、筆圧による線の強弱が特に豊かに表現されます。
- </p>
- <p>
- <strong>タッチジェスチャー:</strong> キャンバス上を<strong>2本指タップで1手戻す (Undo)</strong>、<strong>3本指タップでやり直す (Redo)</strong>、<strong>2本指ピンチで拡大・縮小・移動</strong>がスムーズに行えます。
- </p>
- <p>
- <strong>パームリジェクション:</strong> 画面上部の設定メニューから「パームリジェクション」を「自動」または「スタイラス専用」に設定すると、画面に置いた手のひらによる誤反応を防止できます。
- </p>
- </div>
- </div>
-
- {/* FAQ 6 */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
- }`}
- >
- <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
- <span>Q. 画数が多い漢字（20〜30画超）で描画が重くなるのを防ぐには？</span>
- </h4>
- <div className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed pl-5 space-y-1">
- <p>
- 最新バージョンでは<strong>局所サブセットブーリアン結合（Localized Subset Union）</strong>と<strong>幾何キャッシュ</strong>が導入され、画数が増えても描画遅延が極小化されています。
- </p>
- <p>
- さらに描画後にキーボードの <strong>Alt + S（パス単純化）</strong> を押すと、微細な不要ノードを削減してデータ量を軽量化し、フォントファイルサイズをコンパクトに保てます。
- </p>
- </div>
- </div>
-
- {/* FAQ 7: 機能追加・ご要望について */}
- <div
- className={`p-4  border space-y-1.5 ${
- isLight ? 'bg-amber-50/70 border-amber-200' : 'bg-[#1e1c14] border-amber-900/60'
- }`}
- >
- <h4 className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center space-x-1.5">
- <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
- <span>Q. 新機能の追加や機能要望・アイデアのリクエストはできますか？</span>
- </h4>
- <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed pl-5">
- 新規の大規模な機能追加や大幅な仕様変更のご要望については、開発体制の制約上、対応できない場合があります。操作上の不具合（バグ）や既存機能の改善については、GitHub Issueにて報告を受け付けています。
- </p>
- </div>
- </div>
- )}
-
- {/* TAB 6: フィードバック & GitHub 不具合報告 */}
- {activeTab === 'feedback' && (
- <FeedbackTab isLight={isLight} />
- )}
- </div>
-
- {/* Modal Footer */}
- <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
- >
- <div className={`flex items-center space-x-2 max-sm:hidden ${themeClasses.textMuted}`}>
- <span>キーボードショートカットはいつでも</span>
- <kbd className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] border ${themeClasses.cardBg}`}>
- ?
- </kbd>
- <span>キーで開けます</span>
- </div>
- <button
- onClick={onClose}
- className={`px-4 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
- >
- 閉じる
- </button>
- </div>
- </div>
- </div>
- );
+        {/* Footer */}
+        <div
+          className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
+        >
+          <div className={`flex items-center gap-1.5 max-sm:hidden ${themeClasses.textMuted}`}>
+            <kbd className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${themeClasses.cardBg}`}>
+              ?
+            </kbd>
+            <span>キーでいつでもこの画面を開けます</span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`px-4 py-1.5 rounded-md font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
