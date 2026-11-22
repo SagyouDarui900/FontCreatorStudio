@@ -104,7 +104,6 @@ export interface UseCanvasPointerDispatcherOptions {
   handleEraserPointerDown: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean | void;
   handleEraserPointerMove: (pos: Point) => void;
   handleEraserPointerUp: (e?: React.PointerEvent<SVGSVGElement>) => boolean | void;
-  handleEraserPointerCancel?: () => boolean | void;
   eraserReticleRef: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
   generalCrosshairRef?: React.RefObject<SVGGElement | null>;
@@ -149,6 +148,7 @@ export interface UseCanvasPointerDispatcherOptions {
   snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   setActiveSnapGuides: (guides: SnapGuideLine[]) => void;
+
   // History & Toasts
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
@@ -225,7 +225,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleEraserPointerDown,
     handleEraserPointerMove,
     handleEraserPointerUp,
-    handleEraserPointerCancel,
     eraserReticleRef,
     drawingReticleRef,
     generalCrosshairRef,
@@ -1704,16 +1703,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     if (activeBrushPathRef.current) {
       activeBrushPathRef.current.setAttribute('d', '');
     }
-    // A cancelled eraser stroke must not keep its deletions: the eraser
-    // hook undoes the single history entry committed during the gesture
-    // and restores the pre-gesture contours and selection.
-    if (handleEraserPointerCancel) {
-      handleEraserPointerCancel();
-    } else {
-      isErasingRef.current = false;
-      lastErasePosRef.current = null;
-      resetEraserVisuals();
-    }
+    isErasingRef.current = false;
+    lastErasePosRef.current = null;
+    resetEraserVisuals();
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
     if (generalCrosshairRef?.current) generalCrosshairRef.current.style.display = 'none';
@@ -1745,7 +1737,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isErasingRef,
     lastErasePosRef,
     resetEraserVisuals,
-    handleEraserPointerCancel,
     drawingReticleRef,
     eraserReticleRef,
     generalCrosshairRef,

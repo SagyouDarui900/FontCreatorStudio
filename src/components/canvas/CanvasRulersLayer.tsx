@@ -38,7 +38,9 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
       for (let i = 0; i <= upm; i += step) {
         ticks.push({ value: i, minor: i + step / 2 });
       }
-      if (ticks[ticks.length - 1]?.value !== upm) ticks.push({ value: upm, minor: upm });
+      if (ticks[ticks.length - 1]?.value !== upm) {
+        ticks.push({ value: upm, minor: upm + step / 2 });
+      }
       return ticks;
     }, [upm]);
 

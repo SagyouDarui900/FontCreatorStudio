@@ -1,5 +1,5 @@
 import React from 'react';
-import { GridSettings, Point, ToolMode } from '../../../types';
+import { GridSettings, ToolMode } from '../../../types';
 
 export interface CursorReticleOverlayProps {
   gridSettings: GridSettings;

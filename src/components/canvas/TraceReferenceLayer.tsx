@@ -196,7 +196,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={charBoxSize}
                   fill="transparent"
                   stroke={handleStroke}
-                  strokeWidth={2} vectorEffect="non-scaling-stroke"
+                  strokeWidth={2}
+                  vectorEffect="non-scaling-stroke"
                   strokeDasharray="6 4"
                   className="cursor-move pointer-events-auto hover:stroke-emerald-500 transition-colors"
                   onPointerDown={onPointerDownImage}
@@ -244,7 +245,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                         height={imgBoxH}
                         fill="none"
                         stroke="#e11d48"
-                        strokeWidth={2} vectorEffect="non-scaling-stroke"
+                        strokeWidth={2}
+                        vectorEffect="non-scaling-stroke"
                         strokeDasharray="6 4"
                       />
                       <text
@@ -281,7 +283,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                       height={imgBoxH}
                       fill="transparent"
                       stroke={handleStroke}
-                      strokeWidth={2} vectorEffect="non-scaling-stroke"
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
                       strokeDasharray="6 4"
                       className="cursor-move pointer-events-auto hover:stroke-emerald-500 transition-colors"
                       onPointerDown={onPointerDownImage}
@@ -311,7 +314,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 x2={half + 15 / z}
                 y2={half}
                 stroke={handleStroke}
-                strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
               />
               <line
                 x1={half}
@@ -319,7 +323,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                 x2={half}
                 y2={half + 15 / z}
                 stroke={handleStroke}
-                strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
               />
 
               {/* Corner Resize Handles */}
@@ -336,7 +341,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  strokeWidth={2.5}
+                  vectorEffect="non-scaling-stroke"
                   rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
@@ -355,7 +361,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  strokeWidth={2.5}
+                  vectorEffect="non-scaling-stroke"
                   rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
@@ -374,7 +381,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  strokeWidth={2.5}
+                  vectorEffect="non-scaling-stroke"
                   rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
@@ -393,7 +401,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   height={18 / z}
                   fill={isLight ? '#ffffff' : '#0f172a'}
                   stroke={handleStroke}
-                  strokeWidth={2.5} vectorEffect="non-scaling-stroke"
+                  strokeWidth={2.5}
+                  vectorEffect="non-scaling-stroke"
                   rx={3 / z}
                   className="hover:fill-emerald-400 hover:stroke-emerald-600 transition-colors"
                 />
@@ -412,7 +421,8 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   rx={10 / z}
                   fill={isLight ? '#0284c7' : '#0369a1'}
                   stroke="#ffffff"
-                  strokeWidth={1.5} vectorEffect="non-scaling-stroke"
+                  strokeWidth={1.5}
+                  vectorEffect="non-scaling-stroke"
                 />
                 <text
                   x={0}

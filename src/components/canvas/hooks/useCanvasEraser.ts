@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { PathContour, Point, ToolMode } from '../../../types';
 import { eraseContoursAtPoint, subtractEraserStrokeFromContours } from '../../../utils/path';
 
@@ -8,27 +8,19 @@ interface UseCanvasEraserOptions {
   contoursRef: React.MutableRefObject<PathContour[]>;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
-  onUndo?: () => void;
   showCanvasToast: (message: string, subText?: string) => void;
-  selectedContourIds: string[];
-  selectedContourId: string | null;
-  selectedNodeId: string | null;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedContourId: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export function useCanvasEraser({
-  toolMode,
-  contours,
+  toolMode: _toolMode,
+  contours: _contours,
   contoursRef,
   onChangeContours,
   onCommitHistory,
-  onUndo,
   showCanvasToast,
-  selectedContourIds,
-  selectedContourId,
-  selectedNodeId,
   setSelectedContourIds,
   setSelectedContourId,
   setSelectedNodeId,
@@ -42,14 +34,6 @@ export function useCanvasEraser({
   const eraserStrokePointsRef = useRef<Point[]>([]);
   const activeEraserPathRef = useRef<SVGPathElement | null>(null);
   const activeEraserSvgDRef = useRef<string>('');
-  // Snapshot of the contours and selection at pointerdown, so a cancelled
-  // stroke can be restored exactly.
-  const eraserSessionStartContoursRef = useRef<PathContour[] | null>(null);
-  const eraserSessionSelectionRef = useRef<{
-    contourIds: string[];
-    contourId: string | null;
-    nodeId: string | null;
-  } | null>(null);
 
   const resetEraserVisuals = useCallback(() => {
     isErasingRef.current = false;
@@ -72,12 +56,6 @@ export function useCanvasEraser({
       erasedAnyInSessionRef.current = false;
       lastErasePosRef.current = pos;
       eraserStrokePointsRef.current = [pos];
-      eraserSessionStartContoursRef.current = contoursRef.current || [];
-      eraserSessionSelectionRef.current = {
-        contourIds: selectedContourIds,
-        contourId: selectedContourId,
-        nodeId: selectedNodeId,
-      };
       const eraseRadius = Math.max(2, eraserSize / 2);
 
       if (eraserMode === 'cut') {
@@ -110,9 +88,6 @@ export function useCanvasEraser({
       eraserSize,
       onChangeContours,
       onCommitHistory,
-      selectedContourId,
-      selectedContourIds,
-      selectedNodeId,
       setSelectedContourId,
       setSelectedContourIds,
       setSelectedNodeId,
@@ -232,59 +207,6 @@ export function useCanvasEraser({
     ]
   );
 
-  /**
-   * Discard an in-progress eraser stroke (pointercancel). In stroke/node
-   * modes the deletions were already applied during the gesture, with
-   * exactly one history entry committed at the first change, so undoing
-   * that entry restores the pre-gesture contours and removes the entry —
-   * the cancelled stroke leaves no trace in the undo history. The
-   * selection snapshot from pointerdown is restored as well. In cut mode
-   * nothing was applied yet, so this only clears the preview path.
-   */
-  const handleEraserPointerCancel = useCallback(() => {
-    if (!isErasingRef.current) {
-      resetEraserVisuals();
-      return false;
-    }
-
-    isErasingRef.current = false;
-    lastErasePosRef.current = null;
-    const hadErased = erasedAnyInSessionRef.current;
-    erasedAnyInSessionRef.current = false;
-    eraserStrokePointsRef.current = [];
-    activeEraserSvgDRef.current = '';
-    if (activeEraserPathRef.current) {
-      activeEraserPathRef.current.setAttribute('d', '');
-    }
-
-    if (hadErased) {
-      if (onUndo) {
-        onUndo();
-      } else if (eraserSessionStartContoursRef.current) {
-        const start = eraserSessionStartContoursRef.current;
-        contoursRef.current = start;
-        onChangeContours(start, { skipHistory: true });
-      }
-      const sel = eraserSessionSelectionRef.current;
-      if (sel) {
-        setSelectedContourIds(sel.contourIds);
-        setSelectedContourId(sel.contourId);
-        setSelectedNodeId(sel.nodeId);
-      }
-    }
-    eraserSessionStartContoursRef.current = null;
-    eraserSessionSelectionRef.current = null;
-    return true;
-  }, [
-    contoursRef,
-    onChangeContours,
-    onUndo,
-    resetEraserVisuals,
-    setSelectedContourId,
-    setSelectedContourIds,
-    setSelectedNodeId,
-  ]);
-
   return {
     eraserSize,
     setEraserSize,
@@ -300,6 +222,5 @@ export function useCanvasEraser({
     handleEraserPointerDown,
     handleEraserPointerMove,
     handleEraserPointerUp,
-    handleEraserPointerCancel,
   };
 }

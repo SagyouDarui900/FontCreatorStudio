@@ -266,6 +266,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
     if (!el) return;
     const update = () => setViewportSize({ width: el.clientWidth, height: el.clientHeight });
     update();
+    if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
