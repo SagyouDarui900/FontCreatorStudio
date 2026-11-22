@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CustomGuideline } from '../../types';
+import { useLiveViewportZoom } from './viewportStore';
 
 interface CustomGuidelinesLayerProps {
   customGuidelines: CustomGuideline[];
@@ -16,7 +17,7 @@ interface CustomGuidelinesLayerProps {
 export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React.memo(
   ({
     customGuidelines,
-    zoom,
+    zoom: propZoom,
     locked = true,
     interactive = false,
     unitsPerEm = 1000,
@@ -26,6 +27,8 @@ export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React
     onDeleteGuide,
   }) => {
     const [hoveredGuideId, setHoveredGuideId] = useState<string | null>(null);
+    const liveZoom = useLiveViewportZoom(propZoom);
+    const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
 
     if (customGuidelines.length === 0) return null;
 
@@ -120,7 +123,7 @@ export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React
                   y2={diag.y2}
                   stroke={strokeColor}
                   strokeWidth={(isHovered ? 2 : 1.5) / zoom}
-                  strokeDasharray="6 3"
+                  strokeDasharray={`${6 / zoom} ${3 / zoom}`}
                   className="transition-colors"
                 />
 
@@ -218,7 +221,7 @@ export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React
                     y2={guide.position}
                     stroke={strokeColor}
                     strokeWidth={(isHovered ? 2 : 1.5) / zoom}
-                    strokeDasharray="5 3"
+                    strokeDasharray={`${5 / zoom} ${3 / zoom}`}
                     className="transition-colors"
                   />
                   {/* Label badge */}
@@ -300,7 +303,7 @@ export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React
                     y2={spanEnd}
                     stroke={strokeColor}
                     strokeWidth={(isHovered ? 2 : 1.5) / zoom}
-                    strokeDasharray="5 3"
+                    strokeDasharray={`${5 / zoom} ${3 / zoom}`}
                     className="transition-colors"
                   />
                   {/* Label badge */}

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ThemeMode } from '../../utils/theme';
 import { JapaneseGuidePattern, VerticalGuidePattern } from '../../types';
+import { useLiveViewportZoom } from './viewportStore';
 
 interface JapaneseGuidesLayerProps {
   guideType?: JapaneseGuidePattern;
@@ -23,22 +24,15 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     showKanaFrame,
     isLight,
     theme = 'light',
-    activeChar = '',
     gridOpacity = 30,
     unitsPerEm = 1000,
     zoom = 1,
   }) => {
-    if (
-      guideType === 'none' &&
-      verticalGuide === 'none' &&
-      !showBodyFrame &&
-      !showKanaFrame
-    ) {
-      return null;
-    }
+    const liveZoom = useLiveViewportZoom(zoom);
 
     const upm = unitsPerEm || 1000;
-    const z = zoom && zoom > 0 ? zoom : 1;
+    const z = liveZoom && liveZoom > 0 ? liveZoom : 1;
+    const invZ = 1 / z;
     const half = upm / 2;
     const third1 = Number((upm / 3).toFixed(1));
     const third2 = Number(((upm * 2) / 3).toFixed(1));
@@ -66,10 +60,17 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
       };
     }, [upm, half, third1, third2, q1, q3]);
 
-    const isKana = /[ぁ-んァ-ヶー]/.test(activeChar);
-    const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar);
+    if (
+      guideType === 'none' &&
+      verticalGuide === 'none' &&
+      !showBodyFrame &&
+      !showKanaFrame
+    ) {
+      return null;
+    }
 
-    const opacityScale = Math.min(1.2, Math.max(0.2, (gridOpacity ?? 30) / 45));
+    const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? 30) / 45));
+    const labelColor = isLight ? '#64748b' : '#94a3b8';
 
     const primaryColor =
       theme === 'sepia'
@@ -79,7 +80,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
         : theme === 'nord'
         ? '#88c0d0'
         : theme === 'monochrome'
-        ? '#3f3f46'
+        ? '#52525b'
         : isLight
         ? '#059669'
         : '#34d399';
@@ -118,7 +119,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
         : theme === 'nord'
         ? '#88c0d0'
         : theme === 'monochrome'
-        ? '#3f3f46'
+        ? '#52525b'
         : isLight
         ? '#059669'
         : '#34d399';
@@ -147,6 +148,11 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
         ? paths.verticalEighths
         : null;
 
+    const dash = (a: number, b: number, c?: number, d?: number) =>
+      c !== undefined && d !== undefined
+        ? `${a * invZ} ${b * invZ} ${c * invZ} ${d * invZ}`
+        : `${a * invZ} ${b * invZ}`;
+
     // Body Frame (85% Kanji Frame) & Kana Frame (78% Kana Frame) proportional to upm
     const bodyInset = upm * 0.075;
     const bodySize = upm * 0.85;
@@ -155,34 +161,39 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
 
     return (
       <g
-        className="japanese-guides-layer pointer-events-none select-none font-mono text-[10px]"
-        opacity={Math.min(1, 0.75 * opacityScale)}
+        className="japanese-guides-layer pointer-events-none select-none font-mono"
+        opacity={Math.min(0.85, 0.65 * opacityScale)}
       >
         {/* 1. Dedicated Vertical Guideline System */}
         {verticalGuidePath && (
           <>
-            <g opacity={0.65}>
-              <path
-                d={verticalGuidePath}
-                stroke={verticalGuideColor}
-                strokeDasharray="5 3"
-                strokeWidth={1.2}
-                vectorEffect="non-scaling-stroke"
-              />
-            </g>
+            <path
+              d={verticalGuidePath}
+              stroke={verticalGuideColor}
+              strokeDasharray={dash(5, 3)}
+              strokeWidth={1.1}
+              vectorEffect="non-scaling-stroke"
+              opacity={0.6}
+            />
             {verticalGuide === 'center' && (
-              <text x={half} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
-                X:{half} (中心)
-              </text>
+              <g transform={`translate(${half}, ${upm}) scale(${invZ})`}>
+                <text x={0} y={-6} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
+                  X:{half}
+                </text>
+              </g>
             )}
             {verticalGuide === 'thirds' && (
               <>
-                <text x={third1} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
-                  X:{third1}
-                </text>
-                <text x={third2} y={16 / z} fill={verticalGuideColor} textAnchor="middle" fontWeight="bold" fontSize={11 / z} opacity={1.0}>
-                  X:{third2}
-                </text>
+                <g transform={`translate(${third1}, 0) scale(${invZ})`}>
+                  <text x={0} y={13} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
+                    X:{third1}
+                  </text>
+                </g>
+                <g transform={`translate(${third2}, 0) scale(${invZ})`}>
+                  <text x={0} y={13} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
+                    X:{third2}
+                  </text>
+                </g>
               </>
             )}
           </>
@@ -190,103 +201,88 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
 
         {/* 2. 和文目安ガイド */}
         {(guideType === 'cross' || guideType === 'tian') && (
-          <g opacity={0.55}>
+          <g opacity={0.45}>
             <path
               d={paths.cross}
               stroke={primaryColor}
-              strokeDasharray="6 4"
-              strokeWidth={1.2}
+              strokeDasharray={dash(6, 4)}
+              strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
             />
-            <circle cx={half} cy={half} r={3 / z} fill={primaryColor} />
+            <circle cx={half} cy={half} r={2.5 * invZ} fill={primaryColor} />
           </g>
         )}
 
         {guideType === 'jiugong' && (
-          <g opacity={0.5}>
+          <g opacity={0.45}>
             <path
               d={paths.jiugong}
               stroke={primaryColor}
-              strokeDasharray="5 3"
-              strokeWidth={1.1}
+              strokeDasharray={dash(5, 3)}
+              strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             />
             <path
               d={paths.mi}
               stroke={secondaryColor}
-              strokeDasharray="4 4"
+              strokeDasharray={dash(4, 4)}
               strokeWidth={0.9}
               vectorEffect="non-scaling-stroke"
-              opacity={0.6}
+              opacity={0.55}
             />
           </g>
         )}
 
         {guideType === 'sixteen' && (
-          <g opacity={0.5}>
+          <g opacity={0.45}>
             <path
               d={paths.sixteen}
               stroke={primaryColor}
-              strokeDasharray="5 3"
+              strokeDasharray={dash(5, 3)}
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d={paths.cross}
+              stroke={secondaryColor}
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+              opacity={0.65}
+            />
+            <path
+              d={paths.mi}
+              stroke={secondaryColor}
+              strokeDasharray={dash(4, 4)}
+              strokeWidth={0.8}
+              vectorEffect="non-scaling-stroke"
+              opacity={0.45}
+            />
+          </g>
+        )}
+
+        {guideType === 'mi' && (
+          <g opacity={0.48}>
+            <path
+              d={paths.mi}
+              stroke={primaryColor}
+              strokeDasharray={dash(5, 3)}
               strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
             />
             <path
               d={paths.cross}
               stroke={secondaryColor}
-              strokeWidth={1.0}
+              strokeDasharray={dash(4, 4)}
+              strokeWidth={1}
               vectorEffect="non-scaling-stroke"
-              opacity={0.7}
             />
-            <path
-              d={paths.mi}
-              stroke={secondaryColor}
-              strokeDasharray="4 4"
-              strokeWidth={0.8}
-              vectorEffect="non-scaling-stroke"
-              opacity={0.5}
-            />
+            <circle cx={half} cy={half} r={2.5 * invZ} fill={primaryColor} />
           </g>
         )}
 
-        {guideType === 'mi' && (
-          <g opacity={0.55}>
-            <path
-              d={paths.mi}
-              stroke={primaryColor}
-              strokeDasharray="5 3"
-              strokeWidth={1.2}
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d={paths.cross}
-              stroke={secondaryColor}
-              strokeDasharray="4 4"
-              strokeWidth={1.0}
-              vectorEffect="non-scaling-stroke"
-            />
-            <circle cx={half} cy={half} r={3 / z} fill={primaryColor} />
-          </g>
-        )}
-
-        {/* 3. 十字格・漢字字面枠 (85%) - Colorblind Safe: Long dash + Dot pattern & text tag */}
+        {/* 3. 漢字字面枠 (85%) */}
         {showBodyFrame && (
-          <g opacity={0.8}>
-            {/* Contrast underlay halo line */}
-            <rect
-              x={bodyInset}
-              y={bodyInset}
-              width={bodySize}
-              height={bodySize}
-              fill="none"
-              stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
-              vectorEffect="non-scaling-stroke"
-              strokeDasharray="12 4 2 4"
-              strokeOpacity={0.6}
-              rx={4}
-            />
-            {/* Primary colored dashed frame */}
+          <g opacity={0.6}>
             <rect
               x={bodyInset}
               y={bodyInset}
@@ -294,47 +290,21 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={bodySize}
               fill="none"
               stroke={kanjiFrameColor}
-              strokeWidth={1.5}
+              strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
-              strokeDasharray="12 4 2 4"
-              rx={4}
+              strokeDasharray={dash(10, 4, 2, 4)}
             />
-            {/* Tag badge for immediate identification without relying on color */}
-            <text
-              x={bodyInset + 6 / z}
-              y={bodyInset + 14 / z}
-              fill={kanjiFrameColor}
-              fontSize={10 / z}
-              fontWeight="bold"
-              paintOrder="stroke"
-              stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
-              vectorEffect="non-scaling-stroke"
-              strokeLinejoin="round"
-            >
-              漢字枠 (85%) ─・
-            </text>
+            <g transform={`translate(${bodyInset}, ${bodyInset}) scale(${invZ})`}>
+              <text x={6} y={12} fill={labelColor} fontSize={9.5} opacity={0.75}>
+                漢字枠 (85%)
+              </text>
+            </g>
           </g>
         )}
 
-        {/* 4. 仮名字面枠 (78%) - Colorblind Safe: Dense dot pattern & text tag */}
+        {/* 4. 仮名字面枠 (78%) */}
         {showKanaFrame && (
-          <g opacity={0.8}>
-            {/* Contrast underlay halo line */}
-            <rect
-              x={kanaInset}
-              y={kanaInset}
-              width={kanaSize}
-              height={kanaSize}
-              fill="none"
-              stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
-              vectorEffect="non-scaling-stroke"
-              strokeDasharray="3 3"
-              strokeOpacity={0.6}
-              rx={4}
-            />
-            {/* Primary colored dotted frame */}
+          <g opacity={0.6}>
             <rect
               x={kanaInset}
               y={kanaInset}
@@ -342,26 +312,15 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               height={kanaSize}
               fill="none"
               stroke={kanaFrameColor}
-              strokeWidth={1.5}
+              strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
-              strokeDasharray="3 3"
-              rx={4}
+              strokeDasharray={dash(3, 3)}
             />
-            {/* Tag badge for immediate identification without relying on color */}
-            <text
-              x={kanaInset + 6 / z}
-              y={kanaInset + 14 / z}
-              fill={kanaFrameColor}
-              fontSize={10 / z}
-              fontWeight="bold"
-              paintOrder="stroke"
-              stroke={isLight ? '#ffffff' : '#000000'}
-              strokeWidth={3}
-              vectorEffect="non-scaling-stroke"
-              strokeLinejoin="round"
-            >
-              かな枠 (78%) ・・・
-            </text>
+            <g transform={`translate(${kanaInset}, ${kanaInset}) scale(${invZ})`}>
+              <text x={6} y={12} fill={labelColor} fontSize={9.5} opacity={0.75}>
+                かな枠 (78%)
+              </text>
+            </g>
           </g>
         )}
       </g>

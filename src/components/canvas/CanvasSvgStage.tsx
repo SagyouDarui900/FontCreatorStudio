@@ -87,6 +87,7 @@ export interface CanvasSvgStageProps {
   handleConvertRulerToGuideline: () => void;
   setRulerMeasurement: React.Dispatch<React.SetStateAction<any>>;
   contours: PathContour[];
+  contoursRef?: React.MutableRefObject<PathContour[]>;
   isOutlineMode: boolean;
   selectedContourIds: string[];
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
@@ -99,6 +100,7 @@ export interface CanvasSvgStageProps {
   selectedHandleType: 'node' | 'handleIn' | 'handleOut' | null;
   setSelectedHandleType: (type: 'node' | 'handleIn' | 'handleOut' | null) => void;
   nodeDragSessionRef: React.MutableRefObject<any>;
+  handleInsertNodeOnContour?: (e: React.PointerEvent, contour: PathContour) => boolean;
   onCommitHistory?: () => void;
   showCanvasToast: (msg: string, sub?: string) => void;
   handleTransformPointerDown: (e: React.PointerEvent, op: any, handle?: any) => void;
@@ -186,6 +188,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   handleConvertRulerToGuideline,
   setRulerMeasurement,
   contours,
+  contoursRef,
   isOutlineMode,
   selectedContourIds,
   onChangeContours,
@@ -198,6 +201,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   selectedHandleType,
   setSelectedHandleType,
   nodeDragSessionRef,
+  handleInsertNodeOnContour,
   onCommitHistory,
   showCanvasToast,
   handleTransformPointerDown,
@@ -444,6 +448,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         {/* Interactive Contour Hit & Selection Strokes */}
         <InteractiveContourHitLayer
           contours={contours}
+          contoursRef={contoursRef}
           selectedContourIds={selectedContourIds}
           contourSvgMap={contourSvgMap}
           selectionColor={selectionColor}
@@ -456,6 +461,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           setSelectedNodeId={setSelectedNodeId}
           setSelectedHandleType={setSelectedHandleType}
           nodeDragSessionRef={nodeDragSessionRef}
+          handleInsertNodeOnContour={handleInsertNodeOnContour}
           onCommitHistory={onCommitHistory}
           showCanvasToast={showCanvasToast}
           handleTransformPointerDown={handleTransformPointerDown}
@@ -560,15 +566,17 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         />
 
         {/* Active Pen Contour Path & Rubber-band */}
-        <ActivePenPreviewLayer
-          activePenContour={activePenContour}
-          penSvgPath={penSvgPath}
-          penStrokeWidth={penStrokeWidth}
-          penCapStyle={penCapStyle}
-          penMousePos={penMousePos}
-          zoom={zoom}
-          selectionColor={selectionColor}
-        />
+        {activePenContour && (
+          <ActivePenPreviewLayer
+            activePenContour={activePenContour}
+            penSvgPath={penSvgPath}
+            penStrokeWidth={penStrokeWidth}
+            penCapStyle={penCapStyle}
+            penMousePos={penMousePos}
+            zoom={zoom}
+            selectionColor={selectionColor}
+          />
+        )}
 
         {/* High-Contrast Cursor Crosshair & Drawing Reticles */}
         <CursorReticleOverlay

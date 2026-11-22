@@ -4,6 +4,7 @@ import { contoursToSvgPath, insertNodeOnContourAtPoint } from '../../utils/path'
 
 export interface InteractiveContourHitLayerProps {
   contours: PathContour[];
+  contoursRef?: React.MutableRefObject<PathContour[]>;
   selectedContourIds: string[];
   contourSvgMap: Map<string, string>;
   selectionColor: string;
@@ -16,6 +17,7 @@ export interface InteractiveContourHitLayerProps {
   setSelectedNodeId: (id: string | null) => void;
   setSelectedHandleType: (type: 'node' | 'handleIn' | 'handleOut' | null) => void;
   nodeDragSessionRef: React.MutableRefObject<any>;
+  handleInsertNodeOnContour?: (e: React.PointerEvent, contour: PathContour) => boolean;
   onCommitHistory?: () => void;
   showCanvasToast: (msg: string, sub?: string) => void;
   handleTransformPointerDown: (e: React.PointerEvent, action: 'move', contourIds: string[]) => void;
@@ -25,6 +27,7 @@ export interface InteractiveContourHitLayerProps {
 
 export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProps> = React.memo(({
   contours,
+  contoursRef,
   selectedContourIds,
   contourSvgMap,
   selectionColor,
@@ -37,6 +40,7 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
   setSelectedNodeId,
   setSelectedHandleType,
   nodeDragSessionRef,
+  handleInsertNodeOnContour,
   onCommitHistory,
   showCanvasToast,
   handleTransformPointerDown,
@@ -60,6 +64,10 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
             pointerEvents={toolMode === 'select' ? 'stroke fill' : toolMode === 'node' ? 'stroke' : 'none'}
             onPointerDown={(e) => {
               if (toolMode === 'node') {
+                if (handleInsertNodeOnContour) {
+                  handleInsertNodeOnContour(e, contour);
+                  return;
+                }
                 e.stopPropagation();
                 if (isGlyphLocked) {
                   setSelectedContourId(contour.id);
@@ -68,10 +76,15 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                   return;
                 }
                 const clickPos = screenToCanvas(e.clientX, e.clientY);
-                const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
+                const liveContours = contoursRef?.current || contours;
+                const liveContour = liveContours.find((c) => c.id === contour.id) || contour;
+                const insertResult = insertNodeOnContourAtPoint(liveContour, clickPos, 16 / zoom);
                 if (insertResult) {
-                  const newContours = contours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
+                  const newContours = liveContours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
                   onCommitHistory?.();
+                  if (contoursRef) {
+                    contoursRef.current = newContours;
+                  }
                   onChangeContours(newContours, { skipHistory: true });
                   setSelectedContourId(contour.id);
                   setSelectedContourIds([contour.id]);
@@ -82,6 +95,7 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                     nodeDragSessionRef.current = {
                       contourId: contour.id,
                       nodeId: insertResult.newNodeId,
+                      selectedNodeIds: [insertResult.newNodeId],
                       handleType: 'node',
                       startPos: clickPos,
                       initialNode: { ...insertedNode },

@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Point } from '../../../types';
 import { clampPanToViewport, MIN_CANVAS_ZOOM, MAX_CANVAS_ZOOM } from './viewportMath';
+import { setLiveViewport, clearLiveViewport } from '../viewportStore';
 
 interface UseCanvasViewportOptions {
   upm: number;
+  showRulers?: boolean;
 }
 
-export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
+const RULER_BAR_SIZE = 28;
+
+export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportOptions) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const containerRectRef = useRef<DOMRect | null>(null);
   const containerDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -21,6 +25,19 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
 
   const panRef = useRef<Point>(pan);
   panRef.current = pan;
+
+  const showRulersRef = useRef<boolean>(showRulers);
+  showRulersRef.current = showRulers;
+
+  useEffect(() => {
+    setLiveViewport(zoom, pan);
+  }, [zoom, pan]);
+
+  useEffect(() => {
+    return () => {
+      clearLiveViewport();
+    };
+  }, []);
 
   const invalidateContainerRect = useCallback(() => {
     containerRectRef.current = null;
@@ -82,45 +99,52 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
         containerDimensionsRef.current = { width: cWidth, height: cHeight };
       }
 
+      const rulerInset = showRulersRef.current ? RULER_BAR_SIZE : 0;
+      const availW = Math.max(120, cWidth - rulerInset);
+      const availH = Math.max(120, cHeight - rulerInset);
+
       if (mode === '100%') {
         const nextPan = {
-          x: Math.round((cWidth - upm) / 2),
-          y: Math.round((cHeight - upm) / 2),
+          x: Math.round(rulerInset + (availW - upm) / 2),
+          y: Math.round(rulerInset + (availH - upm) / 2),
         };
         zoomRef.current = 1.0;
         panRef.current = nextPan;
+        setLiveViewport(1.0, nextPan);
         setZoom((prev) => (prev === 1.0 ? prev : 1.0));
         setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
       if (mode === 'width') {
-        const margin = cWidth < 640 ? 12 : 24;
-        const widthZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, (cWidth - margin) / upm));
+        const margin = cWidth < 640 ? 16 : 36;
+        const widthZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, (availW - margin) / upm));
         const nextPan = {
-          x: Math.round((cWidth - upm * widthZoom) / 2),
-          y: Math.round(Math.max(16, (cHeight - upm * widthZoom) / 2)),
+          x: Math.round(rulerInset + (availW - upm * widthZoom) / 2),
+          y: Math.round(rulerInset + Math.max(16, (availH - upm * widthZoom) / 2)),
         };
         zoomRef.current = widthZoom;
         panRef.current = nextPan;
+        setLiveViewport(widthZoom, nextPan);
         setZoom((prev) => (prev === widthZoom ? prev : widthZoom));
         setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
-      // Default 'fit': comfortable, optimal margin (12px on mobile, 28px on desktop/iPad)
-      const margin = cWidth < 640 ? 12 : 28;
+      // Default 'fit': center in the non-ruler viewport area with comfortable margin
+      const margin = cWidth < 640 ? 20 : 44;
       const idealZoom = Math.min(
-        Math.max(MIN_CANVAS_ZOOM, (cWidth - margin) / upm),
-        Math.max(MIN_CANVAS_ZOOM, (cHeight - margin) / upm)
+        Math.max(MIN_CANVAS_ZOOM, (availW - margin) / upm),
+        Math.max(MIN_CANVAS_ZOOM, (availH - margin) / upm)
       );
       const clampedZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, idealZoom));
       const nextPan = {
-        x: Math.round((cWidth - upm * clampedZoom) / 2),
-        y: Math.round((cHeight - upm * clampedZoom) / 2),
+        x: Math.round(rulerInset + (availW - upm * clampedZoom) / 2),
+        y: Math.round(rulerInset + (availH - upm * clampedZoom) / 2),
       };
       zoomRef.current = clampedZoom;
       panRef.current = nextPan;
+      setLiveViewport(clampedZoom, nextPan);
       setZoom((prev) => (prev === clampedZoom ? prev : clampedZoom));
       setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
     },
@@ -147,6 +171,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
       );
       zoomRef.current = nextZoom;
       panRef.current = nextPan;
+      setLiveViewport(nextZoom, nextPan);
       setZoom(nextZoom);
       setPan(nextPan);
     },
@@ -194,6 +219,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
           const clamped = clampPan(panRef.current, zoomRef.current);
           if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
             panRef.current = clamped;
+            setLiveViewport(zoomRef.current, clamped);
             setPan(clamped);
           }
         } else {
@@ -256,6 +282,7 @@ export function useCanvasViewport({ upm }: UseCanvasViewportOptions) {
             const clamped = clampPan(panRef.current, zoomRef.current);
             if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
               panRef.current = clamped;
+              setLiveViewport(zoomRef.current, clamped);
               setPan(clamped);
             }
           }

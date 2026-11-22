@@ -8,7 +8,11 @@ interface UseCanvasEraserOptions {
   contoursRef: React.MutableRefObject<PathContour[]>;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
+  onUndo?: () => void;
   showCanvasToast: (message: string, subText?: string) => void;
+  selectedContourIds?: string[];
+  selectedContourId?: string | null;
+  selectedNodeId?: string | null;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
   setSelectedContourId: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedNodeId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -20,7 +24,11 @@ export function useCanvasEraser({
   contoursRef,
   onChangeContours,
   onCommitHistory,
+  onUndo,
   showCanvasToast,
+  selectedContourIds,
+  selectedContourId,
+  selectedNodeId,
   setSelectedContourIds,
   setSelectedContourId,
   setSelectedNodeId,
@@ -34,6 +42,11 @@ export function useCanvasEraser({
   const eraserStrokePointsRef = useRef<Point[]>([]);
   const activeEraserPathRef = useRef<SVGPathElement | null>(null);
   const activeEraserSvgDRef = useRef<string>('');
+  const preSessionSelectionRef = useRef<{
+    contourIds: string[];
+    contourId: string | null;
+    nodeId: string | null;
+  } | null>(null);
 
   const resetEraserVisuals = useCallback(() => {
     isErasingRef.current = false;
@@ -44,6 +57,7 @@ export function useCanvasEraser({
     }
     eraserStrokePointsRef.current = [];
     erasedAnyInSessionRef.current = false;
+    preSessionSelectionRef.current = null;
   }, []);
 
   const handleEraserPointerDown = useCallback(
@@ -54,6 +68,11 @@ export function useCanvasEraser({
 
       isErasingRef.current = true;
       erasedAnyInSessionRef.current = false;
+      preSessionSelectionRef.current = {
+        contourIds: selectedContourIds ?? [],
+        contourId: selectedContourId ?? null,
+        nodeId: selectedNodeId ?? null,
+      };
       lastErasePosRef.current = pos;
       eraserStrokePointsRef.current = [pos];
       const eraseRadius = Math.max(2, eraserSize / 2);
@@ -88,6 +107,9 @@ export function useCanvasEraser({
       eraserSize,
       onChangeContours,
       onCommitHistory,
+      selectedContourId,
+      selectedContourIds,
+      selectedNodeId,
       setSelectedContourId,
       setSelectedContourIds,
       setSelectedNodeId,
@@ -192,6 +214,7 @@ export function useCanvasEraser({
         });
       }
       eraserStrokePointsRef.current = [];
+      preSessionSelectionRef.current = null;
       return true;
     },
     [
@@ -205,6 +228,33 @@ export function useCanvasEraser({
       setSelectedNodeId,
       showCanvasToast,
     ]
+  );
+
+  const handleEraserPointerCancel = useCallback(
+    (e?: React.PointerEvent<SVGSVGElement>) => {
+      if (!isErasingRef.current) return false;
+
+      try {
+        if (e && (e.currentTarget as Element).hasPointerCapture?.(e.pointerId)) {
+          (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+        }
+      } catch {}
+
+      const hadCommitted = erasedAnyInSessionRef.current;
+      const prevSelection = preSessionSelectionRef.current;
+      resetEraserVisuals();
+
+      if (hadCommitted) {
+        onUndo?.();
+        if (prevSelection) {
+          setSelectedContourIds(prevSelection.contourIds);
+          setSelectedContourId(prevSelection.contourId);
+          setSelectedNodeId(prevSelection.nodeId);
+        }
+      }
+      return true;
+    },
+    [onUndo, resetEraserVisuals, setSelectedContourId, setSelectedContourIds, setSelectedNodeId]
   );
 
   return {
@@ -222,5 +272,6 @@ export function useCanvasEraser({
     handleEraserPointerDown,
     handleEraserPointerMove,
     handleEraserPointerUp,
+    handleEraserPointerCancel,
   };
 }

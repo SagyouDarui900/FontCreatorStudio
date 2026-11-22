@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Point, ToolMode, TraceSettings } from '../../../types';
 import { computeWheelZoomTransform } from './viewportMath';
 import { clampTraceScale } from '../traceOptions';
+import { setLiveViewport } from '../viewportStore';
 
 export interface UseCanvasNativeGesturesProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -82,6 +83,7 @@ export function useCanvasNativeGestures({
     };
 
     const applyDirectViewportTransform = () => {
+      setLiveViewport(zoomRef.current, panRef.current);
       const g = canvasGroupRef.current;
       if (!g) {
         setZoom(zoomRef.current);
@@ -99,6 +101,7 @@ export function useCanvasNativeGestures({
         wheelRafId = null;
       }
       setSvgGesturing(false);
+      setLiveViewport(zoomRef.current, panRef.current);
       setZoom(zoomRef.current);
       setPan(panRef.current);
     };
@@ -256,7 +259,7 @@ export function useCanvasNativeGestures({
     const handleWindowPointerUpOrCancel = (e: PointerEvent) => {
       const wasTwoFinger = isTwoFingerGestureRef.current;
       setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
-      if (isErasingRef.current) {
+      if (e.type === 'pointercancel' && isErasingRef.current) {
         resetEraserVisuals();
       }
       if (e.pointerType === 'touch') {
@@ -277,6 +280,9 @@ export function useCanvasNativeGestures({
       }
       if (!wasTwoFinger) {
         onWindowPointerEndRef?.current?.();
+      }
+      if (isErasingRef.current) {
+        resetEraserVisuals();
       }
     };
 

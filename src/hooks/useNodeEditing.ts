@@ -15,6 +15,7 @@ import { snapSinglePoint } from '../utils/snap';
 export interface NodeDragSession {
   contourId: string;
   nodeId: string;
+  selectedNodeIds?: string[];
   handleType: 'node' | 'handleIn' | 'handleOut';
   startPos: Point;
   initialNode: BezierNode;
@@ -263,6 +264,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       nodeDragSessionRef.current = {
         contourId: contour.id,
         nodeId: node.id,
+        selectedNodeIds: nextSelectedIds,
         handleType,
         startPos: canvasPos,
         initialNode: { ...node },
@@ -283,7 +285,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const handleHitDist = isTouchMode ? Math.max(30 / zoom, 24) : 16 / zoom;
       const nodeHitDist = isTouchMode ? Math.max(32 / zoom, 26) : 18 / zoom;
 
-      for (const contour of contours) {
+      const liveContours = contoursRef.current || contours;
+      for (const contour of liveContours) {
         for (const node of contour.nodes) {
           // Check handleOut
           if (node.handleOut && Math.hypot(node.handleOut.x - pos.x, node.handleOut.y - pos.y) <= handleHitDist) {
@@ -300,6 +303,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
+                selectedNodeIds: [node.id],
                 handleType: 'handleOut',
                 startPos: pos,
                 initialNode: { ...node },
@@ -325,6 +329,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
+                selectedNodeIds: [node.id],
                 handleType: 'handleIn',
                 startPos: pos,
                 initialNode: { ...node },
@@ -365,6 +370,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               nodeDragSessionRef.current = {
                 contourId: contour.id,
                 nodeId: node.id,
+                selectedNodeIds: nextSelectedIds,
                 handleType: 'node',
                 startPos: pos,
                 initialNode: { ...node },
@@ -392,7 +398,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       setSelectedHandleType(null);
       return false;
     },
-    [toolMode, zoom, contours, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
+    [toolMode, zoom, contours, contoursRef, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
   );
 
   // Insert node on contour at point (node tool click on stroke)
@@ -405,14 +411,18 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         return false;
       }
       const clickPos = screenToCanvas(e.clientX, e.clientY);
-      const insertResult = insertNodeOnContourAtPoint(contour, clickPos, 16 / zoom);
+      const liveContours = contoursRef.current || contours;
+      const liveContour = liveContours.find((c) => c.id === contour.id) || contour;
+      const insertResult = insertNodeOnContourAtPoint(liveContour, clickPos, 16 / zoom);
       if (insertResult) {
-        const newContours = contours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
+        const newContours = liveContours.map((c) => (c.id === contour.id ? insertResult.updatedContour : c));
         onCommitHistory?.();
+        contoursRef.current = newContours;
         onChangeContours(newContours, { skipHistory: true });
         setSelectedContourId(contour.id);
         setSelectedContourIds([contour.id]);
         setSelectedNodeId(insertResult.newNodeId);
+        setSelectedNodeIds([insertResult.newNodeId]);
         setSelectedHandleType('node');
         const insertedNode = insertResult.updatedContour.nodes.find((n) => n.id === insertResult.newNodeId);
         if (insertedNode) {
@@ -420,6 +430,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           nodeDragSessionRef.current = {
             contourId: contour.id,
             nodeId: insertResult.newNodeId,
+            selectedNodeIds: [insertResult.newNodeId],
             handleType: 'node',
             startPos: clickPos,
             initialNode: { ...insertedNode },
@@ -440,7 +451,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       setSelectedContourIds([contour.id]);
       return false;
     },
-    [toolMode, isGlyphLocked, screenToCanvas, zoom, contours, onChangeContours, setSelectedContourId, onCommitHistory, showCanvasToast]
+    [toolMode, isGlyphLocked, screenToCanvas, zoom, contours, contoursRef, onChangeContours, setSelectedContourId, setSelectedNodeId, onCommitHistory, showCanvasToast]
   );
 
   // Synchronous ref-accelerated 0ms latency node and handle dragging
@@ -457,10 +468,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const activeContourId = nodeDragSessionRef.current?.contourId || selectedContourId!;
       const activeNodeId = nodeDragSessionRef.current?.nodeId || selectedNodeId!;
       const activeHandleType = nodeDragSessionRef.current?.handleType || selectedHandleType!;
-      const multiNodeIds = selectedNodeIds.length > 0 && selectedNodeIds.includes(activeNodeId)
-        ? selectedNodeIds
-        : [activeNodeId];
+      const sessionNodeIds = nodeDragSessionRef.current?.selectedNodeIds;
+      const multiNodeIds =
+        sessionNodeIds && sessionNodeIds.length > 0 && sessionNodeIds.includes(activeNodeId)
+          ? sessionNodeIds
+          : selectedNodeIds.length > 0 && selectedNodeIds.includes(activeNodeId)
+          ? selectedNodeIds
+          : [activeNodeId];
 
+      const currentContours: PathContour[] = (contoursRef.current as PathContour[]) || contours;
       let snapPos = pos;
 
       if (e.pointerType === 'touch') {
@@ -473,8 +489,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
 
       if (activeHandleType === 'node' && !e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
-        const otherContours = contours.filter((c) => c.id !== activeContourId);
-        const activeContour = contours.find((c) => c.id === activeContourId);
+        const otherContours = currentContours.filter((c) => c.id !== activeContourId);
+        const activeContour = currentContours.find((c) => c.id === activeContourId);
         const currentContourNodes = activeContour ? activeContour.nodes : undefined;
         const snapThreshold = Math.max(7, Math.round(12 / (zoom || 1)));
         const snapResult = snapSinglePoint(
@@ -494,8 +510,6 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       } else if (activeHandleType === 'node' && setActiveSnapGuides) {
         setActiveSnapGuides([]);
       }
-
-      const currentContours: PathContour[] = (contoursRef.current as PathContour[]) || contours;
 
       // Find the primary node to compute delta
       let primaryNode: BezierNode | undefined;
@@ -687,8 +701,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       if (targetIds.length === 0) return;
 
       // Determine whether primary targeted node is corner or smooth
+      const liveContours = contoursRef.current || contours;
       let primaryIsCorner = true;
-      for (const c of contours) {
+      for (const c of liveContours) {
         const found = c.nodes.find((n) => targetIds.includes(n.id));
         if (found) {
           primaryIsCorner = found.type !== 'smooth';
@@ -697,7 +712,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
 
       let count = 0;
-      const updated = contours.map((c) => {
+      const updated = liveContours.map((c) => {
         const hasAny = c.nodes.some((n) => targetIds.includes(n.id));
         if (!hasAny) return c;
 
@@ -744,15 +759,17 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         };
       });
 
-      onChangeContours(updated);
+      if (count === 0) return;
       onCommitHistory?.();
+      contoursRef.current = updated;
+      onChangeContours(updated, { skipHistory: true });
       if (primaryIsCorner) {
         showCanvasToast('頂点をスムーズに変換', `${count} 個の頂点`);
       } else {
         showCanvasToast('頂点をコーナーに変換', `${count} 個の頂点`);
       }
     },
-    [isGlyphLocked, contours, selectedNodeIds, selectedNodeId, onChangeContours, onCommitHistory, showCanvasToast]
+    [isGlyphLocked, contours, contoursRef, selectedNodeIds, selectedNodeId, onChangeContours, onCommitHistory, showCanvasToast]
   );
 
   // Add node next to selected node in contour
@@ -762,7 +779,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       return;
     }
     if (!selectedContourId) return;
-    const target = contours.find((c) => c.id === selectedContourId);
+    const liveContours = contoursRef.current || contours;
+    const target = liveContours.find((c) => c.id === selectedContourId);
     if (!target || target.nodes.length < 2) return;
     let idx = target.nodes.findIndex((n) => n.id === selectedNodeId);
     if (idx === -1) idx = 0;
@@ -780,10 +798,12 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     const newNodes = [...target.nodes];
     newNodes.splice(idx + 1, 0, newNode);
     const updated = { ...target, nodes: newNodes };
-    onChangeContours(contours.map((c) => (c.id === selectedContourId ? updated : c)));
-    setSelectedNodeIds([newNode.id]);
+    const nextContours = liveContours.map((c) => (c.id === selectedContourId ? updated : c));
     onCommitHistory?.();
-  }, [isGlyphLocked, selectedContourId, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
+    contoursRef.current = nextContours;
+    onChangeContours(nextContours, { skipHistory: true });
+    setSelectedNodeIds([newNode.id]);
+  }, [isGlyphLocked, selectedContourId, selectedNodeId, contours, contoursRef, onChangeContours, onCommitHistory, showCanvasToast]);
 
   const onDeleteSelectedContourRef = useRef(onDeleteSelectedContour);
   useEffect(() => {
@@ -799,8 +819,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
     if (targetIds.length === 0) return;
 
+    const liveContours = contoursRef.current || contours;
     let anyContourCollapsed = false;
-    const updated = contours
+    const updated = liveContours
       .map((c) => {
         const remaining = c.nodes.filter((n) => !targetIds.includes(n.id));
         if (remaining.length <= 2) {
@@ -811,19 +832,21 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       })
       .filter((c): c is PathContour => c !== null);
 
-    if (anyContourCollapsed && updated.length < contours.length) {
-      onChangeContours(updated);
-      setSelectedNodeIds([]);
+    if (anyContourCollapsed && updated.length < liveContours.length) {
       onCommitHistory?.();
+      contoursRef.current = updated;
+      onChangeContours(updated, { skipHistory: true });
+      setSelectedNodeIds([]);
       showCanvasToast('パスを削除しました');
       return;
     }
 
-    onChangeContours(updated);
-    setSelectedNodeIds([]);
     onCommitHistory?.();
+    contoursRef.current = updated;
+    onChangeContours(updated, { skipHistory: true });
+    setSelectedNodeIds([]);
     showCanvasToast('選択した頂点を削除しました', `${targetIds.length} 個`);
-  }, [isGlyphLocked, selectedNodeIds, selectedNodeId, contours, onChangeContours, onCommitHistory, showCanvasToast]);
+  }, [isGlyphLocked, selectedNodeIds, selectedNodeId, contours, contoursRef, onChangeContours, onCommitHistory, showCanvasToast]);
 
   // Keyboard arrow nudge for selected nodes and handles
   const handleNudgeSelectedNode = useCallback(
@@ -835,8 +858,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
       if (targetIds.length === 0 && !selectedHandleType) return false;
 
+      const liveContours = contoursRef.current || contours;
       let changed = false;
-      const updated = contours.map((c) => {
+      const updated = liveContours.map((c) => {
         const hasSelected = c.nodes.some((n) => targetIds.includes(n.id));
         if (!hasSelected) return c;
 
@@ -890,27 +914,25 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
       if (changed) {
         // B9: consecutive nudges of the same selection within 500 ms share
-        // one history entry. Only the first nudge records history (via
-        // onChangeContours without skipHistory); later nudges in the burst
-        // move only, with skipHistory and no extra commit. handleUpdateContours
-        // already supports skipHistory, so no ProjectContext change is needed.
+        // one history entry. Only the first nudge commits history before
+        // updating contours with skipHistory; later nudges in the burst
+        // move only with skipHistory and no extra commit.
         const now = Date.now();
         const targetKey = `${[...targetIds].sort().join(',')}|${selectedHandleType ?? 'none'}`;
         const isContinuation =
           now - lastNudgeTimeRef.current <= 500 && lastNudgeTargetKeyRef.current === targetKey;
         lastNudgeTimeRef.current = now;
         lastNudgeTargetKeyRef.current = targetKey;
-        if (isContinuation) {
-          onChangeContours(updated, { skipHistory: true });
-        } else {
-          onChangeContours(updated);
+        if (!isContinuation) {
           onCommitHistory?.();
         }
+        contoursRef.current = updated;
+        onChangeContours(updated, { skipHistory: true });
         return true;
       }
       return false;
     },
-    [isGlyphLocked, selectedNodeIds, selectedNodeId, selectedHandleType, contours, onChangeContours, onCommitHistory, showCanvasToast]
+    [isGlyphLocked, selectedNodeIds, selectedNodeId, selectedHandleType, contours, contoursRef, onChangeContours, onCommitHistory, showCanvasToast]
   );
 
   // Clear all node & contour selection

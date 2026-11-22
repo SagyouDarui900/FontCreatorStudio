@@ -1,5 +1,6 @@
 import React from 'react';
 import { SnapGuideLine } from '../../types';
+import { useLiveViewportZoom } from './viewportStore';
 
 export interface SmartSnapGuidesLayerProps {
   activeSnapGuides: SnapGuideLine[];
@@ -8,7 +9,9 @@ export interface SmartSnapGuidesLayerProps {
 }
 
 export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.memo(
-  ({ activeSnapGuides, zoom, selectionColor }) => {
+  ({ activeSnapGuides, zoom: propZoom, selectionColor }) => {
+    const liveZoom = useLiveViewportZoom(propZoom);
+    const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
     if (!activeSnapGuides || activeSnapGuides.length === 0) return null;
 
     return (
@@ -65,7 +68,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                         y2={y2}
                         stroke={lineColor}
                         strokeWidth={strokeW}
-                        strokeDasharray="6 4"
+                        strokeDasharray={`${6 / zoom} ${4 / zoom}`}
                       />
                       {guide.snapPoint && (
                         <g transform={`translate(${guide.snapPoint.x}, ${guide.snapPoint.y})`}>
@@ -125,7 +128,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                     y2={guide.position}
                     stroke={lineColor}
                     strokeWidth={strokeW}
-                    strokeDasharray={isBaseline ? undefined : '6 4'}
+                    strokeDasharray={isBaseline ? undefined : `${6 / zoom} ${4 / zoom}`}
                   />
                   {/* Snap Target Contact Marker */}
                   {guide.snapPoint && (
@@ -187,7 +190,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                     y2={1300}
                     stroke={lineColor}
                     strokeWidth={strokeW}
-                    strokeDasharray={isLsb ? undefined : '6 4'}
+                    strokeDasharray={isLsb ? undefined : `${6 / zoom} ${4 / zoom}`}
                   />
                   {/* Snap Target Contact Marker */}
                   {guide.snapPoint && (

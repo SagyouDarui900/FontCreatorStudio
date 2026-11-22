@@ -25,7 +25,7 @@ export function getHoverCanvasPos(): Point | null {
   return hoverPos;
 }
 
-function subscribe(listener: () => void): () => void {
+export function subscribeHoverCanvasPos(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
@@ -33,5 +33,5 @@ function subscribe(listener: () => void): () => void {
 }
 
 export function useHoverCanvasPos(): Point | null {
-  return useSyncExternalStore(subscribe, getHoverCanvasPos);
+  return useSyncExternalStore(subscribeHoverCanvasPos, getHoverCanvasPos);
 }

@@ -102,13 +102,22 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       // In-progress Pen Drawing Shortcuts
       if (toolMode === 'pen' && activePenContour) {
         // Ctrl+Z / Cmd+Z: undo last placed node (prevents triggering full glyph history undo)
+        // Block Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y) while drawing a pen path so glyph redo
+        // cannot replace contours beneath an uncommitted pen contour.
         // stopImmediatePropagation() is required here: stopPropagation() does not
         // stop the separate window keydown listener in useAppShortcuts, which
-        // would otherwise run the full glyph history undo as well.
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        // would otherwise run the full glyph history undo/redo as well.
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
           e.preventDefault();
           e.stopImmediatePropagation();
-          handleUndoPenNode();
+          if (!e.shiftKey) {
+            handleUndoPenNode();
+          }
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          e.stopImmediatePropagation();
           return;
         }
 

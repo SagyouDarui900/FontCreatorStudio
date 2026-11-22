@@ -86,6 +86,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
   const brushStrokePointsRef = useRef<StrokePoint[]>([]);
   const freehandPointsRef = useRef<StrokePoint[]>([]);
+  const wasStraightModeRef = useRef<boolean>(false);
   const brushStrokeStartTimeRef = useRef<number>(0);
   const brushStrokeStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const pendingBrushEventsRef = useRef<
@@ -114,6 +115,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     }
     brushStrokePointsRef.current = [];
     freehandPointsRef.current = [];
+    wasStraightModeRef.current = false;
     pendingBrushEventsRef.current = [];
     strokeBrushConfigRef.current = null;
     activeBrushSvgDRef.current = '';
@@ -211,8 +213,11 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           }
         }
 
+        const activePressureSensitivity =
+          strokeBrushConfigRef.current?.pressureSensitivity ?? pressureSensitivity;
+
         let rawPres = 0.5;
-        if (pressureSensitivity === 'off') {
+        if (activePressureSensitivity === 'off') {
           rawPres = 0.5;
         } else if (ev.pointerType === 'pen') {
           rawPres = calibrateStylusPressure(typeof ev.pressure === 'number' ? ev.pressure : 0);
@@ -226,7 +231,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           rawPres = rawPressure;
         }
 
-        const pres = blendStrokePressure(ev.pointerType, pressureSensitivity, rawPres, lastP?.pressure);
+        const pres = blendStrokePressure(ev.pointerType, activePressureSensitivity, rawPres, lastP?.pressure);
         const ptItem: StrokePoint = {
           x: subPos.x,
           y: subPos.y,
@@ -247,6 +252,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   const handleBrushPointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>, pos: Point) => {
       pendingBrushEventsRef.current = [];
+      wasStraightModeRef.current = false;
       mouseSmoothSpeedRef.current = 0.5;
       brushStrokeStartTimeRef.current = Date.now();
       brushStrokeStartPosRef.current = { x: pos.x, y: pos.y };
@@ -343,6 +349,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
       // Straight Ruler Assist: When Shift is held or straight mode is ON
       if (e.shiftKey || brushStraightMode) {
+        wasStraightModeRef.current = true;
         const originPts = freehandPointsRef.current.length > 0 ? freehandPointsRef.current : brushStrokePointsRef.current;
         const p0 = originPts[0] || { x: 0, y: 0 };
         const subPos = screenToCanvas(e.clientX, e.clientY);
@@ -364,8 +371,10 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         // Straight-line pressure: same rules as normal drawing. Pen uses
         // calibrated stylus pressure; mouse / touch use the speed-based
         // pseudo pressure instead of a fixed 0.5.
+        const activePressureSensitivity =
+          strokeBrushConfigRef.current?.pressureSensitivity ?? pressureSensitivity;
         let pres = 0.5;
-        if (pressureSensitivity === 'off') {
+        if (activePressureSensitivity === 'off') {
           pres = 0.5;
         } else if (isPen) {
           pres = calibrateStylusPressure(e.pressure && e.pressure > 0 ? e.pressure : 0.15);
@@ -376,7 +385,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           if (dt > 0 && ds > 0) {
             const { smoothSpeed, rawPressure } = computeMouseSpeedPressure(dt, ds, mouseSmoothSpeedRef.current);
             mouseSmoothSpeedRef.current = smoothSpeed;
-            pres = blendStrokePressure(e.pointerType, pressureSensitivity, rawPressure, p0.pressure);
+            pres = blendStrokePressure(e.pointerType, activePressureSensitivity, rawPressure, p0.pressure);
           } else if (typeof p0.pressure === 'number') {
             pres = p0.pressure;
           }
@@ -403,6 +412,14 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           });
         }
         return true;
+      }
+
+      // Restore freehand points when releasing Shift / straight mode mid-stroke
+      if (wasStraightModeRef.current) {
+        wasStraightModeRef.current = false;
+        if (freehandPointsRef.current.length > 0) {
+          brushStrokePointsRef.current = [...freehandPointsRef.current];
+        }
       }
 
       // Defer all non-straight brush drawing events to requestAnimationFrame

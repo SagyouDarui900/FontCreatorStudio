@@ -27,6 +27,7 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.isComposing || e.keyCode === 229) return;
+      if (e.defaultPrevented) return;
       const {
         isAnyModalOpen,
         handleUndo,

@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Point } from '../../types';
-import { useHoverCanvasPos } from './hoverStore';
+import { getHoverCanvasPos, subscribeHoverCanvasPos } from './hoverStore';
+import { useLiveViewport } from './viewportStore';
 
 interface CanvasRulersLayerProps {
   showRulers: boolean;
@@ -14,115 +15,193 @@ interface CanvasRulersLayerProps {
   height: number;
 }
 
-const RULER_SIZE = 36;
+const RULER_SIZE = 28;
+const STEP_CANDIDATES = [10, 20, 25, 50, 100, 200, 250, 500, 1000];
 
 /**
  * Top and left ruler scales, drawn in screen space.
  *
- * The layer deliberately lives outside the panning/zooming <g> of the SVG
- * stage, so the rulers stay fixed at the viewport edges instead of
- * scrolling off-screen with the glyph. Tick positions are computed from
- * the glyph coordinates (screen = pan + glyph * zoom), while line widths
- * and label sizes are plain screen pixels and never scale with zoom.
- * The hover indicator reads the external hoverStore, so moving the
- * pointer does not re-render the stage.
+ * Subscribes to liveViewport so ticks track wheel/pinch zoom at 60fps.
+ * Hover cursor marks update directly via DOM refs so pointer movement never
+ * triggers React re-renders.
  */
 export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
-  ({ showRulers, isLight, unitsPerEm = 1000, pan, zoom, width, height }) => {
-    const hoverPos = useHoverCanvasPos();
+  ({ showRulers, isLight, unitsPerEm = 1000, pan: propPan, zoom: propZoom, width, height }) => {
+    const { zoom, pan } = useLiveViewport(propZoom, propPan);
     const upm = unitsPerEm || 1000;
+    const safeZoom = zoom && zoom > 0 ? zoom : 1;
 
-    const rulerTicks = useMemo(() => {
+    const hoverXLineRef = useRef<SVGLineElement | null>(null);
+    const hoverYLineRef = useRef<SVGLineElement | null>(null);
+    const viewRef = useRef({ showRulers, pan, safeZoom, width, height });
+    viewRef.current = { showRulers, pan, safeZoom, width, height };
+
+    useEffect(() => {
+      const updateHoverMarkers = () => {
+        const { showRulers: shown, pan: p, safeZoom: z, width: w, height: h } = viewRef.current;
+        const pos = shown ? getHoverCanvasPos() : null;
+
+        const xLine = hoverXLineRef.current;
+        if (xLine) {
+          if (pos) {
+            const sx = p.x + pos.x * z;
+            if (sx >= RULER_SIZE && sx <= w) {
+              xLine.setAttribute('x1', String(sx));
+              xLine.setAttribute('x2', String(sx));
+              xLine.style.display = '';
+            } else {
+              xLine.style.display = 'none';
+            }
+          } else {
+            xLine.style.display = 'none';
+          }
+        }
+
+        const yLine = hoverYLineRef.current;
+        if (yLine) {
+          if (pos) {
+            const sy = p.y + pos.y * z;
+            if (sy >= RULER_SIZE && sy <= h) {
+              yLine.setAttribute('y1', String(sy));
+              yLine.setAttribute('y2', String(sy));
+              yLine.style.display = '';
+            } else {
+              yLine.style.display = 'none';
+            }
+          } else {
+            yLine.style.display = 'none';
+          }
+        }
+      };
+
+      updateHoverMarkers();
+      return subscribeHoverCanvasPos(updateHoverMarkers);
+    }, [showRulers, pan.x, pan.y, safeZoom, width, height]);
+
+    const step = useMemo(() => {
+      return STEP_CANDIDATES.find((c) => c * safeZoom >= 56) ?? 1000;
+    }, [safeZoom]);
+
+    const xTicks = useMemo(() => {
+      if (!showRulers || width <= 0) return [];
+      const minCanvas = Math.max(-upm, Math.floor((RULER_SIZE - pan.x) / safeZoom / step) * step - step);
+      const maxCanvas = Math.min(upm * 2, Math.ceil((width - pan.x) / safeZoom / step) * step + step);
       const ticks: { value: number; minor: number }[] = [];
-      const step = upm > 1500 ? 200 : upm > 1000 ? 150 : 100;
-      for (let i = 0; i <= upm; i += step) {
-        ticks.push({ value: i, minor: i + step / 2 });
-      }
-      if (ticks[ticks.length - 1]?.value !== upm) {
-        ticks.push({ value: upm, minor: upm + step / 2 });
+      for (let v = minCanvas; v <= maxCanvas; v += step) {
+        ticks.push({ value: v, minor: v + step / 2 });
       }
       return ticks;
-    }, [upm]);
+    }, [showRulers, width, pan.x, safeZoom, step, upm]);
+
+    const yTicks = useMemo(() => {
+      if (!showRulers || height <= 0) return [];
+      const minCanvas = Math.max(-upm, Math.floor((RULER_SIZE - pan.y) / safeZoom / step) * step - step);
+      const maxCanvas = Math.min(upm * 2, Math.ceil((height - pan.y) / safeZoom / step) * step + step);
+      const ticks: { value: number; minor: number }[] = [];
+      for (let v = minCanvas; v <= maxCanvas; v += step) {
+        ticks.push({ value: v, minor: v + step / 2 });
+      }
+      return ticks;
+    }, [showRulers, height, pan.y, safeZoom, step, upm]);
 
     if (!showRulers) return null;
 
-    const strokePrimary = isLight ? '#065f46' : '#34d399';
-    const fillText = isLight ? '#065f46' : '#6ee7b7';
-    const strokeMinor = isLight ? '#64748b' : '#475569';
-    const barFill = isLight ? '#f1f5f3' : '#142018';
-    const barStroke = isLight ? '#cbdad2' : '#25382c';
-
-    const toScreenX = (glyphX: number) => pan.x + glyphX * zoom;
-    const toScreenY = (glyphY: number) => pan.y + glyphY * zoom;
-    const hoverScreenX = hoverPos ? toScreenX(hoverPos.x) : null;
-    const hoverScreenY = hoverPos ? toScreenY(hoverPos.y) : null;
+    const strokePrimary = isLight ? '#64748b' : '#94a3b8';
+    const fillText = isLight ? '#475569' : '#94a3b8';
+    const strokeMinor = isLight ? '#cbd5e1' : '#334155';
+    const barFill = isLight ? '#f4f6f5' : '#111a15';
+    const barStroke = isLight ? '#d5ddd9' : '#233329';
 
     return (
       <g className="canvas-rulers-layer select-none font-mono pointer-events-none">
+        <defs>
+          <clipPath id="topRulerClip">
+            <rect x={RULER_SIZE} y={0} width={Math.max(0, width - RULER_SIZE)} height={RULER_SIZE} />
+          </clipPath>
+          <clipPath id="leftRulerClip">
+            <rect x={0} y={RULER_SIZE} width={RULER_SIZE} height={Math.max(0, height - RULER_SIZE)} />
+          </clipPath>
+        </defs>
+
         {/* Top Ruler Bar Background */}
-        <rect x={0} y={0} width={width} height={RULER_SIZE} fill={barFill} stroke={barStroke} strokeWidth={1} />
+        <rect x={RULER_SIZE} y={0} width={Math.max(0, width - RULER_SIZE)} height={RULER_SIZE} fill={barFill} stroke={barStroke} strokeWidth={1} />
         {/* Left Ruler Bar Background */}
-        <rect x={0} y={0} width={RULER_SIZE} height={height} fill={barFill} stroke={barStroke} strokeWidth={1} />
+        <rect x={0} y={RULER_SIZE} width={RULER_SIZE} height={Math.max(0, height - RULER_SIZE)} fill={barFill} stroke={barStroke} strokeWidth={1} />
 
         {/* Top Ruler Ticks & Numbers */}
-        {rulerTicks.map(({ value: x, minor }) => {
-          const sx = toScreenX(x);
-          if (sx < -40 || sx > width + 40) return null;
-          const minorSx = toScreenX(minor);
-          return (
-            <g key={`top-tick-${x}`}>
-              <line x1={sx} y1={RULER_SIZE - 18} x2={sx} y2={RULER_SIZE} stroke={strokePrimary} strokeWidth={1.5} />
-              <text x={sx + 3} y={14} fill={fillText} fontWeight="bold" fontSize={9}>
-                {x}
-              </text>
-              {/* Minor tick at the midpoint of the step */}
-              {x < upm && minor < upm && minorSx >= 0 && minorSx <= width && (
-                <line
-                  x1={minorSx}
-                  y1={RULER_SIZE - 10}
-                  x2={minorSx}
-                  y2={RULER_SIZE}
-                  stroke={strokeMinor}
-                  strokeWidth={1}
-                />
-              )}
-            </g>
-          );
-        })}
+        <g clipPath="url(#topRulerClip)">
+          {xTicks.map(({ value: x, minor }) => {
+            const sx = pan.x + x * safeZoom;
+            const minorSx = pan.x + minor * safeZoom;
+            return (
+              <g key={`top-tick-${x}`}>
+                <line x1={sx} y1={RULER_SIZE - 10} x2={sx} y2={RULER_SIZE} stroke={strokePrimary} strokeWidth={1} />
+                <text x={sx + 3} y={12} fill={fillText} fontSize={9}>
+                  {x}
+                </text>
+                {minorSx >= RULER_SIZE && minorSx <= width && (
+                  <line
+                    x1={minorSx}
+                    y1={RULER_SIZE - 5}
+                    x2={minorSx}
+                    y2={RULER_SIZE}
+                    stroke={strokeMinor}
+                    strokeWidth={1}
+                  />
+                )}
+              </g>
+            );
+          })}
+          <line
+            ref={hoverXLineRef}
+            x1={0}
+            y1={0}
+            x2={0}
+            y2={RULER_SIZE}
+            stroke="#ef4444"
+            strokeWidth={1.5}
+            style={{ display: 'none' }}
+          />
+        </g>
 
         {/* Left Ruler Ticks & Numbers */}
-        {rulerTicks.map(({ value: y, minor }) => {
-          const sy = toScreenY(y);
-          if (sy < -40 || sy > height + 40) return null;
-          const minorSy = toScreenY(minor);
-          return (
-            <g key={`left-tick-${y}`}>
-              <line x1={RULER_SIZE - 18} y1={sy} x2={RULER_SIZE} y2={sy} stroke={strokePrimary} strokeWidth={1.5} />
-              <text x={4} y={sy + 3} fill={fillText} fontWeight="bold" fontSize={9}>
-                {y}
-              </text>
-              {/* Minor tick at the midpoint of the step */}
-              {y < upm && minor < upm && minorSy >= 0 && minorSy <= height && (
-                <line
-                  x1={RULER_SIZE - 10}
-                  y1={minorSy}
-                  x2={RULER_SIZE}
-                  y2={minorSy}
-                  stroke={strokeMinor}
-                  strokeWidth={1}
-                />
-              )}
-            </g>
-          );
-        })}
+        <g clipPath="url(#leftRulerClip)">
+          {yTicks.map(({ value: y, minor }) => {
+            const sy = pan.y + y * safeZoom;
+            const minorSy = pan.y + minor * safeZoom;
+            return (
+              <g key={`left-tick-${y}`}>
+                <line x1={RULER_SIZE - 10} y1={sy} x2={RULER_SIZE} y2={sy} stroke={strokePrimary} strokeWidth={1} />
+                <text x={3} y={sy - 3} fill={fillText} fontSize={8.5}>
+                  {y}
+                </text>
+                {minorSy >= RULER_SIZE && minorSy <= height && (
+                  <line
+                    x1={RULER_SIZE - 5}
+                    y1={minorSy}
+                    x2={RULER_SIZE}
+                    y2={minorSy}
+                    stroke={strokeMinor}
+                    strokeWidth={1}
+                  />
+                )}
+              </g>
+            );
+          })}
+          <line
+            ref={hoverYLineRef}
+            x1={0}
+            y1={0}
+            x2={RULER_SIZE}
+            y2={0}
+            stroke="#ef4444"
+            strokeWidth={1.5}
+            style={{ display: 'none' }}
+          />
+        </g>
 
-        {/* Real-time Cursor Indicator on Rulers (Red tracking ticks) */}
-        {hoverScreenX !== null && hoverScreenX >= 0 && hoverScreenX <= width && (
-          <line x1={hoverScreenX} y1={0} x2={hoverScreenX} y2={RULER_SIZE} stroke="#ef4444" strokeWidth={2} />
-        )}
-        {hoverScreenY !== null && hoverScreenY >= 0 && hoverScreenY <= height && (
-          <line x1={0} y1={hoverScreenY} x2={RULER_SIZE} y2={hoverScreenY} stroke="#ef4444" strokeWidth={2} />
-        )}
+        {/* Top-Left Corner Intersection Cap */}
+        <rect x={0} y={0} width={RULER_SIZE} height={RULER_SIZE} fill={barFill} stroke={barStroke} strokeWidth={1} />
       </g>
     );
   }

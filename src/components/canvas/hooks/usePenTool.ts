@@ -5,6 +5,7 @@ import { contoursToSvgPath, unionContours, hasContourIntersections, expandStroke
 interface UsePenToolOptions {
   toolMode?: ToolMode;
   contours: PathContour[];
+  contoursRef?: React.MutableRefObject<PathContour[]>;
   autoResolveBrushOverlap: boolean;
   containerRef: React.RefObject<HTMLDivElement | null>;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
@@ -20,6 +21,7 @@ interface UsePenToolOptions {
 export function usePenTool({
   toolMode,
   contours,
+  contoursRef,
   autoResolveBrushOverlap,
   containerRef,
   onChangeContours,
@@ -131,6 +133,7 @@ export function usePenTool({
       setShowPenStrokeMenu(false);
 
       const targetWidth = customStrokeWidth ?? penStrokeWidth;
+      const baseContours = contoursRef?.current || contours;
 
       if (!closed) {
         try {
@@ -152,8 +155,12 @@ export function usePenTool({
               }
             }
 
+            const nextContours = [...baseContours, ...resultContours];
             onCommitHistory?.();
-            onChangeContours([...contours, ...resultContours], { skipHistory: true });
+            if (contoursRef) {
+              contoursRef.current = nextContours;
+            }
+            onChangeContours(nextContours, { skipHistory: true });
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
@@ -179,8 +186,12 @@ export function usePenTool({
         try {
           const selfMerged = unionContours([finalized], 1.2, true);
           if (selfMerged && selfMerged.length > 0) {
+            const nextContours = [...baseContours, ...selfMerged];
             onCommitHistory?.();
-            onChangeContours([...contours, ...selfMerged], { skipHistory: true });
+            if (contoursRef) {
+              contoursRef.current = nextContours;
+            }
+            onChangeContours(nextContours, { skipHistory: true });
             setSelectedContourId(null);
             setSelectedContourIds([]);
             setActivePenContour(null);
@@ -199,8 +210,12 @@ export function usePenTool({
         }
       }
 
+      const nextContours = [...baseContours, finalized];
       onCommitHistory?.();
-      onChangeContours([...contours, finalized], { skipHistory: true });
+      if (contoursRef) {
+        contoursRef.current = nextContours;
+      }
+      onChangeContours(nextContours, { skipHistory: true });
       setSelectedContourId(null);
       setSelectedContourIds([]);
       setActivePenContour(null);
@@ -216,6 +231,7 @@ export function usePenTool({
       activePenContour,
       autoResolveBrushOverlap,
       contours,
+      contoursRef,
       onChangeContours,
       onCommitHistory,
       penCapStyle,

@@ -43,7 +43,6 @@ import {
   useToolModeCleanup,
   useCanvasContourActions,
 } from './canvas/hooks';
-import { setHoverCanvasPos } from './canvas/hoverStore';
 
 const NOOP_CHANGE_GRID_SETTINGS: React.Dispatch<React.SetStateAction<import('../types').GridSettings>> = () => {};
 
@@ -225,7 +224,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     resetView,
     handleZoomStep,
     screenToCanvas,
-  } = useCanvasViewport({ upm });
+  } = useCanvasViewport({ upm, showRulers: gridSettings.showRulers !== false });
 
   const canvasGroupRef = useRef<SVGGElement | null>(null);
 
@@ -389,6 +388,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     onCommitHistory,
     setIsStylusActive,
     isStylusActive,
+    onPressureUpdate: setLiveStylusPressure,
   });
 
   const {
@@ -451,6 +451,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   } = usePenTool({
     toolMode,
     contours,
+    contoursRef,
     autoResolveBrushOverlap,
     containerRef,
     onChangeContours,
@@ -550,6 +551,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     pendingTransformContoursRef,
   } = useTransformSession({
     contours,
+    contoursRef,
     selectedContourIds,
     screenToCanvas,
     onChangeContours,
@@ -621,7 +623,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
       if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
       if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
-      setHoverCanvasPos(null);
     }
   }, [gridSettings.showCursorCrosshair]);
 
@@ -1268,6 +1269,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleConvertRulerToGuideline={handleConvertRulerToGuideline}
           setRulerMeasurement={setRulerMeasurement}
           contours={contours}
+          contoursRef={contoursRef}
           isOutlineMode={isOutlineMode}
           selectedContourIds={selectedContourIds}
           onChangeContours={onChangeContours}
@@ -1280,6 +1282,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           selectedHandleType={selectedHandleType}
           setSelectedHandleType={setSelectedHandleType}
           nodeDragSessionRef={nodeDragSessionRef}
+          handleInsertNodeOnContour={handleInsertNodeOnContour}
           onCommitHistory={onCommitHistory}
           showCanvasToast={showCanvasToast}
           handleTransformPointerDown={handleTransformPointerDown}

@@ -29,7 +29,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['Alt', '+', 'ホイール'], description: 'ブラシ・消しゴムのサイズを変更', category: 'mouse' },
   { keys: ['中ボタンドラッグ'], description: 'キャンバスをパン移動', category: 'mouse' },
   { keys: ['Space', '+', '左ドラッグ'], description: 'キャンバスをパン移動', category: 'mouse' },
-  { keys: ['パスをダブルクリック'], description: '対象輪郭の全ノードを選択', category: 'mouse' },
+  { keys: ['パスをダブルクリック'], description: '対象輪郭を選択してノード編集モードに切り替え', category: 'mouse' },
   { keys: ['Shift', '+', '左クリック'], description: '選択中の輪郭・ノードへの追加と除外を切り替え', category: 'mouse' },
   { keys: ['右クリック'], description: '反転・回転・2次/3次ベジェ変換・部首登録メニューを表示', category: 'mouse' },
   { keys: ['Shift', '+', 'ドラッグ'], description: '筆描画時に直前位置から水平・垂直・45 度の直線を描画', category: 'mouse' },

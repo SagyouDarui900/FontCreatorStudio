@@ -27,11 +27,13 @@ export interface TransformSessionData {
   startPoint: Point;
   initialBBox: ReturnType<typeof getContoursBoundingBox>;
   initialContours: PathContour[];
+  targetIds: string[];
   allInitialNodes?: Point[];
 }
 
 export interface UseTransformSessionOptions {
   contours: PathContour[];
+  contoursRef?: React.MutableRefObject<PathContour[]>;
   selectedContourIds: string[];
   screenToCanvas: (clientX: number, clientY: number) => Point;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
@@ -47,6 +49,7 @@ export interface UseTransformSessionOptions {
 
 export function useTransformSession({
   contours,
+  contoursRef,
   selectedContourIds,
   screenToCanvas,
   onChangeContours,
@@ -60,6 +63,7 @@ export function useTransformSession({
   showCanvasToast,
 }: UseTransformSessionOptions) {
   const [transformSession, setTransformSession] = useState<TransformSessionData | null>(null);
+  const transformSessionRef = useRef<TransformSessionData | null>(null);
   const [rotateDisplayAngle, setRotateDisplayAngle] = useState<number | null>(null);
   const pendingTransformContoursRef = useRef<PathContour[] | null>(null);
   const transformRafRef = useRef<number | null>(null);
@@ -86,7 +90,8 @@ export function useTransformSession({
       }
       const targetIds = overrideTargetIds || selectedContourIds;
       if (targetIds.length === 0) return;
-      const targetContours = contours.filter((c) => targetIds.includes(c.id));
+      const currentContours = contoursRef?.current || contours;
+      const targetContours = currentContours.filter((c) => targetIds.includes(c.id));
       if (targetContours.length === 0) return;
 
       try {
@@ -100,25 +105,34 @@ export function useTransformSession({
       const bbox = getContoursBoundingBox(targetContours);
       const pos = screenToCanvas(e.clientX, e.clientY);
       const allInitialNodes = targetContours.flatMap((c) => c.nodes.map((n) => ({ x: n.x, y: n.y })));
-      setTransformSession({
+      const nextSession: TransformSessionData = {
         handle,
         startPoint: pos,
         initialBBox: bbox,
         initialContours: targetContours,
+        targetIds: [...targetIds],
         allInitialNodes,
-      });
+      };
+      transformSessionRef.current = nextSession;
+      setTransformSession(nextSession);
     },
-    [isGlyphLocked, showCanvasToast, selectedContourIds, contours, screenToCanvas]
+    [isGlyphLocked, showCanvasToast, selectedContourIds, contours, contoursRef, screenToCanvas]
   );
 
   const handleTransformPointerMove = useCallback(
     (pos: Point, e: React.PointerEvent<SVGSVGElement>): boolean => {
-      if (!transformSession || selectedContourIds.length === 0) {
+      const activeSession = transformSessionRef.current || transformSession;
+      const activeTargetIds =
+        activeSession?.targetIds && activeSession.targetIds.length > 0
+          ? activeSession.targetIds
+          : selectedContourIds;
+      if (!activeSession || activeTargetIds.length === 0) {
         return false;
       }
 
+      const currentContours = contoursRef?.current || contours;
       const { handle, startPoint, initialBBox, initialContours, allInitialNodes: precomputedNodes } =
-        transformSession;
+        activeSession;
       const rawDx = pos.x - startPoint.x;
       const rawDy = pos.y - startPoint.y;
 
@@ -127,7 +141,7 @@ export function useTransformSession({
         let finalDy = rawDy;
 
         if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
-          const otherContours = contours.filter((c) => !selectedContourIds.includes(c.id));
+          const otherContours = currentContours.filter((c) => !activeTargetIds.includes(c.id));
           const snapThreshold = Math.max(7, Math.round(12 / zoom));
           const allInitialNodes = precomputedNodes || initialContours.flatMap((c) => c.nodes);
           const snapResult = snapContourMovement(
@@ -166,7 +180,10 @@ export function useTransformSession({
           });
         }
 
-        const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
+        const nextContours = currentContours.map((c) => updatedMap.get(c.id) || c);
+        if (contoursRef) {
+          contoursRef.current = nextContours;
+        }
         pendingTransformContoursRef.current = nextContours;
         if (transformRafRef.current == null) {
           transformRafRef.current = requestAnimationFrame(() => {
@@ -223,7 +240,10 @@ export function useTransformSession({
           });
         }
 
-        const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
+        const nextContours = currentContours.map((c) => updatedMap.get(c.id) || c);
+        if (contoursRef) {
+          contoursRef.current = nextContours;
+        }
         pendingTransformContoursRef.current = nextContours;
         if (transformRafRef.current == null) {
           transformRafRef.current = requestAnimationFrame(() => {
@@ -249,7 +269,7 @@ export function useTransformSession({
       let snapY = pos.y;
 
       if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
-        const otherContours = contours.filter((c) => !selectedContourIds.includes(c.id));
+        const otherContours = currentContours.filter((c) => !activeTargetIds.includes(c.id));
         const snapThreshold = Math.max(7, Math.round(12 / zoom));
         const snapResult = snapSinglePoint(
           pos,
@@ -399,7 +419,10 @@ export function useTransformSession({
         });
       }
 
-      const nextContours = contours.map((c) => updatedMap.get(c.id) || c);
+      const nextContours = currentContours.map((c) => updatedMap.get(c.id) || c);
+      if (contoursRef) {
+        contoursRef.current = nextContours;
+      }
       pendingTransformContoursRef.current = nextContours;
       if (transformRafRef.current == null) {
         transformRafRef.current = requestAnimationFrame(() => {
@@ -420,6 +443,7 @@ export function useTransformSession({
       selectedContourIds,
       gridSettings,
       contours,
+      contoursRef,
       zoom,
       snapMetrics,
       customGuidelines,
@@ -430,7 +454,7 @@ export function useTransformSession({
   );
 
   const handleTransformPointerUp = useCallback((): boolean => {
-    if (!transformSession) return false;
+    if (!transformSessionRef.current && !transformSession) return false;
     if (transformRafRef.current != null) {
       cancelAnimationFrame(transformRafRef.current);
       transformRafRef.current = null;
@@ -440,15 +464,19 @@ export function useTransformSession({
         onCommitHistory?.();
         hasCommittedTransformHistoryRef.current = true;
       }
+      if (contoursRef) {
+        contoursRef.current = pendingTransformContoursRef.current;
+      }
       onChangeContours(pendingTransformContoursRef.current, { skipHistory: true });
       pendingTransformContoursRef.current = null;
     }
     hasCommittedTransformHistoryRef.current = false;
+    transformSessionRef.current = null;
     setTransformSession(null);
     setRotateDisplayAngle(null);
     setActiveSnapGuides([]);
     return true;
-  }, [transformSession, onChangeContours, onCommitHistory, setActiveSnapGuides]);
+  }, [transformSession, contoursRef, onChangeContours, onCommitHistory, setActiveSnapGuides]);
 
   const cancelTransformSession = useCallback(() => {
     if (transformRafRef.current != null) {
@@ -457,13 +485,20 @@ export function useTransformSession({
     }
     pendingTransformContoursRef.current = null;
     hasCommittedTransformHistoryRef.current = false;
-    if (transformSession) {
-      const initialMap = new Map(transformSession.initialContours.map((c) => [c.id, c]));
-      onChangeContours(contours.map((c) => initialMap.get(c.id) || c), { skipHistory: true });
+    const activeSession = transformSessionRef.current || transformSession;
+    transformSessionRef.current = null;
+    if (activeSession) {
+      const initialMap = new Map(activeSession.initialContours.map((c) => [c.id, c]));
+      const currentContours = contoursRef?.current || contours;
+      const restoredContours = currentContours.map((c) => initialMap.get(c.id) || c);
+      if (contoursRef) {
+        contoursRef.current = restoredContours;
+      }
+      onChangeContours(restoredContours, { skipHistory: true });
     }
     setTransformSession(null);
     setRotateDisplayAngle(null);
-  }, [transformSession, contours, onChangeContours]);
+  }, [transformSession, contours, contoursRef, onChangeContours]);
 
   return {
     transformSession,

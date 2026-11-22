@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { PathContour, RulerMeasurement, CustomPart, ToolMode } from '../../../types';
 import { createLineContour, generateId } from '../../../utils/path';
 import { convertContourToQuadratic, convertContourToCubic } from '../../../utils/bezierConversion';
@@ -65,6 +65,9 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     onSetToolMode,
     isGlyphLocked = false,
   } = options;
+
+  const lastContourNudgeTimeRef = useRef<number>(0);
+  const lastContourNudgeTargetKeyRef = useRef<string>('');
 
   // Draw straight stroke directly from ruler measurement line
   const handleDrawRulerAsStroke = useCallback(() => {
@@ -173,7 +176,8 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       }
       const handled = handleNudgeSelectedNode?.(dx, dy);
       if (!handled && selectedContourIds.length > 0) {
-        const updated = contours.map((c) => {
+        const liveContours = contoursRef.current || contours;
+        const updated = liveContours.map((c) => {
           if (!selectedContourIds.includes(c.id)) return c;
           return {
             ...c,
@@ -196,11 +200,21 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
             })),
           };
         });
-        onCommitHistory?.();
+        const now = Date.now();
+        const targetKey = [...selectedContourIds].sort().join(',');
+        const isContinuation =
+          now - lastContourNudgeTimeRef.current <= 500 &&
+          lastContourNudgeTargetKeyRef.current === targetKey;
+        lastContourNudgeTimeRef.current = now;
+        lastContourNudgeTargetKeyRef.current = targetKey;
+        if (!isContinuation) {
+          onCommitHistory?.();
+        }
+        contoursRef.current = updated;
         onChangeContours(updated, { skipHistory: true });
       }
     },
-    [isGlyphLocked, showCanvasToast, handleNudgeSelectedNode, contours, selectedContourIds, onChangeContours, onCommitHistory]
+    [isGlyphLocked, showCanvasToast, handleNudgeSelectedNode, contours, contoursRef, selectedContourIds, onChangeContours, onCommitHistory]
   );
 
   const handleConvertToQuadraticSelected = useCallback(() => {

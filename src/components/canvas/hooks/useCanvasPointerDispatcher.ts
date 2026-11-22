@@ -18,6 +18,7 @@ import { usePointerTransformDispatch } from './usePointerTransformDispatch';
 import { usePointerGuidelineDrag } from './usePointerGuidelineDrag';
 import { computePinchTransform } from './viewportMath';
 import { setHoverCanvasPos, getHoverCanvasPos } from '../hoverStore';
+import { setLiveViewport } from '../viewportStore';
 
 export interface UseCanvasPointerDispatcherOptions {
   // Viewport
@@ -104,6 +105,7 @@ export interface UseCanvasPointerDispatcherOptions {
   handleEraserPointerDown: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean | void;
   handleEraserPointerMove: (pos: Point) => void;
   handleEraserPointerUp: (e?: React.PointerEvent<SVGSVGElement>) => boolean | void;
+  handleEraserPointerCancel?: (e?: React.PointerEvent<SVGSVGElement>) => boolean | void;
   eraserReticleRef: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
   generalCrosshairRef?: React.RefObject<SVGGElement | null>;
@@ -225,6 +227,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleEraserPointerDown,
     handleEraserPointerMove,
     handleEraserPointerUp,
+    handleEraserPointerCancel,
     eraserReticleRef,
     drawingReticleRef,
     generalCrosshairRef,
@@ -813,14 +816,18 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
           closed: true,
           nodes,
         };
+        const baseContours = opts.contoursRef.current || contours;
+        const nextContours = [...baseContours, closedContour];
         onCommitHistory?.();
-        onChangeContours([...contours, closedContour]);
+        opts.contoursRef.current = nextContours;
+        onChangeContours(nextContours, { skipHistory: true });
         activePenContourRef.current = null;
         setActivePenContour(null);
         setSelectedContourId(closedContour.id);
         setSelectedContourIds([closedContour.id]);
         setSelectedNodeId(null);
         setSelectedHandleType(null);
+        setActiveSnapGuides([]);
         penDragHandleSessionRef.current = null;
         setPenMousePos(null);
         showCanvasToast('ペンパスを閉じました（塗り輪郭）', `${closedContour.nodes.length} 頂点`);
@@ -935,6 +942,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setActiveSnapGuides,
     onCommitHistory,
     onChangeContours,
+    opts.contoursRef,
     handleMetricsPointerDown,
     handleShapePointerDown,
     handleEraserPointerDown,
@@ -1045,6 +1053,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
                   const pending = pendingPinchUpdateRef.current;
                   if (!pending) return;
                   pendingPinchUpdateRef.current = null;
+                  setLiveViewport(pending.zoom, pending.pan);
                   const g = canvasGroupRef?.current;
                   if (g) {
                     setSvgGesturing(true);
@@ -1087,6 +1096,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
             const pending = pendingPinchUpdateRef.current;
             if (!pending) return;
             pendingPinchUpdateRef.current = null;
+            setLiveViewport(pending.zoom, pending.pan);
             const g = canvasGroupRef.current;
             if (g) {
               setSvgGesturing(true);
@@ -1095,6 +1105,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
           });
         }
       } else {
+        setLiveViewport(zoomRef.current, newPan);
         setPan(newPan);
       }
       return;
@@ -1149,23 +1160,19 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
-    // Update hover position (A6: 0.5 canvas units threshold + rAF throttling to reduce
-    // state updates and re-renders on pointer moves. The crosshair and
-    // reticles are positioned by direct DOM updates above.)
-    const needsHoverPos = gridSettings.showCursorCrosshair !== false;
+    // Update hover position (0.5 canvas units threshold + rAF throttling to reduce
+    // state updates and re-renders on pointer moves. Consumed independently by
+    // the status bar coordinates, rulers, anchor-eraser highlight, and pen rubber-band.)
     const currentHover = pendingHoverPosRef.current ?? hoverCanvasPosRef.current;
-    if (needsHoverPos) {
-      if (!currentHover || Math.abs(currentHover.x - pos.x) > 0.5 || Math.abs(currentHover.y - pos.y) > 0.5) {
-        pendingHoverPosRef.current = pos;
-        if (hoverRafIdRef.current === null) {
-          hoverRafIdRef.current = requestAnimationFrame(() => {
-            hoverRafIdRef.current = null;
-            setHoverCanvasPos(pendingHoverPosRef.current);
-          });
-        }
+    if (!currentHover || Math.abs(currentHover.x - pos.x) > 0.5 || Math.abs(currentHover.y - pos.y) > 0.5) {
+      pendingHoverPosRef.current = pos;
+      if (hoverRafIdRef.current === null) {
+        hoverRafIdRef.current = requestAnimationFrame(() => {
+          hoverRafIdRef.current = null;
+          hoverCanvasPosRef.current = pendingHoverPosRef.current;
+          setHoverCanvasPos(pendingHoverPosRef.current);
+        });
       }
-    } else if (hoverCanvasPosRef.current !== null || pendingHoverPosRef.current !== null) {
-      clearHoverPos();
     }
 
     // Guideline drag (delegated to hook)
@@ -1294,7 +1301,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     toolMode,
     gridSettings.showCursorCrosshair,
     isSpacePressed,
-    clearHoverPos,
     updateLivePressureThrottled,
     handleGuidelinePointerMove,
     handleRulerPointerMove,
@@ -1524,40 +1530,45 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
 
     // Finish Pen Tool Drag/Click determination
-    if (toolMode === 'pen' && penDragHandleSessionRef.current) {
-      const session = penDragHandleSessionRef.current;
-      const currentContour = activePenContourRef.current;
-      if (currentContour) {
-        if (penMode === 'corner' || !session.isDraggingHandle) {
-          // Corner mode or single click (< 3px movement): Sharp corner vertex with no handles (linear segment)
-          const updatedNodes = currentContour.nodes.map((node) => {
-            if (node.id !== session.nodeId) return node;
-            return {
-              ...node,
-              type: 'corner' as const,
-              handleIn: null,
-              handleOut: null,
-            };
-          });
-          const updatedContour = { ...currentContour, nodes: updatedNodes };
-          activePenContourRef.current = updatedContour;
-          setActivePenContour(updatedContour);
-        } else {
-          // Dragged (>= 3px): Smooth cubic curve with symmetric handles (or corner if Alt pressed)
-          const isAlt = e.altKey;
-          const updatedNodes = currentContour.nodes.map((node) => {
-            if (node.id !== session.nodeId) return node;
-            return {
-              ...node,
-              type: isAlt ? ('corner' as const) : ('smooth' as const),
-            };
-          });
-          const updatedContour = { ...currentContour, nodes: updatedNodes };
-          activePenContourRef.current = updatedContour;
-          setActivePenContour(updatedContour);
+    if (toolMode === 'pen') {
+      if (penDragHandleSessionRef.current) {
+        const session = penDragHandleSessionRef.current;
+        const currentContour = activePenContourRef.current;
+        if (currentContour) {
+          if (penMode === 'corner' || !session.isDraggingHandle) {
+            // Corner mode or single click (< 3px movement): Sharp corner vertex with no handles (linear segment)
+            const updatedNodes = currentContour.nodes.map((node) => {
+              if (node.id !== session.nodeId) return node;
+              return {
+                ...node,
+                type: 'corner' as const,
+                handleIn: null,
+                handleOut: null,
+              };
+            });
+            const updatedContour = { ...currentContour, nodes: updatedNodes };
+            activePenContourRef.current = updatedContour;
+            setActivePenContour(updatedContour);
+          } else {
+            // Dragged (>= 3px): Smooth cubic curve with symmetric handles (or corner if Alt pressed)
+            const isAlt = e.altKey;
+            const updatedNodes = currentContour.nodes.map((node) => {
+              if (node.id !== session.nodeId) return node;
+              return {
+                ...node,
+                type: isAlt ? ('corner' as const) : ('smooth' as const),
+              };
+            });
+            const updatedContour = { ...currentContour, nodes: updatedNodes };
+            activePenContourRef.current = updatedContour;
+            setActivePenContour(updatedContour);
+          }
         }
+        penDragHandleSessionRef.current = null;
       }
-      penDragHandleSessionRef.current = null;
+      setSelectedHandleType(null);
+      setActiveSnapGuides([]);
+      return;
     } else {
       penDragHandleSessionRef.current = null;
     }
@@ -1626,6 +1637,8 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleBrushPointerUp,
     handleNodeDragEnd,
     setActivePenContour,
+    setSelectedHandleType,
+    setActiveSnapGuides,
     penMode,
   ]);
 
@@ -1703,9 +1716,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     if (activeBrushPathRef.current) {
       activeBrushPathRef.current.setAttribute('d', '');
     }
-    isErasingRef.current = false;
-    lastErasePosRef.current = null;
-    resetEraserVisuals();
+    if (!handleEraserPointerCancel?.(e)) {
+      isErasingRef.current = false;
+      lastErasePosRef.current = null;
+      resetEraserVisuals();
+    }
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
     if (generalCrosshairRef?.current) generalCrosshairRef.current.style.display = 'none';
@@ -1736,6 +1751,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     activeBrushPathRef,
     isErasingRef,
     lastErasePosRef,
+    handleEraserPointerCancel,
     resetEraserVisuals,
     drawingReticleRef,
     eraserReticleRef,

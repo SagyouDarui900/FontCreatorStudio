@@ -41,6 +41,7 @@ import {
 } from '../../../types';
 import { GuideAssistOverlay } from './GuideAssistOverlay';
 import { useHoverCanvasPos } from '../hoverStore';
+import { isShapeToolMode } from '../hooks/useShapeCreation';
 
 export interface CanvasStatusBarProps {
   isLight: boolean;
@@ -124,6 +125,8 @@ const TOOL_LABELS: Partial<Record<ToolMode, string>> = {
   starburst: '8芒星',
   diamond: '菱形',
   polygon: '多角形',
+  hexagon: '六角形',
+  line: '直線',
   trace_adjust: '下絵調整',
 };
 
@@ -181,30 +184,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   canUndo,
   canRedo,
 }) => {
-  // Coordinates are read from the external hoverStore so only the status
-  // bar re-renders on pointer moves, not the canvas above it.
-  const hoverCanvasPos = useHoverCanvasPos();
-  const isShapeTool = [
-    'rect',
-    'square',
-    'ellipse',
-    'circle',
-    'rounded_rect',
-    'triangle',
-    'triangle_down',
-    'right_triangle',
-    'semicircle',
-    'ring',
-    'pill',
-    'parallelogram',
-    'crescent',
-    'star',
-    'heart',
-    'sparkle',
-    'starburst',
-    'diamond',
-    'polygon',
-  ].includes(toolMode);
+  const isShapeTool = isShapeToolMode(toolMode);
 
   const selectedNodeCount =
     selectedNodeIds && selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0;
@@ -331,16 +311,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             )}
           </div>
 
-          <div className="font-mono text-[10.5px] tabular-nums shrink-0 min-w-[96px]">
-            {hoverCanvasPos ? (
-              <span>
-                X:<strong className="text-emerald-700 dark:text-emerald-300 ml-0.5">{hoverCanvasPos.x}</strong>{' '}
-                Y:<strong className="text-emerald-700 dark:text-emerald-300 ml-0.5">{hoverCanvasPos.y}</strong>
-              </span>
-            ) : (
-              <span className="opacity-45">X: --- Y: ---</span>
-            )}
-          </div>
+          <StatusHoverCoordinates />
 
           {/* Ruler quick actions */}
           {rulerMeasurement ? (
@@ -887,6 +858,22 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
           </button>
         </div>
       </div>
+    </div>
+  );
+});
+
+const StatusHoverCoordinates: React.FC = React.memo(() => {
+  const hoverCanvasPos = useHoverCanvasPos();
+  return (
+    <div className="font-mono text-[10.5px] tabular-nums shrink-0 min-w-[96px]">
+      {hoverCanvasPos ? (
+        <span>
+          X:<strong className="text-emerald-700 dark:text-emerald-300 ml-0.5">{hoverCanvasPos.x}</strong>{' '}
+          Y:<strong className="text-emerald-700 dark:text-emerald-300 ml-0.5">{hoverCanvasPos.y}</strong>
+        </span>
+      ) : (
+        <span className="opacity-45">X: --- Y: ---</span>
+      )}
     </div>
   );
 });

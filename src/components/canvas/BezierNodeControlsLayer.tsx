@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { PathContour, BezierNode, Point, ToolMode, GridSettings } from '../../types';
 import { contoursToSvgPath } from '../../utils/path';
-import { useHoverCanvasPos } from './hoverStore';
+import { getHoverCanvasPos, subscribeHoverCanvasPos } from './hoverStore';
+
+const NOOP_UNSUB = () => () => {};
+const NULL_POS = (): Point | null => null;
 
 export interface BezierNodeControlsLayerProps {
   showNodes?: boolean;
@@ -46,10 +49,12 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     handleToggleNodeType,
     isGlyphLocked = false,
   }) => {
-    // Hover is read from the external hoverStore so only this layer
-    // re-renders on pointer moves, not the whole stage.
-    const hoverCanvasPos = useHoverCanvasPos();
-    if (!showNodes && !(toolMode === 'eraser' && eraserMode === 'node')) {
+    const isEraserNodeActive = toolMode === 'eraser' && eraserMode === 'node';
+    const hoverCanvasPos = useSyncExternalStore(
+      isEraserNodeActive ? subscribeHoverCanvasPos : NOOP_UNSUB,
+      isEraserNodeActive ? getHoverCanvasPos : NULL_POS
+    );
+    if (!showNodes && !isEraserNodeActive) {
       return null;
     }
 

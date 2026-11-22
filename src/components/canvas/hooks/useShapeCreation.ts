@@ -40,6 +40,7 @@ interface UseShapeCreationOptions {
 
 export const isShapeToolMode = (mode: ToolMode): boolean => [
   'rect',
+  'square',
   'rounded_rect',
   'pill',
   'ellipse',
@@ -84,6 +85,10 @@ export function useShapeCreation({
   const shapeRafRef = useRef<number | null>(null);
   const [isShiftLockRatio, setIsShiftLockRatio] = useState<boolean>(false);
   const [isAltFromCenter, setIsAltFromCenter] = useState<boolean>(false);
+  const [dragKeyModifiers, setDragKeyModifiers] = useState<{ shiftKey: boolean; altKey: boolean }>({
+    shiftKey: false,
+    altKey: false,
+  });
 
   useEffect(() => {
     return () => {
@@ -98,7 +103,7 @@ export function useShapeCreation({
       mode: ToolMode,
       p1: Point,
       p2: Point,
-      options?: { shiftKey?: boolean; altKey?: boolean }
+      options?: { shiftKey?: boolean; altKey?: boolean; ignoreCenterMode?: boolean }
     ): PathContour[] => {
       let startX = p1.x;
       let startY = p1.y;
@@ -106,12 +111,15 @@ export function useShapeCreation({
       let endY = p2.y;
 
       const forceSquare =
-        options?.shiftKey ||
+        Boolean(options?.shiftKey) ||
         mode === 'square' ||
         mode === 'circle' ||
         isShiftLockRatio;
 
-      if (options?.altKey || isAltFromCenter) {
+      const useCenterMode =
+        !options?.ignoreCenterMode && (Boolean(options?.altKey) || isAltFromCenter);
+
+      if (useCenterMode) {
         const dx = Math.abs(endX - startX);
         const dy = Math.abs(endY - startY);
         const maxD = forceSquare ? Math.max(dx, dy) : 0;
@@ -173,6 +181,7 @@ export function useShapeCreation({
           return [createStarburstContour(cx, cy, Math.max(rx, ry), 0.45, 8)];
         case 'diamond':
           return [createDiamondContour(cx, cy, width, height)];
+        case 'hexagon':
         case 'polygon':
           return [createHexagonContour(cx, cy, Math.max(rx, ry))];
         case 'crescent':
@@ -199,8 +208,7 @@ export function useShapeCreation({
     latestShapePointRef.current = pos;
     setShapeStartPoint(pos);
     setShapeCurrentPoint(pos);
-    setIsShiftLockRatio(e.shiftKey);
-    setIsAltFromCenter(e.altKey);
+    setDragKeyModifiers({ shiftKey: e.shiftKey, altKey: e.altKey });
     return true;
   }, [isShapeTool]);
 
@@ -208,13 +216,17 @@ export function useShapeCreation({
     (pos: Point, e: React.PointerEvent) => {
       if (!isShapeTool || !shapeStartPoint) return false;
 
-      setIsShiftLockRatio(e.shiftKey);
-      setIsAltFromCenter(e.altKey);
+      setDragKeyModifiers((prev) =>
+        prev.shiftKey === e.shiftKey && prev.altKey === e.altKey
+          ? prev
+          : { shiftKey: e.shiftKey, altKey: e.altKey }
+      );
       let snapPos = pos;
       if (!e.altKey && (Boolean(gridSettings.snapToGuides) || Boolean(gridSettings.snapToGrid))) {
+        const currentContours = contoursRef.current || contours;
         const snapResult = snapSinglePoint(
           pos,
-          contours,
+          currentContours,
           snapMetrics,
           customGuidelines,
           Math.max(7, Math.round(12 / zoom)),
@@ -234,7 +246,7 @@ export function useShapeCreation({
       }
       return true;
     },
-    [contours, customGuidelines, gridSettings, isShapeTool, setActiveSnapGuides, shapeStartPoint, snapMetrics, zoom]
+    [contours, contoursRef, customGuidelines, gridSettings, isShapeTool, setActiveSnapGuides, shapeStartPoint, snapMetrics, zoom]
   );
 
   const handleShapePointerUp = useCallback(
@@ -250,18 +262,18 @@ export function useShapeCreation({
         endPoint.x - shapeStartPoint.x,
         endPoint.y - shapeStartPoint.y
       );
-      const p1 =
-        dist < 10
-          ? { x: shapeStartPoint.x - 90, y: shapeStartPoint.y - 90 }
-          : shapeStartPoint;
-      const p2 =
-        dist < 10
-          ? { x: shapeStartPoint.x + 90, y: shapeStartPoint.y + 90 }
-          : endPoint;
+      const isClickCreate = dist < 10;
+      const p1 = isClickCreate
+        ? { x: shapeStartPoint.x - 90, y: shapeStartPoint.y - 90 }
+        : shapeStartPoint;
+      const p2 = isClickCreate
+        ? { x: shapeStartPoint.x + 90, y: shapeStartPoint.y + 90 }
+        : endPoint;
 
       const newContours = getShapeContoursFromPoints(toolMode, p1, p2, {
         shiftKey: e.shiftKey,
         altKey: e.altKey,
+        ignoreCenterMode: isClickCreate,
       });
       const currentContours = contoursRef.current || [];
       const nextContours = [...currentContours, ...newContours];
@@ -273,8 +285,7 @@ export function useShapeCreation({
       latestShapePointRef.current = null;
       setShapeStartPoint(null);
       setShapeCurrentPoint(null);
-      setIsShiftLockRatio(false);
-      setIsAltFromCenter(false);
+      setDragKeyModifiers({ shiftKey: false, altKey: false });
       setActiveSnapGuides([]);
       return true;
     },
@@ -296,15 +307,14 @@ export function useShapeCreation({
   // Active shape preview contours for live SVG rendering
   const activeShapeContours = React.useMemo(() => {
     if (!isShapeTool || !shapeStartPoint || !shapeCurrentPoint) return [];
-    return getShapeContoursFromPoints(toolMode, shapeStartPoint, shapeCurrentPoint);
-  }, [getShapeContoursFromPoints, isShapeTool, shapeCurrentPoint, shapeStartPoint, toolMode]);
+    return getShapeContoursFromPoints(toolMode, shapeStartPoint, shapeCurrentPoint, dragKeyModifiers);
+  }, [dragKeyModifiers, getShapeContoursFromPoints, isShapeTool, shapeCurrentPoint, shapeStartPoint, toolMode]);
 
   const reset = useCallback(() => {
     latestShapePointRef.current = null;
     setShapeStartPoint(null);
     setShapeCurrentPoint(null);
-    setIsShiftLockRatio(false);
-    setIsAltFromCenter(false);
+    setDragKeyModifiers({ shiftKey: false, altKey: false });
     if (shapeRafRef.current != null) {
       cancelAnimationFrame(shapeRafRef.current);
       shapeRafRef.current = null;

@@ -19,8 +19,9 @@ export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.mem
           width={upm}
           height={upm}
           fill="none"
-          stroke={isLight ? '#065f46' : '#2d4034'}
-          strokeWidth={1.5}
+          stroke={isLight ? '#64748b' : '#475569'}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
           strokeDasharray="6 6"
         />
         <text
@@ -28,7 +29,7 @@ export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.mem
           y={upm / 2}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={isLight ? '#065f46' : '#34d399'}
+          fill={isLight ? '#64748b' : '#94a3b8'}
           fontSize="24"
           fontFamily="sans-serif"
           letterSpacing="2"
@@ -43,8 +44,9 @@ export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.mem
           width={upm}
           height={upm}
           fill="none"
-          stroke={isLight ? '#065f46' : '#2d4034'}
-          strokeWidth={1.5}
+          stroke={isLight ? '#64748b' : '#475569'}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
           strokeDasharray="6 6"
         />
         <text
