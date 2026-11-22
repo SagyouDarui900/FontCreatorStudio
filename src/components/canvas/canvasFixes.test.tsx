@@ -4,6 +4,8 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import { useToolModeCleanup } from './hooks/useToolModeCleanup';
+import { useCanvasEraser } from './hooks/useCanvasEraser';
+import { useCanvasContourActions } from './hooks/useCanvasContourActions';
 import { SmartSnapGuidesLayer } from './SmartSnapGuidesLayer';
 import { useCanvasPointerDispatcher } from './hooks/useCanvasPointerDispatcher';
 import {
@@ -478,5 +480,168 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
 
     (globalThis as any).Path2D = prevPath2d;
     spyCanvas.mockRestore();
+  });
+
+  it('pointercancel on an eraser stroke undoes the session commit instead of keeping the deletions', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const rect: PathContour = {
+      id: 'r1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 300, y: 100, type: 'corner' },
+        { id: 'n3', x: 300, y: 300, type: 'corner' },
+        { id: 'n4', x: 100, y: 300, type: 'corner' },
+      ],
+    };
+    const initial = [rect];
+    const onCommitHistory = vi.fn();
+    // Simulate the real undo: restore the pre-gesture contours.
+    const contoursRef = { current: initial } as React.MutableRefObject<PathContour[]>;
+    const onUndo = vi.fn(() => {
+      contoursRef.current = initial;
+    });
+    const onChangeContours = vi.fn((c: PathContour[]) => {
+      contoursRef.current = c;
+    });
+    let api!: ReturnType<typeof useCanvasEraser>;
+
+    function Harness() {
+      api = useCanvasEraser({
+        toolMode: 'eraser',
+        contours: initial,
+        contoursRef,
+        onChangeContours,
+        onCommitHistory,
+        onUndo,
+        showCanvasToast: vi.fn(),
+        selectedContourIds: ['r1'],
+        selectedContourId: 'r1',
+        selectedNodeId: null,
+        setSelectedContourIds: vi.fn(),
+        setSelectedContourId: vi.fn(),
+        setSelectedNodeId: vi.fn(),
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const downEvent = {
+      currentTarget: { setPointerCapture: vi.fn() },
+    } as unknown as React.PointerEvent<SVGSVGElement>;
+
+    act(() => {
+      api.handleEraserPointerDown({ x: 150, y: 100 }, downEvent);
+    });
+    // The top edge is erased on pointerdown.
+    expect(contoursRef.current.length).toBe(0);
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      api.handleEraserPointerCancel();
+    });
+    // Cancel undoes the single session entry and restores the contours.
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(contoursRef.current).toBe(initial);
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+
+    // The session is over: a later pointerup does nothing.
+    let upResult: boolean | void;
+    act(() => {
+      upResult = api.handleEraserPointerUp();
+    });
+    expect(upResult!).toBe(false);
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('clear-all contours asks for confirmation and clears only when confirmed', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const rect: PathContour = {
+      id: 'r1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 300, y: 100, type: 'corner' },
+        { id: 'n3', x: 300, y: 300, type: 'corner' },
+        { id: 'n4', x: 100, y: 300, type: 'corner' },
+      ],
+    };
+    const contoursRef = { current: [rect] } as React.MutableRefObject<PathContour[]>;
+    const onChangeContours = vi.fn((c: PathContour[]) => {
+      contoursRef.current = c;
+    });
+    const onCommitHistory = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    let api!: ReturnType<typeof useCanvasContourActions>;
+
+    function Harness() {
+      api = useCanvasContourActions({
+        contours: [rect],
+        contoursRef,
+        onChangeContours,
+        onCommitHistory,
+        brushWidth: 32,
+        rulerMeasurement: null,
+        setRulerMeasurement: vi.fn(),
+        showCanvasToast: vi.fn(),
+        resetBrushDrawing: vi.fn(),
+        resetEraserVisuals: vi.fn(),
+        setActivePenContour: vi.fn(),
+        setShapeStartPoint: vi.fn(),
+        setShapeCurrentPoint: vi.fn(),
+        setTransformSession: vi.fn(),
+        setMarqueeSelection: vi.fn(),
+        setSelectedContourIds: vi.fn(),
+        setSelectedContourId: vi.fn(),
+        setSelectedNodeId: vi.fn(),
+        setSelectedHandleType: vi.fn(),
+        setTouchLoupeState: vi.fn(),
+        setEraserMode: vi.fn(),
+        activeChar: 'あ',
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    confirmSpy.mockReturnValue(false);
+    act(() => {
+      api.handleClearAllContours();
+    });
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).not.toHaveBeenCalled();
+    expect(onCommitHistory).not.toHaveBeenCalled();
+    expect(contoursRef.current.length).toBe(1);
+
+    confirmSpy.mockReturnValue(true);
+    act(() => {
+      api.handleClearAllContours();
+    });
+    expect(confirmSpy).toHaveBeenCalledTimes(2);
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).toHaveBeenCalledWith([], { skipHistory: true });
+    expect(contoursRef.current).toEqual([]);
+
+    confirmSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
   });
 });

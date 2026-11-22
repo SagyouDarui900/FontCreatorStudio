@@ -108,6 +108,20 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
       return;
     }
+    if (!contours || contours.length === 0) {
+      showCanvasToast('キャンバスは既に空です');
+      return;
+    }
+    // Destructive action: confirm before clearing, like the grid-size
+    // change in the pixel font editor. Undo still restores the contours.
+    const label = activeChar ? `「${activeChar}」の` : '文字の';
+    if (
+      !window.confirm(
+        `${label}全パーツを消去しますか？消去した内容は Ctrl+Z で取り消せます。`
+      )
+    ) {
+      return;
+    }
     resetBrushDrawing();
     resetEraserVisuals();
     setActivePenContour(null);
@@ -123,10 +137,6 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     setTouchLoupeState({ visible: false, screenX: 0, screenY: 0, canvasPos: null });
     setEraserMode('stroke');
 
-    if (!contours || contours.length === 0) {
-      showCanvasToast('キャンバスは既に空です');
-      return;
-    }
     onCommitHistory?.();
     contoursRef.current = [];
     onChangeContours([], { skipHistory: true });
@@ -137,6 +147,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     contoursRef,
     onChangeContours,
     onCommitHistory,
+    activeChar,
     resetBrushDrawing,
     resetEraserVisuals,
     setActivePenContour,

@@ -15,7 +15,7 @@ import {
   normalizeGlyphContoursWinding,
   distToSegment,
 } from "./bounds";
-import { rdpSimplify, pointsToBezierContourNodes } from "../imageVectorizer";
+import { rdpSimplify } from "../imageVectorizer";
 
 export function subtractEraserStrokeFromClosedContours(
   contours: PathContour[],
@@ -321,8 +321,85 @@ export function subtractEraserFromClosedContour(
   return subtractEraserFromClosedContours([contour], point, radius, prevPoint);
 }
 
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+function lerpPoint(a: Point, b: Point, t: number): Point {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+function cubicPoint(p0: Point, cp1: Point, cp2: Point, p3: Point, t: number): Point {
+  const mt = 1 - t;
+  return {
+    x:
+      mt * mt * mt * p0.x +
+      3 * mt * mt * t * cp1.x +
+      3 * mt * t * t * cp2.x +
+      t * t * t * p3.x,
+    y:
+      mt * mt * mt * p0.y +
+      3 * mt * mt * t * cp1.y +
+      3 * mt * t * t * cp2.y +
+      t * t * t * p3.y,
+  };
+}
+
+/** Split a cubic at t into [left, right] sub-curves (de Casteljau). */
+function splitCubic(
+  p0: Point,
+  cp1: Point,
+  cp2: Point,
+  p3: Point,
+  t: number
+): [{ p0: Point; cp1: Point; cp2: Point; p3: Point }, { p0: Point; cp1: Point; cp2: Point; p3: Point }] {
+  const a = lerpPoint(p0, cp1, t);
+  const b = lerpPoint(cp1, cp2, t);
+  const c = lerpPoint(cp2, p3, t);
+  const d = lerpPoint(a, b, t);
+  const e = lerpPoint(b, c, t);
+  const m = lerpPoint(d, e, t);
+  return [
+    { p0, cp1: a, cp2: d, p3: m },
+    { p0: m, cp1: e, cp2: c, p3 },
+  ];
+}
+
+/** Sub-curve of a cubic over [t0, t1] (de Casteljau). */
+function subCubic(
+  p0: Point,
+  cp1: Point,
+  cp2: Point,
+  p3: Point,
+  t0: number,
+  t1: number
+): { p0: Point; cp1: Point; cp2: Point; p3: Point } {
+  if (t0 <= 0 && t1 >= 1) return { p0, cp1, cp2, p3 };
+  if (t0 <= 0) return splitCubic(p0, cp1, cp2, p3, t1)[0];
+  if (t1 >= 1) return splitCubic(p0, cp1, cp2, p3, t0)[1];
+  const left = splitCubic(p0, cp1, cp2, p3, t1)[0];
+  return splitCubic(left.p0, left.cp1, left.cp2, left.p3, t0 / t1)[1];
+}
+
+interface SlicePiece {
+  segIndex: number;
+  t0: number;
+  t1: number;
+  p0: Point;
+  p1: Point;
+  isCubic: boolean;
+  cp1?: Point;
+  cp2?: Point;
+}
+
 /**
- * Slices an open contour (contour.closed === false) by removing points within the eraser radius.
+ * Slices an open contour (contour.closed === false) by removing the part
+ * inside the eraser capsule (segment prevPoint -> point, radius).
+ *
+ * Cut ends are the exact capsule-boundary crossings, found by bisection on
+ * each original segment, not the nearest sampled point. Kept runs are built
+ * from the original nodes — with their handles preserved, split at the cut
+ * ends by de Casteljau — instead of re-sampling the whole run and losing
+ * the handles. Run end nodes are open ends (no handleIn at the start, no
+ * handleOut at the end); they are never treated as a closed loop.
  */
 export function sliceOpenContourWithEraser(
   contour: PathContour,
@@ -334,75 +411,178 @@ export function sliceOpenContourWithEraser(
 
   const p1 = prevPoint || point;
   const p2 = point;
+  const inside = (pt: Point) => distToSegment(pt, p1, p2) <= radius;
 
-  // Sample points along open path segments
-  const sampledPoints: Point[] = [];
-  for (let i = 0; i < contour.nodes.length - 1; i++) {
-    const curr = contour.nodes[i];
-    const next = contour.nodes[i + 1];
+  // Split each original segment into the outside intervals, with exact
+  // crossing points at the capsule boundary.
+  const pieces: SlicePiece[] = [];
+  for (let k = 0; k < contour.nodes.length - 1; k++) {
+    const curr = contour.nodes[k];
+    const next = contour.nodes[k + 1];
+    const isCubic = Boolean(curr.handleOut || next.handleIn);
+    const cp1 = curr.handleOut || { x: curr.x, y: curr.y };
+    const cp2 = next.handleIn || { x: next.x, y: next.y };
+    const pointAt = (t: number): Point =>
+      isCubic
+        ? cubicPoint(curr, cp1, cp2, next, t)
+        : { x: curr.x + (next.x - curr.x) * t, y: curr.y + (next.y - curr.y) * t };
+    const steps = isCubic ? 24 : 12;
 
-    if (curr.handleOut || next.handleIn) {
-      // Cubic Bezier curve (supports single-handle curves by defaulting missing control point to anchor)
-      const cp1 = curr.handleOut || { x: curr.x, y: curr.y };
-      const cp2 = next.handleIn || { x: next.x, y: next.y };
-      const steps = 18;
-      for (let s = 0; s < steps; s++) {
-        const t = s / steps;
-        const mt = 1 - t;
-        const x =
-          mt * mt * mt * curr.x +
-          3 * mt * mt * t * cp1.x +
-          3 * mt * t * t * cp2.x +
-          t * t * t * next.x;
-        const y =
-          mt * mt * mt * curr.y +
-          3 * mt * mt * t * cp1.y +
-          3 * mt * t * t * cp2.y +
-          t * t * t * next.y;
-        sampledPoints.push({ x, y });
+    // Find the crossing parameter between two samples by bisection.
+    const findCrossing = (ta: number, tb: number): number => {
+      let lo = ta;
+      let hi = tb;
+      const fa = distToSegment(pointAt(lo), p1, p2) - radius;
+      if (fa === 0) return lo;
+      for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2;
+        const fm = distToSegment(pointAt(mid), p1, p2) - radius;
+        if (fm === 0) return mid;
+        if ((fm > 0) === (fa > 0)) lo = mid;
+        else hi = mid;
       }
-    } else {
-      // Straight line
-      const steps = 10;
-      for (let s = 0; s < steps; s++) {
-        const t = s / steps;
-        sampledPoints.push({
-          x: curr.x + t * (next.x - curr.x),
-          y: curr.y + t * (next.y - curr.y),
-        });
+      return (lo + hi) / 2;
+    };
+
+    let intervalStart: number | null = inside(pointAt(0)) ? null : 0;
+    let prevT = 0;
+    let prevInside = inside(pointAt(0));
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps;
+      const curInside = inside(pointAt(t));
+      if (curInside !== prevInside) {
+        const tc = findCrossing(prevT, t);
+        if (prevInside) {
+          // Leaving the eraser: an outside interval starts here.
+          intervalStart = tc;
+        } else if (intervalStart !== null) {
+          // Entering the eraser: the outside interval ends here.
+          pieces.push(makePiece(k, intervalStart, tc));
+          intervalStart = null;
+        }
+        prevInside = curInside;
       }
+      prevT = t;
+    }
+    if (intervalStart !== null) {
+      pieces.push(makePiece(k, intervalStart, 1));
+    }
+
+    function makePiece(segIndex: number, t0: number, t1: number): SlicePiece {
+      if (t1 - t0 < 1e-6) {
+        return {
+          segIndex,
+          t0,
+          t1,
+          p0: pointAt(t0),
+          p1: pointAt(t1),
+          isCubic,
+        };
+      }
+      if (!isCubic) {
+        return { segIndex, t0, t1, p0: pointAt(t0), p1: pointAt(t1), isCubic };
+      }
+      const sub = subCubic(curr, cp1, cp2, next, t0, t1);
+      return {
+        segIndex,
+        t0,
+        t1,
+        p0: { x: round1(sub.p0.x), y: round1(sub.p0.y) },
+        p1: { x: round1(sub.p3.x), y: round1(sub.p3.y) },
+        isCubic,
+        cp1: { x: round1(sub.cp1.x), y: round1(sub.cp1.y) },
+        cp2: { x: round1(sub.cp2.x), y: round1(sub.cp2.y) },
+      };
     }
   }
-  sampledPoints.push({
-    x: contour.nodes[contour.nodes.length - 1].x,
-    y: contour.nodes[contour.nodes.length - 1].y,
-  });
 
-  // Group continuous runs of points outside eraser
-  const runs: Point[][] = [];
-  let currentRun: Point[] = [];
-
-  for (const pt of sampledPoints) {
-    if (distToSegment(pt, p1, p2) > radius) {
-      currentRun.push(pt);
+  // Group consecutive pieces into runs. Pieces join at an original node
+  // only when the previous piece ends at t=1 and the next starts at t=0.
+  const runs: SlicePiece[][] = [];
+  let currentRun: SlicePiece[] = [];
+  for (const piece of pieces) {
+    if (piece.t1 - piece.t0 < 1e-6) continue;
+    const last = currentRun[currentRun.length - 1];
+    if (
+      last &&
+      last.segIndex + 1 === piece.segIndex &&
+      last.t1 >= 1 - 1e-9 &&
+      piece.t0 <= 1e-9
+    ) {
+      currentRun.push(piece);
     } else {
-      if (currentRun.length > 0) {
-        runs.push(currentRun);
-        currentRun = [];
-      }
+      if (currentRun.length > 0) runs.push(currentRun);
+      currentRun = [piece];
     }
   }
-  if (currentRun.length > 0) {
-    runs.push(currentRun);
-  }
+  if (currentRun.length > 0) runs.push(currentRun);
 
   const result: PathContour[] = [];
   for (const run of runs) {
-    if (run.length < 2) continue;
-    const simplified = rdpSimplify(run, 0.9);
-    if (simplified.length < 2) continue;
+    const nodes: BezierNode[] = [];
+    for (let j = 0; j < run.length; j++) {
+      const piece = run[j];
+      const isFirst = j === 0;
+      const isLast = j === run.length - 1;
 
-    const nodes = pointsToBezierContourNodes(simplified);
+      if (isFirst) {
+        if (piece.t0 <= 1e-9) {
+          const orig = contour.nodes[piece.segIndex];
+          nodes.push({
+            id: generateId(),
+            x: orig.x,
+            y: orig.y,
+            type: orig.type,
+            handleIn: null,
+            handleOut: piece.isCubic && piece.cp1 ? piece.cp1 : null,
+          });
+        } else {
+          nodes.push({
+            id: generateId(),
+            x: piece.p0.x,
+            y: piece.p0.y,
+            type: 'corner',
+            handleIn: null,
+            handleOut: piece.isCubic && piece.cp1 ? piece.cp1 : null,
+          });
+        }
+      }
+
+      if (isLast) {
+        if (piece.t1 >= 1 - 1e-9) {
+          const orig = contour.nodes[piece.segIndex + 1];
+          nodes.push({
+            id: generateId(),
+            x: orig.x,
+            y: orig.y,
+            type: orig.type,
+            handleIn: piece.isCubic && piece.cp2 ? piece.cp2 : null,
+            handleOut: null,
+          });
+        } else {
+          nodes.push({
+            id: generateId(),
+            x: piece.p1.x,
+            y: piece.p1.y,
+            type: 'corner',
+            handleIn: piece.isCubic && piece.cp2 ? piece.cp2 : null,
+            handleOut: null,
+          });
+        }
+      } else {
+        const orig = contour.nodes[piece.segIndex + 1];
+        const nextPiece = run[j + 1];
+        nodes.push({
+          id: generateId(),
+          x: orig.x,
+          y: orig.y,
+          type: orig.type,
+          handleIn: piece.isCubic && piece.cp2 ? piece.cp2 : null,
+          handleOut: nextPiece.isCubic && nextPiece.cp1 ? nextPiece.cp1 : null,
+        });
+      }
+    }
+    if (nodes.length < 2) continue;
     result.push({
       id: generateId(),
       closed: false,

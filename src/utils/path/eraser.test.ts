@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { subtractEraserStrokeFromClosedContours, eraseContoursAtPoint } from './eraser';
+import {
+  subtractEraserStrokeFromClosedContours,
+  eraseContoursAtPoint,
+  sliceOpenContourWithEraser,
+} from './eraser';
 import { PathContour } from '../../types';
 
 describe('eraser.ts geometry & bitmap fallback', () => {
@@ -163,5 +167,71 @@ describe('eraser.ts geometry & bitmap fallback', () => {
     expect(remaining).not.toBe(source);
     expect(remaining.length).toBe(1);
     expect(remaining[0].nodes.length).toBe(3);
+  });
+});
+
+describe('sliceOpenContourWithEraser cut-end precision', () => {
+  it('cuts a straight open contour at the exact circle boundary, not the nearest sample', () => {
+    const line: PathContour = {
+      id: 'line',
+      closed: false,
+      nodes: [
+        { id: 'n1', x: 0, y: 100, type: 'corner' },
+        { id: 'n2', x: 300, y: 100, type: 'corner' },
+      ],
+    };
+    // Eraser circle at (150, 100), radius 50: exact crossings at x=100 and x=200.
+    // The old sampled implementation ended the runs at x=90 and x=210.
+    const runs = sliceOpenContourWithEraser(line, { x: 150, y: 100 }, 50);
+    expect(runs.length).toBe(2);
+    expect(runs[0].closed).toBe(false);
+    expect(runs[1].closed).toBe(false);
+    const leftEnd = runs[0].nodes[runs[0].nodes.length - 1];
+    const rightStart = runs[1].nodes[0];
+    expect(leftEnd.x).toBeCloseTo(100, 1);
+    expect(leftEnd.y).toBeCloseTo(100, 1);
+    expect(rightStart.x).toBeCloseTo(200, 1);
+    expect(rightStart.y).toBeCloseTo(100, 1);
+    // Open ends: no wrap-around handles from the other end of the run.
+    expect(runs[0].nodes[0].handleIn ?? null).toBeNull();
+    expect(leftEnd.handleOut ?? null).toBeNull();
+    expect(rightStart.handleIn ?? null).toBeNull();
+    expect(runs[1].nodes[runs[1].nodes.length - 1].handleOut ?? null).toBeNull();
+  });
+
+  it('keeps the original handles of a cut cubic segment, split at the cut end', () => {
+    const curved: PathContour = {
+      id: 'curved',
+      closed: false,
+      nodes: [
+        { id: 'n1', x: 100, y: 300, type: 'smooth', handleOut: { x: 200, y: 20 } },
+        { id: 'n2', x: 300, y: 300, type: 'corner' },
+      ],
+    };
+    // Eraser circle at the end node: the kept run starts at the original
+    // node and ends at the exact crossing. The kept sub-curve is the
+    // de Casteljau split of the original curve, so its handleOut is the
+    // split control point: it lies on the line from (100, 300) to the
+    // original handleOut (200, 20), between the two.
+    const runs = sliceOpenContourWithEraser(curved, { x: 300, y: 300 }, 30);
+    expect(runs.length).toBe(1);
+    const nodes = runs[0].nodes;
+    expect(nodes.length).toBe(2);
+    expect(nodes[0].x).toBe(100);
+    expect(nodes[0].y).toBe(300);
+    const hOut = nodes[0].handleOut;
+    expect(hOut).not.toBeNull();
+    expect(hOut!.x).toBeGreaterThan(100);
+    expect(hOut!.x).toBeLessThan(200);
+    // Collinear with (100, 300) -> (200, 20): cross product near zero
+    // (tolerance 30 allows for the 0.1-unit rounding of the split point).
+    const cross = (hOut!.x - 100) * (20 - 300) - (hOut!.y - 300) * (200 - 100);
+    expect(Math.abs(cross)).toBeLessThan(30);
+    expect(nodes[0].handleIn ?? null).toBeNull();
+    // Cut end lies exactly on the eraser circle.
+    expect(Math.hypot(nodes[1].x - 300, nodes[1].y - 300)).toBeCloseTo(30, 1);
+    expect(nodes[1].handleOut ?? null).toBeNull();
+    // The cut end keeps the split curve's incoming handle.
+    expect(nodes[1].handleIn).not.toBeNull();
   });
 });
