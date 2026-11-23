@@ -514,6 +514,8 @@ export function createSmallKanaContours(
 /**
  * 輪郭の線の太さ（ウェイト）を一括で太く(+)/細く(-)補正するアルゴリズム
  * 独立した重なりストロークはすべて外側へ太らせ、囲まれた中抜き穴のみ内側へ縮めて黒味を増す。
+ * 開輪郭には「外側」がないため太くすることにならず、法線方向への平行移動にしか
+ * ならない（ずれる向きは描いた順序で決まる）ので、開輪郭は変更せずに返す。
  * @param contours 補正対象の輪郭リスト
  * @param delta 太さオフセットピクセル (正: ボールド化, 負: スリム化)
  */
@@ -541,6 +543,17 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
     const minNodes = contour.closed ? 3 : 2;
     if (!contour.nodes || contour.nodes.length < minNodes) {
       return contour;
+    }
+
+    // Open contours have no "outside": shifting nodes along the local normal
+    // only translates the stroke instead of thickening it, and the shift
+    // direction depends on the drawing order. Leave them unchanged (return
+    // a copy so callers never share node objects with the input).
+    if (!contour.closed) {
+      return {
+        ...contour,
+        nodes: contour.nodes.map((node) => ({ ...node })),
+      };
     }
 
     const n = contour.nodes.length;

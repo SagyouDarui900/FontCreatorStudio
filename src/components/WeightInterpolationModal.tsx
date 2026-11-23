@@ -35,6 +35,7 @@ import {
   resolveBaselineY,
 } from '../utils/font';
 import { pixelGridToContours, normalizePixelGrid } from '../utils/pixelFontUtils';
+import { createLocalSnapshot } from '../utils/storageManager';
 import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface WeightInterpolationModalProps {
@@ -64,15 +65,26 @@ interface WeightPreset {
 }
 
 const WEIGHT_PRESETS: WeightPreset[] = [
-  { key: 'thin', label: 'Thin (極細)', sub: '-14px', delta: -14, styleName: 'Thin', usWeightClass: 100 },
-  { key: 'light', label: 'Light (細字)', sub: '-7px', delta: -7, styleName: 'Light', usWeightClass: 300 },
+  { key: 'thin', label: 'Thin (極細)', sub: '-40px', delta: -40, styleName: 'Thin', usWeightClass: 100 },
+  { key: 'light', label: 'Light (細字)', sub: '-22px', delta: -22, styleName: 'Light', usWeightClass: 300 },
   { key: 'regular', label: 'Regular (標準)', sub: '±0px', delta: 0, styleName: 'Regular', usWeightClass: 400 },
-  { key: 'medium', label: 'Medium (中字)', sub: '+8px', delta: 8, styleName: 'Medium', usWeightClass: 500 },
-  { key: 'semibold', label: 'SemiBold (中太)', sub: '+16px', delta: 16, styleName: 'SemiBold', usWeightClass: 600 },
-  { key: 'bold', label: 'Bold (太字)', sub: '+26px', delta: 26, styleName: 'Bold', usWeightClass: 700 },
-  { key: 'extrabold', label: 'ExtraBold (極太)', sub: '+38px', delta: 38, styleName: 'ExtraBold', usWeightClass: 800 },
-  { key: 'heavy', label: 'Heavy (超極太)', sub: '+52px', delta: 52, styleName: 'Heavy', usWeightClass: 900 },
+  { key: 'medium', label: 'Medium (中字)', sub: '+22px', delta: 22, styleName: 'Medium', usWeightClass: 500 },
+  { key: 'semibold', label: 'SemiBold (中太)', sub: '+45px', delta: 45, styleName: 'SemiBold', usWeightClass: 600 },
+  { key: 'bold', label: 'Bold (太字)', sub: '+70px', delta: 70, styleName: 'Bold', usWeightClass: 700 },
+  { key: 'extrabold', label: 'ExtraBold (極太)', sub: '+100px', delta: 100, styleName: 'ExtraBold', usWeightClass: 800 },
+  { key: 'heavy', label: 'Heavy (超極太)', sub: '+135px', delta: 135, styleName: 'Heavy', usWeightClass: 900 },
 ];
+
+// Estimate usWeightClass for an arbitrary (non-preset) delta from the
+// nearest preset. Used when applying or duplicating a custom delta so the
+// exported font's weight metadata matches the visible thickening.
+const estimateWeightClassFromDelta = (delta: number): number => {
+  let best = WEIGHT_PRESETS[0];
+  for (const p of WEIGHT_PRESETS) {
+    if (Math.abs(p.delta - delta) < Math.abs(best.delta - delta)) best = p;
+  }
+  return best.usWeightClass;
+};
 
 export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> = ({
   isOpen,
@@ -95,7 +107,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Family settings
   const [selectedPreset, setSelectedPreset] = useState<WeightPresetKey>('bold');
-  const [weightDelta, setWeightDelta] = useState<number>(26);
+  const [weightDelta, setWeightDelta] = useState<number>(70);
   const [scope, setScope] = useState<WeightScope>('all');
   const [showOriginalOverlay, setShowOriginalOverlay] = useState<boolean>(true);
   const [previewSampleText, setPreviewSampleText] = useState<string>('永青木あいうABC123');
@@ -162,9 +174,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   }, [project.glyphs, previewUnicode, selectedUnicode]);
 
   // Target glyphs in scope + separation of editable vs locked glyphs
-  const { targetGlyphs, lockedTargetCount } = useMemo(() => {
+  const { targetGlyphs, lockedTargetCount, openContourCount } = useMemo(() => {
     const list: GlyphData[] = [];
     let lockedCount = 0;
+    let openCount = 0;
     const all = Object.values(project.glyphs || {}) as GlyphData[];
 
     for (const g of all) {
@@ -189,9 +202,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
         lockedCount++;
       } else {
         list.push(g);
+        openCount += (g.contours || []).filter((c) => !c.closed).length;
       }
     }
-    return { targetGlyphs: list, lockedTargetCount: lockedCount };
+    return { targetGlyphs: list, lockedTargetCount: lockedCount, openContourCount: openCount };
   }, [project.glyphs, scope, selectedUnicode]);
 
   // Quick glyph switcher candidates
@@ -303,6 +317,12 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Apply Weight Delta to Current Project
   const handleApplyToProject = () => {
+    // ±0px changes nothing: applying would still rewrite every target
+    // glyph's lsb and push a history entry, so refuse instead.
+    if (weightDelta === 0) {
+      onShowToast?.('太さオフセットが ±0px のため、適用する変更がありません', 'info');
+      return;
+    }
     if (targetGlyphs.length === 0) {
       onShowToast?.(
         lockedTargetCount > 0
@@ -320,9 +340,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
     for (const g of targetGlyphs) {
       if (!g.contours || g.contours.length === 0 || g.locked) continue;
-      const modified = weightDelta === 0
-        ? JSON.parse(JSON.stringify(g.contours))
-        : adjustContoursWeight(g.contours, weightDelta);
+      const modified = adjustContoursWeight(g.contours, weightDelta);
       const bbox = getContoursBoundingBox(modified);
       updatedGlyphs[g.unicode] = {
         ...g,
@@ -333,16 +351,35 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       count++;
     }
 
+    // Keep the font metadata in sync with the visible thickening, so the
+    // exported OTF is not still Regular: an exact preset match updates both
+    // styleName and usWeightClass; a custom in-between delta updates only
+    // usWeightClass (estimated from the nearest preset) and leaves the
+    // style name untouched.
+    const presetObj = WEIGHT_PRESETS.find((p) => p.delta === weightDelta);
+    const newStyleName = presetObj ? presetObj.styleName : project.metadata.styleName;
+    const newWeightClass = presetObj
+      ? presetObj.usWeightClass
+      : estimateWeightClassFromDelta(weightDelta);
+
     setProject({
       ...project,
+      metadata: {
+        ...project.metadata,
+        styleName: newStyleName,
+        usWeightClass: newWeightClass,
+      },
       glyphs: updatedGlyphs,
       updatedAt: Date.now(),
     });
 
     const sign = weightDelta > 0 ? `+${weightDelta}px` : `${weightDelta}px`;
     const lockedNote = lockedTargetCount > 0 ? `（ロック保護 ${lockedTargetCount}件除外）` : '';
+    const metaNote = presetObj
+      ? `／スタイル名「${newStyleName}」・Weight ${newWeightClass} に更新しました`
+      : `／Weight ${newWeightClass} に更新しました（スタイル名は変更なし）`;
     onShowToast?.(
-      `${count}文字のウェイトを補正しました (${sign})${lockedNote}`,
+      `${count}文字のウェイトを補正しました (${sign})${lockedNote}${metaNote}`,
       'success'
     );
     onClose();
@@ -360,22 +397,34 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           : `Light${weightDelta}`;
     const newWeightClass = presetObj
       ? presetObj.usWeightClass
-      : weightDelta <= -12
-        ? 200
-        : weightDelta < 0
-          ? 300
-          : weightDelta === 0
-            ? 400
-            : weightDelta <= 12
-              ? 500
-              : weightDelta <= 20
-                ? 600
-                : weightDelta <= 32
-                  ? 700
-                  : weightDelta <= 44
-                    ? 800
-                    : 900;
+      : estimateWeightClassFromDelta(weightDelta);
     const newProjectName = `${project.metadata.familyName || 'Font'} ${newStyleName}`;
+
+    // Replacing the current project also clears the Undo history (a new
+    // project id triggers clearHistory), so confirm first and keep the
+    // current project as a restorable snapshot. Abort when the snapshot
+    // cannot be created, instead of losing the project silently.
+    const confirmed = window.confirm(
+      `新しいウェイトプロジェクト「${newProjectName}」を作成します。\n` +
+        `現在のプロジェクト「${project.name || project.metadata.familyName || '名称未設定'}」は画面から置き換わり、Undo 履歴もリセットされます。\n` +
+        `元のプロジェクトはスナップショットとして保存し、ストレージ管理から復元できます。\n` +
+        `続行しますか？`
+    );
+    if (!confirmed) return;
+
+    const snapshotRes = createLocalSnapshot(
+      project,
+      'manual',
+      `ウェイト作成前のバックアップ (${project.metadata.styleName || 'Regular'})`
+    );
+    if (!snapshotRes.success) {
+      onShowToast?.(
+        snapshotRes.error ||
+          '元のプロジェクトのスナップショット作成に失敗したため、新規プロジェクト作成を中止しました',
+        'error'
+      );
+      return;
+    }
 
     const updatedGlyphs: Record<number, GlyphData> = {};
     for (const [key, rawG] of Object.entries(project.glyphs || {})) {
@@ -415,7 +464,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
     setProject(newProj);
     onShowToast?.(
-      `新しいウェイトプロジェクト「${newProjectName}」を作成しました！`,
+      `新しいウェイトプロジェクト「${newProjectName}」を作成しました！元のプロジェクトはスナップショットに保存しました（ストレージ管理から復元できます）。`,
       'success'
     );
     onClose();
@@ -431,11 +480,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       const safeFamilyName = sanitizeFontFilenamePart(project.metadata.familyName, 'MyCustomFont');
 
       const exportPresets = [
-        { name: 'Light', delta: -7, usWeightClass: 300 },
+        { name: 'Light', delta: -22, usWeightClass: 300 },
         { name: 'Regular', delta: 0, usWeightClass: 400 },
-        { name: 'Medium', delta: 8, usWeightClass: 500 },
-        { name: 'Bold', delta: 26, usWeightClass: 700 },
-        { name: 'ExtraBold', delta: 38, usWeightClass: 800 },
+        { name: 'Medium', delta: 22, usWeightClass: 500 },
+        { name: 'Bold', delta: 70, usWeightClass: 700 },
+        { name: 'ExtraBold', delta: 100, usWeightClass: 800 },
       ];
 
       for (const p of exportPresets) {
@@ -885,7 +934,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         type="button"
                         onClick={() => {
                           setSelectedPreset('custom');
-                          setWeightDelta(Math.max(-40, weightDelta - 2));
+                          setWeightDelta(Math.max(-60, weightDelta - 5));
                         }}
                         className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
@@ -898,7 +947,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         type="button"
                         onClick={() => {
                           setSelectedPreset('custom');
-                          setWeightDelta(Math.min(80, weightDelta + 2));
+                          setWeightDelta(Math.min(150, weightDelta + 5));
                         }}
                         className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
@@ -909,8 +958,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                   <input
                     type="range"
-                    min={-40}
-                    max={80}
+                    min={-60}
+                    max={150}
                     step={1}
                     value={weightDelta}
                     onChange={(e) => {
@@ -921,7 +970,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   />
 
                   <div className={`flex justify-between text-[10px] font-mono ${themeClasses.textMuted}`}>
-                    <span>細字化 (-40px)</span>
+                    <span>細字化 (-60px)</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -932,7 +981,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                     >
                       標準 (0px リセット / 線幅変化 ≈ {weightDelta * 2 > 0 ? `+${weightDelta * 2}` : weightDelta * 2}px)
                     </button>
-                    <span>極太化 (+80px)</span>
+                    <span>極太化 (+150px)</span>
                   </div>
                 </div>
 
@@ -974,6 +1023,15 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       </button>
                     ))}
                   </div>
+
+                  <p className={`text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
+                    ※ 適用すると各文字の左余白（lsb）を輪郭の左端に合わせて再計算します。手動で調整した余白は上書きされます。
+                  </p>
+                  {openContourCount > 0 && (
+                    <p className={`text-[11px] leading-relaxed ${themeClasses.textMuted}`}>
+                      ※ 開輪郭 {openContourCount} 本は太さ調整の対象外です（位置・形状は変わりません）。太くするには先にアウトライン化してください。
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1179,7 +1237,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <button
                   type="button"
                   onClick={handleApplyToProject}
-                  className={`px-3.5 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+                  disabled={weightDelta === 0}
+                  title={
+                    weightDelta === 0
+                      ? '太さオフセットが ±0px のため適用する変更がありません'
+                      : '適用すると各文字の左余白（lsb）も輪郭の左端に合わせて再計算します'
+                  }
+                  className={`px-3.5 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
                 >
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span className="max-sm:hidden">現在のプロジェクトに適用</span>

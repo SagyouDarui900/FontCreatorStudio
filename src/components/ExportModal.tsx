@@ -365,9 +365,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const fileName = buildExportFontFilename(project.metadata, format);
   const rawWeight = project.metadata.usWeightClass;
+  // Use the raw weight (1-1000), the same value the compiler writes to
+  // OS/2 usWeightClass, instead of rounding to the nearest 100.
   const resolvedWeight =
     typeof rawWeight === 'number' && Number.isFinite(rawWeight)
-      ? Math.max(100, Math.min(900, Math.round(rawWeight / 100) * 100))
+      ? Math.max(1, Math.min(1000, Math.round(rawWeight)))
       : inferWeightClassFromStyleName(project.metadata.styleName);
   const styleLower = (project.metadata.styleName || '').toLowerCase();
   const isItalicStyle =

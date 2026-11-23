@@ -180,7 +180,7 @@ describe('batchGenerateSmallKana', () => {
 });
 
 describe('open-contour adjustContoursWeight & unequal-node interpolateContours', () => {
-  it('shifts open horizontal contour perpendicular to segment without wrapping endpoints', () => {
+  it('leaves open contours unchanged: weight adjustment has no "outside" to expand, so shifting would only translate the stroke', () => {
     const openLine: PathContour = {
       id: 'open-1',
       closed: false,
@@ -192,12 +192,12 @@ describe('open-contour adjustContoursWeight & unequal-node interpolateContours',
     };
     const shifted = adjustContoursWeight([openLine], 10);
     expect(shifted[0].nodes).toHaveLength(3);
-    // Horizontal line normals point uniformly along Y without horizontal endpoint drift
-    expect(shifted[0].nodes[0].x).toBe(100);
-    expect(shifted[0].nodes[2].x).toBe(900);
-    expect(shifted[0].nodes[0].y).toBe(shifted[0].nodes[1].y);
-    expect(shifted[0].nodes[1].y).toBe(shifted[0].nodes[2].y);
-    expect(Math.abs(shifted[0].nodes[0].y - 500)).toBe(10);
+    // Open contours are excluded from weight adjustment: no node moves at all
+    expect(shifted[0].nodes.map((n) => [n.x, n.y])).toEqual([
+      [100, 500],
+      [500, 500],
+      [900, 500],
+    ]);
   });
 
   it('continuously morphs contours with unequal node counts all the way to Master B without snapping at t=1', () => {

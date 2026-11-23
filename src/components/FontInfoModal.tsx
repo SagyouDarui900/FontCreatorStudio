@@ -39,6 +39,7 @@ type ModalTab = 'info' | 'license' | 'opentype' | 'guide';
 
 const STYLE_PRESET_CHIPS: { styleName: string; usWeightClass: number }[] = [
   { styleName: 'Thin', usWeightClass: 100 },
+  { styleName: 'ExtraLight', usWeightClass: 200 },
   { styleName: 'Light', usWeightClass: 300 },
   { styleName: 'Regular', usWeightClass: 400 },
   { styleName: 'Medium', usWeightClass: 500 },
@@ -392,7 +393,10 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
                 <div className="flex flex-col space-y-1">
                   <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
-                    <span>スタイル名 (Subfamily)</span>
+                    <span>
+                      スタイル名 (Subfamily){' '}
+                      <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
+                    </span>
                     <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
                       Weight: {formData.usWeightClass ?? inferWeightClassFromStyleName(formData.styleName)}
                     </span>
@@ -402,12 +406,10 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     required
                     value={formData.styleName || ''}
                     onChange={(e) => {
-                      const nextStyle = e.target.value;
-                      setFormData({
-                        ...formData,
-                        styleName: nextStyle,
-                        usWeightClass: inferWeightClassFromStyleName(nextStyle),
-                      });
+                      // Typing a style name must not overwrite usWeightClass:
+                      // only the preset chips sync the two (an unknown or
+                      // Japanese name would otherwise reset the weight to 400).
+                      setFormData({ ...formData, styleName: e.target.value });
                     }}
                     placeholder="Regular, Bold, Medium など"
                     className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
