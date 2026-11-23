@@ -118,6 +118,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               <button
                 type="button"
                 onClick={() => {
+                  onClose();
                   onOpenTestPreview();
                 }}
                 className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors duration-150 ${
@@ -376,6 +377,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             onChangeBurasagari={(burasagari) =>
               state.setCurrentConfig((prev) => ({ ...prev, burasagari }))
             }
+            isManuscriptMode={state.layoutMode === 'manuscript'}
           />
 
           <main

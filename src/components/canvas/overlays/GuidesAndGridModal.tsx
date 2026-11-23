@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { CustomGuideline, GridSettings, JapaneseGuidePattern, VerticalGuidePattern } from '../../../types';
 import { useDialogFocusTrap } from '../../modals/ModalStackFrame';
+import { GRID_PURPOSE_PRESETS } from '../../toolbar/toolbarConstants';
 
 export const JAPANESE_GUIDE_OPTIONS: { id: JapaneseGuidePattern; label: string; sub: string }[] = [
   { id: 'none', label: 'なし', sub: '非表示' },
@@ -100,6 +101,46 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-3.5 text-xs">
+          {/* Purpose Presets */}
+          <div>
+            <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center justify-between">
+              <span>用途プリセット (ワンクリック構成)</span>
+              <span className="text-[10px] font-normal text-stone-400">作字用途に合わせて一括切替</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {GRID_PURPOSE_PRESETS.map((preset) => {
+                const active =
+                  (gridSettings.japaneseGuide || 'cross') === preset.settings.japaneseGuide &&
+                  (gridSettings.verticalGuide || 'none') === preset.settings.verticalGuide &&
+                  (gridSettings.showBodyFrame !== false) === preset.settings.showBodyFrame &&
+                  !!gridSettings.showKanaFrame === preset.settings.showKanaFrame &&
+                  gridSettings.showMetrics === preset.settings.showMetrics;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() =>
+                      onChangeGridSettings?.((prev) => ({
+                        ...prev,
+                        ...preset.settings,
+                      }))
+                    }
+                    className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    <div className="font-bold text-[11px] leading-tight">{preset.label}</div>
+                    <div className={`text-[9.5px] mt-0.5 truncate ${active ? 'text-emerald-100' : 'text-stone-400'}`}>
+                      {preset.desc}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Square Grid & Snapping with Intuitive Slider */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -247,9 +288,9 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                 <input
                   type="range"
                   min="5"
-                  max="200"
+                  max="250"
                   step="5"
-                  value={gridSettings.gridSize || 50}
+                  value={gridSettings.gridSize || 100}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     onChangeGridSettings?.((prev) => ({
@@ -258,20 +299,20 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                     }));
                   }}
                   className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden touch-pan-x"
-                  title={`グリッドサイズ: ${gridSettings.gridSize || 50}px`}
+                  title={`グリッドサイズ: ${gridSettings.gridSize || 100}px`}
                 />
-                <span className="text-[10px] font-mono text-stone-400 font-bold">200px</span>
+                <span className="text-[10px] font-mono text-stone-400 font-bold">250px</span>
               </div>
 
               {/* Quick Presets */}
               <div className="flex items-center gap-1 pt-1 overflow-x-auto no-scrollbar">
                 <span className="text-[10px] text-stone-500 dark:text-stone-400 font-bold shrink-0 mr-0.5">プリセット:</span>
                 {[
-                  { label: '10px (極小)', size: 10 },
                   { label: '25px (細)', size: 25 },
-                  { label: '50px (標準)', size: 50 },
-                  { label: '100px (中)', size: 100 },
+                  { label: '50px (中細)', size: 50 },
+                  { label: '100px (標準)', size: 100 },
                   { label: '128px (2進)', size: 128 },
+                  { label: '250px (粗)', size: 250 },
                 ].map((preset) => (
                   <button
                     key={preset.size}
@@ -283,7 +324,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       }))
                     }
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors shrink-0 ${
-                      (gridSettings.gridSize || 50) === preset.size
+                      (gridSettings.gridSize || 100) === preset.size
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
                     }`}
@@ -301,7 +342,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   グリッド・ガイド線の濃さ (透明度)
                 </span>
                 <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {gridSettings.gridOpacity ?? 30}%
+                  {gridSettings.gridOpacity ?? 35}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -311,7 +352,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   min="10"
                   max="100"
                   step="5"
-                  value={gridSettings.gridOpacity ?? 30}
+                  value={gridSettings.gridOpacity ?? 35}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     onChangeGridSettings?.((prev) => ({
@@ -342,7 +383,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       }))
                     }
                     className={`flex-1 py-1 rounded text-[10px] font-bold border transition-colors ${
-                      (gridSettings.gridOpacity ?? 30) === p.val
+                      (gridSettings.gridOpacity ?? 35) === p.val
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
                     }`}
@@ -371,7 +412,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                     }))
                   }
                   className={`py-1.5 px-1 rounded-lg border text-center font-bold transition-colors ${
-                    (gridSettings.japaneseGuide || 'tian') === g.id
+                    (gridSettings.japaneseGuide || 'cross') === g.id
                       ? 'bg-emerald-600 text-white border-emerald-600'
                       : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
                   }`}

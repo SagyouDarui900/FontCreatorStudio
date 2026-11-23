@@ -769,7 +769,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
           nodeId: firstNode.id,
           isDraggingHandle: false,
         };
-        setPenMousePos(penPos);
+        hoverCanvasPosRef.current = penPos;
+        pendingHoverPosRef.current = penPos;
+        setHoverCanvasPos(penPos);
         return;
       }
 
@@ -854,7 +856,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         nodeId: nextNode.id,
         isDraggingHandle: false,
       };
-      setPenMousePos(penPos);
+      hoverCanvasPosRef.current = penPos;
+      pendingHoverPosRef.current = penPos;
+      setHoverCanvasPos(penPos);
       return;
     }
 
@@ -1220,14 +1224,13 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Pen tool handle drag & rubber-band
+    // Pen tool handle drag & rubber-band (hoverStore drives ActivePenPreviewLayer without GlyphCanvas re-renders)
     if (toolMode === 'pen') {
       const currentContour = activePenContourRef.current;
       const session = penDragHandleSessionRef.current;
 
       if (session && currentContour) {
         if (penMode === 'corner') {
-          setPenMousePos(pos);
           return;
         }
         let dx = pos.x - session.startPos.x;
@@ -1281,12 +1284,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
           setSelectedHandleType('handleOut');
         }
 
-        setPenMousePos(pos);
         return;
       }
 
       if (currentContour) {
-        setPenMousePos(pos);
         return;
       }
     }

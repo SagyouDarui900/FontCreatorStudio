@@ -454,10 +454,51 @@ export function isPointInContour(pt: Point, contour: PathContour): boolean {
   return isPointInPolygon(pt, poly);
 }
 
+export function getContourPolygon(contour: PathContour, samplesPerSegment: number = 8): Point[] {
+  if (!contour || !contour.nodes || contour.nodes.length < 3) return [];
+  const hasCurves = contour.nodes.some((n) => n.handleIn != null || n.handleOut != null);
+  return hasCurves ? sampleContourPoints(contour, samplesPerSegment) : contour.nodes;
+}
+
+export function isPrecomputedContourContained(
+  innerBbox: ReturnType<typeof getContoursBoundingBox>,
+  innerArea: number,
+  innerPoly: Point[],
+  outerBbox: ReturnType<typeof getContoursBoundingBox>,
+  outerArea: number,
+  outerPoly: Point[]
+): boolean {
+  if (
+    innerBbox.minX < outerBbox.minX - 2 ||
+    innerBbox.maxX > outerBbox.maxX + 2 ||
+    innerBbox.minY < outerBbox.minY - 2 ||
+    innerBbox.maxY > outerBbox.maxY + 2
+  ) {
+    return false;
+  }
+  if (innerArea >= outerArea * 0.95) return false;
+  if (innerPoly.length === 0 || outerPoly.length < 3) return false;
+
+  const centerPt = { x: innerBbox.centerX, y: innerBbox.centerY };
+  if (!isPointInPolygon(centerPt, outerPoly)) return false;
+
+  const requiredInside = Math.ceil(innerPoly.length * 0.92);
+  let insideCount = 0;
+  for (let i = 0; i < innerPoly.length; i++) {
+    if (isPointInPolygon(innerPoly[i], outerPoly)) {
+      insideCount++;
+    } else if (innerPoly.length - (i + 1) + insideCount < requiredInside) {
+      return false;
+    }
+  }
+  return insideCount >= requiredInside;
+}
+
 /**
  * Check if inner contour is entirely enclosed by outer contour
  */
 export function isContourContained(inner: PathContour, outer: PathContour): boolean {
+  if (!inner?.nodes?.length || !outer?.nodes || outer.nodes.length < 3) return false;
   const innerBbox = getContoursBoundingBox([inner]);
   const outerBbox = getContoursBoundingBox([outer]);
   if (
@@ -468,7 +509,6 @@ export function isContourContained(inner: PathContour, outer: PathContour): bool
   ) {
     return false;
   }
-  if (!inner.nodes || inner.nodes.length === 0) return false;
 
   const innerArea = Math.abs(getContourSignedArea(inner));
   const outerArea = Math.abs(getContourSignedArea(outer));
@@ -477,19 +517,22 @@ export function isContourContained(inner: PathContour, outer: PathContour): bool
   // Dense polyline check: for a TRUE hole, sampled points along inner must be strictly inside outer
   const sampled = sampleContourPoints(inner, 8);
   if (!sampled || sampled.length === 0) return false;
+  const outerPoly = getContourPolygon(outer, 8);
+  if (outerPoly.length < 3) return false;
+
+  const centerPt = { x: innerBbox.centerX, y: innerBbox.centerY };
+  if (!isPointInPolygon(centerPt, outerPoly)) return false;
 
   let insideCount = 0;
   for (const pt of sampled) {
-    if (isPointInContour(pt, outer)) {
+    if (isPointInPolygon(pt, outerPoly)) {
       insideCount++;
     }
   }
 
-  const centerPt = { x: innerBbox.centerX, y: innerBbox.centerY };
-  const centerInside = isPointInContour(centerPt, outer);
   // For a true enclosed counter-hole (e.g. eye of 日, 口, O, loop of あ), virtually all sampled points (>= 92%)
   // and center must be inside outer: crossing strokes that exit or span across will be correctly rejected!
-  return insideCount >= sampled.length * 0.92 && centerInside;
+  return insideCount >= sampled.length * 0.92;
 }
 
 /**
@@ -510,28 +553,49 @@ export function groupContoursWithHoles(contours: PathContour[]): PathContour[][]
   const cached = HOLE_GROUPS_CACHE.get(contours);
   if (cached !== undefined) return cached;
 
+  const n = contours.length;
+  const bboxes = new Array<ReturnType<typeof getContoursBoundingBox>>(n);
+  const absAreas = new Float64Array(n);
+  const sampledPolys = new Array<Point[]>(n);
+  const hitPolys = new Array<Point[]>(n);
+
+  for (let i = 0; i < n; i++) {
+    const c = contours[i];
+    bboxes[i] = getContoursBoundingBox([c]);
+    absAreas[i] = Math.abs(getContourSignedArea(c));
+    sampledPolys[i] = c.nodes && c.nodes.length > 0 ? sampleContourPoints(c, 8) : [];
+    hitPolys[i] = getContourPolygon(c, 8);
+  }
+
   // Identify which contours are holes contained inside another contour
   // Map child contour index -> parent contour index
   const parentMap = new Map<number, number>();
 
-  for (let i = 0; i < contours.length; i++) {
-    const child = contours[i];
-    const childArea = Math.abs(getContourSignedArea(child));
+  for (let i = 0; i < n; i++) {
+    const childArea = absAreas[i];
+    const childBbox = bboxes[i];
+    const childSampled = sampledPolys[i];
     let smallestParentIdx = -1;
     let smallestParentArea = Infinity;
 
-    for (let j = 0; j < contours.length; j++) {
+    for (let j = 0; j < n; j++) {
       if (i === j) continue;
-      const candidateParent = contours[j];
-      const candidateArea = Math.abs(getContourSignedArea(candidateParent));
+      const candidateArea = absAreas[j];
       // A parent contour must have strictly larger area than its child
-      if (candidateArea <= childArea) continue;
+      if (candidateArea <= childArea || candidateArea >= smallestParentArea) continue;
 
-      if (isContourContained(child, candidateParent)) {
-        if (candidateArea < smallestParentArea) {
-          smallestParentArea = candidateArea;
-          smallestParentIdx = j;
-        }
+      if (
+        isPrecomputedContourContained(
+          childBbox,
+          childArea,
+          childSampled,
+          bboxes[j],
+          candidateArea,
+          hitPolys[j]
+        )
+      ) {
+        smallestParentArea = candidateArea;
+        smallestParentIdx = j;
       }
     }
 
@@ -542,7 +606,7 @@ export function groupContoursWithHoles(contours: PathContour[]): PathContour[][]
 
   // Root outer groups
   const rootGroups = new Map<number, PathContour[]>();
-  for (let i = 0; i < contours.length; i++) {
+  for (let i = 0; i < n; i++) {
     if (!parentMap.has(i)) {
       rootGroups.set(i, [contours[i]]);
     }
@@ -623,14 +687,21 @@ export function normalizeGlyphContoursWinding(contours: PathContour[]): PathCont
   if (!contours || contours.length === 0) return [];
 
   const n = contours.length;
-  // Precompute bounding boxes and signed areas once for O(1) containment checks
+  // Precompute bounding boxes, signed areas, and sampled polygons once for O(1) containment checks
   const bboxes = new Array(n);
   const areas = new Float64Array(n);
+  const sampledPolys = new Array<Point[] | null>(n);
+  const hitPolys = new Array<Point[] | null>(n);
   for (let i = 0; i < n; i++) {
     const c = contours[i];
     if (c.closed && c.nodes && c.nodes.length >= 3) {
       bboxes[i] = getContoursBoundingBox([c]);
       areas[i] = getContourSignedArea(c);
+      sampledPolys[i] = sampleContourPoints(c, 8);
+      hitPolys[i] = getContourPolygon(c, 8);
+    } else {
+      sampledPolys[i] = null;
+      hitPolys[i] = null;
     }
   }
 
@@ -638,24 +709,27 @@ export function normalizeGlyphContoursWinding(contours: PathContour[]): PathCont
     if (!c.closed || !c.nodes || c.nodes.length < 3) return c;
     const area = areas[i];
     const bboxI = bboxes[i];
-    if (!bboxI) return c;
+    const sampledI = sampledPolys[i];
+    if (!bboxI || !sampledI) return c;
 
     let enclosingCount = 0;
+    const absAreaI = Math.abs(area);
     for (let j = 0; j < n; j++) {
       if (i === j) continue;
       const bboxJ = bboxes[j];
-      if (!bboxJ) continue;
+      const hitPolyJ = hitPolys[j];
+      if (!bboxJ || !hitPolyJ) continue;
 
-      // Fast AABB check: if inner bbox is not strictly inside outer bbox (with 2px tolerance), it cannot be contained
       if (
-        bboxI.minX < bboxJ.minX - 2 ||
-        bboxI.maxX > bboxJ.maxX + 2 ||
-        bboxI.minY < bboxJ.minY - 2 ||
-        bboxI.maxY > bboxJ.maxY + 2
+        isPrecomputedContourContained(
+          bboxI,
+          absAreaI,
+          sampledI,
+          bboxJ,
+          Math.abs(areas[j]),
+          hitPolyJ
+        )
       ) {
-        continue;
-      }
-      if (isContourContained(c, contours[j])) {
         enclosingCount++;
       }
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
-import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { BookOpen, Feather, Columns } from 'lucide-react';
 
 interface MagazineLayoutViewProps {
@@ -40,7 +40,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   const accentBorder = isLight ? 'border-emerald-600' : 'border-emerald-500';
 
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(6, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
   // Split lines into two columns for magazine spread
   const half = Math.ceil(layout.lines.length / 2);
@@ -86,6 +86,8 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
               >
                 {line.glyphs.map((g, gIdx) => {
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
+                  const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                  const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
                   return (
                     <span
                       key={gIdx}
@@ -96,14 +98,14 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
                       }}
                     >
                       <span
-                        className={`inline-flex items-center justify-center relative ${
+                        className={`inline-flex ${alignClass} relative ${
                           g.isHanging
                             ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                             : ''
                         }`}
                         style={{
                           width: `${emPx}px`,
-                          height: `${emPx}px`,
+                          height: `${boxHeightPx}px`,
                           fontSize: `${emPx}px`,
                           lineHeight: 1,
                         }}
@@ -149,6 +151,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             >
               {line.glyphs.map((g, gIdx) => {
                 const boxWidthPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, false);
                 return (
                   <span
                     key={gIdx}
@@ -159,7 +162,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
                     }}
                   >
                     <span
-                      className={`inline-flex items-center justify-center relative text-center ${
+                      className={`inline-flex ${alignClass} relative text-center ${
                         g.isHanging
                           ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                           : ''

@@ -24,6 +24,7 @@ import {
   buildExportFontFilename,
   validateFontProject,
   stripInvalidPixelData,
+  inferWeightClassFromStyleName,
   FontValidationResult,
   CompileFontOptions,
 } from '../utils/font';
@@ -363,12 +364,27 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const fontFamily = project.metadata.familyName || 'MyFont';
   const escapedFontFamily = fontFamily.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   const fileName = buildExportFontFilename(project.metadata, format);
+  const rawWeight = project.metadata.usWeightClass;
+  const resolvedWeight =
+    typeof rawWeight === 'number' && Number.isFinite(rawWeight)
+      ? Math.max(100, Math.min(900, Math.round(rawWeight / 100) * 100))
+      : inferWeightClassFromStyleName(project.metadata.styleName);
+  const styleLower = (project.metadata.styleName || '').toLowerCase();
+  const isItalicStyle =
+    styleLower.includes('italic') ||
+    styleLower.includes('oblique') ||
+    (typeof project.metadata.italicAngle === 'number' &&
+      Number.isFinite(project.metadata.italicAngle) &&
+      Math.abs(project.metadata.italicAngle) > 0.01);
+  const cssFontWeight =
+    resolvedWeight === 400 ? 'normal' : resolvedWeight === 700 ? 'bold' : String(resolvedWeight);
+  const cssFontStyle = isItalicStyle ? 'italic' : 'normal';
 
   const cssSnippet = `@font-face {
   font-family: '${escapedFontFamily}';
   src: url('${fileName}') format('opentype');
-  font-weight: normal;
-  font-style: normal;
+  font-weight: ${cssFontWeight};
+  font-style: ${cssFontStyle};
   font-display: swap;
 }`;
 

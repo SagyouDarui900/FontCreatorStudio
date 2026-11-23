@@ -56,7 +56,8 @@ const DEFAULT_TRACE_SETTINGS: TraceSettings = {
 
 const DEFAULT_GRID_SETTINGS: GridSettings = {
   showGrid: true,
-  gridSize: 50,
+  gridSize: 100,
+  gridOpacity: 35,
   snapToGrid: false,
   snapToPoints: false,
   snapToGuides: false,
@@ -65,7 +66,7 @@ const DEFAULT_GRID_SETTINGS: GridSettings = {
   showHandles: true,
   japaneseGuide: 'cross',
   showBodyFrame: true,
-  showKanaFrame: true,
+  showKanaFrame: false,
   highContrastCursor: true,
   showCursorCrosshair: false,
 };
@@ -323,7 +324,7 @@ function AppMain({
       snapToPoints: false,
       japaneseGuide: 'cross',
       showBodyFrame: true,
-      showKanaFrame: true,
+      showKanaFrame: false,
       showMetrics: true,
       highContrastCursor: true,
     }));

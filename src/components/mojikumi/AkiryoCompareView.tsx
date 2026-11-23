@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
-import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 
 interface AkiryoCompareViewProps {
   betaLayout: FormattedLayoutResult;
@@ -32,7 +32,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
   const [mobileTab, setMobileTab] = useState<'all' | 'beta' | 'tsume' | 'ake'>('all');
 
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(6, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
   const renderLines = (layout: FormattedLayoutResult) => {
     if (isVertical) {
@@ -62,6 +62,8 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
               >
                 {line.glyphs.map((g, gIdx) => {
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
+                  const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                  const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
                   return (
                     <span
                       key={gIdx}
@@ -73,14 +75,14 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                       title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
                     >
                       <span
-                        className={`inline-flex items-center justify-center relative ${
+                        className={`inline-flex ${alignClass} relative ${
                           g.isHanging
                             ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                             : ''
                         }`}
                         style={{
                           width: `${emPx}px`,
-                          height: `${emPx}px`,
+                          height: `${boxHeightPx}px`,
                           fontSize: `${emPx}px`,
                           lineHeight: 1,
                         }}
@@ -126,6 +128,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
             >
               {line.glyphs.map((g, gIdx) => {
                 const boxWidthPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, false);
                 return (
                   <span
                     key={gIdx}
@@ -136,7 +139,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                     }}
                   >
                     <span
-                      className={`inline-flex items-center justify-center relative text-center ${
+                      className={`inline-flex ${alignClass} relative text-center ${
                         g.isHanging
                           ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                           : ''

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Grid, Magnet, Eye, Move, Bookmark, Save, Download, Ruler, Crosshair, Layers } from 'lucide-react';
 import { GridSettings, JapaneseGuidePattern, ThemeClasses } from '../../types';
 import { VERTICAL_GUIDES, JAPANESE_GUIDES } from '../ToolBar';
+import { GRID_PURPOSE_PRESETS } from './toolbarConstants';
 
 export interface MobileGridMenuSheetProps {
   isOpen: boolean;
@@ -59,6 +60,47 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
 
  {/* Scrollable Body Container - Ensures all buttons and sliders are easily reachable */}
  <div className="overflow-y-auto pr-1 flex-1 min-h-0 space-y-3 pb-2 touch-pan-y">
+
+ {/* Purpose Presets */}
+ <div className="shrink-0">
+ <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5">
+ 用途プリセット (ワンクリック切替)
+ </div>
+ <div className="grid grid-cols-2 gap-1.5">
+ {GRID_PURPOSE_PRESETS.map((preset) => {
+ const active =
+ (gridSettings.japaneseGuide || 'cross') === preset.settings.japaneseGuide &&
+ (gridSettings.verticalGuide || 'none') === preset.settings.verticalGuide &&
+ (gridSettings.showBodyFrame !== false) === preset.settings.showBodyFrame &&
+ !!gridSettings.showKanaFrame === preset.settings.showKanaFrame &&
+ gridSettings.showMetrics === preset.settings.showMetrics;
+ return (
+ <button
+ key={preset.id}
+ type="button"
+ onClick={() =>
+ setGridSettings((prev) => ({
+ ...prev,
+ ...preset.settings,
+ }))
+ }
+ className={`p-2 rounded-xl border text-left transition-colors ${
+ active
+ ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+ : isLight
+ ? 'bg-stone-50 border-stone-200 text-stone-700'
+ : 'bg-stone-900 border-stone-800 text-stone-300'
+ }`}
+ >
+ <div className="text-xs font-bold">{preset.label}</div>
+ <div className={`text-[10px] truncate ${active ? 'text-emerald-100' : 'text-stone-400'}`}>
+ {preset.desc}
+ </div>
+ </button>
+ );
+ })}
+ </div>
+ </div>
 
  {/* Grid ON/OFF and Snap Toggles */}
  <div className="grid grid-cols-2 gap-2 mb-3 shrink-0">
@@ -157,9 +199,9 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  <input
  type="range"
  min="5"
- max="200"
+ max="250"
  step="5"
- value={gridSettings.gridSize || 50}
+ value={gridSettings.gridSize || 100}
  onChange={(e) => {
  const val = parseInt(e.target.value, 10);
  setGridSettings((prev) => ({
@@ -169,12 +211,12 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }}
  className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden"
  />
- <span className="text-xs font-mono text-stone-400 font-bold">200</span>
+ <span className="text-xs font-mono text-stone-400 font-bold">250</span>
  </div>
 
  {/* Quick Presets */}
  <div className="grid grid-cols-5 gap-1.5 pt-1">
- {[10, 25, 50, 100, 128].map((size) => (
+ {[25, 50, 100, 128, 250].map((size) => (
  <button
  key={size}
  type="button"
@@ -185,7 +227,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }))
  }
  className={`py-1.5 rounded-lg text-xs font-mono font-bold border ${
- (gridSettings.gridSize || 50) === size
+ (gridSettings.gridSize || 100) === size
  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
  : isLight
  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
@@ -204,7 +246,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  グリッド線の濃さ
  </span>
  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
- {gridSettings.gridOpacity ?? 30}%
+ {gridSettings.gridOpacity ?? 35}%
  </span>
  </div>
  <div className="flex items-center gap-2">
@@ -214,7 +256,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  min="10"
  max="100"
  step="5"
- value={gridSettings.gridOpacity ?? 30}
+ value={gridSettings.gridOpacity ?? 35}
  onChange={(e) => {
  const val = parseInt(e.target.value, 10);
  setGridSettings((prev) => ({
@@ -243,7 +285,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }))
  }
  className={`py-1 rounded-lg text-xs font-bold border ${
- (gridSettings.gridOpacity ?? 30) === p.val
+ (gridSettings.gridOpacity ?? 35) === p.val
  ? 'bg-emerald-600 text-white border-emerald-600 '
  : isLight
  ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
@@ -309,7 +351,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }))
  }
  className={`py-1 rounded text-[11px] font-bold border ${
- (gridSettings.japaneseGuide || 'tian') === g.id
+ (gridSettings.japaneseGuide || 'cross') === g.id
  ? 'bg-emerald-600 text-white border-emerald-600 '
  : isLight
  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'

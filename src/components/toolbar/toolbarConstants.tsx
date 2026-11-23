@@ -114,3 +114,87 @@ export const JAPANESE_GUIDES: { id: JapaneseGuidePattern; label: string }[] = [
   { id: 'sixteen', label: '十六宮 (4x4)' },
   { id: 'mi', label: '米字格' },
 ];
+
+export interface GridPurposePreset {
+  id: string;
+  label: string;
+  desc: string;
+  settings: {
+    showGrid: boolean;
+    gridSize: number;
+    gridOpacity: number;
+    japaneseGuide: JapaneseGuidePattern;
+    verticalGuide: VerticalGuidePattern;
+    showBodyFrame: boolean;
+    showKanaFrame: boolean;
+    showMetrics: boolean;
+    showVerticalCenter: boolean;
+  };
+}
+
+export const GRID_PURPOSE_PRESETS: GridPurposePreset[] = [
+  {
+    id: 'kanji',
+    label: '漢字作字',
+    desc: '100px + 田字格 + 85%枠',
+    settings: {
+      showGrid: true,
+      gridSize: 100,
+      gridOpacity: 35,
+      japaneseGuide: 'tian',
+      verticalGuide: 'none',
+      showBodyFrame: true,
+      showKanaFrame: false,
+      showMetrics: true,
+      showVerticalCenter: true,
+    },
+  },
+  {
+    id: 'kana',
+    label: 'かな・バランス',
+    desc: '100px + 十字 + 78%枠',
+    settings: {
+      showGrid: true,
+      gridSize: 100,
+      gridOpacity: 35,
+      japaneseGuide: 'cross',
+      verticalGuide: 'none',
+      showBodyFrame: false,
+      showKanaFrame: true,
+      showMetrics: true,
+      showVerticalCenter: true,
+    },
+  },
+  {
+    id: 'latin',
+    label: '欧文メトリクス',
+    desc: '50px + 基準線 + 中心軸',
+    settings: {
+      showGrid: true,
+      gridSize: 50,
+      gridOpacity: 35,
+      japaneseGuide: 'none',
+      verticalGuide: 'center',
+      showBodyFrame: false,
+      showKanaFrame: false,
+      showMetrics: true,
+      showVerticalCenter: true,
+    },
+  },
+  {
+    id: 'precision',
+    label: '精密方眼',
+    desc: '25px方眼のみ',
+    settings: {
+      showGrid: true,
+      gridSize: 25,
+      gridOpacity: 30,
+      japaneseGuide: 'none',
+      verticalGuide: 'none',
+      showBodyFrame: false,
+      showKanaFrame: false,
+      showMetrics: false,
+      showVerticalCenter: false,
+    },
+  },
+];

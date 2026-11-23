@@ -35,6 +35,7 @@ interface MojikumiSidebarProps {
   onSelectPreset: (presetId: MojikumiPresetId) => void;
   onChangeKinsoku: (kinsoku: KinsokuSetId) => void;
   onChangeBurasagari: (burasagari: BurasagariMode) => void;
+  isManuscriptMode?: boolean;
 }
 
 const SIDEBAR_TABS: { id: MojikumiSidebarTab; label: string }[] = [
@@ -81,6 +82,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
   onSelectPreset,
   onChangeKinsoku,
   onChangeBurasagari,
+  isManuscriptMode = false,
 }) => {
   return (
     <aside
@@ -232,21 +234,29 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                 </span>
                 <span>行送り比率: {Math.round((lineFeedH / fontSizeQ) * 100)}%</span>
               </div>
+              {lineFeedH < fontSizeQ && (
+                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                  ※ 行送りが文字サイズ未満です（行同士が重なる設定）
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span className="font-bold">1行字詰め（字数）</span>
-                <span className="font-mono font-bold">{charsPerLine} 文字</span>
+                <span className="font-mono font-bold">
+                  {isManuscriptMode ? '20 文字 (原稿用紙固定)' : `${charsPerLine} 文字`}
+                </span>
               </div>
               <input
                 type="range"
                 min="10"
                 max="45"
                 step="1"
-                value={charsPerLine}
+                value={isManuscriptMode ? 20 : charsPerLine}
+                disabled={isManuscriptMode}
                 onChange={(e) => onChangeCharsPerLine(Number(e.target.value))}
-                className="w-full accent-emerald-600"
+                className="w-full accent-emerald-600 disabled:opacity-50"
               />
             </div>
 

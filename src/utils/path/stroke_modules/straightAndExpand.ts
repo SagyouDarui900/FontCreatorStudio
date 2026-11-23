@@ -1,8 +1,7 @@
 import { BezierNode, PathContour, Point, StrokePoint } from "../../../types";
 import { generateId } from "../id";
-import { sampleContourPoints, normalizeGlyphContoursWinding, getContoursBoundingBox } from "../bounds";
+import { sampleContourPoints, normalizeGlyphContoursWinding, getContourSignedArea } from "../bounds";
 import { pointsToBezierContourNodes } from "../../imageVectorizer";
-import { transformContours } from "../transform";
 
 export function snapToStraightAngle(
   startX: number,
@@ -57,6 +56,74 @@ export function generateStraightStrokePoints(
     });
   }
   return pts;
+}
+
+function resamplePolylineUniform(points: Point[], targetCount: number, closed: boolean): Point[] {
+  if (points.length === 0) return [];
+  if (points.length === 1 || targetCount <= 1) {
+    return Array.from({ length: Math.max(1, targetCount) }, () => ({ ...points[0] }));
+  }
+
+  const ring = closed ? [...points, points[0]] : points;
+  const segLengths: number[] = [];
+  let totalLen = 0;
+  for (let i = 1; i < ring.length; i++) {
+    const d = Math.hypot(ring[i].x - ring[i - 1].x, ring[i].y - ring[i - 1].y);
+    segLengths.push(d);
+    totalLen += d;
+  }
+
+  if (totalLen < 1e-6) {
+    return Array.from({ length: targetCount }, () => ({ ...points[0] }));
+  }
+
+  const out: Point[] = [];
+  const denom = closed ? targetCount : Math.max(1, targetCount - 1);
+  let segIdx = 0;
+  let accLen = 0;
+
+  for (let k = 0; k < targetCount; k++) {
+    const targetDist = (k / denom) * totalLen;
+    while (segIdx < segLengths.length - 1 && accLen + segLengths[segIdx] < targetDist) {
+      accLen += segLengths[segIdx];
+      segIdx++;
+    }
+    const segLen = segLengths[segIdx];
+    const localT = segLen > 1e-6 ? Math.max(0, Math.min(1, (targetDist - accLen) / segLen)) : 0;
+    const p0 = ring[segIdx];
+    const p1 = ring[segIdx + 1];
+    out.push({
+      x: p0.x + (p1.x - p0.x) * localT,
+      y: p0.y + (p1.y - p0.y) * localT,
+    });
+  }
+  return out;
+}
+
+function alignClosedRingStart(refRing: Point[], candRing: Point[]): Point[] {
+  const n = Math.min(refRing.length, candRing.length);
+  if (n <= 1) return candRing;
+
+  let bestOffset = 0;
+  let bestDistSq = Infinity;
+  // Evaluate shift candidates cleanly without O(N^2) overhead on typical 24-64 points
+  for (let offset = 0; offset < n; offset++) {
+    let distSq = 0;
+    for (let i = 0; i < n; i++) {
+      const a = refRing[i];
+      const b = candRing[(i + offset) % n];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      distSq += dx * dx + dy * dy;
+    }
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestOffset = offset;
+    }
+  }
+
+  if (bestOffset === 0) return candRing;
+  return [...candRing.slice(bestOffset), ...candRing.slice(0, bestOffset)];
 }
 
 /**
@@ -140,22 +207,49 @@ export function interpolateContours(
         closed: cA.closed && cB.closed,
       });
     } else {
-      // Fallback for unequal node count: blend via bounding boxes & weight offsets
-      const bboxA = getContoursBoundingBox([cA]);
-      const bboxB = getContoursBoundingBox([cB]);
-      const scaleX = (bboxB.width || 1) / (bboxA.width || 1);
-      const scaleY = (bboxB.height || 1) / (bboxA.height || 1);
-      const currentScaleX = 1 + (scaleX - 1) * clampedT;
-      const currentScaleY = 1 + (scaleY - 1) * clampedT;
-      const dx = (bboxB.centerX - bboxA.centerX) * clampedT;
-      const dy = (bboxB.centerY - bboxA.centerY) * clampedT;
+      // Unequal node count: uniformly arc-length resample both contours to a shared
+      // sample count, align closed winding/start vertex, and morph continuously toward Master B.
+      const closed = Boolean(cA.closed && cB.closed);
+      const rawA = sampleContourPoints(cA, 8);
+      const rawB = sampleContourPoints(cB, 8);
+      const sampleCount = Math.max(24, Math.min(64, Math.max(rawA.length, rawB.length)));
 
-      const morphed = transformContours([cA], (p: Point) => ({
-        x: Math.round(bboxA.centerX + (p.x - bboxA.centerX) * currentScaleX + dx),
-        y: Math.round(bboxA.centerY + (p.y - bboxA.centerY) * currentScaleY + dy),
-      }));
+      const resampledA = resamplePolylineUniform(rawA, sampleCount, closed);
+      let resampledB = resamplePolylineUniform(rawB, sampleCount, closed);
 
-      result.push(...morphed);
+      if (closed) {
+        const areaA = getContourSignedArea(cA);
+        const areaB = getContourSignedArea(cB);
+        if ((areaA > 0 && areaB < 0) || (areaA < 0 && areaB > 0)) {
+          resampledB = [...resampledB].reverse();
+        }
+        resampledB = alignClosedRingStart(resampledA, resampledB);
+      }
+
+      const blendedPts: Point[] = resampledA.map((pA, i) => {
+        const pB = resampledB[i] ?? pA;
+        return {
+          x: pA.x * (1 - clampedT) + pB.x * clampedT,
+          y: pA.y * (1 - clampedT) + pB.y * clampedT,
+        };
+      });
+
+      const morphedNodes: BezierNode[] = closed
+        ? pointsToBezierContourNodes(blendedPts)
+        : blendedPts.map((pt, i) => ({
+            id: `interp-${cIdx}-${i}`,
+            x: Math.round(pt.x),
+            y: Math.round(pt.y),
+            handleIn: null,
+            handleOut: null,
+            type: 'corner',
+          }));
+
+      result.push({
+        id: `interp-contour-${cIdx}`,
+        nodes: morphedNodes,
+        closed,
+      });
     }
   }
 

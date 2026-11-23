@@ -555,9 +555,9 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                       <input
                         type="range"
                         min="5"
-                        max="200"
+                        max="250"
                         step="5"
-                        value={gridSettings.gridSize || 50}
+                        value={gridSettings.gridSize || 100}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
@@ -568,7 +568,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                         type="button"
                         onClick={() =>
                           onChangeGridSettings((prev) => {
-                            const current = prev.gridSize || 50;
+                            const current = prev.gridSize || 100;
                             const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
                             return { ...prev, gridSize: Math.min(250, current + step) };
                           })
@@ -579,7 +579,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                       </button>
                     </div>
                     <div className="flex items-center gap-1 justify-between">
-                      {[10, 25, 50, 100, 128].map((size) => (
+                      {[25, 50, 100, 128, 250].map((size) => (
                         <button
                           key={size}
                           type="button"
@@ -587,7 +587,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                             onChangeGridSettings((prev) => ({ ...prev, gridSize: size }))
                           }
                           className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums font-bold border transition-colors ${
-                            (gridSettings.gridSize || 50) === size
+                            (gridSettings.gridSize || 100) === size
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300'
                           }`}

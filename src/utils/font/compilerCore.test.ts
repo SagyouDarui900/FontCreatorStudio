@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compileFont } from './compilerCore';
+import { compileFont, inferWeightClassFromStyleName } from './compilerCore';
 import {
   validateFontProject,
   validateStoredFontProject,
@@ -506,5 +506,40 @@ describe('Font Project Validation & Compilation', () => {
     expect(report!.warnings.length).toBeGreaterThan(0);
     // The plain entry point keeps the FontProject shape for existing callers.
     expect(validateStoredFontProject(report!.project)).not.toBeNull();
+  });
+
+  it('infers full 100-900 usWeightClass range and avoids setting RIBBI Bold flag for SemiBold', () => {
+    expect(inferWeightClassFromStyleName('Thin')).toBe(100);
+    expect(inferWeightClassFromStyleName('ExtraLight')).toBe(200);
+    expect(inferWeightClassFromStyleName('Light')).toBe(300);
+    expect(inferWeightClassFromStyleName('Regular')).toBe(400);
+    expect(inferWeightClassFromStyleName('Medium')).toBe(500);
+    expect(inferWeightClassFromStyleName('SemiBold')).toBe(600);
+    expect(inferWeightClassFromStyleName('Bold')).toBe(700);
+    expect(inferWeightClassFromStyleName('ExtraBold')).toBe(800);
+    expect(inferWeightClassFromStyleName('Heavy')).toBe(900);
+
+    const semiBoldProj = createMockProject({
+      metadata: {
+        ...createMockProject().metadata,
+        styleName: 'SemiBold',
+        usWeightClass: undefined,
+      },
+    });
+    const semiCompiled = compileFont(semiBoldProj, { skipBlobUrl: true });
+    expect(semiCompiled.font.tables.os2.usWeightClass).toBe(600);
+    expect(semiCompiled.font.tables.os2.fsSelection & 0x0020).toBe(0); // Not RIBBI Bold
+
+    const italicBoldProj = createMockProject({
+      metadata: {
+        ...createMockProject().metadata,
+        styleName: 'Bold Italic',
+        usWeightClass: undefined,
+      },
+    });
+    const boldItalicCompiled = compileFont(italicBoldProj, { skipBlobUrl: true });
+    expect(boldItalicCompiled.font.tables.os2.usWeightClass).toBe(700);
+    expect(boldItalicCompiled.font.tables.os2.fsSelection & 0x0020).toBe(0x0020);
+    expect(boldItalicCompiled.font.tables.os2.fsSelection & 0x0001).toBe(0x0001);
   });
 });

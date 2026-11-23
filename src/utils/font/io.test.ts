@@ -130,4 +130,33 @@ describe('loadFontFromFile & export I/O safety', () => {
     await expect(loadFontFromFile(oversizedFile)).rejects.toThrow(/ファイルサイズが大きすぎます/);
     expect((oversizedFile.arrayBuffer as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
   });
+
+  it('preserves styleName, usWeightClass, usWidthClass, vendorId, and post flags across OTF round-trip', async () => {
+    const project = makeMinimalProject('FamilyRoundtrip', 'SemiBold');
+    project.metadata.usWeightClass = 600;
+    project.metadata.usWidthClass = 7;
+    project.metadata.vendorId = 'OTST';
+    project.metadata.italicAngle = -12;
+    project.metadata.isFixedPitch = true;
+
+    const { buffer } = compileFont(project, {
+      scaleFactor: 1.0,
+      balanceSideBearings: false,
+      skipBlobUrl: true,
+    });
+    const mockFile = {
+      name: 'FamilyRoundtrip-SemiBold.otf',
+      size: buffer.byteLength,
+      arrayBuffer: async () => buffer,
+    } as unknown as File;
+
+    const imported = await loadFontFromFile(mockFile);
+    expect(imported.metadata.familyName).toBe('FamilyRoundtrip');
+    expect(imported.metadata.styleName).toBe('SemiBold');
+    expect(imported.metadata.usWeightClass).toBe(600);
+    expect(imported.metadata.usWidthClass).toBe(7);
+    expect(imported.metadata.vendorId).toBe('OTST');
+    expect(imported.metadata.italicAngle).toBe(-12);
+    expect(imported.metadata.isFixedPitch).toBe(true);
+  });
 });

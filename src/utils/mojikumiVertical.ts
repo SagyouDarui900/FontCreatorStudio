@@ -174,3 +174,27 @@ export function getVerticalGlyphStyle(
     display: 'inline-block',
   };
 }
+
+/**
+ * Returns flexbox alignment classes for compressed punctuation glyphs (< 0.75em advance)
+ * so fullwidth bracket/punctuation ink stays inside its reduced bounding box without
+ * colliding with adjacent glyphs.
+ */
+export function getMojikumiBoxAlignClass(
+  kind: string,
+  baseAdvanceEm: number | undefined,
+  isVertical: boolean
+): string {
+  const adv = baseAdvanceEm ?? 1.0;
+  if (adv >= 0.75) {
+    return 'items-center justify-center';
+  }
+  if (isVertical) {
+    if (kind === 'start_bracket') return 'items-end justify-center';
+    if (kind === 'end_bracket' || kind === 'touten' || kind === 'kuten') return 'items-start justify-center';
+    return 'items-center justify-center';
+  }
+  if (kind === 'start_bracket') return 'items-center justify-end';
+  if (kind === 'end_bracket' || kind === 'touten' || kind === 'kuten') return 'items-center justify-start';
+  return 'items-center justify-center';
+}

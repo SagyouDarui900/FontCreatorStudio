@@ -9,6 +9,7 @@ interface MetricsGuidesLayerProps {
   activeChar?: string;
   isLight?: boolean;
   showVerticalCenter?: boolean;
+  suppressCenterLine?: boolean;
   gridOpacity?: number;
   unitsPerEm?: number;
   ascender?: number;
@@ -26,6 +27,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     activeChar = '',
     isLight = true,
     showVerticalCenter = true,
+    suppressCenterLine = false,
     gridOpacity = 30,
     unitsPerEm = 1000,
     ascender,
@@ -47,14 +49,22 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
 
     const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? 30) / 45));
 
-    // When drafting Japanese characters, keep Western-specific metrics subtle
-    const latinMetricsOpacity = (isJapanese ? 0.28 : 0.65) * opacityScale;
+    // When drafting Japanese characters, keep Western-specific metrics very subtle and suppress Latin text clutter inside/near the glyph
+    const latinMetricsOpacity = (isJapanese ? 0.2 : 0.58) * opacityScale;
 
     const centerX = upm / 2;
     const maxLineX = Math.max(upm, advanceWidth);
     const verticalTopY = Math.min(0, ascenderY);
     const verticalBottomY = Math.max(upm, descenderY);
     const labelColor = isLight ? '#64748b' : '#94a3b8';
+    const latinLineColor = isLight ? '#475569' : '#94a3b8';
+    const baselineColor = isLight ? '#dc2626' : '#f87171';
+    const sidebearingColor = isLight ? '#059669' : '#34d399';
+    const marginShadeColor = isLight ? '#0f172a' : '#94a3b8';
+
+    const clampedLsb = Math.max(0, Math.min(upm, lsb));
+    const clampedAdv = Math.max(0, Math.min(upm, advanceWidth));
+    const sideLabelsTight = advanceWidth <= lsb + 140;
 
     // Screen-constant dash helper so dash segments never crawl or stretch on zoom
     const dash = (a: number, b: number, c?: number, d?: number) =>
@@ -64,6 +74,28 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
 
     return (
       <g className="metrics-guides-layer select-none font-mono pointer-events-none">
+        {/* Sidebearing Margin Shading (Glyphs / FontLab style outer advance clarity) */}
+        {clampedLsb > 0 && (
+          <rect
+            x={0}
+            y={verticalTopY}
+            width={clampedLsb}
+            height={verticalBottomY - verticalTopY}
+            fill={marginShadeColor}
+            opacity={0.032}
+          />
+        )}
+        {clampedAdv < upm && (
+          <rect
+            x={clampedAdv}
+            y={verticalTopY}
+            width={upm - clampedAdv}
+            height={verticalBottomY - verticalTopY}
+            fill={marginShadeColor}
+            opacity={0.032}
+          />
+        )}
+
         {/* Ascender */}
         <g opacity={latinMetricsOpacity}>
           <line
@@ -71,22 +103,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             y1={ascenderY}
             x2={maxLineX}
             y2={ascenderY}
-            stroke="#3b82f6"
-            strokeWidth={1.1}
+            stroke={latinLineColor}
+            strokeWidth={1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(8, 4)}
           />
-          <g transform={`translate(8, ${ascenderY}) scale(${invZ})`}>
-            <text
-              x={0}
-              y={ascenderY <= 20 ? 12 : -5}
-              fontSize={9.5}
-              fill={labelColor}
-              opacity={0.75}
-            >
-              Ascender
-            </text>
-          </g>
+          {!isJapanese && (
+            <g transform={`translate(${maxLineX}, ${ascenderY}) scale(${invZ})`}>
+              <text x={8} y={3} fontSize={9.5} fill={labelColor} opacity={0.8}>
+                Ascender
+              </text>
+            </g>
+          )}
         </g>
 
         {/* Cap Height */}
@@ -96,16 +124,18 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             y1={capHeightY}
             x2={maxLineX}
             y2={capHeightY}
-            stroke="#0ea5e9"
+            stroke={latinLineColor}
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(4, 3)}
           />
-          <g transform={`translate(8, ${capHeightY}) scale(${invZ})`}>
-            <text x={0} y={-5} fontSize={9.5} fill={labelColor} opacity={0.75}>
-              Cap Height
-            </text>
-          </g>
+          {!isJapanese && (
+            <g transform={`translate(${maxLineX}, ${capHeightY}) scale(${invZ})`}>
+              <text x={8} y={3} fontSize={9.5} fill={labelColor} opacity={0.8}>
+                Cap Height
+              </text>
+            </g>
+          )}
         </g>
 
         {/* x-Height */}
@@ -115,35 +145,39 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             y1={xHeightY}
             x2={maxLineX}
             y2={xHeightY}
-            stroke="#0284c7"
+            stroke={latinLineColor}
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(2, 3)}
           />
-          <g transform={`translate(8, ${xHeightY}) scale(${invZ})`}>
-            <text x={0} y={-5} fontSize={9.5} fill={labelColor} opacity={0.75}>
-              x-Height
-            </text>
-          </g>
+          {!isJapanese && (
+            <g transform={`translate(${maxLineX}, ${xHeightY}) scale(${invZ})`}>
+              <text x={8} y={3} fontSize={9.5} fill={labelColor} opacity={0.8}>
+                x-Height
+              </text>
+            </g>
+          )}
         </g>
 
         {/* Baseline */}
-        <g opacity={(isJapanese ? 0.5 : 0.85) * opacityScale}>
+        <g opacity={(isJapanese ? 0.38 : 0.8) * opacityScale}>
           <line
             x1={0}
             y1={baselineY}
             x2={maxLineX}
             y2={baselineY}
-            stroke="#ef4444"
-            strokeWidth={isJapanese ? 1.2 : 1.5}
+            stroke={baselineColor}
+            strokeWidth={isJapanese ? 1.1 : 1.4}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={isJapanese ? dash(8, 4) : undefined}
           />
           <g transform={`translate(0, ${baselineY}) scale(${invZ})`}>
-            <polygon points="0,-4 7,0 0,4" fill="#ef4444" opacity={0.85} />
-            <text x={11} y={-5} fontSize={9.5} fill={labelColor} opacity={0.8}>
-              Baseline
-            </text>
+            <polygon points="-7,-3.5 0,0 -7,3.5" fill={baselineColor} opacity={0.85} />
+            {!isJapanese && (
+              <text x={-11} y={3} textAnchor="end" fontSize={9.5} fill={labelColor} opacity={0.85}>
+                Baseline
+              </text>
+            )}
           </g>
         </g>
 
@@ -154,33 +188,35 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
             y1={descenderY}
             x2={maxLineX}
             y2={descenderY}
-            stroke="#f97316"
-            strokeWidth={1.1}
+            stroke={latinLineColor}
+            strokeWidth={1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(6, 3, 2, 3)}
           />
-          <g transform={`translate(8, ${descenderY}) scale(${invZ})`}>
-            <text x={0} y={-5} fontSize={9.5} fill={labelColor} opacity={0.75}>
-              Descender
-            </text>
-          </g>
+          {!isJapanese && (
+            <g transform={`translate(${maxLineX}, ${descenderY}) scale(${invZ})`}>
+              <text x={8} y={3} fontSize={9.5} fill={labelColor} opacity={0.8}>
+                Descender
+              </text>
+            </g>
+          )}
         </g>
 
-        {/* Vertical Center Axis */}
-        {showVerticalCenter && (
-          <g opacity={0.6 * opacityScale}>
+        {/* Vertical Center Axis (suppressed when JapaneseGuidesLayer already renders center line) */}
+        {showVerticalCenter && !suppressCenterLine && (
+          <g opacity={0.55 * opacityScale}>
             <line
               x1={centerX}
               y1={verticalTopY}
               x2={centerX}
               y2={verticalBottomY}
-              stroke="#8b5cf6"
+              stroke="#6366f1"
               strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
               strokeDasharray={dash(6, 4)}
             />
-            <g transform={`translate(${centerX}, 0) scale(${invZ})`}>
-              <text x={5} y={13} fontSize={9.5} fill={labelColor} opacity={0.75}>
+            <g transform={`translate(${centerX}, ${verticalBottomY}) scale(${invZ})`}>
+              <text x={0} y={14} textAnchor="middle" fontSize={9.5} fill={labelColor} opacity={0.78}>
                 Center ({centerX})
               </text>
             </g>
@@ -188,46 +224,53 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
         )}
 
         {/* LSB (Left Side Bearing) */}
-        <g opacity={0.6 * opacityScale}>
+        <g opacity={0.58 * opacityScale}>
           <line
             x1={lsb}
             y1={verticalTopY}
             x2={lsb}
             y2={verticalBottomY}
-            stroke="#10b981"
-            strokeWidth={1.2}
+            stroke={sidebearingColor}
+            strokeWidth={1.1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(4, 3)}
           />
-          <g transform={`translate(${lsb}, 0) scale(${invZ})`}>
-            <text x={5} y={26} fontSize={9.5} fill={labelColor} opacity={0.75}>
-              LSB
+          <g transform={`translate(${lsb}, ${verticalTopY}) scale(${invZ})`}>
+            <text
+              x={sideLabelsTight ? -5 : 4}
+              textAnchor={sideLabelsTight ? 'end' : 'start'}
+              y={-6}
+              fontSize={9.5}
+              fill={labelColor}
+              opacity={0.78}
+            >
+              LSB {Math.round(lsb)}
             </text>
           </g>
         </g>
 
         {/* RSB / Advance Width */}
-        <g opacity={0.6 * opacityScale}>
+        <g opacity={0.58 * opacityScale}>
           <line
             x1={advanceWidth}
             y1={verticalTopY}
             x2={advanceWidth}
             y2={verticalBottomY}
-            stroke="#10b981"
-            strokeWidth={1.2}
+            stroke={sidebearingColor}
+            strokeWidth={1.1}
             vectorEffect="non-scaling-stroke"
             strokeDasharray={dash(4, 3)}
           />
-          <g transform={`translate(${advanceWidth}, 0) scale(${invZ})`}>
+          <g transform={`translate(${advanceWidth}, ${verticalTopY}) scale(${invZ})`}>
             <text
-              x={advanceWidth > lsb + 160 ? -5 : 5}
-              textAnchor={advanceWidth > lsb + 160 ? 'end' : 'start'}
-              y={26}
+              x={sideLabelsTight ? 5 : -4}
+              textAnchor={sideLabelsTight ? 'start' : 'end'}
+              y={-6}
               fontSize={9.5}
               fill={labelColor}
-              opacity={0.75}
+              opacity={0.78}
             >
-              Adv
+              Adv {Math.round(advanceWidth)}
             </text>
           </g>
         </g>

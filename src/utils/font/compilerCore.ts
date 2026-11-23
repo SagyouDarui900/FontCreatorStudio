@@ -68,6 +68,28 @@ function safeFromCodePoint(code: number): string | null {
 }
 
 /**
+ * Infer OpenType OS/2 usWeightClass (100-900) from a style/subfamily name.
+ * Multi-word/prefixed tokens (ExtraLight, SemiBold, ExtraBold) are matched
+ * before Light/Bold so "SemiBold" resolves to 600 rather than 700.
+ */
+export function inferWeightClassFromStyleName(styleName?: string): number {
+  const normalized = (styleName || 'Regular')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  if (!normalized) return 400;
+  if (normalized.includes('hairline') || normalized.includes('thin')) return 100;
+  if (normalized.includes('extralight') || normalized.includes('ultralight')) return 200;
+  if (normalized.includes('light')) return 300;
+  if (normalized.includes('semibold') || normalized.includes('demibold')) return 600;
+  if (normalized.includes('extrabold') || normalized.includes('ultrabold')) return 800;
+  if (normalized.includes('bold')) return 700;
+  if (normalized.includes('medium')) return 500;
+  if (normalized.includes('heavy') || normalized.includes('black') || normalized.includes('extrablack')) return 900;
+  return 400;
+}
+
+/**
  * Compile the FontProject into an OpenType font object and binary buffer
  */
 export function compileFont(
@@ -434,8 +456,27 @@ export function compileFont(
   const safeAsciiStyle = rawStyle.replace(/[^a-zA-Z0-9]/g, '') || 'Regular';
   const postScriptName = `${safeAsciiFamily}-${safeAsciiStyle}`;
 
-  const isBold = rawStyle.toLowerCase().includes('bold');
-  const isItalic = rawStyle.toLowerCase().includes('italic');
+  const rawWeight = project.metadata.usWeightClass;
+  const inferredWeightClass = inferWeightClassFromStyleName(rawStyle);
+  const safeWeightClass =
+    typeof rawWeight === 'number' && Number.isFinite(rawWeight)
+      ? Math.max(1, Math.min(1000, Math.round(rawWeight)))
+      : inferredWeightClass;
+
+  const styleLower = rawStyle.toLowerCase();
+  const isItalic =
+    styleLower.includes('italic') ||
+    styleLower.includes('oblique') ||
+    (typeof project.metadata.italicAngle === 'number' &&
+      Number.isFinite(project.metadata.italicAngle) &&
+      Math.abs(project.metadata.italicAngle) > 0.01);
+  // In OpenType fsSelection, bit 5 (BOLD = 0x0020) marks Bold+ weights (>= 700) or explicit Bold,
+  // excluding SemiBold/DemiBold (600) so Windows DirectWrite & CSS weight matching stays accurate.
+  const isBold =
+    safeWeightClass >= 700 ||
+    (/\bbold\b/i.test(rawStyle) && !/(semi|demi|extra|ultra)/i.test(rawStyle));
+  const isRegularSelection = !isBold && !isItalic;
+
   const avgWidth = glyphsList.length > 0 ? Math.round(totalAdvanceWidth / glyphsList.length) : 500;
 
   const safeAscender =
@@ -446,6 +487,11 @@ export function compileFont(
     typeof project.metadata.descender === 'number' && Number.isFinite(project.metadata.descender)
       ? Math.round(project.metadata.descender)
       : DEFAULT_DESCENDER;
+
+  const safeItalicAngle =
+    typeof project.metadata.italicAngle === 'number' && Number.isFinite(project.metadata.italicAngle)
+      ? project.metadata.italicAngle
+      : 0;
 
   const font = new opentype.Font({
     familyName: rawFamily,
@@ -461,6 +507,8 @@ export function compileFont(
     description: project.metadata.description || '',
     glyphs: glyphsList,
   });
+  (font as any).weightClass = safeWeightClass;
+  (font as any).italicAngle = safeItalicAngle;
 
   // Windows 11, macOS & Japanese OS/2 Compatibility Configuration
   if (!font.tables) {
@@ -470,13 +518,6 @@ export function compileFont(
     font.tables.os2 = {} as any;
   }
 
-  const rawWeight = project.metadata.usWeightClass;
-  const safeWeightClass =
-    typeof rawWeight === 'number' && Number.isFinite(rawWeight)
-      ? Math.max(1, Math.min(1000, Math.round(rawWeight)))
-      : isBold
-        ? 700
-        : 400;
   const rawWidth = project.metadata.usWidthClass;
   const safeWidthClass =
     typeof rawWidth === 'number' && Number.isFinite(rawWidth)
@@ -587,7 +628,10 @@ export function compileFont(
       : 500;
   // bit 7 (0x0080) = USE_TYPO_METRICS (essential for Windows DirectWrite/AviUtl2/GDI consistent line metrics)
   font.tables.os2.fsSelection =
-    (isBold ? (isItalic ? 0x0021 : 0x0020) : isItalic ? 0x0001 : 0x0040) | 0x0080;
+    (isBold ? 0x0020 : 0) |
+    (isItalic ? 0x0001 : 0) |
+    (isRegularSelection ? 0x0040 : 0) |
+    0x0080;
   font.tables.os2.usFirstCharIndex = minUnicode < 0xffff ? minUnicode : 32;
   font.tables.os2.usLastCharIndex = Math.min(0xffff, maxUnicode > 0 ? maxUnicode : 32);
 
@@ -603,8 +647,9 @@ export function compileFont(
   if (!font.tables.post) {
     font.tables.post = {} as any;
   }
-  if (typeof project.metadata.italicAngle === 'number') {
-    font.tables.post.italicAngle = project.metadata.italicAngle;
+  if (typeof project.metadata.italicAngle === 'number' && Number.isFinite(project.metadata.italicAngle)) {
+    // opentype.js makePostTable writes font.tables.post.italicAngle directly as a 16.16 Fixed integer
+    font.tables.post.italicAngle = Math.round(project.metadata.italicAngle * 65536);
   }
   if (typeof project.metadata.isFixedPitch === 'boolean') {
     font.tables.post.isFixedPitch = project.metadata.isFixedPitch ? 1 : 0;

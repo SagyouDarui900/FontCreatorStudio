@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
-import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { ChevronRight, ChevronLeft, BookOpen } from 'lucide-react';
 
 interface BookSpreadViewProps {
@@ -36,7 +36,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
 
   // Approximate scale for screen rendering
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(6, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
   // Paginate lines across spreads (12 lines per page = 24 lines per spread)
   const linesPerPage = 12;
@@ -92,6 +92,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
               >
                 {line.glyphs.map((g, gIdx) => {
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
+                  const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                  const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
                   return (
                     <span
                       key={gIdx}
@@ -102,14 +104,14 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
                       }}
                     >
                       <span
-                        className={`inline-flex items-center justify-center relative ${
+                        className={`inline-flex ${alignClass} relative ${
                           g.isHanging
                             ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                             : ''
                         }`}
                         style={{
                           width: `${emPx}px`,
-                          height: `${emPx}px`,
+                          height: `${boxHeightPx}px`,
                           fontSize: `${emPx}px`,
                           lineHeight: 1,
                         }}
@@ -156,6 +158,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             >
               {line.glyphs.map((g, gIdx) => {
                 const boxWidthPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, false);
                 return (
                   <span
                     key={gIdx}
@@ -166,7 +169,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
                     }}
                   >
                     <span
-                      className={`inline-flex items-center justify-center relative text-center ${
+                      className={`inline-flex ${alignClass} relative text-center ${
                         g.isHanging
                           ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                           : ''

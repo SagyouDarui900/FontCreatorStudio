@@ -16,6 +16,7 @@ import {
   Save,
 } from 'lucide-react';
 import { FontProject } from '../../types';
+import { DEFAULT_UPM, resolveBaselineY } from '../../utils/font/constants';
 import { groupContoursForRendering } from '../../utils/path';
 import { TestPreviewState } from './hooks/useTestPreviewState';
 
@@ -34,6 +35,8 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
     selectedCharInfo,
     setSelectedCharInfo,
     activeGlyph,
+    activeGlyphContours,
+    isPixelOnlyActiveGlyph,
     livePreviewContours,
     glyphEntries,
     adjustDx,
@@ -92,12 +95,14 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
             {selectedCharInfo ? (
               <span
                 className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-base shrink-0 ${
-                  activeGlyph && activeGlyph.contours && activeGlyph.contours.length > 0
+                  activeGlyphContours.length > 0
                     ? 'bg-emerald-600 text-white'
                     : 'bg-amber-600 text-white'
                 }`}
                 title={
-                  activeGlyph && activeGlyph.contours && activeGlyph.contours.length > 0
+                  isPixelOnlyActiveGlyph
+                    ? 'ドット絵グリフ'
+                    : activeGlyphContours.length > 0
                     ? '自作グリフ'
                     : '未作成グリフ（システム代替フォント表示中）'
                 }
@@ -172,7 +177,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
             位置（X/Y）や拡大縮小・縦横比をリアルタイムに微調整し、グリフデータへ永続保存できます
           </p>
         </div>
-      ) : !activeGlyph || !activeGlyph.contours || activeGlyph.contours.length === 0 ? (
+      ) : !activeGlyph || activeGlyphContours.length === 0 ? (
         <div className="p-4 my-auto space-y-4">
           <div
             className={`p-4 rounded-xl border text-center space-y-3 ${
@@ -205,6 +210,17 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
         <>
           {/* Adjuster Controls Container (Unified Scrollable) */}
           <div className="space-y-3 text-xs flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 custom-scrollbar my-1">
+            {activeGlyph.locked && (
+              <div className="px-2.5 py-2 rounded-lg border border-amber-400/60 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-[11px] font-semibold flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>このグリフはロックされているため輪郭への永続保存はできません</span>
+              </div>
+            )}
+            {isPixelOnlyActiveGlyph && (
+              <div className="px-2.5 py-2 rounded-lg border border-emerald-400/50 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 text-[11px] leading-relaxed">
+                ドット絵グリフとして生成済みです。形状変更はドットスタジオまたはメイン編集で行えます。
+              </div>
+            )}
             {/* Live Vector SVG Preview Canvas Box (Toggleable & Compact) */}
             <div
               className={`p-2 rounded-xl border flex flex-col items-center justify-center shrink-0 relative overflow-hidden transition-colors ${
@@ -212,8 +228,8 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               }`}
             >
               {(() => {
-                const upm = project.metadata.unitsPerEm || 1000;
-                const baselineY = project.metadata.ascender || Math.round(upm * 0.8);
+                const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+                const baselineY = resolveBaselineY(project.metadata.ascender, upm);
                 const half = upm / 2;
                 const pad = Math.round(upm * 0.1);
                 const total = upm + pad * 2;
@@ -665,15 +681,25 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
             <button
               type="button"
               onClick={handleApplyTransformToGlyph}
-              disabled={adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100}
+              disabled={
+                Boolean(activeGlyph?.locked) ||
+                isPixelOnlyActiveGlyph ||
+                (adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100)
+              }
               className={`w-full py-2.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors ${
-                adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100
+                Boolean(activeGlyph?.locked) ||
+                isPixelOnlyActiveGlyph ||
+                (adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100)
                   ? 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-98 shadow-sm'
               }`}
             >
               <Save className="w-4 h-4" />
-              <span>「{selectedCharInfo.char}」の輪郭に永続保存</span>
+              <span>
+                {activeGlyph?.locked
+                  ? `「${selectedCharInfo.char}」はロック中`
+                  : `「${selectedCharInfo.char}」の輪郭に永続保存`}
+              </span>
             </button>
 
             <div className="flex items-center space-x-2">

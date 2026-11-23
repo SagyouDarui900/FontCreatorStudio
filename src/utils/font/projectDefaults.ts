@@ -46,6 +46,7 @@ export function balanceProjectGlyphMargins(project: FontProject): { project: Fon
   let modifiedCount = 0;
 
   for (const [key, g] of Object.entries(updatedGlyphs)) {
+    if (g.locked) continue;
     if (!g.contours || g.contours.length === 0) continue;
     if (isAsymmetricOrPunctuationGlyph(g.unicode, g.char)) continue;
     const bbox = getContoursBoundingBox(g.contours);

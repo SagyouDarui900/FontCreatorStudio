@@ -10,7 +10,9 @@ import {
   reverseContour,
   normalizeGlyphContoursWinding,
   getContourSignedArea,
-  isContourContained,
+  sampleContourPoints,
+  getContourPolygon,
+  isPrecomputedContourContained,
 } from "./bounds";
 import { optimizeContourNodes } from "./stroke";
 import { SCREEN_BASELINE_Y } from "../font/constants";
@@ -522,35 +524,49 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
   const bboxes = contours.map((c) =>
     c.closed && c.nodes && c.nodes.length >= 3 ? getContoursBoundingBox([c]) : null
   );
+  const absAreas = contours.map((c) =>
+    c.closed && c.nodes && c.nodes.length >= 3 ? Math.abs(getContourSignedArea(c)) : 0
+  );
   const signedAreas = contours.map((c) =>
     c.closed && c.nodes && c.nodes.length >= 3 ? getContourSignedArea(c) : 0
   );
+  const sampledPolys = contours.map((c) =>
+    c.closed && c.nodes && c.nodes.length >= 3 ? sampleContourPoints(c, 8) : []
+  );
+  const hitPolys = contours.map((c) =>
+    c.closed && c.nodes && c.nodes.length >= 3 ? getContourPolygon(c, 8) : []
+  );
 
   return contours.map((contour, cIdx) => {
-    if (!contour.nodes || contour.nodes.length < 3) {
+    const minNodes = contour.closed ? 3 : 2;
+    if (!contour.nodes || contour.nodes.length < minNodes) {
       return contour;
     }
 
     const n = contour.nodes.length;
     const bboxI = bboxes[cIdx];
     const signedArea = signedAreas[cIdx];
+    const absAreaI = absAreas[cIdx];
+    const sampledI = sampledPolys[cIdx];
 
-    // True hole detection via containment parity rather than raw sign of area
+    // True hole detection via containment parity using precomputed bboxes/polygons
     let enclosingCount = 0;
-    if (bboxI) {
+    if (contour.closed && bboxI && sampledI.length > 0) {
       for (let j = 0; j < contourCount; j++) {
         if (cIdx === j) continue;
         const bboxJ = bboxes[j];
-        if (!bboxJ) continue;
+        const hitPolyJ = hitPolys[j];
+        if (!bboxJ || hitPolyJ.length < 3) continue;
         if (
-          bboxI.minX < bboxJ.minX - 2 ||
-          bboxI.maxX > bboxJ.maxX + 2 ||
-          bboxI.minY < bboxJ.minY - 2 ||
-          bboxI.maxY > bboxJ.maxY + 2
+          isPrecomputedContourContained(
+            bboxI,
+            absAreaI,
+            sampledI,
+            bboxJ,
+            absAreas[j],
+            hitPolyJ
+          )
         ) {
-          continue;
-        }
-        if (isContourContained(contour, contours[j])) {
           enclosingCount++;
         }
       }
@@ -564,13 +580,21 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
     const glyphExpandSign = isHole ? -1 : 1;
     const effectiveDelta = delta * normalToOutwardSign * glyphExpandSign;
 
-    const findDistinctNeighbor = (startIdx: number, step: 1 | -1): BezierNode => {
+    const findDistinctNeighbor = (startIdx: number, step: 1 | -1): BezierNode | null => {
       const origin = contour.nodes[startIdx];
       for (let offset = 1; offset < n; offset++) {
-        const cand = contour.nodes[(startIdx + step * offset + n) % n];
+        const nextIdx = startIdx + step * offset;
+        if (!contour.closed && (nextIdx < 0 || nextIdx >= n)) {
+          return null;
+        }
+        const cand = contour.nodes[(nextIdx + n) % n];
         if (Math.hypot(cand.x - origin.x, cand.y - origin.y) > 0.05) {
           return cand;
         }
+      }
+      if (!contour.closed) {
+        const clamped = startIdx + step;
+        return clamped >= 0 && clamped < n ? contour.nodes[clamped] : null;
       }
       return contour.nodes[(startIdx + step + n) % n];
     };
@@ -579,19 +603,34 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
       const prev = findDistinctNeighbor(i, -1);
       const next = findDistinctNeighbor(i, 1);
 
-      // Prefer Bezier handle tangent when present so curved strokes expand smoothly
       const hasInHandle =
         node.handleIn && Math.hypot(node.x - node.handleIn.x, node.y - node.handleIn.y) > 0.05;
       const hasOutHandle =
         node.handleOut && Math.hypot(node.handleOut.x - node.x, node.handleOut.y - node.y) > 0.05;
 
-      const v1x = hasInHandle ? node.x - node.handleIn!.x : node.x - prev.x;
-      const v1y = hasInHandle ? node.y - node.handleIn!.y : node.y - prev.y;
-      const len1 = Math.hypot(v1x, v1y) || 1;
+      // Incoming tangent vector
+      let v1x = hasInHandle ? node.x - node.handleIn!.x : prev ? node.x - prev.x : 0;
+      let v1y = hasInHandle ? node.y - node.handleIn!.y : prev ? node.y - prev.y : 0;
+      let len1 = Math.hypot(v1x, v1y);
 
-      const v2x = hasOutHandle ? node.handleOut!.x - node.x : next.x - node.x;
-      const v2y = hasOutHandle ? node.handleOut!.y - node.y : next.y - node.y;
-      const len2 = Math.hypot(v2x, v2y) || 1;
+      // Outgoing tangent vector
+      let v2x = hasOutHandle ? node.handleOut!.x - node.x : next ? next.x - node.x : 0;
+      let v2y = hasOutHandle ? node.handleOut!.y - node.y : next ? next.y - node.y : 0;
+      let len2 = Math.hypot(v2x, v2y);
+
+      // For open contour endpoints without handles/neighbor on one side, reuse the active segment tangent
+      if (len1 < 1e-4 && len2 >= 1e-4) {
+        v1x = v2x;
+        v1y = v2y;
+        len1 = len2;
+      } else if (len2 < 1e-4 && len1 >= 1e-4) {
+        v2x = v1x;
+        v2y = v1y;
+        len2 = len1;
+      } else if (len1 < 1e-4 && len2 < 1e-4) {
+        len1 = 1;
+        len2 = 1;
+      }
 
       // セグメントの法線 (90度右回転: normal = (vy, -vx))
       const n1x = v1y / len1;

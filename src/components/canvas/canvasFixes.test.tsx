@@ -26,6 +26,12 @@ import {
   sliceOpenContourWithEraser,
   subtractEraserStrokeFromClosedContours,
 } from '../../utils/path/eraser';
+import { useBrushDrawing } from '../../hooks/useBrushDrawing';
+import {
+  groupContoursWithHoles,
+  normalizeGlyphContoursWinding,
+  getContourSignedArea,
+} from '../../utils/path/bounds';
 import * as vectorBoolean from '../../utils/vectorBoolean';
 import { PathContour, ToolMode } from '../../types';
 
@@ -967,6 +973,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     setHoverCanvasPos(null);
     const setSelectedHandleType = vi.fn();
     const setActiveSnapGuides = vi.fn();
+    const setPenMousePos = vi.fn();
     let api!: ReturnType<typeof useCanvasPointerDispatcher>;
 
     const origRaf = window.requestAnimationFrame;
@@ -1055,7 +1062,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         penStrokeWidth: 20,
         penCapStyle: 'round',
         autoResolveBrushOverlap: false,
-        setPenMousePos: vi.fn(),
+        setPenMousePos,
         handleTransformPointerMove: vi.fn(() => false),
         handleTransformPointerUp: vi.fn(() => false),
         setTransformSession: vi.fn(),
@@ -1121,6 +1128,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       api.handlePointerMove(moveEvent);
     });
     expect(getHoverCanvasPos()).toEqual({ x: 345, y: 456 });
+    expect(setPenMousePos).not.toHaveBeenCalled();
 
     const upEvent = {
       pointerId: 1,
@@ -1237,10 +1245,11 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       return textEl?.parentElement?.getAttribute('transform') || '';
     };
 
-    expect(findLabelTransform('Ascender')).toBe('translate(8, 0) scale(2)');
+    expect(findLabelTransform('Ascender')).toBe('translate(1000, 0) scale(2)');
     expect(findLabelTransform('Baseline')).toBe('translate(0, 800) scale(2)');
-    expect(findLabelTransform('Center (500)')).toBe('translate(500, 0) scale(2)');
+    expect(findLabelTransform('Center (500)')).toBe('translate(500, 1000) scale(2)');
     expect(findLabelTransform('漢字枠 (85%)')).toBe('translate(75, 75) scale(2)');
+    expect(findLabelTransform('かな枠 (78%)')).toBe('translate(890, 110) scale(2)');
     expect(findLabelTransform('X:500')).toBe('translate(500, 1000) scale(2)');
 
     act(() => {
@@ -1261,11 +1270,33 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     });
     expect(zoomRenderCount).toBe(rendersBeforePan + 1);
 
-    expect(findLabelTransform('Ascender')).toBe('translate(8, 0) scale(0.5)');
+    expect(findLabelTransform('Ascender')).toBe('translate(1000, 0) scale(0.5)');
     expect(findLabelTransform('Baseline')).toBe('translate(0, 800) scale(0.5)');
-    expect(findLabelTransform('Center (500)')).toBe('translate(500, 0) scale(0.5)');
+    expect(findLabelTransform('Center (500)')).toBe('translate(500, 1000) scale(0.5)');
     expect(findLabelTransform('漢字枠 (85%)')).toBe('translate(75, 75) scale(0.5)');
+    expect(findLabelTransform('かな枠 (78%)')).toBe('translate(890, 110) scale(0.5)');
     expect(findLabelTransform('X:500')).toBe('translate(500, 1000) scale(0.5)');
+
+    // Japanese character hides Latin text clutter and suppressCenterLine deduplicates Center (500)
+    act(() => {
+      root.render(
+        <svg>
+          <MetricsGuidesLayer
+            showMetrics={true}
+            suppressCenterLine={true}
+            activeChar="あ"
+            lsb={50}
+            advanceWidth={1000}
+            unitsPerEm={1000}
+            zoom={2}
+          />
+        </svg>
+      );
+    });
+    const textLabels = Array.from(container.querySelectorAll('text')).map((t) => t.textContent || '');
+    expect(textLabels.some((t) => t.includes('Ascender'))).toBe(false);
+    expect(textLabels.some((t) => t.includes('Center (500)'))).toBe(false);
+    expect(textLabels.some((t) => t.includes('LSB 50'))).toBe(true);
 
     act(() => {
       root.unmount();
@@ -1331,5 +1362,153 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     setHoverCanvasPos(null);
     clearLiveViewport();
     container.remove();
+  });
+
+  it('useBrushDrawing generates fast live SVG preview on pointermove and commits contour only on finalize', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const origRaf = window.requestAnimationFrame;
+    const origCancelRaf = window.cancelAnimationFrame;
+    window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+      cb(0);
+      return 1;
+    };
+    window.cancelAnimationFrame = vi.fn();
+
+    const onChangeContours = vi.fn();
+    const onCommitHistory = vi.fn();
+    let api!: ReturnType<typeof useBrushDrawing>;
+
+    function Harness() {
+      const contoursRef = React.useRef<PathContour[]>([]);
+      api = useBrushDrawing({
+        toolMode: 'brush',
+        brushWidth: 32,
+        brushStyle: 'brush',
+        pressureSensitivity: 'normal',
+        smoothingIntensity: 50,
+        screenToCanvas: (x, y) => ({ x, y }),
+        contoursRef,
+        onChangeContours,
+        onCommitHistory,
+      });
+      return (
+        <svg>
+          <path ref={api.activeBrushPathRef} />
+        </svg>
+      );
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const downEv = {
+      pointerType: 'mouse',
+      clientX: 100,
+      clientY: 100,
+      pressure: 0.5,
+      shiftKey: false,
+      timeStamp: 100,
+    } as unknown as React.PointerEvent<SVGSVGElement>;
+
+    act(() => {
+      api.handleBrushPointerDown(downEv, { x: 100, y: 100 });
+      api.handleBrushPointerMove({
+        ...downEv,
+        clientX: 180,
+        clientY: 140,
+        timeStamp: 140,
+      } as unknown as React.PointerEvent<SVGSVGElement>);
+      api.handleBrushPointerMove({
+        ...downEv,
+        clientX: 280,
+        clientY: 220,
+        timeStamp: 200,
+      } as unknown as React.PointerEvent<SVGSVGElement>);
+    });
+
+    expect(api.activeBrushSvgDRef.current.length).toBeGreaterThan(0);
+    expect(api.activeBrushPathRef.current?.getAttribute('d')).toBe(api.activeBrushSvgDRef.current);
+    expect(onChangeContours).not.toHaveBeenCalled();
+
+    const dateNowOrig = Date.now;
+    Date.now = () => dateNowOrig() + 200;
+    act(() => {
+      api.finalizeBrushDrawing();
+    });
+    Date.now = dateNowOrig;
+
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).toHaveBeenCalledTimes(1);
+    const committedContours = onChangeContours.mock.calls[0][0] as PathContour[];
+    expect(committedContours.length).toBe(1);
+    expect(committedContours[0].closed).toBe(true);
+    expect(committedContours[0].nodes.length).toBeGreaterThanOrEqual(3);
+
+    window.requestAnimationFrame = origRaf;
+    window.cancelAnimationFrame = origCancelRaf;
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('groupContoursWithHoles and normalizeGlyphContoursWinding preserve outer/hole grouping and winding invariants', () => {
+    const makeRectContour = (
+      id: string,
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      clockwise: boolean
+    ): PathContour => {
+      const pts = clockwise
+        ? [
+            { x: x1, y: y1 },
+            { x: x2, y: y1 },
+            { x: x2, y: y2 },
+            { x: x1, y: y2 },
+          ]
+        : [
+            { x: x1, y: y1 },
+            { x: x1, y: y2 },
+            { x: x2, y: y2 },
+            { x: x2, y: y1 },
+          ];
+      return {
+        id,
+        closed: true,
+        nodes: pts.map((p, idx) => ({
+          id: `${id}-${idx}`,
+          x: p.x,
+          y: p.y,
+          type: 'corner',
+          handleIn: null,
+          handleOut: null,
+        })),
+      };
+    };
+
+    const outer1 = makeRectContour('outer1', 100, 100, 600, 600, false); // reversed initially
+    const hole1 = makeRectContour('hole1', 200, 200, 400, 400, true); // nested inside outer1, reversed initially
+    const outer2 = makeRectContour('outer2', 450, 150, 850, 550, true); // overlaps outer1 without enclosing hole1
+
+    const groups = groupContoursWithHoles([outer1, hole1, outer2]);
+    expect(groups.length).toBe(2);
+    expect(groups.find((g) => g.some((c) => c.id === 'outer1'))?.map((c) => c.id)).toEqual([
+      'outer1',
+      'hole1',
+    ]);
+    expect(groups.find((g) => g.some((c) => c.id === 'outer2'))?.map((c) => c.id)).toEqual([
+      'outer2',
+    ]);
+
+    const normalized = normalizeGlyphContoursWinding([outer1, hole1, outer2]);
+    expect(getContourSignedArea(normalized[0])).toBeGreaterThan(0);
+    expect(getContourSignedArea(normalized[1])).toBeLessThan(0);
+    expect(getContourSignedArea(normalized[2])).toBeGreaterThan(0);
   });
 });

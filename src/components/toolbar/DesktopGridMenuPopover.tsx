@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Grid, X } from 'lucide-react';
 import { GridSettings } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
-import { VERTICAL_GUIDES, JAPANESE_GUIDES } from './toolbarConstants';
+import { VERTICAL_GUIDES, JAPANESE_GUIDES, GRID_PURPOSE_PRESETS } from './toolbarConstants';
 
 export interface DesktopGridMenuPopoverProps {
   isOpen: boolean;
@@ -74,6 +74,46 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
         >
           <X className="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      {/* Purpose Presets */}
+      <div className="mb-2.5">
+        <div className="text-[10px] font-bold text-stone-500 dark:text-stone-400 mb-1">
+          用途プリセット (ワンクリック切替)
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {GRID_PURPOSE_PRESETS.map((preset) => {
+            const active =
+              (gridSettings.japaneseGuide || 'cross') === preset.settings.japaneseGuide &&
+              (gridSettings.verticalGuide || 'none') === preset.settings.verticalGuide &&
+              (gridSettings.showBodyFrame !== false) === preset.settings.showBodyFrame &&
+              !!gridSettings.showKanaFrame === preset.settings.showKanaFrame &&
+              gridSettings.showMetrics === preset.settings.showMetrics;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() =>
+                  setGridSettings((prev) => ({
+                    ...prev,
+                    ...preset.settings,
+                  }))
+                }
+                title={preset.desc}
+                className={`px-2 py-1 rounded-lg border text-left transition-colors cursor-pointer ${
+                  active
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                }`}
+              >
+                <div className="text-[10.5px] font-bold leading-tight">{preset.label}</div>
+                <div className={`text-[9px] truncate ${active ? 'text-emerald-100' : 'text-stone-400'}`}>
+                  {preset.desc}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Grid ON/OFF and Snap Toggles */}
@@ -176,9 +216,9 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
           <input
             type="range"
             min="5"
-            max="200"
+            max="250"
             step="5"
-            value={gridSettings.gridSize || 50}
+            value={gridSettings.gridSize || 100}
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
               setGridSettings((prev) => ({
@@ -188,12 +228,12 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
             }}
             className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden"
           />
-          <span className="text-[9px] font-mono text-stone-400 font-bold">200</span>
+          <span className="text-[9px] font-mono text-stone-400 font-bold">250</span>
         </div>
 
         {/* Quick Presets */}
         <div className="flex items-center justify-between gap-1 pt-1">
-          {[10, 25, 50, 100, 128].map((size) => (
+          {[25, 50, 100, 128, 250].map((size) => (
             <button
               key={size}
               type="button"
@@ -204,7 +244,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                 }))
               }
               className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
-                (gridSettings.gridSize || 50) === size
+                (gridSettings.gridSize || 100) === size
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
               }`}
@@ -221,7 +261,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               グリッド線の濃さ
             </span>
             <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-              {gridSettings.gridOpacity ?? 30}%
+              {gridSettings.gridOpacity ?? 35}%
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -231,7 +271,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               min="10"
               max="100"
               step="5"
-              value={gridSettings.gridOpacity ?? 30}
+              value={gridSettings.gridOpacity ?? 35}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
                 setGridSettings((prev) => ({
@@ -260,7 +300,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                   }))
                 }
                 className={`flex-1 py-0.5 rounded text-[9.5px] font-bold border cursor-pointer ${
-                  (gridSettings.gridOpacity ?? 30) === p.val
+                  (gridSettings.gridOpacity ?? 35) === p.val
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
                 }`}
@@ -323,7 +363,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                 }))
               }
               className={`py-1 rounded text-[10px] font-bold border cursor-pointer ${
-                (gridSettings.japaneseGuide || 'tian') === g.id
+                (gridSettings.japaneseGuide || 'cross') === g.id
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
               }`}

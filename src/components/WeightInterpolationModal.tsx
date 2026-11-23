@@ -21,12 +21,20 @@ import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   adjustContoursWeight,
   contoursToSvgPath,
+  getContoursBoundingBox,
   getSafeGlyphViewBox,
   interpolateContours,
   groupContoursForRendering,
 } from '../utils/path';
-import { compileFont, sanitizeFontFilenamePart } from '../utils/font';
-import { resolveBaselineY } from '../utils/font/constants';
+import {
+  compileFont,
+  sanitizeFontFilenamePart,
+  DEFAULT_UPM,
+  DEFAULT_ASCENDER,
+  DEFAULT_DESCENDER,
+  resolveBaselineY,
+} from '../utils/font';
+import { pixelGridToContours, normalizePixelGrid } from '../utils/pixelFontUtils';
 import { useIsTopModal } from './modals/ModalStackFrame';
 
 interface WeightInterpolationModalProps {
@@ -37,6 +45,7 @@ interface WeightInterpolationModalProps {
   selectedUnicode: number;
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  onCommitHistory?: () => void;
 }
 
 export type WeightPresetKey = 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'heavy' | 'custom';
@@ -51,17 +60,18 @@ interface WeightPreset {
   sub: string;
   delta: number;
   styleName: string;
+  usWeightClass: number;
 }
 
 const WEIGHT_PRESETS: WeightPreset[] = [
-  { key: 'thin', label: 'Thin (極細)', sub: '-40px', delta: -40, styleName: 'Thin' },
-  { key: 'light', label: 'Light (細字)', sub: '-22px', delta: -22, styleName: 'Light' },
-  { key: 'regular', label: 'Regular (標準)', sub: '±0px', delta: 0, styleName: 'Regular' },
-  { key: 'medium', label: 'Medium (中字)', sub: '+22px', delta: 22, styleName: 'Medium' },
-  { key: 'semibold', label: 'SemiBold (中太)', sub: '+45px', delta: 45, styleName: 'SemiBold' },
-  { key: 'bold', label: 'Bold (太字)', sub: '+70px', delta: 70, styleName: 'Bold' },
-  { key: 'extrabold', label: 'ExtraBold (極太)', sub: '+100px', delta: 100, styleName: 'ExtraBold' },
-  { key: 'heavy', label: 'Heavy (超極太)', sub: '+135px', delta: 135, styleName: 'Heavy' },
+  { key: 'thin', label: 'Thin (極細)', sub: '-14px', delta: -14, styleName: 'Thin', usWeightClass: 100 },
+  { key: 'light', label: 'Light (細字)', sub: '-7px', delta: -7, styleName: 'Light', usWeightClass: 300 },
+  { key: 'regular', label: 'Regular (標準)', sub: '±0px', delta: 0, styleName: 'Regular', usWeightClass: 400 },
+  { key: 'medium', label: 'Medium (中字)', sub: '+8px', delta: 8, styleName: 'Medium', usWeightClass: 500 },
+  { key: 'semibold', label: 'SemiBold (中太)', sub: '+16px', delta: 16, styleName: 'SemiBold', usWeightClass: 600 },
+  { key: 'bold', label: 'Bold (太字)', sub: '+26px', delta: 26, styleName: 'Bold', usWeightClass: 700 },
+  { key: 'extrabold', label: 'ExtraBold (極太)', sub: '+38px', delta: 38, styleName: 'ExtraBold', usWeightClass: 800 },
+  { key: 'heavy', label: 'Heavy (超極太)', sub: '+52px', delta: 52, styleName: 'Heavy', usWeightClass: 900 },
 ];
 
 export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> = ({
@@ -72,6 +82,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   selectedUnicode,
   theme,
   onShowToast,
+  onCommitHistory,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -84,7 +95,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Family settings
   const [selectedPreset, setSelectedPreset] = useState<WeightPresetKey>('bold');
-  const [weightDelta, setWeightDelta] = useState<number>(70);
+  const [weightDelta, setWeightDelta] = useState<number>(26);
   const [scope, setScope] = useState<WeightScope>('all');
   const [showOriginalOverlay, setShowOriginalOverlay] = useState<boolean>(true);
   const [previewSampleText, setPreviewSampleText] = useState<string>('永青木あいうABC123');
@@ -94,11 +105,27 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  const nonEmptyGlyphs = useMemo(
+    () => (Object.values(project.glyphs || {}) as GlyphData[]).filter((g) => g && g.contours && g.contours.length > 0),
+    [project.glyphs]
+  );
+
+  // Master interpolation settings
+  const [masterAUnicode, setMasterAUnicode] = useState<number>(selectedUnicode);
+  const [masterBUnicode, setMasterBUnicode] = useState<number>(() => {
+    const other = nonEmptyGlyphs.find((g) => g.unicode !== selectedUnicode);
+    return other ? other.unicode : selectedUnicode;
+  });
+  const [interpFactor, setInterpFactor] = useState<number>(0.5); // 0.0 to 1.0
+
   useEffect(() => {
     if (isOpen) {
       setPreviewUnicode(selectedUnicode);
+      setMasterAUnicode(selectedUnicode);
+      const other = nonEmptyGlyphs.find((g) => g.unicode !== selectedUnicode);
+      setMasterBUnicode(other ? other.unicode : selectedUnicode);
     }
-  }, [isOpen, selectedUnicode]);
+  }, [isOpen, selectedUnicode, nonEmptyGlyphs]);
 
   const isTopModal = useIsTopModal();
 
@@ -124,40 +151,47 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isTopModal, isFullscreen, onClose]);
 
-  // Master interpolation settings
-  const [masterAUnicode, setMasterAUnicode] = useState<number>(selectedUnicode);
-  const [masterBUnicode, setMasterBUnicode] = useState<number>(
-    selectedUnicode === 0x6c38 ? 0x6728 : 0x6c38 // Default to '永' or '木'
-  );
-  const [interpFactor, setInterpFactor] = useState<number>(0.5); // 0.0 to 1.0
+  // Active apply-target glyph (follows selectedUnicode, not preview chip switcher)
+  const selectedGlyph = useMemo(() => {
+    return project.glyphs[selectedUnicode] || null;
+  }, [project.glyphs, selectedUnicode]);
 
   // Current active preview glyph
   const currentGlyph = useMemo(() => {
     return project.glyphs[previewUnicode] || project.glyphs[selectedUnicode] || Object.values(project.glyphs)[0] || null;
   }, [project.glyphs, previewUnicode, selectedUnicode]);
 
-  // Target glyphs for batch application
-  const targetGlyphs = useMemo(() => {
+  // Target glyphs in scope + separation of editable vs locked glyphs
+  const { targetGlyphs, lockedTargetCount } = useMemo(() => {
     const list: GlyphData[] = [];
+    let lockedCount = 0;
     const all = Object.values(project.glyphs || {}) as GlyphData[];
 
     for (const g of all) {
       if (!g || !g.contours || g.contours.length === 0) continue;
       const u = g.unicode;
 
+      let inScope = false;
       if (scope === 'all') {
-        list.push(g);
+        inScope = true;
       } else if (scope === 'current') {
-        if (u === selectedUnicode) list.push(g);
+        inScope = u === selectedUnicode;
       } else if (scope === 'kana') {
-        if ((u >= 0x3041 && u <= 0x3096) || (u >= 0x30a1 && u <= 0x30fa)) list.push(g);
+        inScope = (u >= 0x3041 && u <= 0x3096) || (u >= 0x30a1 && u <= 0x30fa);
       } else if (scope === 'kanji') {
-        if ((u >= 0x4e00 && u <= 0x9fff) || (u >= 0x3400 && u <= 0x4dbf)) list.push(g);
+        inScope = (u >= 0x4e00 && u <= 0x9fff) || (u >= 0x3400 && u <= 0x4dbf);
       } else if (scope === 'latin') {
-        if (u >= 0x0020 && u <= 0x007e) list.push(g);
+        inScope = u >= 0x0020 && u <= 0x007e;
+      }
+
+      if (!inScope) continue;
+      if (g.locked) {
+        lockedCount++;
+      } else {
+        list.push(g);
       }
     }
-    return list;
+    return { targetGlyphs: list, lockedTargetCount: lockedCount };
   }, [project.glyphs, scope, selectedUnicode]);
 
   // Quick glyph switcher candidates
@@ -198,20 +232,20 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     return adjustContoursWeight(previewOriginalContours, weightDelta);
   }, [previewOriginalContours, weightDelta]);
 
-  // Live Sample Text Render Paths
+  // Live Sample Text Render Paths (grouped with holes preserved)
   const sampleTextGlyphPaths = useMemo(() => {
     const chars = Array.from(previewSampleText);
     return chars.map((ch) => {
       const u = ch.codePointAt(0);
-      if (!u) return { char: ch, d: '', hasGlyph: false };
+      if (!u) return { char: ch, groups: [], hasGlyph: false };
       const g = project.glyphs[u];
       if (!g || !g.contours || g.contours.length === 0) {
-        return { char: ch, d: '', hasGlyph: false };
+        return { char: ch, groups: [], hasGlyph: false };
       }
       const adjusted = weightDelta === 0 ? g.contours : adjustContoursWeight(g.contours, weightDelta);
       return {
         char: ch,
-        d: contoursToSvgPath(adjusted),
+        groups: groupContoursForRendering(adjusted),
         hasGlyph: true,
       };
     });
@@ -221,27 +255,79 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   const glyphA = project.glyphs[masterAUnicode];
   const glyphB = project.glyphs[masterBUnicode];
 
+  const masterCompatStatus = useMemo(() => {
+    const cA = glyphA?.contours || [];
+    const cB = glyphB?.contours || [];
+    if (cA.length === 0 || cB.length === 0) {
+      return { kind: 'empty' as const, label: '両方のマスターに輪郭のある文字を選択してください' };
+    }
+    if (cA.length !== cB.length) {
+      return {
+        kind: 'mismatch' as const,
+        label: `注意: 輪郭数が異なります（A: ${cA.length} / B: ${cB.length}）— 50%で切り替わります`,
+      };
+    }
+    const allSameNodes = cA.every((c, i) => (c.nodes?.length || 0) === (cB[i]?.nodes?.length || 0));
+    if (allSameNodes) {
+      return { kind: 'exact' as const, label: 'トポロジー一致（1:1 頂点補間）' };
+    }
+    return { kind: 'resampled' as const, label: '輪郭数一致（自動リサンプリング補間）' };
+  }, [glyphA, glyphB]);
+
   const masterInterpContours = useMemo(() => {
-    if (!glyphA?.contours || !glyphB?.contours) return [];
+    if (!glyphA?.contours?.length || !glyphB?.contours?.length) return [];
     return interpolateContours(glyphA.contours, glyphB.contours, interpFactor);
   }, [glyphA, glyphB, interpFactor]);
+
+  // Helper to resolve vector contours for any glyph (including pixelData-only glyphs)
+  const resolveGlyphContoursForExport = (g: GlyphData) => {
+    if (g.contours && g.contours.length > 0) return g.contours;
+    if (g.pixelData?.data && g.pixelData.width && g.pixelData.height) {
+      const pGrid = normalizePixelGrid(g.pixelData.data);
+      if (pGrid.some((val) => val === 1)) {
+        return pixelGridToContours(
+          pGrid,
+          g.pixelData.width,
+          g.pixelData.height,
+          project.metadata.unitsPerEm || DEFAULT_UPM,
+          project.metadata.ascender || DEFAULT_ASCENDER,
+          project.metadata.descender || DEFAULT_DESCENDER,
+          g.advanceWidth || project.metadata.unitsPerEm || DEFAULT_UPM,
+          g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+          project.pixelFontSettings?.mergeContours !== false
+        );
+      }
+    }
+    return [];
+  };
 
   // Apply Weight Delta to Current Project
   const handleApplyToProject = () => {
     if (targetGlyphs.length === 0) {
-      onShowToast?.('対象となる文字がありません', 'warning');
+      onShowToast?.(
+        lockedTargetCount > 0
+          ? `対象範囲の ${lockedTargetCount} 文字はロック保護されているため変更されませんでした`
+          : '対象となる文字がありません',
+        'warning'
+      );
       return;
     }
+
+    onCommitHistory?.();
 
     const updatedGlyphs = { ...project.glyphs };
     let count = 0;
 
     for (const g of targetGlyphs) {
-      if (!g.contours || g.contours.length === 0) continue;
-      const modified = adjustContoursWeight(g.contours, weightDelta);
+      if (!g.contours || g.contours.length === 0 || g.locked) continue;
+      const modified = weightDelta === 0
+        ? JSON.parse(JSON.stringify(g.contours))
+        : adjustContoursWeight(g.contours, weightDelta);
+      const bbox = getContoursBoundingBox(modified);
       updatedGlyphs[g.unicode] = {
         ...g,
         contours: modified,
+        lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
         modified: true,
       };
       count++;
@@ -254,8 +340,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     });
 
     const sign = weightDelta > 0 ? `+${weightDelta}px` : `${weightDelta}px`;
+    const lockedNote = lockedTargetCount > 0 ? `（ロック保護 ${lockedTargetCount}件除外）` : '';
     onShowToast?.(
-      `${count}文字のウェイトを補正しました (${sign})`,
+      `${count}文字のウェイトを補正しました (${sign})${lockedNote}`,
       'success'
     );
     onClose();
@@ -263,37 +350,67 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Duplicate as New Weight Project
   const handleCreateNewWeightProject = () => {
-    const presetObj = WEIGHT_PRESETS.find((p) => p.delta === weightDelta) || {
-      styleName: weightDelta > 0 ? `Bold+${weightDelta}` : `Light${weightDelta}`,
-    };
-    const newStyleName = presetObj.styleName;
+    const presetObj = WEIGHT_PRESETS.find((p) => p.delta === weightDelta);
+    const newStyleName = presetObj
+      ? presetObj.styleName
+      : weightDelta === 0
+        ? 'Regular'
+        : weightDelta > 0
+          ? `Bold+${weightDelta}`
+          : `Light${weightDelta}`;
+    const newWeightClass = presetObj
+      ? presetObj.usWeightClass
+      : weightDelta <= -12
+        ? 200
+        : weightDelta < 0
+          ? 300
+          : weightDelta === 0
+            ? 400
+            : weightDelta <= 12
+              ? 500
+              : weightDelta <= 20
+                ? 600
+                : weightDelta <= 32
+                  ? 700
+                  : weightDelta <= 44
+                    ? 800
+                    : 900;
     const newProjectName = `${project.metadata.familyName || 'Font'} ${newStyleName}`;
 
     const updatedGlyphs: Record<number, GlyphData> = {};
     for (const [key, rawG] of Object.entries(project.glyphs || {})) {
       const g = rawG as GlyphData;
-      if (!g || !g.contours || g.contours.length === 0) {
-        if (g) updatedGlyphs[Number(key)] = g;
+      if (!g) continue;
+      const sourceContours = resolveGlyphContoursForExport(g);
+      if (sourceContours.length === 0) {
+        updatedGlyphs[Number(key)] = { ...g };
         continue;
       }
+      const adjusted = weightDelta === 0
+        ? JSON.parse(JSON.stringify(sourceContours))
+        : adjustContoursWeight(sourceContours, weightDelta);
+      const bbox = getContoursBoundingBox(adjusted);
       updatedGlyphs[Number(key)] = {
         ...g,
-        contours: adjustContoursWeight(g.contours, weightDelta),
+        contours: adjusted,
+        lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
         modified: true,
       };
     }
 
+    const now = Date.now();
     const newProj: FontProject = {
       ...project,
-      id: `proj-${Date.now()}`,
+      id: `proj-${now}-${Math.random().toString(36).slice(2, 6)}`,
       name: newProjectName,
       metadata: {
         ...project.metadata,
         styleName: newStyleName,
+        usWeightClass: newWeightClass,
       },
       glyphs: updatedGlyphs,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     setProject(newProj);
@@ -314,11 +431,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       const safeFamilyName = sanitizeFontFilenamePart(project.metadata.familyName, 'MyCustomFont');
 
       const exportPresets = [
-        { name: 'Light', delta: -22 },
-        { name: 'Regular', delta: 0 },
-        { name: 'Medium', delta: 22 },
-        { name: 'Bold', delta: 70 },
-        { name: 'ExtraBold', delta: 100 },
+        { name: 'Light', delta: -7, usWeightClass: 300 },
+        { name: 'Regular', delta: 0, usWeightClass: 400 },
+        { name: 'Medium', delta: 8, usWeightClass: 500 },
+        { name: 'Bold', delta: 26, usWeightClass: 700 },
+        { name: 'ExtraBold', delta: 38, usWeightClass: 800 },
       ];
 
       for (const p of exportPresets) {
@@ -326,13 +443,20 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
         const weightGlyphs: Record<number, GlyphData> = {};
         for (const [key, rawG] of Object.entries(project.glyphs || {})) {
           const g = rawG as GlyphData;
-          if (!g || !g.contours || g.contours.length === 0) {
-            if (g) weightGlyphs[Number(key)] = g;
+          if (!g) continue;
+          const sourceContours = resolveGlyphContoursForExport(g);
+          if (sourceContours.length === 0) {
+            weightGlyphs[Number(key)] = { ...g };
             continue;
           }
+          const adjusted = p.delta === 0
+            ? JSON.parse(JSON.stringify(sourceContours))
+            : adjustContoursWeight(sourceContours, p.delta);
+          const bbox = getContoursBoundingBox(adjusted);
           weightGlyphs[Number(key)] = {
             ...g,
-            contours: p.delta === 0 ? g.contours : adjustContoursWeight(g.contours, p.delta),
+            contours: adjusted,
+            lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
           };
         }
 
@@ -341,11 +465,13 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           metadata: {
             ...project.metadata,
             styleName: p.name,
+            usWeightClass: p.usWeightClass,
           },
           glyphs: weightGlyphs,
         };
 
         const result = compileFont(weightProj, {
+          scaleFactor: 1.0,
           mergeOverlaps: true,
           normalizeWinding: true,
           skipBlobUrl: true,
@@ -390,6 +516,17 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   const handleApplyMasterInterp = () => {
     if (masterInterpContours.length === 0) return;
 
+    if (project.glyphs[selectedUnicode]?.locked) {
+      onShowToast?.('選択中の文字はロック保護されているため上書きできません', 'warning');
+      return;
+    }
+
+    onCommitHistory?.();
+
+    const interpBbox = getContoursBoundingBox(masterInterpContours);
+    const computedLsb =
+      Number.isFinite(interpBbox.minX) && interpBbox.width > 0 ? Math.round(interpBbox.minX) : 50;
+
     setProject((prev) => ({
       ...prev,
       glyphs: {
@@ -399,10 +536,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             unicode: selectedUnicode,
             char: String.fromCodePoint(selectedUnicode),
             name: `uni${selectedUnicode.toString(16).toUpperCase()}`,
-            advanceWidth: 1000,
-            lsb: 50,
+            advanceWidth: prev.metadata?.unitsPerEm || DEFAULT_UPM,
+            lsb: computedLsb,
           }),
           contours: masterInterpContours,
+          lsb: prev.glyphs[selectedUnicode]?.lsb ?? computedLsb,
           modified: true,
         },
       },
@@ -410,7 +548,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     }));
 
     onShowToast?.(
-      `補間結果（${Math.round(interpFactor * 100)}%）を現在の文字に適用しました`,
+      `補間結果（${Math.round(interpFactor * 100)}%）を「${selectedGlyph?.char || String.fromCodePoint(selectedUnicode)}」に適用しました`,
       'success'
     );
     onClose();
@@ -676,7 +814,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <div key={idx} className="shrink-0 flex flex-col items-center">
                         {item.hasGlyph ? (
                           <svg viewBox="0 0 1000 1000" className="w-9 h-9">
-                            <path d={item.d} fill="currentColor" fillRule="nonzero" />
+                            {item.groups.map((group) => (
+                              <path
+                                key={group.id}
+                                d={group.d}
+                                fill="currentColor"
+                                fillRule={group.fillRule}
+                              />
+                            ))}
                           </svg>
                         ) : (
                           <div className={`w-9 h-9 flex items-center justify-center font-bold text-sm border border-dashed rounded ${themeClasses.border} opacity-40`}>
@@ -733,14 +878,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold flex items-center gap-1.5">
                       <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-                      <span>② 太さオフセット（微調整）</span>
+                      <span>② 太さオフセット（片側輪郭移動）</span>
                     </label>
                     <div className="flex items-center gap-1.5 sm:gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedPreset('custom');
-                          setWeightDelta(Math.max(-60, weightDelta - 5));
+                          setWeightDelta(Math.max(-40, weightDelta - 2));
                         }}
                         className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
@@ -753,7 +898,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         type="button"
                         onClick={() => {
                           setSelectedPreset('custom');
-                          setWeightDelta(Math.min(150, weightDelta + 5));
+                          setWeightDelta(Math.min(80, weightDelta + 2));
                         }}
                         className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md border flex items-center justify-center cursor-pointer ${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                       >
@@ -764,9 +909,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                   <input
                     type="range"
-                    min={-60}
-                    max={150}
-                    step={2}
+                    min={-40}
+                    max={80}
+                    step={1}
                     value={weightDelta}
                     onChange={(e) => {
                       setSelectedPreset('custom');
@@ -776,7 +921,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   />
 
                   <div className={`flex justify-between text-[10px] font-mono ${themeClasses.textMuted}`}>
-                    <span>細字化 (-60px)</span>
+                    <span>細字化 (-40px)</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -785,9 +930,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       }}
                       className="hover:underline cursor-pointer"
                     >
-                      標準 (0px リセット)
+                      標準 (0px リセット / 線幅変化 ≈ {weightDelta * 2 > 0 ? `+${weightDelta * 2}` : weightDelta * 2}px)
                     </button>
-                    <span>極太化 (+150px)</span>
+                    <span>極太化 (+80px)</span>
                   </div>
                 </div>
 
@@ -799,7 +944,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       <span>③ 適用対象（スコープ）</span>
                     </label>
                     <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
-                      対象: {targetGlyphs.length} 文字
+                      対象: {targetGlyphs.length} 文字{lockedTargetCount > 0 ? ` (ロック除外 ${lockedTargetCount})` : ''}
                     </span>
                   </div>
 
@@ -809,7 +954,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       { id: 'kanji', label: '漢字のみ' },
                       { id: 'kana', label: 'かなのみ' },
                       { id: 'latin', label: '英数のみ' },
-                      { id: 'current', label: `現在文字 (${currentGlyph?.char || ''})` },
+                      { id: 'current', label: `現在文字 (${selectedGlyph?.char || ''})` },
                     ].map((s) => (
                       <button
                         key={s.id}
@@ -853,9 +998,9 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       onChange={(e) => setMasterAUnicode(Number(e.target.value))}
                       className={`w-full p-2 rounded-lg border text-xs font-bold outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
-                      {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
+                      {(nonEmptyGlyphs.length > 0 ? nonEmptyGlyphs : (Object.values(project.glyphs || {}) as GlyphData[])).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
-                          {g.char || `U+${g.unicode.toString(16).toUpperCase()}`} (Unicode: {g.unicode})
+                          {g.char || `U+${g.unicode.toString(16).toUpperCase()}`} ({g.contours?.length || 0}輪郭)
                         </option>
                       ))}
                     </select>
@@ -871,13 +1016,25 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                       onChange={(e) => setMasterBUnicode(Number(e.target.value))}
                       className={`w-full p-2 rounded-lg border text-xs font-bold outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
-                      {(Object.values(project.glyphs || {}) as GlyphData[]).map((g) => (
+                      {(nonEmptyGlyphs.length > 0 ? nonEmptyGlyphs : (Object.values(project.glyphs || {}) as GlyphData[])).map((g) => (
                         <option key={g.unicode} value={g.unicode}>
-                          {g.char || `U+${g.unicode.toString(16).toUpperCase()}`} (Unicode: {g.unicode})
+                          {g.char || `U+${g.unicode.toString(16).toUpperCase()}`} ({g.contours?.length || 0}輪郭)
                         </option>
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div
+                  className={`px-3 py-2 rounded-lg border text-[11px] font-medium ${
+                    masterCompatStatus.kind === 'mismatch'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                      : masterCompatStatus.kind === 'empty'
+                        ? `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.textMuted}`
+                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  }`}
+                >
+                  {masterCompatStatus.label}
                 </div>
               </div>
 
@@ -1042,10 +1199,11 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
               <button
                 type="button"
                 onClick={handleApplyMasterInterp}
-                className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+                disabled={masterInterpContours.length === 0}
+                className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>補間結果を「{currentGlyph?.char || ''}」に適用</span>
+                <span>補間結果を「{selectedGlyph?.char || String.fromCodePoint(selectedUnicode)}」に適用</span>
               </button>
             </div>
           )}

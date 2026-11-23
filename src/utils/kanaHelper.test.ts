@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { batchGenerateSmallKana } from './kanaHelper';
 import { adjustContoursWeight, createSmallKanaContours } from './path/transform';
+import { interpolateContours } from './path/stroke_modules/straightAndExpand';
 import { getContourSignedArea, getContoursBoundingBox } from './path/bounds';
 import { GlyphData, PathContour } from '../types';
 
@@ -175,5 +176,51 @@ describe('batchGenerateSmallKana', () => {
     // Locked small ya unchanged, katakana ッ skipped by scope
     expect(res.updatedGlyphs[smallYaCode].contours[0].id).toBe('locked-ya');
     expect(res.updatedGlyphs[kkSmallTsuCode]).toBeUndefined();
+  });
+});
+
+describe('open-contour adjustContoursWeight & unequal-node interpolateContours', () => {
+  it('shifts open horizontal contour perpendicular to segment without wrapping endpoints', () => {
+    const openLine: PathContour = {
+      id: 'open-1',
+      closed: false,
+      nodes: [
+        { id: 'n0', x: 100, y: 500, handleIn: null, handleOut: null, type: 'corner' },
+        { id: 'n1', x: 500, y: 500, handleIn: null, handleOut: null, type: 'corner' },
+        { id: 'n2', x: 900, y: 500, handleIn: null, handleOut: null, type: 'corner' },
+      ],
+    };
+    const shifted = adjustContoursWeight([openLine], 10);
+    expect(shifted[0].nodes).toHaveLength(3);
+    // Horizontal line normals point uniformly along Y without horizontal endpoint drift
+    expect(shifted[0].nodes[0].x).toBe(100);
+    expect(shifted[0].nodes[2].x).toBe(900);
+    expect(shifted[0].nodes[0].y).toBe(shifted[0].nodes[1].y);
+    expect(shifted[0].nodes[1].y).toBe(shifted[0].nodes[2].y);
+    expect(Math.abs(shifted[0].nodes[0].y - 500)).toBe(10);
+  });
+
+  it('continuously morphs contours with unequal node counts all the way to Master B without snapping at t=1', () => {
+    const rect4 = [makeRectContour('rect', 100, 100, 300, 300, true)];
+    const tri3: PathContour[] = [
+      {
+        id: 'tri',
+        closed: true,
+        nodes: [
+          { id: 't0', x: 700, y: 600, handleIn: null, handleOut: null, type: 'corner' },
+          { id: 't1', x: 900, y: 800, handleIn: null, handleOut: null, type: 'corner' },
+          { id: 't2', x: 500, y: 800, handleIn: null, handleOut: null, type: 'corner' },
+        ],
+      },
+    ];
+
+    const half = getContoursBoundingBox(interpolateContours(rect4, tri3, 0.5));
+    const nearEnd = getContoursBoundingBox(interpolateContours(rect4, tri3, 0.98));
+    const targetB = getContoursBoundingBox(tri3);
+
+    expect(half.centerX).toBeGreaterThan(350);
+    expect(half.centerX).toBeLessThan(650);
+    expect(Math.abs(nearEnd.centerX - targetB.centerX)).toBeLessThan(20);
+    expect(Math.abs(nearEnd.centerY - targetB.centerY)).toBeLessThan(20);
   });
 });

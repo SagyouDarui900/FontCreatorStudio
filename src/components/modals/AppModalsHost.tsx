@@ -321,6 +321,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
               onSelectGlyph(unicode, char);
               closeAllModals();
             }}
+            commitHistory={commitHistory}
             theme={theme}
             onShowToast={showToast}
             onOpenMojikumiStudio={() => openModal('mojikumi')}
@@ -437,6 +438,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             selectedUnicode={selectedUnicode}
             theme={theme}
             onShowToast={showToast}
+            onCommitHistory={commitHistory}
           />
         );
 

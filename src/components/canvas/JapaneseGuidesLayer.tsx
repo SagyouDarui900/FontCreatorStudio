@@ -51,9 +51,12 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
       return {
         verticalCenter: `M ${half} 0 L ${half} ${upm}`,
         verticalThirds: `M ${third1} 0 L ${third1} ${upm} M ${third2} 0 L ${third2} ${upm}`,
+        verticalQuartersNoCenter: `M ${q1} 0 L ${q1} ${upm} M ${q3} 0 L ${q3} ${upm}`,
         verticalQuarters: `M ${q1} 0 L ${q1} ${upm} M ${half} 0 L ${half} ${upm} M ${q3} 0 L ${q3} ${upm}`,
+        verticalEighthsNoCenter: `M ${e1} 0 L ${e1} ${upm} M ${e2} 0 L ${e2} ${upm} M ${e3} 0 L ${e3} ${upm} M ${e5} 0 L ${e5} ${upm} M ${e6} 0 L ${e6} ${upm} M ${e7} 0 L ${e7} ${upm}`,
         verticalEighths: `M ${e1} 0 L ${e1} ${upm} M ${e2} 0 L ${e2} ${upm} M ${e3} 0 L ${e3} ${upm} M ${e4} 0 L ${e4} ${upm} M ${e5} 0 L ${e5} ${upm} M ${e6} 0 L ${e6} ${upm} M ${e7} 0 L ${e7} ${upm}`,
         cross: `M ${half} 0 L ${half} ${upm} M 0 ${half} L ${upm} ${half}`,
+        tianTicks: `M ${q1} 0 V ${upm * 0.03} M ${q3} 0 V ${upm * 0.03} M ${q1} ${upm} V ${upm * 0.97} M ${q3} ${upm} V ${upm * 0.97} M 0 ${q1} H ${upm * 0.03} M 0 ${q3} H ${upm * 0.03} M ${upm} ${q1} H ${upm * 0.97} M ${upm} ${q3} H ${upm * 0.97}`,
         jiugong: `M ${third1} 0 L ${third1} ${upm} M ${third2} 0 L ${third2} ${upm} M 0 ${third1} L ${upm} ${third1} M 0 ${third2} L ${upm} ${third2}`,
         sixteen: `M ${q1} 0 L ${q1} ${upm} M ${q3} 0 L ${q3} ${upm} M 0 ${q1} L ${upm} ${q1} M 0 ${q3} L ${upm} ${q3}`,
         mi: `M 0 0 L ${upm} ${upm} M ${upm} 0 L 0 ${upm}`,
@@ -137,15 +140,24 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
         ? '#d97706'
         : '#f59e0b';
 
+    const guideHasCenterLine =
+      guideType === 'cross' || guideType === 'tian' || guideType === 'sixteen' || guideType === 'mi';
+
     const verticalGuidePath =
       verticalGuide === 'center'
-        ? paths.verticalCenter
+        ? guideHasCenterLine
+          ? null
+          : paths.verticalCenter
         : verticalGuide === 'thirds'
         ? paths.verticalThirds
         : verticalGuide === 'quarters'
-        ? paths.verticalQuarters
+        ? guideHasCenterLine
+          ? paths.verticalQuartersNoCenter
+          : paths.verticalQuarters
         : verticalGuide === 'eighths'
-        ? paths.verticalEighths
+        ? guideHasCenterLine
+          ? paths.verticalEighthsNoCenter
+          : paths.verticalEighths
         : null;
 
     const dash = (a: number, b: number, c?: number, d?: number) =>
@@ -158,6 +170,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     const bodySize = upm * 0.85;
     const kanaInset = upm * 0.11;
     const kanaSize = upm * 0.78;
+    const cornerLen = upm * 0.035;
 
     return (
       <g
@@ -165,31 +178,33 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
         opacity={Math.min(0.85, 0.65 * opacityScale)}
       >
         {/* 1. Dedicated Vertical Guideline System */}
-        {verticalGuidePath && (
+        {(verticalGuidePath || verticalGuide === 'center') && (
           <>
-            <path
-              d={verticalGuidePath}
-              stroke={verticalGuideColor}
-              strokeDasharray={dash(5, 3)}
-              strokeWidth={1.1}
-              vectorEffect="non-scaling-stroke"
-              opacity={0.6}
-            />
+            {verticalGuidePath && (
+              <path
+                d={verticalGuidePath}
+                stroke={verticalGuideColor}
+                strokeDasharray={dash(5, 3)}
+                strokeWidth={1.1}
+                vectorEffect="non-scaling-stroke"
+                opacity={0.55}
+              />
+            )}
             {verticalGuide === 'center' && (
               <g transform={`translate(${half}, ${upm}) scale(${invZ})`}>
-                <text x={0} y={-6} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
+                <text x={0} y={13} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
                   X:{half}
                 </text>
               </g>
             )}
             {verticalGuide === 'thirds' && (
               <>
-                <g transform={`translate(${third1}, 0) scale(${invZ})`}>
+                <g transform={`translate(${third1}, ${upm}) scale(${invZ})`}>
                   <text x={0} y={13} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
                     X:{third1}
                   </text>
                 </g>
-                <g transform={`translate(${third2}, 0) scale(${invZ})`}>
+                <g transform={`translate(${third2}, ${upm}) scale(${invZ})`}>
                   <text x={0} y={13} fill={labelColor} textAnchor="middle" fontSize={9.5} opacity={0.75}>
                     X:{third2}
                   </text>
@@ -201,7 +216,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
 
         {/* 2. 和文目安ガイド */}
         {(guideType === 'cross' || guideType === 'tian') && (
-          <g opacity={0.45}>
+          <g opacity={0.52}>
             <path
               d={paths.cross}
               stroke={primaryColor}
@@ -209,7 +224,16 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               strokeWidth={1.1}
               vectorEffect="non-scaling-stroke"
             />
-            <circle cx={half} cy={half} r={2.5 * invZ} fill={primaryColor} />
+            {guideType === 'tian' && (
+              <path
+                d={paths.tianTicks}
+                stroke={primaryColor}
+                strokeWidth={1.1}
+                vectorEffect="non-scaling-stroke"
+                opacity={0.75}
+              />
+            )}
+            <circle cx={half} cy={half} r={2.4 * invZ} fill={primaryColor} />
           </g>
         )}
 
@@ -228,7 +252,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               strokeDasharray={dash(4, 4)}
               strokeWidth={0.9}
               vectorEffect="non-scaling-stroke"
-              opacity={0.55}
+              opacity={0.45}
             />
           </g>
         )}
@@ -255,7 +279,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               strokeDasharray={dash(4, 4)}
               strokeWidth={0.8}
               vectorEffect="non-scaling-stroke"
-              opacity={0.45}
+              opacity={0.4}
             />
           </g>
         )}
@@ -276,13 +300,13 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             />
-            <circle cx={half} cy={half} r={2.5 * invZ} fill={primaryColor} />
+            <circle cx={half} cy={half} r={2.4 * invZ} fill={primaryColor} />
           </g>
         )}
 
-        {/* 3. 漢字字面枠 (85%) */}
+        {/* 3. 漢字字面枠 (85%) — sharp 90° corners + non-colliding top-left border label */}
         {showBodyFrame && (
-          <g opacity={0.6}>
+          <g opacity={0.62}>
             <rect
               x={bodyInset}
               y={bodyInset}
@@ -294,17 +318,24 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               vectorEffect="non-scaling-stroke"
               strokeDasharray={dash(10, 4, 2, 4)}
             />
+            <path
+              d={`M ${bodyInset} ${bodyInset + cornerLen} V ${bodyInset} H ${bodyInset + cornerLen} M ${bodyInset + bodySize - cornerLen} ${bodyInset} H ${bodyInset + bodySize} V ${bodyInset + cornerLen} M ${bodyInset} ${bodyInset + bodySize - cornerLen} V ${bodyInset + bodySize} H ${bodyInset + cornerLen} M ${bodyInset + bodySize - cornerLen} ${bodyInset + bodySize} H ${bodyInset + bodySize} V ${bodyInset + bodySize - cornerLen}`}
+              fill="none"
+              stroke={kanjiFrameColor}
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
             <g transform={`translate(${bodyInset}, ${bodyInset}) scale(${invZ})`}>
-              <text x={6} y={12} fill={labelColor} fontSize={9.5} opacity={0.75}>
+              <text x={4} y={-4} fill={labelColor} fontSize={9.5} opacity={0.78}>
                 漢字枠 (85%)
               </text>
             </g>
           </g>
         )}
 
-        {/* 4. 仮名字面枠 (78%) */}
+        {/* 4. 仮名字面枠 (78%) — sharp 90° corners + top-right border label (never collides with 漢字枠) */}
         {showKanaFrame && (
-          <g opacity={0.6}>
+          <g opacity={0.62}>
             <rect
               x={kanaInset}
               y={kanaInset}
@@ -316,8 +347,8 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               vectorEffect="non-scaling-stroke"
               strokeDasharray={dash(3, 3)}
             />
-            <g transform={`translate(${kanaInset}, ${kanaInset}) scale(${invZ})`}>
-              <text x={6} y={12} fill={labelColor} fontSize={9.5} opacity={0.75}>
+            <g transform={`translate(${kanaInset + kanaSize}, ${kanaInset}) scale(${invZ})`}>
+              <text x={-4} y={-4} fill={labelColor} fontSize={9.5} textAnchor="end" opacity={0.78}>
                 かな枠 (78%)
               </text>
             </g>

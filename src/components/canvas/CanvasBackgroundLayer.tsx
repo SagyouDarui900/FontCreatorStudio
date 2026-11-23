@@ -41,9 +41,9 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
       };
     }, [showGrid, size, upm]);
 
-    // Fade minor subdivisions cleanly only when cells become < 6 screen px wide to prevent moiré
+    // Fade minor subdivisions cleanly when cells become < 8 screen px wide to prevent moiré haze
     const cellScreenPx = size * z;
-    const minorZoomFade = cellScreenPx >= 6 ? 1 : Math.max(0, (cellScreenPx - 2.5) / 3.5);
+    const minorZoomFade = cellScreenPx >= 8 ? 1 : Math.max(0, (cellScreenPx - 3.5) / 4.5);
 
     // Calm, neutral drafting grid colors so contours and guides remain primary
     const minorStroke =
@@ -82,7 +82,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
         : theme === 'monochrome'
         ? 'rgba(0, 0, 0, 0.05)'
         : isLight
-        ? 'rgba(15, 30, 20, 0.03)'
+        ? 'rgba(15, 30, 20, 0.035)'
         : 'rgba(0, 0, 0, 0.25)';
 
     const emBoxFill =
@@ -100,29 +100,33 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
 
     const emBoxStroke =
       theme === 'sepia'
-        ? 'rgba(140, 103, 59, 0.4)'
+        ? 'rgba(140, 103, 59, 0.45)'
         : theme === 'warm'
-        ? 'rgba(194, 65, 12, 0.35)'
+        ? 'rgba(194, 65, 12, 0.38)'
         : theme === 'nord'
-        ? 'rgba(94, 129, 172, 0.45)'
+        ? 'rgba(94, 129, 172, 0.5)'
         : theme === 'monochrome'
-        ? 'rgba(24, 24, 27, 0.35)'
+        ? 'rgba(24, 24, 27, 0.4)'
         : isLight
-        ? 'rgba(71, 85, 105, 0.35)'
-        : 'rgba(148, 163, 184, 0.3)';
+        ? 'rgba(71, 85, 105, 0.4)'
+        : 'rgba(148, 163, 184, 0.35)';
 
     const cropMarkStroke =
       theme === 'sepia'
-        ? 'rgba(161, 98, 7, 0.45)'
+        ? 'rgba(161, 98, 7, 0.5)'
         : theme === 'warm'
-        ? 'rgba(234, 88, 12, 0.45)'
+        ? 'rgba(234, 88, 12, 0.5)'
         : theme === 'nord'
-        ? 'rgba(136, 192, 208, 0.5)'
+        ? 'rgba(136, 192, 208, 0.55)'
         : theme === 'monochrome'
-        ? 'rgba(24, 24, 27, 0.35)'
+        ? 'rgba(24, 24, 27, 0.4)'
         : isLight
-        ? 'rgba(71, 85, 105, 0.4)'
-        : 'rgba(148, 163, 184, 0.4)';
+        ? 'rgba(71, 85, 105, 0.45)'
+        : 'rgba(148, 163, 184, 0.45)';
+
+    const q1 = upm * 0.25;
+    const half = upm * 0.5;
+    const q3 = upm * 0.75;
 
     return (
       <g className="canvas-background-layer pointer-events-none select-none">
@@ -156,7 +160,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
                 stroke={minorStroke}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
-                opacity={opacityFactor * 0.36 * minorZoomFade}
+                opacity={opacityFactor * 0.26 * minorZoomFade}
               />
             )}
             {majorPath && (
@@ -167,18 +171,28 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
                 stroke={majorStroke}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
-                opacity={opacityFactor * 0.72}
+                opacity={opacityFactor * 0.65}
               />
             )}
           </g>
         )}
 
-        {/* Corner Crop / Register Marks (トンボ) */}
-        <g opacity={0.45}>
-          <path d="M -24 0 L 0 0 M 0 -24 L 0 0" stroke={cropMarkStroke} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-          <path d={`M ${upm + 24} 0 L ${upm} 0 M ${upm} -24 L ${upm} 0`} stroke={cropMarkStroke} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-          <path d={`M -24 ${upm} L 0 ${upm} M 0 ${upm + 24} L 0 ${upm}`} stroke={cropMarkStroke} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-          <path d={`M ${upm + 24} ${upm} L ${upm} ${upm} M ${upm} ${upm + 24} L ${upm} ${upm}`} stroke={cropMarkStroke} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        {/* Quarter & Center Outer Edge Ticks + Corner Crop Marks (トンボ) */}
+        <g opacity={0.55}>
+          <path
+            d={`M -20 0 H 0 V -20 M ${upm + 20} 0 H ${upm} V -20 M -20 ${upm} H 0 V ${upm + 20} M ${upm + 20} ${upm} H ${upm} V ${upm + 20}`}
+            fill="none"
+            stroke={cropMarkStroke}
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={`M ${q1} -8 V 0 M ${half} -14 V 0 M ${q3} -8 V 0 M ${q1} ${upm} V ${upm + 8} M ${half} ${upm} V ${upm + 14} M ${q3} ${upm} V ${upm + 8} M -8 ${q1} H 0 M -14 ${half} H 0 M -8 ${q3} H 0 M ${upm} ${q1} H ${upm + 8} M ${upm} ${half} H ${upm + 14} M ${upm} ${q3} H ${upm + 8}`}
+            fill="none"
+            stroke={cropMarkStroke}
+            strokeWidth={1}
+            vectorEffect="non-scaling-stroke"
+          />
         </g>
       </g>
     );

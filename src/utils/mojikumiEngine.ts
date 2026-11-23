@@ -595,7 +595,7 @@ export function simulateTypesetting(
             kind,
             baseAdvanceEm: baseAdvance,
             spacingBeforeEm: beforeEm,
-            spacingAfterEm: afterEm,
+            spacingAfterEm: afterEm + trackingEm,
             isHanging: false,
           });
           currentAdvanceEm += glyphTotalAdvance;
@@ -607,12 +607,12 @@ export function simulateTypesetting(
         const wouldExceed = currentAdvanceEm + glyphTotalAdvance > safeCharsPerLine + 0.05;
 
         if (wouldExceed) {
-          // ぶら下がり判定
+          // ぶら下がり判定（半角混在やツメ組みでも正確になるよう送り幅で判定）
           if (
             burasagariMode !== 'none' &&
             BURASAGARI_CHARS.has(ch) &&
             lineBurasagari === 0 &&
-            currentLineGlyphs.length >= safeCharsPerLine - 1
+            currentAdvanceEm >= safeCharsPerLine - 1.5
           ) {
             // ぶら下がり適用！版面外（マージン）に1字追加
             currentLineGlyphs.push({
@@ -630,17 +630,23 @@ export function simulateTypesetting(
             break;
           }
 
-          // 禁則処理: 行頭禁則文字が次行の頭に来ないか、または現行の末尾が行末禁則でないか
+          // 禁則処理: 連続する行頭禁則文字（例: 。」）や追い出し後の末尾行末禁則（例: 「）も連鎖的に追い出す
           if (config.kinsoku !== 'none') {
-            // もしchが行頭禁則文字なら、直前の文字を巻き込んで次行へ（追い出し）
-            if (startProhibited.has(ch) && currentLineGlyphs.length > 1) {
+            while (currentLineGlyphs.length > 1) {
+              const nextHead = chars[charCursor];
+              const tailGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
+              const shouldPushStart = Boolean(nextHead && startProhibited.has(nextHead));
+              const shouldPushEnd =
+                config.kinsokuAdjust === 'push_out' &&
+                Boolean(tailGlyph && endProhibited.has(tailGlyph.char));
+              if (!shouldPushStart && !shouldPushEnd) break;
+
               const last = currentLineGlyphs.pop()!;
               charCursor--;
               const lastAdvance =
                 (last.spacingBeforeEm || 0) +
                 (last.spacingAfterEm || 0) +
-                (last.baseAdvanceEm ?? 1.0) +
-                trackingEm;
+                (last.baseAdvanceEm ?? 1.0);
               currentAdvanceEm = Math.max(0, currentAdvanceEm - lastAdvance);
             }
           }
@@ -648,11 +654,12 @@ export function simulateTypesetting(
           break; // 次の行へ
         }
 
-        // 行末禁則チェック (現文字が行末禁則で、かつ行末に位置する場合)
+        // 行末禁則チェック (現文字が行末禁則で、かつ続く文字が行内に収まらず行末に残る場合)
         if (
           config.kinsoku !== 'none' &&
           endProhibited.has(ch) &&
-          currentAdvanceEm + glyphTotalAdvance * 2 > safeCharsPerLine
+          charCursor < chars.length - 1 &&
+          currentAdvanceEm + glyphTotalAdvance + Math.max(0.5, baseAdvance) > safeCharsPerLine + 0.05
         ) {
           if (config.kinsokuAdjust === 'push_out') {
             // 追い出し優先: 行末禁則文字を丸ごと次行へ回す
@@ -666,7 +673,7 @@ export function simulateTypesetting(
           kind,
           baseAdvanceEm: baseAdvance,
           spacingBeforeEm: beforeEm,
-          spacingAfterEm: afterEm,
+          spacingAfterEm: afterEm + trackingEm,
           isHanging: false,
         });
 

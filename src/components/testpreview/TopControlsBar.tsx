@@ -57,7 +57,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
             <span className="text-[11px] text-stone-500">サイズ:</span>
             <input
               type="range"
-              min={14}
+              min={12}
               max={96}
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
@@ -171,7 +171,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
             <span className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>サイズ:</span>
             <input
               type="range"
-              min={14}
+              min={12}
               max={96}
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
@@ -184,8 +184,8 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
             <span className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>行送り:</span>
             <input
               type="range"
-              min={1.2}
-              max={3.0}
+              min={1.0}
+              max={3.5}
               step={0.1}
               value={lineHeight}
               onChange={(e) => setLineHeight(Number(e.target.value))}
@@ -198,8 +198,8 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
             <span className={`text-[11px] ${isLight ? 'text-stone-600' : 'text-emerald-400'}`}>字間:</span>
             <input
               type="range"
-              min={-0.05}
-              max={0.5}
+              min={-0.1}
+              max={0.8}
               step={0.02}
               value={letterSpacing}
               onChange={(e) => setLetterSpacing(Number(e.target.value))}

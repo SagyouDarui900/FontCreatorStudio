@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
-import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 
 interface PoetryTanzakuViewProps {
   layout: FormattedLayoutResult;
@@ -28,7 +28,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
   showGrid = false,
 }) => {
   const emPx = Math.max(15, Math.round(fontSizeQ * 1.4 * zoom));
-  const lineGapPx = Math.max(12, Math.round((lineFeedH - fontSizeQ) * 1.8 * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.8 * zoom));
   const lineGapH = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 10) / 10);
 
   const paperBg = isLight ? 'bg-[#fcfbf7]' : 'bg-[#18201a]';
@@ -81,6 +81,8 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                   >
                     {line.glyphs.map((g, gIdx) => {
                       const vertStyle = getVerticalGlyphStyle(g.char, true);
+                      const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                      const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
                       return (
                         <span
                           key={gIdx}
@@ -91,14 +93,14 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                           }}
                         >
                           <span
-                            className={`inline-flex items-center justify-center relative ${
+                            className={`inline-flex ${alignClass} relative ${
                               g.isHanging
                                 ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                                 : ''
                             }`}
                             style={{
                               width: `${emPx}px`,
-                              height: `${emPx}px`,
+                              height: `${boxHeightPx}px`,
                               fontSize: `${emPx}px`,
                               lineHeight: 1,
                             }}
@@ -140,6 +142,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                   >
                     {line.glyphs.map((g, gIdx) => {
                       const boxWidthPx = (g.baseAdvanceEm ?? 1.0) * emPx;
+                      const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, false);
                       return (
                         <span
                           key={gIdx}
@@ -150,7 +153,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                           }}
                         >
                           <span
-                            className={`inline-flex items-center justify-center relative text-center ${
+                            className={`inline-flex ${alignClass} relative text-center ${
                               g.isHanging
                                 ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
                                 : ''

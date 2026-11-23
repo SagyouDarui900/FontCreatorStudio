@@ -164,6 +164,7 @@ export async function loadFontFromFile(
   const upm = font.unitsPerEm || 1000;
   const scale = 1000 / upm;
   const os2 = font.tables?.os2 as Record<string, unknown> | undefined;
+  const post = font.tables?.post as Record<string, unknown> | undefined;
   const rawAscender =
     typeof font.ascender === 'number' && Number.isFinite(font.ascender) && font.ascender > 0
       ? font.ascender
@@ -189,20 +190,47 @@ export async function loadFontFromFile(
     typeof os2?.sxHeight === 'number' && Number.isFinite(os2.sxHeight) && os2.sxHeight > 0
       ? Math.round(os2.sxHeight * scale)
       : undefined;
+  const parsedWeightClass =
+    typeof os2?.usWeightClass === 'number' && Number.isFinite(os2.usWeightClass) && os2.usWeightClass > 0
+      ? Math.max(1, Math.min(1000, Math.round(os2.usWeightClass)))
+      : undefined;
+  const parsedWidthClass =
+    typeof os2?.usWidthClass === 'number' && Number.isFinite(os2.usWidthClass) && os2.usWidthClass > 0
+      ? Math.max(1, Math.min(9, Math.round(os2.usWidthClass)))
+      : undefined;
+  const parsedVendorId =
+    typeof os2?.achVendID === 'string' && os2.achVendID.trim().length > 0
+      ? os2.achVendID.trim().slice(0, 4)
+      : undefined;
+  const parsedItalicAngle =
+    typeof post?.italicAngle === 'number' && Number.isFinite(post.italicAngle)
+      ? post.italicAngle
+      : undefined;
+  const parsedIsFixedPitch =
+    post?.isFixedPitch !== undefined ? Boolean(post.isFixedPitch) : undefined;
 
   const metadata: Partial<FontMetadata> = {
     familyName:
+      (font.names as any)?.windows?.preferredFamily?.ja ||
+      (font.names as any)?.windows?.preferredFamily?.en ||
       (font.names as any)?.windows?.fontFamily?.ja ||
       (font.names as any)?.windows?.fontFamily?.en ||
+      (font.names as any)?.unicode?.preferredFamily?.en ||
       (font.names as any)?.unicode?.fontFamily?.en ||
+      (font.names as any)?.macintosh?.preferredFamily?.en ||
       (font.names as any)?.macintosh?.fontFamily?.en ||
+      (font.names as any)?.preferredFamily?.en ||
       font.names.fontFamily?.en ||
       font.names.fontFamily?.ja ||
       file.name.replace(/\.[^/.]+$/, ''),
     styleName:
+      (font.names as any)?.windows?.preferredSubfamily?.en ||
       (font.names as any)?.windows?.fontSubfamily?.en ||
+      (font.names as any)?.unicode?.preferredSubfamily?.en ||
       (font.names as any)?.unicode?.fontSubfamily?.en ||
+      (font.names as any)?.macintosh?.preferredSubfamily?.en ||
       (font.names as any)?.macintosh?.fontSubfamily?.en ||
+      (font.names as any)?.preferredSubfamily?.en ||
       font.names.fontSubfamily?.en ||
       'Regular',
     designer:
@@ -245,6 +273,11 @@ export async function loadFontFromFile(
     descender: resolvedDescender,
     ...(scaledCapHeight !== undefined ? { capHeight: scaledCapHeight } : {}),
     ...(scaledXHeight !== undefined ? { xHeight: scaledXHeight } : {}),
+    ...(parsedWeightClass !== undefined ? { usWeightClass: parsedWeightClass } : {}),
+    ...(parsedWidthClass !== undefined ? { usWidthClass: parsedWidthClass } : {}),
+    ...(parsedVendorId !== undefined ? { vendorId: parsedVendorId } : {}),
+    ...(parsedItalicAngle !== undefined ? { italicAngle: parsedItalicAngle } : {}),
+    ...(parsedIsFixedPitch !== undefined ? { isFixedPitch: parsedIsFixedPitch } : {}),
   };
 
   const glyphs: Record<number, GlyphData> = {};

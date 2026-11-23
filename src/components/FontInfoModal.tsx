@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { FontMetadata, FontProject, GlyphData } from '../types';
 import { DEFAULT_ASCENDER } from '../utils/font/constants';
+import { inferWeightClassFromStyleName } from '../utils/font';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { exportProjectJsonFile } from '../utils/storageManager';
 import { BundledFontsModal } from './BundledFontsModal';
@@ -36,6 +37,17 @@ interface FontInfoModalProps {
 
 type ModalTab = 'info' | 'license' | 'opentype' | 'guide';
 
+const STYLE_PRESET_CHIPS: { styleName: string; usWeightClass: number }[] = [
+  { styleName: 'Thin', usWeightClass: 100 },
+  { styleName: 'Light', usWeightClass: 300 },
+  { styleName: 'Regular', usWeightClass: 400 },
+  { styleName: 'Medium', usWeightClass: 500 },
+  { styleName: 'SemiBold', usWeightClass: 600 },
+  { styleName: 'Bold', usWeightClass: 700 },
+  { styleName: 'ExtraBold', usWeightClass: 800 },
+  { styleName: 'Heavy', usWeightClass: 900 },
+];
+
 export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   isOpen,
   onClose,
@@ -48,6 +60,8 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   const [formData, setFormData] = useState<FontMetadata>({
     license: 'SIL Open Font License 1.1',
     licenseUrl: 'https://openfontlicense.org/',
+    usWeightClass:
+      project.metadata.usWeightClass ?? inferWeightClassFromStyleName(project.metadata.styleName),
     ...project.metadata,
   });
 
@@ -63,6 +77,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
       setFormData({
         license: meta.license || 'SIL Open Font License 1.1',
         licenseUrl: meta.licenseUrl || 'https://openfontlicense.org/',
+        usWeightClass: meta.usWeightClass ?? inferWeightClassFromStyleName(meta.styleName),
         ...meta,
       });
     }
@@ -378,16 +393,50 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                 <div className="flex flex-col space-y-1">
                   <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
                     <span>スタイル名 (Subfamily)</span>
-                    <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
+                    <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                      Weight: {formData.usWeightClass ?? inferWeightClassFromStyleName(formData.styleName)}
+                    </span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.styleName || ''}
-                    onChange={(e) => setFormData({ ...formData, styleName: e.target.value })}
+                    onChange={(e) => {
+                      const nextStyle = e.target.value;
+                      setFormData({
+                        ...formData,
+                        styleName: nextStyle,
+                        usWeightClass: inferWeightClassFromStyleName(nextStyle),
+                      });
+                    }}
                     placeholder="Regular, Bold, Medium など"
                     className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
                   />
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {STYLE_PRESET_CHIPS.map((preset) => {
+                      const isActive = (formData.styleName || '').trim().toLowerCase() === preset.styleName.toLowerCase();
+                      return (
+                        <button
+                          key={preset.styleName}
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              styleName: preset.styleName,
+                              usWeightClass: preset.usWeightClass,
+                            })
+                          }
+                          className={`px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors cursor-pointer ${
+                            isActive
+                              ? themeClasses.activeTool
+                              : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+                          }`}
+                        >
+                          {preset.styleName}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

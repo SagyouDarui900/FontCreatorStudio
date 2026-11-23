@@ -232,12 +232,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   activeSnapGuides,
   isGlyphLocked = false,
 }) => {
-  // Memoized SVG Paths using WeakMap cache
-  const mainSvgPath = useMemo(() => {
-    if (!contours || contours.length === 0) return '';
-    return contours.map(getCachedContourSvgPath).join(' ');
-  }, [contours]);
-
   const contourSvgMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of contours) {
@@ -397,6 +391,12 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           activeChar={activeChar}
           isLight={isLight}
           showVerticalCenter={gridSettings.showVerticalCenter !== false}
+          suppressCenterLine={Boolean(
+            (gridSettings.japaneseGuide &&
+              ['cross', 'tian', 'sixteen', 'mi'].includes(gridSettings.japaneseGuide)) ||
+              (gridSettings.verticalGuide &&
+                ['center', 'quarters', 'eighths'].includes(gridSettings.verticalGuide))
+          )}
           gridOpacity={gridSettings.gridOpacity ?? 30}
           unitsPerEm={upm}
           ascender={project?.metadata?.ascender}
@@ -439,7 +439,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         {/* 9. Main Glyph Vector Contours */}
         <MainGlyphContoursLayer
           contours={contours}
-          mainSvgPath={mainSvgPath}
           isLight={isLight}
           theme={theme}
           outlineOnly={isOutlineMode}

@@ -13,6 +13,7 @@ import {
 import {
   strokePointsToOutline,
   contoursToSvgPath,
+  generateFastStrokeSvgPath,
   generateStraightStrokePoints,
   snapToStraightAngle,
 } from '../utils/path';
@@ -178,17 +179,64 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   const getLivePreviewSvgPath = useCallback(
     (pts: StrokePoint[]): string => {
       if (!pts || pts.length === 0) return '';
-      // When points grow large (> 24 pts), decimate to maintain smooth 60fps/120fps live preview
-      const previewPts = pts.length > 24 ? getDecimatedPointsForLivePreview(pts) : pts;
-      const contour = getProcessedBrushContour(previewPts, false);
-      return contoursToSvgPath([contour]);
+      const cfg = strokeBrushConfigRef.current || {
+        brushWidth,
+        brushStyle,
+        pressureSensitivity,
+        pressureCurve,
+        smoothingIntensity,
+        autoSmoothBrush,
+        smoothStrength,
+        activePenPreset,
+      };
+      // Angular polygon styles are already fast geometric polygons and rely on exact corner miters
+      if (
+        cfg.brushStyle === 'sharp' ||
+        cfg.brushStyle === 'polygon' ||
+        cfg.brushStyle === 'sharp_round'
+      ) {
+        const previewPts = pts.length > 24 ? getDecimatedPointsForLivePreview(pts) : pts;
+        const contour = getProcessedBrushContour(previewPts, false);
+        return contoursToSvgPath([contour]);
+      }
+
+      // Smooth / calligraphy / nib strokes use sub-millisecond direct SVG preview (no Bezier/UUID churn per frame)
+      const previewPts = pts.length > 96 ? getDecimatedPointsForLivePreview(pts) : pts;
+      const effectiveSmoothing = calculateEffectiveSmoothing(
+        cfg.autoSmoothBrush,
+        cfg.smoothStrength,
+        cfg.smoothingIntensity
+      );
+      return generateFastStrokeSvgPath(
+        previewPts,
+        cfg.brushWidth,
+        cfg.brushStyle,
+        true,
+        cfg.pressureSensitivity,
+        cfg.pressureCurve,
+        effectiveSmoothing,
+        { customPreset: cfg.activePenPreset || undefined, disableAutoStraight: true }
+      );
     },
-    [getProcessedBrushContour]
+    [
+      brushWidth,
+      brushStyle,
+      pressureSensitivity,
+      pressureCurve,
+      smoothingIntensity,
+      autoSmoothBrush,
+      smoothStrength,
+      activePenPreset,
+      getProcessedBrushContour,
+    ]
   );
 
   // Helper to ingest incoming pointer events into stroke points
   const ingestRawEvents = useCallback(
-    (events: { clientX: number; clientY: number; pressure: number; timeStamp: number; pointerType: string }[]): boolean => {
+    (
+      events: { clientX: number; clientY: number; pressure: number; timeStamp: number; pointerType: string }[],
+      syncFreehand: boolean = false
+    ): boolean => {
       let lastP = brushStrokePointsRef.current[brushStrokePointsRef.current.length - 1];
       let hasNewPoints = false;
 
@@ -240,6 +288,9 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           pointerType: ev.pointerType,
         };
         brushStrokePointsRef.current.push(ptItem);
+        if (syncFreehand) {
+          freehandPointsRef.current.push(ptItem);
+        }
         lastP = ptItem;
         hasNewPoints = true;
       }
@@ -446,10 +497,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           const events = pendingBrushEventsRef.current;
           pendingBrushEventsRef.current = [];
 
-          const hasNewPoints = ingestRawEvents(events);
-          if (hasNewPoints) {
-            freehandPointsRef.current = [...brushStrokePointsRef.current];
-          }
+          const hasNewPoints = ingestRawEvents(events, true);
 
           if (hasNewPoints && activeBrushPathRef.current && brushStrokePointsRef.current.length > 0) {
             const d = getLivePreviewSvgPath(brushStrokePointsRef.current);

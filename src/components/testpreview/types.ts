@@ -8,6 +8,7 @@ export interface TestPreviewModalProps {
   project: FontProject;
   setProject?: React.Dispatch<React.SetStateAction<FontProject>>;
   onSelectGlyphForEdit?: (unicode: number) => void;
+  commitHistory?: () => void;
   theme: ThemeMode;
   onShowToast?: (msg: string, type?: 'success' | 'info' | 'error') => void;
   onOpenMojikumiStudio?: () => void;

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { FontProject, PathContour, Point } from '../../../types';
+import { FontProject, GlyphData, PathContour } from '../../../types';
 import { compileFont, balanceProjectGlyphMargins, validateFontProject, stripInvalidPixelData } from '../../../utils/font';
+import { DEFAULT_ASCENDER, DEFAULT_DESCENDER, DEFAULT_UPM } from '../../../utils/font/constants';
+import { pixelGridToContours, normalizePixelGrid } from '../../../utils/pixelFontUtils';
 import { getContoursBoundingBox } from '../../../utils/path';
-import { ThemeMode, isLightTheme } from '../../../utils/theme';
-import { TestPreviewModalProps, SelectedCharInfo, WritingMode, TextAlignMode } from '../types';
+import { isLightTheme } from '../../../utils/theme';
+import { TestPreviewModalProps } from '../types';
 import { transformGlyphContours } from '../previewUtils';
 import { useIsTopModal } from '../../modals/ModalStackFrame';
 // Persisted editing state lives in ./persistedState (no heavy imports) so
@@ -57,6 +59,7 @@ export function useTestPreviewState(
     project,
     setProject,
     onSelectGlyphForEdit,
+    commitHistory,
     theme,
     onShowToast,
     onOpenMojikumiStudio,
@@ -195,14 +198,10 @@ const [testText, setTestText] = usePersistedField(
   const handleVerticalWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
       if (writingMode === 'vertical' && !isWaterfall) {
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.1) {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.1 && e.deltaY !== 0) {
           const target = e.currentTarget;
-          const prevLeft = target.scrollLeft;
-          // In RTL / vertical-rl columns advance to the left
+          // Scroll leftward on wheel-down without inverting direction at scroll bounds
           target.scrollLeft -= e.deltaY;
-          if (target.scrollLeft === prevLeft) {
-            target.scrollLeft += e.deltaY;
-          }
         }
       }
     },
@@ -484,6 +483,7 @@ const [testText, setTestText] = usePersistedField(
                 URL.revokeObjectURL(activeBlobUrlRef.current);
               }
               activeBlobUrlRef.current = blobUrl;
+              removeStyleTagForUrl(blobUrl);
             })
             .catch(() => {
               URL.revokeObjectURL(blobUrl);
@@ -497,23 +497,22 @@ const [testText, setTestText] = usePersistedField(
             URL.revokeObjectURL(activeBlobUrlRef.current);
           }
           activeBlobUrlRef.current = blobUrl;
-        }
-
-        const styleId = 'dynamic-preview-font-face';
-        let styleTag = document.getElementById(styleId) as HTMLStyleElement;
-        if (!styleTag) {
-          styleTag = document.createElement('style');
-          styleTag.id = styleId;
-          document.head.appendChild(styleTag);
-        }
-        styleTag.textContent = `
-          @font-face {
-            font-family: '${newFontName}';
-            src: url('${blobUrl}') format('truetype');
-            font-weight: normal;
-            font-style: normal;
+          const styleId = 'dynamic-preview-font-face';
+          let styleTag = document.getElementById(styleId) as HTMLStyleElement;
+          if (!styleTag) {
+            styleTag = document.createElement('style');
+            styleTag.id = styleId;
+            document.head.appendChild(styleTag);
           }
-        `;
+          styleTag.textContent = `
+            @font-face {
+              font-family: '${newFontName}';
+              src: url('${blobUrl}') format('truetype');
+              font-weight: normal;
+              font-style: normal;
+            }
+          `;
+        }
         setErrorMsg(null);
       } catch (err) {
         console.error('Error compiling test font:', err);
@@ -535,12 +534,46 @@ const [testText, setTestText] = usePersistedField(
         compileTimerRef.current = null;
       }
     };
-  }, [isOpen, project.updatedAt, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
+  }, [isOpen, project, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
+
+  // Derive effective contours including pixel-only glyphs for metrics & preview
+  const resolveGlyphPreviewContours = useCallback(
+    (g: GlyphData | undefined | null): PathContour[] => {
+      if (!g) return [];
+      if (g.contours && g.contours.length > 0) return g.contours;
+      if (g.pixelData?.data && g.pixelData.width && g.pixelData.height) {
+        const pGrid = normalizePixelGrid(g.pixelData.data);
+        if (pGrid.some((v) => v === 1)) {
+          const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+          const advWidth =
+            g.advanceWidth || (g.unicode > 255 ? upm : Math.round(upm / 2));
+          return pixelGridToContours(
+            pGrid,
+            g.pixelData.width,
+            g.pixelData.height,
+            upm,
+            project.metadata.ascender || DEFAULT_ASCENDER,
+            project.metadata.descender || DEFAULT_DESCENDER,
+            advWidth,
+            g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+            project.pixelFontSettings?.mergeContours !== false
+          );
+        }
+      }
+      return [];
+    },
+    [project.metadata.unitsPerEm, project.metadata.ascender, project.metadata.descender, project.pixelFontSettings?.dotShape, project.pixelFontSettings?.mergeContours]
+  );
 
   // Handle batch centering all glyphs in project
   const handleBatchCenterAll = () => {
     if (!setProject) return;
     const { project: updatedProj, modifiedCount } = balanceProjectGlyphMargins(project);
+    if (modifiedCount === 0) {
+      onShowToast?.('整列が必要な文字はありませんでした', 'info');
+      return;
+    }
+    commitHistory?.();
     setProject(updatedProj);
     if (onShowToast) {
       onShowToast(`${modifiedCount} 文字の左右余白を中央に整列しました`, 'success');
@@ -548,26 +581,45 @@ const [testText, setTestText] = usePersistedField(
   };
 
   // Helper to get glyph metric info
-  const getGlyphMetric = (char: string) => {
-    const code = char.codePointAt(0) ?? 0;
-    const g = project.glyphs[code];
-    if (!g || !g.contours || g.contours.length === 0) return null;
-    const bbox = getContoursBoundingBox(g.contours);
-    if (bbox.width <= 0) return null;
-    const adv = g.advanceWidth || (code > 255 ? (project.metadata.unitsPerEm || 1000) : 500);
-    const lsb = Math.round(bbox.minX);
-    const rsb = Math.round(adv - bbox.maxX);
-    const diff = lsb - rsb;
-    return { char, unicode: code, adv, lsb, rsb, diff };
-  };
+  const getGlyphMetric = useCallback(
+    (char: string) => {
+      const code = char.codePointAt(0) ?? 0;
+      const g = project.glyphs[code];
+      const contours = resolveGlyphPreviewContours(g);
+      if (!g || contours.length === 0) return null;
+      const bbox = getContoursBoundingBox(contours);
+      if (bbox.width <= 0) return null;
+      const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+      const adv = g.advanceWidth || (code > 255 ? upm : Math.round(upm / 2));
+      const lsb = Math.round(bbox.minX);
+      const rsb = Math.round(adv - bbox.maxX);
+      const diff = lsb - rsb;
+      return { char, unicode: code, adv, lsb, rsb, diff };
+    },
+    [project.glyphs, project.metadata.unitsPerEm, resolveGlyphPreviewContours]
+  );
 
   // Apply vector transform directly to glyph contour in project
   const handleApplyTransformToGlyph = () => {
     if (!selectedCharInfo || !setProject) return;
     const unicode = selectedCharInfo.unicode;
     const g = project.glyphs[unicode];
-    if (!g || !g.contours || g.contours.length === 0) {
-      if (onShowToast) onShowToast(`「${selectedCharInfo.char}」の輪郭データが見つかりません`, 'info');
+    if (!g) {
+      onShowToast?.(`「${selectedCharInfo.char}」のグリフデータが見つかりません`, 'info');
+      return;
+    }
+    if (g.locked) {
+      onShowToast?.(`「${selectedCharInfo.char}」はロックされているため変更できません`, 'error');
+      return;
+    }
+    if (!g.contours || g.contours.length === 0) {
+      const isPixelOnly = Boolean(g.pixelData?.data && g.pixelData.data.some((p) => p === 1));
+      onShowToast?.(
+        isPixelOnly
+          ? `「${selectedCharInfo.char}」はドット絵グリフのためドットスタジオまたはメイン編集で調整してください`
+          : `「${selectedCharInfo.char}」の輪郭データが見つかりません`,
+        'info'
+      );
       return;
     }
 
@@ -585,6 +637,7 @@ const [testText, setTestText] = usePersistedField(
     const newBbox = getContoursBoundingBox(transformedContours);
     const newLsb = Math.max(0, Math.round(newBbox.minX));
 
+    commitHistory?.();
     setProject((prev) => {
       const prevG = prev.glyphs[unicode];
       if (!prevG) return prev;
@@ -597,6 +650,7 @@ const [testText, setTestText] = usePersistedField(
             ...prevG,
             contours: transformedContours,
             lsb: newLsb,
+            modified: true,
             updatedAt: Date.now(),
           },
         },
@@ -631,12 +685,17 @@ const [testText, setTestText] = usePersistedField(
     const unicode = selectedCharInfo.unicode;
     const g = project.glyphs[unicode];
     if (!g || !g.contours || g.contours.length === 0) return;
+    if (g.locked) {
+      onShowToast?.(`「${selectedCharInfo.char}」はロックされているため変更できません`, 'error');
+      return;
+    }
     const bbox = getContoursBoundingBox(g.contours);
     if (bbox.width <= 0) return;
 
-    const adv = g.advanceWidth || (unicode > 255 ? (project.metadata.unitsPerEm || 1000) : 500);
+    const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+    const adv = g.advanceWidth || (unicode > 255 ? upm : Math.round(upm / 2));
     const targetLsb = Math.round((adv - bbox.width) / 2);
-    const deltaX = targetLsb - bbox.minX;
+    const deltaX = Math.round(targetLsb - bbox.minX);
 
     setAdjustDx(deltaX);
     if (onShowToast) {
@@ -646,19 +705,28 @@ const [testText, setTestText] = usePersistedField(
 
 // Live SVG Preview calculation for active selected character
   const activeGlyph = selectedCharInfo ? project.glyphs[selectedCharInfo.unicode] : null;
+  const activeGlyphContours = useMemo(
+    () => resolveGlyphPreviewContours(activeGlyph),
+    [activeGlyph, resolveGlyphPreviewContours]
+  );
+  const isPixelOnlyActiveGlyph = Boolean(
+    activeGlyph &&
+      (!activeGlyph.contours || activeGlyph.contours.length === 0) &&
+      activeGlyphContours.length > 0
+  );
   const livePreviewContours = useMemo(() => {
-    if (!activeGlyph || !activeGlyph.contours) return [];
+    if (activeGlyphContours.length === 0) return [];
     if (adjustDx === 0 && adjustDy === 0 && adjustScaleX === 100 && adjustScaleY === 100) {
-      return activeGlyph.contours;
+      return activeGlyphContours;
     }
     return transformGlyphContours(
-      activeGlyph.contours,
+      activeGlyphContours,
       adjustDx,
       adjustDy,
       adjustScaleX / 100,
       adjustScaleY / 100
     );
-  }, [activeGlyph, adjustDx, adjustDy, adjustScaleX, adjustScaleY]);
+  }, [activeGlyphContours, adjustDx, adjustDy, adjustScaleX, adjustScaleY]);
 
   // All available glyph entries in project for dropdown selection
   const glyphEntries = useMemo(() => {
@@ -763,6 +831,8 @@ const [testText, setTestText] = usePersistedField(
     handleJumpToMainEditor,
     handleAutoCenterGlyph,
     activeGlyph,
+    activeGlyphContours,
+    isPixelOnlyActiveGlyph,
     livePreviewContours,
     glyphEntries,
     showLivePreviewBox,

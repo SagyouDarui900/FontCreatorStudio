@@ -4,7 +4,7 @@ import {
   MojikumiConfig,
   MojikumiPresetId,
 } from '../../types';
-import { compileFont, validateFontProject } from '../../utils/font';
+import { compileFont, validateFontProject, stripInvalidPixelData } from '../../utils/font';
 import {
   MOJIKUMI_PRESETS,
   PRESET_BETA,
@@ -132,6 +132,7 @@ export function useMojikumiStudioState({
   const compiledBlobUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
   const compileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const compileVersionRef = useRef<number>(0);
 
   const [zoom, setZoom] = usePersistedField(
     persistedState,
@@ -221,27 +222,32 @@ export function useMojikumiStudioState({
 
     let cancelled = false;
     let pendingBlobUrl: string | null = null;
+    const compileVersion = ++compileVersionRef.current;
 
     compileTimerRef.current = setTimeout(() => {
       compileTimerRef.current = null;
       try {
-        const validation = validateFontProject(project);
+        const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
+        const previewProject = stripInvalidPixelData(project).project;
+        const validation = validateFontProject(previewProject);
         if (!validation.valid) {
           throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
         }
-        const { blobUrl } = compileFont(project, {
-          mergeOverlaps: true,
+        const { blobUrl } = compileFont(previewProject, {
+          scaleFactor: isPixelProject ? 1.0 : 1.35,
+          balanceSideBearings: !isPixelProject,
+          mergeOverlaps: !isPixelProject,
           normalizeWinding: true,
         });
         pendingBlobUrl = blobUrl;
         setCompileError(null);
 
         if (typeof FontFace !== 'undefined') {
-          const newFontName = `CustomMojikumiFont_${Date.now()}`;
+          const newFontName = `CustomMojikumiFont_v${compileVersion}_${Date.now()}`;
           const ff = new FontFace(newFontName, `url('${blobUrl}')`);
           ff.load()
             .then((loaded) => {
-              if (cancelled) {
+              if (cancelled || compileVersion !== compileVersionRef.current) {
                 URL.revokeObjectURL(blobUrl);
                 return;
               }
@@ -253,7 +259,7 @@ export function useMojikumiStudioState({
             })
             .catch(() => {
               URL.revokeObjectURL(blobUrl);
-              if (!cancelled) {
+              if (!cancelled && compileVersion === compileVersionRef.current) {
                 setCompileError('プレビュー用フォントの読み込みに失敗しました。');
               }
             });
@@ -267,7 +273,7 @@ export function useMojikumiStudioState({
         // Remove the previous preview font so a failed compile never leaves
         // stale glyphs on screen, and show the failure instead.
         releaseCompiledFont();
-        if (!cancelled) {
+        if (!cancelled && compileVersion === compileVersionRef.current) {
           setCompileError(
             err instanceof Error && err.message
               ? err.message
@@ -284,7 +290,7 @@ export function useMojikumiStudioState({
         compileTimerRef.current = null;
       }
     };
-  }, [isOpen, project.updatedAt, fontSource, releaseCompiledFont]);
+  }, [isOpen, project, fontSource, releaseCompiledFont]);
 
   useEffect(() => {
     return () => {
@@ -335,17 +341,19 @@ export function useMojikumiStudioState({
     [onShowToast]
   );
 
+  const effectiveCharsPerLine = layoutMode === 'manuscript' ? 20 : charsPerLine;
+
   const dimensions = useMemo(() => {
-    return calculateTypesettingDimensions(fontSizeQ, lineFeedH, charsPerLine, lineCount, isVertical);
-  }, [fontSizeQ, lineFeedH, charsPerLine, lineCount, isVertical]);
+    return calculateTypesettingDimensions(fontSizeQ, lineFeedH, effectiveCharsPerLine, lineCount, isVertical);
+  }, [fontSizeQ, lineFeedH, effectiveCharsPerLine, lineCount, isVertical]);
 
   const currentLayout = useMemo(() => {
-    return simulateTypesetting(customText, charsPerLine, currentConfig, {
+    return simulateTypesetting(customText, effectiveCharsPerLine, currentConfig, {
       isVertical,
       usePalt: currentConfig.preset === 'tsume',
       trackingEm: 0,
     });
-  }, [customText, charsPerLine, currentConfig, isVertical]);
+  }, [customText, effectiveCharsPerLine, currentConfig, isVertical]);
 
   const betaLayout = useMemo(() => {
     if (layoutMode !== 'compare3') return currentLayout;
