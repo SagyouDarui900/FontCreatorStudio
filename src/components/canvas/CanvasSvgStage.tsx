@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import {
   PathContour,
@@ -239,6 +239,12 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
     return map;
   }, [contours]);
 
+  // Stable callbacks for memoized layers: inline arrows here would create a
+  // new reference on every stage render and defeat the layers' React.memo.
+  const handleClearRulerMeasurement = useCallback(() => {
+    setRulerMeasurement(null);
+  }, [setRulerMeasurement]);
+
   const selContours = useMemo(
     () => contours.filter((c) => selectedContourIds.includes(c.id) && c.nodes.length > 0),
     [contours, selectedContourIds]
@@ -432,7 +438,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             zoom={zoom}
             onDrawLine={handleDrawRulerAsStroke}
             onConvertToGuide={handleConvertRulerToGuideline}
-            onClear={() => setRulerMeasurement(null)}
+            onClear={handleClearRulerMeasurement}
           />
         )}
 
@@ -538,7 +544,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           handleDuplicateSelected={handleDuplicateSelected}
           handleMergeSelectedContours={handleMergeSelectedContours}
           handleDeleteSelected={handleDeleteSelected}
-          setSelectedContourIds={(ids) => setSelectedContourIds(ids)}
+          setSelectedContourIds={setSelectedContourIds}
           setSelectedNodeId={setSelectedNodeId}
           setSelectedHandleType={setSelectedHandleType}
           isGlyphLocked={isGlyphLocked}
