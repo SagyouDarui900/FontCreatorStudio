@@ -355,18 +355,22 @@ export function scaleContours(contours: PathContour[], scaleX: number, scaleY: n
 }
 
 /**
- * Center contours inside em-box
+ * Center contours inside em-box (horizontally and vertically)
  */
 export function centerContoursInBox(
   contours: PathContour[],
   boxWidth: number = 1000,
-  targetBaseline: number = 800
+  _targetBaseline: number = 800,
+  boxHeight: number = boxWidth
 ): PathContour[] {
+  if (!contours || contours.length === 0) return [];
   const bbox = getContoursBoundingBox(contours);
   const dx = Math.round(boxWidth / 2 - bbox.centerX);
+  const dy = Math.round(boxHeight / 2 - bbox.centerY);
+  if (dx === 0 && dy === 0) return contours;
   return transformContours(contours, (p) => ({
     x: p.x + dx,
-    y: p.y,
+    y: p.y + dy,
   }));
 }
 
@@ -382,12 +386,12 @@ export function fitContoursToEmBox(
 ): PathContour[] {
   if (!contours || contours.length === 0) return [];
   const bbox = getContoursBoundingBox(contours);
-  if (bbox.width <= 0 || bbox.height <= 0) return contours;
+  if (bbox.width <= 0 && bbox.height <= 0) return contours;
 
   const targetW = boxWidth * targetRatio;
   const targetH = boxHeight * targetRatio;
 
-  // Scale down if contours exceed the target box, or scale to optimal 85% frame
+  // Scale down if contours exceed the target box
   const scaleX = bbox.width > targetW ? targetW / bbox.width : 1.0;
   const scaleY = bbox.height > targetH ? targetH / bbox.height : 1.0;
   const scale = Math.min(scaleX, scaleY);

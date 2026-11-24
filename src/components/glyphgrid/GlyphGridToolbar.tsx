@@ -7,7 +7,6 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  X,
   Layers,
   Check,
   CheckCircle2,
@@ -201,31 +200,28 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
   return (
     <>
-      {/* Header with Title, Count, Density Toggles and Close */}
+      {/* Header with Compact Settings Title, Page Indicator, Width/Density Toggles */}
       <div
         className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
-        {/* Row 1: Title, Count, Density control, and Collapse button */}
-        <div className="flex flex-wrap items-center justify-between gap-1.5">
-          <div className="flex items-center space-x-1.5 min-w-0">
+        {/* Row 1: Compact label / page badge, width & density controls, search fold toggle */}
+        <div className="flex items-center justify-between gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             <span
-              className={`text-xs font-bold uppercase tracking-wider whitespace-nowrap ${themeClasses.textPrimary}`}
+              className={`text-[11px] font-bold tracking-tight whitespace-nowrap truncate ${themeClasses.textMuted}`}
             >
-              文字一覧
+              表示設定
             </span>
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 border tabular-nums ${themeClasses.accentBadge}`}
-            >
-              {charListLength.toLocaleString()}字
-              {totalPages > 1 && (
-                <span className="opacity-75 font-normal ml-1 tabular-nums">
-                  ({validPage}/{totalPages}頁)
-                </span>
-              )}
-            </span>
+            {totalPages > 1 && (
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 border tabular-nums ${themeClasses.accentBadge}`}
+              >
+                {validPage}/{totalPages}頁
+              </span>
+            )}
           </div>
 
-          {/* Density switch and close button */}
+          {/* Width Presets, Density switch and search fold toggle */}
           <div className="flex items-center space-x-1 shrink-0 ml-auto">
             {/* Width Presets (狭: 244px, 標: 304px, 広: 420px) */}
             {!effectiveIsOverlay && (
@@ -320,31 +316,16 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             <button
               type="button"
               onClick={() => setIsSearchHeaderExpanded((prev) => !prev)}
-              className={`p-1.5 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
                 isSearchHeaderExpanded
                   ? `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                   : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textPrimary} font-bold`
               }`}
               title={isSearchHeaderExpanded ? '分類・検索バーを折りたたんで一覧領域を拡大' : '分類・検索バーを展開'}
             >
-              <Sliders className="w-3.5 h-3.5" />
+              <Sliders className="w-3 h-3" />
+              <span>検索</span>
               {isSearchHeaderExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-
-            <button
-              onClick={onClose}
-              className={`p-1.5 sm:px-2 sm:py-1 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors max-sm:hidden ${themeClasses.accentBtn}`}
-              title="文字一覧を収納して作図キャンバスを広げる"
-            >
-              <span className="hidden sm:inline">収納</span>
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={onClose}
-              className={`p-1 rounded sm:hidden ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title="閉じる"
-            >
-              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -442,7 +423,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
               {/* Quick 1-Tap Category Tabs */}
               <div
-                className={`p-1 rounded-md flex items-center gap-1 min-w-0 border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+                className={`p-0.5 rounded-md flex items-center gap-0.5 min-w-0 border ${themeClasses.toolbarBg} ${themeClasses.border}`}
               >
                 {tabsCanScrollLeft && (
                   <button
@@ -453,12 +434,12 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                     className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                     title="左へスクロール"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <ChevronLeft className="w-3 h-3" />
                   </button>
                 )}
                 <div
                   ref={quickTabsRef}
-                  className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto touch-scroll-x custom-scrollbar pb-0.5 select-none whitespace-nowrap"
+                  className="flex-1 min-w-0 flex items-center gap-0.5 overflow-x-auto touch-scroll-x no-scrollbar select-none whitespace-nowrap"
                 >
                   {quickCategoryTabs.map((pill) => (
                     <button
@@ -471,7 +452,12 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                         setCurrentPage(1);
                         setIsCategoryDropdownOpen(false);
                       }}
-                      className={`px-2.5 py-1 rounded text-xs font-bold shrink-0 transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
+                      title={
+                        pill.id === 'modified'
+                          ? 'プロジェクト全体で作成済みの文字一覧'
+                          : `${pill.label}を表示`
+                      }
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold shrink-0 transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
                         activeCategoryId === pill.id
                           ? `${themeClasses.activeTool} shadow-xs border`
                           : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -490,7 +476,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                     className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                     title="右へスクロール"
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3 h-3" />
                   </button>
                 )}
               </div>
@@ -573,9 +559,9 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
       {/* Category Progress & Status Filter Bar */}
       <div
-        className={`px-2.5 py-1.5 border-b flex flex-col gap-1.5 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`px-2 py-1.5 border-b flex flex-col gap-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
-        {/* Progress header */}
+        {/* Progress header + thin bar */}
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-bold flex items-center gap-1.5 truncate">
             <span className={themeClasses.textPrimary}>
@@ -584,130 +570,133 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             <span className={`font-mono font-bold tabular-nums shrink-0 ${themeClasses.accentText}`}>
               {categoryStats.completed} / {categoryStats.total} 字
             </span>
+            <span className={`font-mono tabular-nums text-[10px] ${themeClasses.textMuted}`}>
+              ({categoryStats.percent}%)
+            </span>
           </span>
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => openModal('jisProgress')}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 cursor-pointer mr-0.5 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
               title="常用漢字・JIS第1・第2水準の進捗ダッシュボードを開く"
             >
               <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
               <span className="hidden sm:inline">JIS進捗</span>
             </button>
-            <span className={`font-mono font-bold tabular-nums text-[10px] px-1.5 py-0.5 rounded border ${themeClasses.accentBadge}`}>
-              {categoryStats.percent}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsFilterExpanded((prev) => !prev)}
-              className={`p-0.5 rounded transition-colors ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title={isFilterExpanded ? '詳細フィルターを折りたたんで一覧領域を拡大' : '詳細フィルターを展開'}
-            >
-              {isFilterExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
+            {(onOpenGlyphSynthesisModal || onOpenKerningModal || onOpenQualityModal) && (
+              <button
+                type="button"
+                onClick={() => setIsFilterExpanded((prev) => !prev)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border flex items-center gap-0.5 transition-colors cursor-pointer ${
+                  isFilterExpanded
+                    ? themeClasses.activeTool
+                    : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+                }`}
+                title={isFilterExpanded ? '補助ツールショートカットを隠す' : '一括生成・カーニング・品質チェックを表示'}
+              >
+                <span>ツール</span>
+                {isFilterExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            )}
           </div>
         </div>
 
-        {isFilterExpanded && (
-          <>
-            {/* Progress track */}
-            <div className={`w-full h-1.5 rounded-xs overflow-hidden border ${themeClasses.toolbarBg} ${themeClasses.border}`}>
-              <div
-                className="h-full bg-emerald-600 rounded-xs transition-[width] duration-300"
-                style={{ width: `${categoryStats.percent}%` }}
-              />
-            </div>
+        {/* Thin progress track */}
+        <div className={`w-full h-1 rounded-xs overflow-hidden ${themeClasses.toolbarBg}`}>
+          <div
+            className="h-full bg-emerald-600 rounded-xs transition-[width] duration-300"
+            style={{ width: `${categoryStats.percent}%` }}
+          />
+        </div>
 
-            {/* Status Filter Segmented Control */}
-            <div
-              className={`grid grid-cols-3 gap-1 p-1 rounded-md text-xs font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
-            >
-              <button
-                onClick={() => {
-                  setStatusFilter('all');
-                  setCurrentPage(1);
-                }}
-                className={`py-1 px-1 rounded text-center truncate whitespace-nowrap tabular-nums transition-colors ${
-                  statusFilter === 'all'
-                    ? `${themeClasses.activeTool} shadow-xs border`
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-                title="すべて表示"
-              >
-                すべて ({rawCategoryListLength})
-              </button>
-              <button
-                onClick={() => {
-                  setStatusFilter('completed');
-                  setCurrentPage(1);
-                }}
-                className={`py-1 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-colors ${
-                  statusFilter === 'completed'
-                    ? `${themeClasses.activeTool} shadow-xs border`
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-                title="作成済みのみ表示"
-              >
-                <CheckCircle2 className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
-                <span className="truncate">済 ({categoryStats.completed})</span>
-              </button>
-              <button
-                onClick={() => {
-                  setStatusFilter('pending');
-                  setCurrentPage(1);
-                }}
-                className={`py-1 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-colors ${
-                  statusFilter === 'pending'
-                    ? `${themeClasses.activeTool} shadow-xs border`
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-                title="未作成のみ表示"
-              >
-                <CircleDashed className={`w-3 h-3 shrink-0 ${themeClasses.textMuted}`} />
-                <span className="truncate">未 ({categoryStats.total - categoryStats.completed})</span>
-              </button>
-            </div>
+        {/* Compact Status Filter Segmented Control */}
+        <div
+          className={`grid grid-cols-3 gap-0.5 p-0.5 rounded-md text-[11px] font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+        >
+          <button
+            onClick={() => {
+              setStatusFilter('all');
+              setCurrentPage(1);
+            }}
+            className={`py-0.5 px-1 rounded text-center truncate whitespace-nowrap tabular-nums transition-colors cursor-pointer ${
+              statusFilter === 'all'
+                ? `${themeClasses.activeTool} shadow-xs border`
+                : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+            }`}
+            title="すべて表示"
+          >
+            すべて ({rawCategoryListLength})
+          </button>
+          <button
+            onClick={() => {
+              setStatusFilter('completed');
+              setCurrentPage(1);
+            }}
+            className={`py-0.5 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-colors cursor-pointer ${
+              statusFilter === 'completed'
+                ? `${themeClasses.activeTool} shadow-xs border`
+                : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+            }`}
+            title="作成済みのみ表示"
+          >
+            <CheckCircle2 className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
+            <span className="truncate">済 ({categoryStats.completed})</span>
+          </button>
+          <button
+            onClick={() => {
+              setStatusFilter('pending');
+              setCurrentPage(1);
+            }}
+            className={`py-0.5 px-1 rounded text-center flex items-center justify-center gap-1 truncate whitespace-nowrap tabular-nums transition-colors cursor-pointer ${
+              statusFilter === 'pending'
+                ? `${themeClasses.activeTool} shadow-xs border`
+                : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+            }`}
+            title="未作成のみ表示"
+          >
+            <CircleDashed className={`w-3 h-3 shrink-0 ${themeClasses.textMuted}`} />
+            <span className="truncate">未 ({categoryStats.total - categoryStats.completed})</span>
+          </button>
+        </div>
 
-            {/* Quick Batch Studios Action Buttons */}
-            {(onOpenGlyphSynthesisModal || onOpenKerningModal || onOpenQualityModal) && (
-              <div className={`grid grid-cols-2 gap-1 pt-1 border-t ${themeClasses.border}`}>
-                {onOpenGlyphSynthesisModal && (
-                  <button
-                    type="button"
-                    onClick={onOpenGlyphSynthesisModal}
-                    className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-                    title="濁点・半濁点・小書き文字を一括自動生成"
-                  >
-                    <Wand2 className="w-3 h-3 text-amber-500 shrink-0" />
-                    <span className="truncate">濁点・小文字生成</span>
-                  </button>
-                )}
-                {onOpenKerningModal && (
-                  <button
-                    type="button"
-                    onClick={onOpenKerningModal}
-                    className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-                    title="ペアごとの字間・サイドベアリング一括設定"
-                  >
-                    <ArrowLeftRight className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
-                    <span className="truncate">カーニング調整</span>
-                  </button>
-                )}
-                {onOpenQualityModal && (
-                  <button
-                    type="button"
-                    onClick={onOpenQualityModal}
-                    className={`col-span-2 py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-                    title="字形重複・パス交差・過剰ノード・ベースライン逸脱の品質検査"
-                  >
-                    <ShieldCheck className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
-                    <span className="truncate">フォント品質チェック</span>
-                  </button>
-                )}
-              </div>
+        {/* Collapsible Quick Batch Studios Action Buttons */}
+        {isFilterExpanded && (onOpenGlyphSynthesisModal || onOpenKerningModal || onOpenQualityModal) && (
+          <div className={`grid grid-cols-2 gap-1 pt-1 border-t ${themeClasses.border}`}>
+            {onOpenGlyphSynthesisModal && (
+              <button
+                type="button"
+                onClick={onOpenGlyphSynthesisModal}
+                className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                title="濁点・半濁点・小書き文字を一括自動生成"
+              >
+                <Wand2 className="w-3 h-3 text-amber-500 shrink-0" />
+                <span className="truncate">濁点・小文字生成</span>
+              </button>
             )}
-          </>
+            {onOpenKerningModal && (
+              <button
+                type="button"
+                onClick={onOpenKerningModal}
+                className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                title="ペアごとの字間・サイドベアリング一括設定"
+              >
+                <ArrowLeftRight className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
+                <span className="truncate">カーニング調整</span>
+              </button>
+            )}
+            {onOpenQualityModal && (
+              <button
+                type="button"
+                onClick={onOpenQualityModal}
+                className={`col-span-2 py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                title="字形重複・パス交差・過剰ノード・ベースライン逸脱の品質検査"
+              >
+                <ShieldCheck className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
+                <span className="truncate">フォント品質チェック</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </>

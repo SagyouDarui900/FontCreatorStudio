@@ -72,7 +72,19 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     }
 
     const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? DEFAULT_GRID_OPACITY) / 45));
-    const labelColor = isLight ? '#64748b' : '#94a3b8';
+    const labelColor = isLight ? '#475569' : '#cbd5e1';
+    const labelBacking =
+      theme === 'sepia'
+        ? '#faf5eb'
+        : theme === 'warm'
+        ? '#fffdf7'
+        : theme === 'nord'
+        ? '#2e3440'
+        : theme === 'monochrome'
+        ? '#ffffff'
+        : isLight
+        ? '#ffffff'
+        : '#161f19';
 
     const primaryColor =
       theme === 'sepia'
@@ -305,7 +317,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
 
         {/* 3. 漢字字面枠 (85%) — sharp 90° corners + non-colliding top-left border label */}
         {showBodyFrame && (
-          <g opacity={0.62}>
+          <g opacity={0.7}>
             <rect
               x={bodyInset}
               y={bodyInset}
@@ -325,7 +337,18 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               vectorEffect="non-scaling-stroke"
             />
             <g transform={`translate(${bodyInset}, ${bodyInset}) scale(${invZ})`}>
-              <text x={4} y={-4} fill={labelColor} fontSize={9.5} opacity={0.78}>
+              <text
+                x={4}
+                y={-4}
+                fill={labelColor}
+                stroke={labelBacking}
+                strokeWidth={3.5}
+                strokeLinejoin="miter"
+                paintOrder="stroke"
+                fontSize={9.5}
+                fontWeight={600}
+                opacity={0.92}
+              >
                 漢字枠 (85%)
               </text>
             </g>
@@ -334,7 +357,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
 
         {/* 4. 仮名字面枠 (78%) — sharp 90° corners + top-right border label (never collides with 漢字枠) */}
         {showKanaFrame && (
-          <g opacity={0.62}>
+          <g opacity={0.7}>
             <rect
               x={kanaInset}
               y={kanaInset}
@@ -347,7 +370,19 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
               strokeDasharray={dash(3, 3)}
             />
             <g transform={`translate(${kanaInset + kanaSize}, ${kanaInset}) scale(${invZ})`}>
-              <text x={-4} y={-4} fill={labelColor} fontSize={9.5} textAnchor="end" opacity={0.78}>
+              <text
+                x={-4}
+                y={-4}
+                fill={labelColor}
+                stroke={labelBacking}
+                strokeWidth={3.5}
+                strokeLinejoin="miter"
+                paintOrder="stroke"
+                fontSize={9.5}
+                fontWeight={600}
+                textAnchor="end"
+                opacity={0.92}
+              >
                 かな枠 (78%)
               </text>
             </g>

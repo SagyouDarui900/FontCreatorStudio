@@ -1,5 +1,7 @@
 import { BezierNode, PathContour, Point } from '../types';
-import { generateId, getContoursBoundingBox, transformContours } from './pathUtils';
+import { generateId } from './path/id';
+import { getContoursBoundingBox } from './path/bounds';
+import { transformContours } from './path/transform';
 
 export interface VectorizeOptions {
   threshold?: number; // 0 to 255 (default: 128)

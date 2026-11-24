@@ -4,7 +4,6 @@ import {
   Grid,
   Magnet,
   Eye,
-  Ruler,
   Crosshair,
   Save,
   Layers,
@@ -140,7 +139,19 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
           }`}
           title="外枠の目盛定規・ルーラー表示/非表示 (ルーラーからガイド線を引き出せます)"
         >
-          <Ruler className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4 sm:w-4 sm:h-4 shrink-0"
+            aria-hidden="true"
+          >
+            <path d="M4 20V4h16" />
+            <path d="M9 4v3M14 4v2M19 4v3M4 9h3M4 14h2M4 19h3" />
+          </svg>
         </button>
 
         {/* Cursor Crosshair Reticle Toggle */}
@@ -165,7 +176,9 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
       {/* Quick Actions (Desktop only) */}
       <div
         className={`hidden sm:flex ${
-          orientation === 'vertical' ? 'flex-col mt-1 pb-1' : 'flex-row'
+          orientation === 'vertical'
+            ? 'flex-col pt-1.5 mt-0.5 pb-1 border-t border-stone-300/80 dark:border-[#2a3c30]'
+            : 'flex-row pl-1.5 ml-0.5 border-l border-stone-300/80 dark:border-[#2a3c30]'
         } items-center gap-1 shrink-0`}
       >
         {/* Quick Save Current Glyph */}

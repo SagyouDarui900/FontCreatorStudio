@@ -55,7 +55,8 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     const maxLineX = Math.max(upm, advanceWidth);
     const verticalTopY = Math.min(0, ascenderY);
     const verticalBottomY = Math.max(upm, descenderY);
-    const labelColor = isLight ? '#64748b' : '#94a3b8';
+    const labelColor = isLight ? '#475569' : '#cbd5e1';
+    const labelBacking = isLight ? '#ffffff' : '#161f19';
     const latinLineColor = isLight ? '#475569' : '#94a3b8';
     const baselineColor = isLight ? '#dc2626' : '#f87171';
     const sidebearingColor = isLight ? '#059669' : '#34d399';
@@ -223,7 +224,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
         )}
 
         {/* LSB (Left Side Bearing) */}
-        <g opacity={0.58 * opacityScale}>
+        <g opacity={Math.min(0.9, 0.7 * opacityScale)}>
           <line
             x1={lsb}
             y1={verticalTopY}
@@ -240,8 +241,13 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
               textAnchor={sideLabelsTight ? 'end' : 'start'}
               y={-6}
               fontSize={9.5}
+              fontWeight={600}
               fill={labelColor}
-              opacity={0.78}
+              stroke={labelBacking}
+              strokeWidth={3.5}
+              strokeLinejoin="miter"
+              paintOrder="stroke"
+              opacity={0.95}
             >
               LSB {Math.round(lsb)}
             </text>
@@ -249,7 +255,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
         </g>
 
         {/* RSB / Advance Width */}
-        <g opacity={0.58 * opacityScale}>
+        <g opacity={Math.min(0.9, 0.7 * opacityScale)}>
           <line
             x1={advanceWidth}
             y1={verticalTopY}
@@ -266,8 +272,13 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
               textAnchor={sideLabelsTight ? 'start' : 'end'}
               y={-6}
               fontSize={9.5}
+              fontWeight={600}
               fill={labelColor}
-              opacity={0.78}
+              stroke={labelBacking}
+              strokeWidth={3.5}
+              strokeLinejoin="miter"
+              paintOrder="stroke"
+              opacity={0.95}
             >
               Adv {Math.round(advanceWidth)}
             </text>

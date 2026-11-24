@@ -4,6 +4,8 @@ import {
   Clipboard,
   Trash2,
   Lock,
+  ChevronLeft,
+  X,
 } from 'lucide-react';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
 import { STORAGE_KEYS, setStorageItem } from '../utils/storageKeys';
@@ -269,9 +271,9 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           </div>
         )}
 
-        {/* Panel Tabs: creation grid / plain character list */}
+        {/* Panel Tabs: creation grid / plain specimen list + Collapse */}
         <div
-          className={`flex gap-1 px-2 pt-2 pb-1 shrink-0 border-b ${themeClasses.border}`}
+          className={`flex items-center gap-1 px-2 pt-1.5 pb-1.5 shrink-0 border-b ${themeClasses.headerBg} ${themeClasses.border}`}
           role="tablist"
           aria-label="文字パネルの表示切り替え"
         >
@@ -280,26 +282,43 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             role="tab"
             aria-selected={panelTab === 'create'}
             onClick={() => setPanelTab('create')}
-            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors ${
+            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors whitespace-nowrap ${
               panelTab === 'create'
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
             }`}
           >
-            作成
+            作字グリッド
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={panelTab === 'list'}
             onClick={() => setPanelTab('list')}
-            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors ${
+            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors whitespace-nowrap ${
               panelTab === 'list'
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
             }`}
           >
-            一覧
+            見本一覧
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors max-sm:hidden shrink-0 cursor-pointer ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            title="文字一覧を収納して作図キャンバスを広げる"
+          >
+            <span>収納</span>
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`p-1 rounded sm:hidden shrink-0 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            title="閉じる"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -403,10 +422,10 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         {/* Selected Glyph Quick Action Dock */}
         {selectedUnicode > 0 && (
           <div
-            className={`px-3 py-1.5 border-t flex items-center justify-between text-xs shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+            className={`px-2.5 py-1 border-t flex items-center justify-between text-xs shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <div className="flex items-center space-x-1.5 min-w-0">
-              <span className={`font-bold text-sm ${themeClasses.accentText}`}>
+              <span className={`font-bold text-xs ${themeClasses.accentText}`}>
                 {currentSelectedChar}
               </span>
               <span className={`text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>

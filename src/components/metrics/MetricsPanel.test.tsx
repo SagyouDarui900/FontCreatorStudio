@@ -7,7 +7,8 @@ import { PrecisionInspector } from '../precision/PrecisionInspector';
 import { useAppShortcuts } from '../../hooks/useAppShortcuts';
 import { usePointerMetricsDrag } from '../canvas/hooks/usePointerMetricsDrag';
 import { outlineOpenContour } from '../../utils/path/stroke_modules/outlineOpen';
-import { getContoursBoundingBox } from '../../utils/path';
+import { getContoursBoundingBox, getContourSignedArea } from '../../utils/path';
+import { calculateOptimalSpacing } from '../../utils/metricsHelper';
 import { getThemeClasses } from '../../utils/theme';
 import { GlyphData, PathContour } from '../../types';
 
@@ -521,5 +522,179 @@ describe('MetricsPanel & PrecisionInspector fixes', () => {
     expect(draggingMetric).toBe('lsb');
 
     act(() => root.unmount());
+  });
+
+  it('preserves winding order on FlipH/V, centers both X and Y in EM box, and syncs LSB without jumping on 1D or desynced contours', () => {
+    const asym: PathContour = {
+      id: 'asym',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 120, y: 100, type: 'corner' },
+        { id: 'n2', x: 420, y: 120, type: 'corner' },
+        { id: 'n3', x: 360, y: 380, type: 'corner' },
+      ],
+    };
+    const origArea = getContourSignedArea(asym);
+    const onChangeContours = vi.fn();
+    const onChangeLsb = vi.fn();
+    const onCommitHistory = vi.fn();
+
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <MetricsPanel
+          advanceWidth={1000}
+          lsb={50} // intentionally stale relative to minX=120
+          onChangeAdvanceWidth={vi.fn()}
+          onChangeLsb={onChangeLsb}
+          contours={[asym]}
+          onChangeContours={onChangeContours}
+          onCommitHistory={onCommitHistory}
+          selectedChar="あ"
+          selectedUnicode={0x3042}
+          theme="light"
+        />
+      );
+    });
+
+    // FlipH preserves signed area sign (winding)
+    const flipHBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('左右反転')
+    )!;
+    act(() => {
+      flipHBtn.click();
+    });
+    const flippedContours = onChangeContours.mock.calls[0][0] as PathContour[];
+    expect(Math.sign(getContourSignedArea(flippedContours[0]))).toBe(Math.sign(origArea));
+
+    // EM center centers both X and Y
+    onChangeContours.mockClear();
+    onChangeLsb.mockClear();
+    const centerBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('EM枠の中央に配置')
+    )!;
+    act(() => {
+      centerBtn.click();
+    });
+    const centered = onChangeContours.mock.calls[0][0] as PathContour[];
+    const centeredBox = getContoursBoundingBox(centered);
+    expect(centeredBox.centerX).toBe(500);
+    expect(centeredBox.centerY).toBe(500);
+
+    // +5 LSB step uses actual bbox.minX (120 -> 125), NOT stale lsb=50 -> 55
+    onChangeContours.mockClear();
+    onChangeLsb.mockClear();
+    const stepPlus5 = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '+5')!;
+    act(() => {
+      stepPlus5.click();
+    });
+    const steppedContours = onChangeContours.mock.calls[0][0] as PathContour[];
+    expect(getContoursBoundingBox(steppedContours).minX).toBe(125);
+    expect(onChangeLsb).toHaveBeenCalledWith(125, { skipHistory: true });
+
+    // 1D vertical line (width === 0) also shifts properly on LSB preset
+    const vLine: PathContour = {
+      id: 'vline',
+      closed: false,
+      nodes: [
+        { id: 'v1', x: 300, y: 100, type: 'corner' },
+        { id: 'v2', x: 300, y: 800, type: 'corner' },
+      ],
+    };
+    act(() => {
+      root.render(
+        <MetricsPanel
+          advanceWidth={1000}
+          lsb={300}
+          onChangeAdvanceWidth={vi.fn()}
+          onChangeLsb={onChangeLsb}
+          contours={[vLine]}
+          onChangeContours={onChangeContours}
+          onCommitHistory={onCommitHistory}
+          selectedChar="丨"
+          selectedUnicode={0x4e28}
+          theme="light"
+        />
+      );
+    });
+    onChangeContours.mockClear();
+    onChangeLsb.mockClear();
+    const preset80 = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '80px')!;
+    act(() => {
+      preset80.click();
+    });
+    const shiftedLine = onChangeContours.mock.calls[0][0] as PathContour[];
+    expect(getContoursBoundingBox(shiftedLine).minX).toBe(80);
+    expect(onChangeLsb).toHaveBeenCalledWith(80, { skipHistory: true });
+
+    act(() => root.unmount());
+  });
+
+  it('PrecisionInspector aligns handles when switching to smooth and scales 1D vertical lines', () => {
+    const contour: PathContour = {
+      id: 'c-node',
+      closed: true,
+      nodes: [
+        {
+          id: 'n1',
+          x: 200,
+          y: 200,
+          type: 'corner',
+          handleIn: { x: 150, y: 200 },
+          handleOut: { x: 200, y: 260 },
+        },
+        { id: 'n2', x: 200, y: 500, type: 'corner' },
+        { id: 'n3', x: 400, y: 500, type: 'corner' },
+      ],
+    };
+    const onChangeContours = vi.fn();
+    const onCommitHistory = vi.fn();
+
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <PrecisionInspector
+          contours={[contour]}
+          selectedContourIds={['c-node']}
+          selectedNodeId="n1"
+          selectedHandleType="handleOut"
+          onChangeContours={onChangeContours}
+          onCommitHistory={onCommitHistory}
+          unitsPerEm={1000}
+          advanceWidth={1000}
+          isLight={true}
+          themeClasses={getThemeClasses('light')}
+        />
+      );
+    });
+
+    expect(container.textContent).toContain('出力ハンドル選択中');
+
+    const smoothBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('滑らか (Smooth)')
+    )!;
+    act(() => {
+      smoothBtn.click();
+    });
+    const updatedNode = (onChangeContours.mock.calls[0][0] as PathContour[])[0].nodes[0];
+    expect(updatedNode.type).toBe('smooth');
+    // handleIn -> anchor -> handleOut should be collinear (cross product near 0)
+    const vIn = { x: updatedNode.handleIn!.x - updatedNode.x, y: updatedNode.handleIn!.y - updatedNode.y };
+    const vOut = { x: updatedNode.handleOut!.x - updatedNode.x, y: updatedNode.handleOut!.y - updatedNode.y };
+    const cross = Math.abs(vIn.x * vOut.y - vIn.y * vOut.x);
+    expect(cross).toBeLessThan(120); // integer rounding tolerance
+
+    act(() => root.unmount());
+  });
+
+  it('calculateOptimalSpacing treats halfwidth katakana proportionally and scales optical margins by UPM', () => {
+    const sample = [makeRectContour('hw', 100, 100, 300, 700)]; // width 200
+    const hwRes = calculateOptimalSpacing(0xff71, sample, 'smart', 1000); // 'ｱ'
+    expect(hwRes.advanceWidth).toBeLessThan(500);
+
+    const a2048 = calculateOptimalSpacing(65, [makeRectContour('a', 100, 100, 900, 1400)], 'proportional-balanced', 2048);
+    expect(a2048.lsb).toBe(Math.round(40 * 2.048));
+    const k2048 = calculateOptimalSpacing(107, [makeRectContour('k', 100, 100, 900, 1400)], 'proportional-balanced', 2048);
+    expect(k2048.lsb).toBe(Math.round(60 * 2.048));
   });
 });

@@ -6,26 +6,16 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
-  Maximize2,
-  Minimize2,
-  RotateCw,
-  RotateCcw,
-  FlipHorizontal,
-  FlipVertical,
-  Layers,
   Sparkles,
   Move,
-  CornerUpRight,
   Sliders,
-  Scissors,
-  Check,
   Split,
   Box,
   Hash,
   Lock,
 } from 'lucide-react';
-import { PathContour, BezierNode, ThemeClasses } from '../../types';
-import { getContoursBoundingBox, getContourBoundingBox } from '../../utils/path';
+import { PathContour, ThemeClasses } from '../../types';
+import { getContoursBoundingBox } from '../../utils/path';
 import {
   alignContours,
   distributeContours,
@@ -67,7 +57,6 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
   const [keepAspect, setKeepAspect] = useState<boolean>(true);
   const [offsetStrokeWidth, setOffsetStrokeWidth] = useState<number>(40);
   const [offsetCapStyle, setOffsetCapStyle] = useState<'round' | 'butt' | 'square'>('round');
-  const [customRotateAngle, setCustomRotateAngle] = useState<number>(45);
 
   // Selected contours
   const selectedContours = useMemo(
@@ -141,9 +130,37 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             return {
               ...n,
               [key]: numVal,
-              handleIn: n.handleIn ? { ...n.handleIn, [key]: Math.round(n.handleIn[key] + delta) } : undefined,
-              handleOut: n.handleOut ? { ...n.handleOut, [key]: Math.round(n.handleOut[key] + delta) } : undefined,
+              handleIn: n.handleIn ? { ...n.handleIn, [key]: Math.round(n.handleIn[key] + delta) } : null,
+              handleOut: n.handleOut ? { ...n.handleOut, [key]: Math.round(n.handleOut[key] + delta) } : null,
             };
+          }
+          if (key === 'type' && value === 'smooth' && n.handleIn && n.handleOut) {
+            const dxIn = n.handleIn.x - n.x;
+            const dyIn = n.handleIn.y - n.y;
+            const dxOut = n.handleOut.x - n.x;
+            const dyOut = n.handleOut.y - n.y;
+            const lenIn = Math.hypot(dxIn, dyIn);
+            const lenOut = Math.hypot(dxOut, dyOut);
+            if (lenIn > 0.01 && lenOut > 0.01) {
+              // Align along the chord between handleIn and handleOut so both become collinear
+              const chordX = n.handleOut.x - n.handleIn.x;
+              const chordY = n.handleOut.y - n.handleIn.y;
+              const chordLen = Math.hypot(chordX, chordY);
+              const angle =
+                chordLen > 0.01 ? Math.atan2(chordY, chordX) : Math.atan2(dyOut, dxOut);
+              return {
+                ...n,
+                type: 'smooth' as const,
+                handleIn: {
+                  x: Math.round(n.x - Math.cos(angle) * lenIn),
+                  y: Math.round(n.y - Math.sin(angle) * lenIn),
+                },
+                handleOut: {
+                  x: Math.round(n.x + Math.cos(angle) * lenOut),
+                  y: Math.round(n.y + Math.sin(angle) * lenOut),
+                },
+              };
+            }
           }
           return { ...n, [key]: value };
         }),
@@ -219,7 +236,6 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
     if (selectedContours.length === 0) return;
     const clampedW = Math.max(1, Math.round(targetW));
     const clampedH = Math.max(1, Math.round(targetH));
-    onCommitHistory();
     const updated = setContoursExactDimensions(
       contours,
       selectedContourIds,
@@ -227,6 +243,12 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       clampedH,
       false
     );
+    const changed = updated.some((c, idx) => c !== contours[idx]);
+    if (!changed) {
+      showToast?.('サイズを変更できませんでした（退化した点または無効な輪郭です）');
+      return;
+    }
+    onCommitHistory();
     onChangeContours(updated, { skipHistory: true });
     showToast?.(`サイズを W:${clampedW} H:${clampedH} に変更しました`);
   };
@@ -324,8 +346,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             ...n,
             x: Math.round(n.x),
             y: Math.round(n.y),
-            handleIn: n.handleIn ? { x: Math.round(n.handleIn.x), y: Math.round(n.handleIn.y) } : undefined,
-            handleOut: n.handleOut ? { x: Math.round(n.handleOut.x), y: Math.round(n.handleOut.y) } : undefined,
+            handleIn: n.handleIn ? { x: Math.round(n.handleIn.x), y: Math.round(n.handleIn.y) } : null,
+            handleOut: n.handleOut ? { x: Math.round(n.handleOut.x), y: Math.round(n.handleOut.y) } : null,
           };
         }),
       };
@@ -345,15 +367,24 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       {/* 1. NODE INSPECTOR SECTION */}
       {activeNode && (
         <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-bold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-              <Move className="w-3.5 h-3.5" />
-              <span>選択ノード座標</span>
+          <div className="flex items-center justify-between gap-1 mb-2">
+            <span className="font-bold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 min-w-0">
+              <Move className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {selectedHandleType === 'handleIn' || selectedHandleType === 'handleOut'
+                  ? '親アンカー座標'
+                  : '選択ノード座標'}
+              </span>
+              {(selectedHandleType === 'handleIn' || selectedHandleType === 'handleOut') && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/30 shrink-0">
+                  {selectedHandleType === 'handleIn' ? '入力ハンドル選択中' : '出力ハンドル選択中'}
+                </span>
+              )}
             </span>
             <button
               type="button"
               onClick={handleRoundNodeCoords}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer shrink-0 ${
                 isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-300' : 'bg-stone-800 hover:bg-stone-700 border-stone-700'
               }`}
               title="座標を整数値にスナップ"
@@ -642,7 +673,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         </div>
 
         {/* Quick Presets */}
-        <div className="flex gap-1 mb-2.5">
+        <div className="flex gap-1 mb-2">
           {[20, 40, 60, 80, 100].map((w) => (
             <button
               key={w}
@@ -659,6 +690,33 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
               {w}
             </button>
           ))}
+        </div>
+
+        {/* Cap Style Selector */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <span className="text-[10px] text-stone-500 shrink-0">端点の形状:</span>
+          <div className="flex gap-1 flex-1">
+            {([
+              { id: 'round', label: '丸 (Round)' },
+              { id: 'butt', label: '平 (Butt)' },
+              { id: 'square', label: '角 (Square)' },
+            ] as const).map((cap) => (
+              <button
+                key={cap.id}
+                type="button"
+                onClick={() => setOffsetCapStyle(cap.id)}
+                className={`flex-1 py-1 rounded text-[10px] font-medium border cursor-pointer ${
+                  offsetCapStyle === cap.id
+                    ? 'bg-emerald-600 text-white border-transparent'
+                    : isLight
+                    ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                    : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
+                }`}
+              >
+                {cap.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button

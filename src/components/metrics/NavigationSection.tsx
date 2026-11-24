@@ -106,7 +106,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               title="前の未作成グリフへスキップ"
             >
               <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
-              <span>未作成文字</span>
+              <span>前の未作成</span>
             </button>
             <button
               type="button"
@@ -115,7 +115,7 @@ export const NavigationSection: React.FC<NavigationSectionProps> = ({
               className={`min-h-[36px] py-1.5 px-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               title="次の未作成グリフへジャンプ"
             >
-              <span>未作成文字</span>
+              <span>次の未作成</span>
               <ChevronRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           </div>

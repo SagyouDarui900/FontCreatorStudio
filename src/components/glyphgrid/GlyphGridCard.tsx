@@ -168,21 +168,38 @@ export const GlyphGridCard = memo(
           <div className="absolute top-1/2 left-0 right-0 h-px border-b border-dashed border-current" />
         </div>
 
-        {/* Top Header: Unicode Hex code + Status indicator */}
+        {/* Top Header: Character label + Unicode Hex code + Status indicator */}
         <div className="w-full flex items-center justify-between px-1 pt-0.5 z-10 leading-none shrink-0 gap-0.5">
-          <span
-            className={`font-mono text-[9px] tracking-tight truncate max-w-[80%] ${
-              isSelected
-                ? `${themeClasses?.accentText || (isLight ? 'text-emerald-900' : 'text-emerald-300')} font-bold`
-                : isCompleted
-                ? isLight
-                  ? 'text-stone-800 font-semibold'
-                  : 'text-stone-200 font-semibold'
-                : 'text-stone-400 dark:text-stone-600'
-            }`}
-          >
-            {item.code.toString(16).toUpperCase().padStart(4, '0')}
-          </span>
+          <div className="flex items-baseline gap-1 min-w-0 truncate">
+            {item.code !== 0x3000 && item.code !== 0x0020 && (
+              <span
+                className={`font-sans text-[11px] font-bold leading-none shrink-0 ${
+                  isSelected
+                    ? themeClasses?.accentText || (isLight ? 'text-emerald-900' : 'text-emerald-300')
+                    : isCompleted
+                    ? isLight
+                      ? 'text-stone-900'
+                      : 'text-stone-100'
+                    : 'text-stone-500 dark:text-stone-400'
+                }`}
+              >
+                {item.char}
+              </span>
+            )}
+            <span
+              className={`font-mono text-[8.5px] tracking-tight truncate ${
+                isSelected
+                  ? `${themeClasses?.accentText || (isLight ? 'text-emerald-800' : 'text-emerald-300')} opacity-85 font-semibold`
+                  : isCompleted
+                  ? isLight
+                    ? 'text-stone-500 font-medium'
+                    : 'text-stone-400 font-medium'
+                  : 'text-stone-400 dark:text-stone-600'
+              }`}
+            >
+              {item.code.toString(16).toUpperCase().padStart(4, '0')}
+            </span>
+          </div>
 
           {/* Status Indicator */}
           <div className="flex items-center space-x-1 shrink-0">

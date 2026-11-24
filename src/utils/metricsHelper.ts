@@ -1,5 +1,6 @@
 import { GlyphData, PathContour } from '../types';
-import { getContoursBoundingBox, transformContours } from './pathUtils';
+import { getContoursBoundingBox } from './path/bounds';
+import { transformContours } from './path/transform';
 
 /**
  * よく使われるカーニングペアプリセット
@@ -109,8 +110,11 @@ export function calculateOptimalSpacing(
   }
 
   const bbox = getContoursBoundingBox(contours);
-  const isCjk = (unicode >= 0x3000 && unicode <= 0x9fff) || (unicode >= 0xff00 && unicode <= 0xffef);
-  const isAscii = unicode >= 0x0020 && unicode <= 0x007f;
+  // Fullwidth CJK ranges (excludes halfwidth katakana/jamo U+FF61..U+FFDC)
+  const isCjk =
+    (unicode >= 0x3000 && unicode <= 0x9fff) ||
+    (unicode >= 0xff00 && unicode <= 0xff60) ||
+    (unicode >= 0xffe0 && unicode <= 0xffef);
 
   if (preset === 'japanese-fullwidth' || (preset === 'smart' && isCjk)) {
     // 和文全角 (unitsPerEm 均等センタリング)
@@ -126,7 +130,8 @@ export function calculateOptimalSpacing(
     };
   }
 
-  // 欧文・プロポーショナル光学スペーシング
+  // 欧文・プロポーショナル光学スペーシング (UPM比率でスケーリング)
+  const upmScale = upm / 1000;
   let targetLsb = 60;
   let targetRsb = 60;
 
@@ -150,9 +155,13 @@ export function calculateOptimalSpacing(
     targetRsb = isRoundRight ? 50 : isSlanted ? 40 : isStraightRight ? 75 : 60;
   }
 
+  targetLsb = Math.round(targetLsb * upmScale);
+  targetRsb = Math.round(targetRsb * upmScale);
+
   const dx = Math.round(targetLsb - bbox.minX);
   const newContours = dx !== 0 ? transformContours(contours, (p) => ({ x: p.x + dx, y: p.y })) : contours;
-  const newAdvance = Math.max(150, Math.round(targetLsb + bbox.width + targetRsb));
+  const minAdvance = Math.round(150 * upmScale);
+  const newAdvance = Math.max(minAdvance, Math.round(targetLsb + bbox.width + targetRsb));
 
   return {
     advanceWidth: newAdvance,
@@ -226,10 +235,9 @@ export function batchAdjustSidebearings(
     if (!isCharInScope(code, options.scope)) continue;
 
     const contours = glyph.contours || [];
-    if (contours.length === 0) continue;
+    if (!contours.some((c) => c.nodes && c.nodes.length > 0)) continue;
 
     const bbox = getContoursBoundingBox(contours);
-    if (bbox.width <= 0) continue;
 
     let newAdvance = glyph.advanceWidth || 1000;
     let newLsb = glyph.lsb ?? 50;

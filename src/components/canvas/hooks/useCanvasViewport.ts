@@ -15,10 +15,21 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
   const containerRectRef = useRef<DOMRect | null>(null);
   const containerDimensionsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
 
-  const [zoom, setZoom] = useState<number>(0.55);
-  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoomState] = useState<number>(0.55);
+  const [pan, setPanState] = useState<Point>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
+  const hasUserAdjustedRef = useRef<boolean>(false);
+
+  const setZoom: React.Dispatch<React.SetStateAction<number>> = useCallback((value) => {
+    hasUserAdjustedRef.current = true;
+    setZoomState(value);
+  }, []);
+
+  const setPan: React.Dispatch<React.SetStateAction<Point>> = useCallback((value) => {
+    hasUserAdjustedRef.current = true;
+    setPanState(value);
+  }, []);
 
   const zoomRef = useRef<number>(zoom);
   zoomRef.current = zoom;
@@ -114,6 +125,7 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
       const availH = Math.max(120, cHeight - rulerInset);
 
       if (mode === '100%') {
+        hasUserAdjustedRef.current = true;
         const nextPan = {
           x: Math.round(rulerInset + (availW - upm) / 2),
           y: Math.round(rulerInset + (availH - upm) / 2),
@@ -121,12 +133,13 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
         zoomRef.current = 1.0;
         panRef.current = nextPan;
         setLiveViewport(1.0, nextPan);
-        setZoom((prev) => (prev === 1.0 ? prev : 1.0));
-        setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
+        setZoomState((prev) => (prev === 1.0 ? prev : 1.0));
+        setPanState((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
       if (mode === 'width') {
+        hasUserAdjustedRef.current = true;
         const margin = cWidth < 640 ? 16 : 36;
         const widthZoom = Math.max(MIN_CANVAS_ZOOM, Math.min(3.5, (availW - margin) / upm));
         const nextPan = {
@@ -136,12 +149,13 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
         zoomRef.current = widthZoom;
         panRef.current = nextPan;
         setLiveViewport(widthZoom, nextPan);
-        setZoom((prev) => (prev === widthZoom ? prev : widthZoom));
-        setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
+        setZoomState((prev) => (prev === widthZoom ? prev : widthZoom));
+        setPanState((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
         return;
       }
 
       // Default 'fit': center in the non-ruler viewport area with comfortable margin
+      hasUserAdjustedRef.current = false;
       const margin = cWidth < 640 ? 20 : 44;
       const idealZoom = Math.min(
         Math.max(MIN_CANVAS_ZOOM, (availW - margin) / upm),
@@ -155,8 +169,8 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
       zoomRef.current = clampedZoom;
       panRef.current = nextPan;
       setLiveViewport(clampedZoom, nextPan);
-      setZoom((prev) => (prev === clampedZoom ? prev : clampedZoom));
-      setPan((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
+      setZoomState((prev) => (prev === clampedZoom ? prev : clampedZoom));
+      setPanState((prev) => (prev.x === nextPan.x && prev.y === nextPan.y ? prev : nextPan));
     },
     [upm]
   );
@@ -166,6 +180,7 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
     (factor: number) => {
       const rect = getContainerRectFast();
       if (!rect) return;
+      hasUserAdjustedRef.current = true;
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const prevZoom = zoomRef.current;
@@ -182,8 +197,8 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
       zoomRef.current = nextZoom;
       panRef.current = nextPan;
       setLiveViewport(nextZoom, nextPan);
-      setZoom(nextZoom);
-      setPan(nextPan);
+      setZoomState(nextZoom);
+      setPanState(nextPan);
     },
     [clampPan, getContainerRectFast]
   );
@@ -226,11 +241,15 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
         containerRectRef.current = rect;
         if (rect.width > 0 && rect.height > 0) {
           containerDimensionsRef.current = { width: rect.width, height: rect.height };
-          const clamped = clampPan(panRef.current, zoomRef.current);
-          if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
-            panRef.current = clamped;
-            setLiveViewport(zoomRef.current, clamped);
-            setPan(clamped);
+          if (!hasUserAdjustedRef.current) {
+            resetView('fit', rect.width, rect.height);
+          } else {
+            const clamped = clampPan(panRef.current, zoomRef.current);
+            if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
+              panRef.current = clamped;
+              setLiveViewport(zoomRef.current, clamped);
+              setPanState(clamped);
+            }
           }
         } else {
           resetView('fit', rect.width, rect.height);
@@ -282,18 +301,18 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
           const prev = containerDimensionsRef.current;
+          const sizeChanged = Math.abs(prev.width - width) > 1 || Math.abs(prev.height - height) > 1;
           containerDimensionsRef.current = { width, height };
-          // A5: keep the current zoom and pan on resize. Fit only on the
-          // first layout (no previous size yet), e.g. when a drawer opens
-          // or closes the zoom and pan stay as they are.
-          if (prev.width === 0 || prev.height === 0) {
+          // Re-fit when container gets its first layout OR changes size before
+          // the user manually pans/zooms (e.g. sidebar drawer opening on mount).
+          if (prev.width === 0 || prev.height === 0 || (!hasUserAdjustedRef.current && sizeChanged)) {
             resetView('fit', width, height);
           } else {
             const clamped = clampPan(panRef.current, zoomRef.current);
             if (clamped.x !== panRef.current.x || clamped.y !== panRef.current.y) {
               panRef.current = clamped;
               setLiveViewport(zoomRef.current, clamped);
-              setPan(clamped);
+              setPanState(clamped);
             }
           }
         }

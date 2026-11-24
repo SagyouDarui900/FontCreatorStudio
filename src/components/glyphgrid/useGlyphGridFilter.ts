@@ -99,7 +99,7 @@ export function useGlyphGridFilter({
     return getDefaultSidebarWidth();
   });
   const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(true);
+  const [isFilterExpanded, setIsFilterExpanded] = useState<boolean>(false);
   const [isSearchHeaderExpanded, setIsSearchHeaderExpanded] = useState<boolean>(true);
   const cleanupDragRef = useRef<(() => void) | null>(null);
 

@@ -170,8 +170,8 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           title={showNodes ? '頂点とハンドルを隠して文字の形を確認 (クリックで非表示) [Nキー]' : '頂点とハンドルを表示 (クリックで表示) [Nキー]'}
         >
           {showNodes ? <Eye className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" /> : <EyeOff className="w-3.5 h-3.5 shrink-0" />}
-          <span className="text-[11px] font-bold max-sm:hidden">
-            {showNodes ? '頂点表示' : '頂点隠す'}
+          <span className="text-[11px] font-bold max-sm:hidden whitespace-nowrap">
+            {showNodes ? '頂点' : '頂点OFF'}
           </span>
         </button>
 
@@ -205,8 +205,8 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           ) : (
             <div className="w-3.5 h-3.5 shrink-0 rounded-xs border border-stone-500 bg-stone-700 dark:border-stone-400 dark:bg-stone-300" />
           )}
-          <span className="text-[11px] font-bold max-sm:hidden">
-            {isOutlineMode ? '輪郭モード' : '塗り表示'}
+          <span className="text-[11px] font-bold max-sm:hidden whitespace-nowrap">
+            {isOutlineMode ? '輪郭' : '塗り'}
           </span>
         </button>
       </div>

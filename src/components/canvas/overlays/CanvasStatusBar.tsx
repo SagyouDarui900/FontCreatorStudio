@@ -1,14 +1,11 @@
 import React from 'react';
 import {
   X,
-  ChevronLeft,
-  ChevronRight,
   SkipBack,
   SkipForward,
   Maximize2,
   Minimize,
   Maximize,
-  Square,
   ArrowRightLeft,
   RotateCcw,
   Trash2,
@@ -122,9 +119,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   onSetToolMode,
   isSpacePressed,
   activeChar = '',
-  selectedUnicode,
-  onSelectPrevGlyph,
-  onSelectNextGlyph,
   onSelectPrevUncompletedGlyph,
   onSelectNextUncompletedGlyph,
   isGlyphLocked = false,
@@ -152,8 +146,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   onChangeTraceSettings,
   handleResetTracePosition,
   contours,
-  isOutlineMode,
-  setOutlineOnly,
   onOpenGlyphCompareModal,
   overlaySettings,
   onToggleZenMode,
@@ -165,11 +157,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
 
   const selectedNodeCount =
     selectedNodeIds && selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0;
-
-  const unicodeHex =
-    selectedUnicode !== undefined
-      ? `U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`
-      : '';
 
   const barSurface = isLight
     ? 'bg-[#f4f8f5] border-[#c8ded3] text-stone-700'
@@ -200,51 +187,14 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
 
       {/* ==================== DESKTOP DOCKED STATUS BAR ==================== */}
       <div className="hidden sm:flex items-center justify-between w-full min-w-0 gap-2 overflow-visible">
-        {/* Left: Glyph Identity, Navigation, Contour Count, Lock Badge */}
+        {/* Left: Uncompleted Glyph Skip, Contour Count, Lock Badge */}
         <div className="flex items-center gap-1 shrink-0">
-          {activeChar && (
-            <span
-              className={`w-5 h-5 flex items-center justify-center rounded border text-xs font-bold shrink-0 ${
-                isLight
-                  ? 'bg-white border-emerald-200 text-stone-900'
-                  : 'bg-[#17261c] border-emerald-800/70 text-emerald-100'
-              }`}
-              title={`選択中の文字: ${activeChar}`}
-            >
-              {activeChar}
-            </span>
-          )}
-          {unicodeHex && (
-            <span className="hidden md:inline font-mono text-[10px] tabular-nums text-stone-500 dark:text-emerald-400/80 px-0.5">
-              {unicodeHex}
-            </span>
-          )}
-          {(onSelectPrevGlyph || onSelectNextGlyph) && (
-            <div className="flex items-center">
-              <button
-                type="button"
-                onClick={onSelectPrevGlyph}
-                className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="前の文字 (Alt+←、選択中は0.1ナッジ)"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onSelectNextGlyph}
-                className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="次の文字 (Alt+→、選択中は0.1ナッジ)"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
           {(onSelectPrevUncompletedGlyph || onSelectNextUncompletedGlyph) && (
-            <div className="hidden lg:flex items-center">
+            <div className="hidden md:flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={onSelectPrevUncompletedGlyph}
-                className={`h-6 px-1 flex items-center justify-center rounded text-[10px] font-semibold transition-colors ${iconBtnClass}`}
+                className={`h-6 px-1.5 flex items-center justify-center rounded text-[10px] font-semibold transition-colors cursor-pointer ${iconBtnClass}`}
                 title="前の未作成グリフへ移動"
               >
                 <SkipBack className="w-3 h-3" />
@@ -252,15 +202,14 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
               <button
                 type="button"
                 onClick={onSelectNextUncompletedGlyph}
-                className={`h-6 px-1 flex items-center justify-center rounded text-[10px] font-semibold transition-colors ${iconBtnClass}`}
+                className={`h-6 px-1.5 flex items-center justify-center rounded text-[10px] font-semibold transition-colors cursor-pointer ${iconBtnClass}`}
                 title="次の未作成グリフへ移動"
               >
                 <SkipForward className="w-3 h-3" />
               </button>
+              <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800/80 mx-0.5" />
             </div>
           )}
-
-          <div className="h-3.5 w-[1px] bg-stone-300 dark:bg-emerald-800/80 mx-0.5" />
 
           <span className="font-mono text-[10px] tabular-nums opacity-80 shrink-0">
             {contours?.length ?? 0}パス
@@ -512,23 +461,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
               </button>
             )}
 
-          {/* Outline Mode Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              const next = !isOutlineMode;
-              setOutlineOnly(next);
-              showCanvasToast(next ? '輪郭表示モード: ON' : '塗りつぶし表示に戻しました');
-            }}
-            title={`輪郭のみ表示 [Shift+O]: ${isOutlineMode ? 'ON' : 'OFF'}`}
-            className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 text-[10.5px] font-bold ${
-              isOutlineMode ? 'bg-sky-600 text-white' : iconBtnClass
-            }`}
-          >
-            <Square className={`w-3 h-3 ${isOutlineMode ? 'stroke-[2.5] fill-none' : 'stroke-1.5'}`} />
-            <span className="hidden lg:inline">輪郭</span>
-          </button>
-
           {/* Glyph Compare */}
           {onOpenGlyphCompareModal && (
             <button
@@ -623,9 +555,9 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
               type="button"
               onClick={() => resetView('width')}
               title="幅基準で拡大 [W]"
-              className={`hidden md:inline-flex h-6 px-1.5 items-center rounded text-[10px] font-bold transition-colors ${iconBtnClass}`}
+              className={`hidden md:inline-flex h-6 px-1.5 items-center rounded text-[10px] font-bold whitespace-nowrap transition-colors ${iconBtnClass}`}
             >
-              幅
+              幅基準
             </button>
           </div>
         </div>

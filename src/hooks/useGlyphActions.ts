@@ -155,6 +155,18 @@ export function useGlyphActions({
         project.metadata.unitsPerEm
       );
 
+      const baseGlyph =
+        currentGlyphRef.current.unicode === selectedUnicode
+          ? currentGlyphRef.current
+          : currentGlyph;
+      currentGlyphRef.current = {
+        ...baseGlyph,
+        advanceWidth: res.advanceWidth,
+        lsb: res.lsb,
+        contours: res.contours,
+        modified: true,
+      };
+
       setProject((prev) => {
         const existing = prev.glyphs[selectedUnicode] || {
           unicode: selectedUnicode,
@@ -194,7 +206,7 @@ export function useGlyphActions({
         'success'
       );
     },
-    [currentGlyph, selectedUnicode, selectedChar, commitHistory, setProject, onShowToast, project.metadata.unitsPerEm]
+    [currentGlyph, currentGlyphRef, selectedUnicode, selectedChar, commitHistory, setProject, onShowToast, project.metadata.unitsPerEm]
   );
 
   // Clear Glyph

@@ -63,9 +63,8 @@ export function alignContours(
         dx = Math.round(emBox.width / 2) - cBBox.centerX;
         break;
       case 'emBoxCenterV':
-        // Center vertically in standard Japanese em-box (100..800 center is 450)
         dx = 0;
-        dy = 450 - cBBox.centerY;
+        dy = Math.round(emBox.height / 2) - cBBox.centerY;
         break;
     }
 
@@ -77,8 +76,8 @@ export function alignContours(
         ...n,
         x: Math.round(n.x + dx),
         y: Math.round(n.y + dy),
-        handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + dx), y: Math.round(n.handleIn.y + dy) } : undefined,
-        handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + dx), y: Math.round(n.handleOut.y + dy) } : undefined,
+        handleIn: n.handleIn ? { x: Math.round(n.handleIn.x + dx), y: Math.round(n.handleIn.y + dy) } : null,
+        handleOut: n.handleOut ? { x: Math.round(n.handleOut.x + dx), y: Math.round(n.handleOut.y + dy) } : null,
       })),
     };
   });
@@ -131,8 +130,8 @@ export function distributeContours(
         nodes: c.nodes.map((n) => ({
           ...n,
           x: n.x + dx,
-          handleIn: n.handleIn ? { ...n.handleIn, x: n.handleIn.x + dx } : undefined,
-          handleOut: n.handleOut ? { ...n.handleOut, x: n.handleOut.x + dx } : undefined,
+          handleIn: n.handleIn ? { ...n.handleIn, x: n.handleIn.x + dx } : null,
+          handleOut: n.handleOut ? { ...n.handleOut, x: n.handleOut.x + dx } : null,
         })),
       };
     });
@@ -168,8 +167,8 @@ export function distributeContours(
         nodes: c.nodes.map((n) => ({
           ...n,
           y: n.y + dy,
-          handleIn: n.handleIn ? { ...n.handleIn, y: n.handleIn.y + dy } : undefined,
-          handleOut: n.handleOut ? { ...n.handleOut, y: n.handleOut.y + dy } : undefined,
+          handleIn: n.handleIn ? { ...n.handleIn, y: n.handleIn.y + dy } : null,
+          handleOut: n.handleOut ? { ...n.handleOut, y: n.handleOut.y + dy } : null,
         })),
       };
     });
@@ -186,17 +185,23 @@ export function setContourExactDimensions(
   keepAspect: boolean = false
 ): PathContour {
   const bbox = getContourBoundingBox(contour);
-  if (bbox.width <= 0 || bbox.height <= 0 || newWidth <= 0 || newHeight <= 0) {
+  if ((bbox.width <= 0 && bbox.height <= 0) || newWidth <= 0 || newHeight <= 0) {
     return contour;
   }
 
-  let scaleX = newWidth / bbox.width;
-  let scaleY = newHeight / bbox.height;
+  let scaleX = bbox.width > 0 ? newWidth / bbox.width : 1;
+  let scaleY = bbox.height > 0 ? newHeight / bbox.height : 1;
 
   if (keepAspect) {
-    const avgScale = Math.min(scaleX, scaleY);
-    scaleX = avgScale;
-    scaleY = avgScale;
+    if (bbox.width > 0 && bbox.height > 0) {
+      const avgScale = Math.min(scaleX, scaleY);
+      scaleX = avgScale;
+      scaleY = avgScale;
+    } else if (bbox.width > 0) {
+      scaleY = scaleX;
+    } else {
+      scaleX = scaleY;
+    }
   }
 
   const originX = bbox.minX;
@@ -213,13 +218,13 @@ export function setContourExactDimensions(
             x: Math.round(originX + (n.handleIn.x - originX) * scaleX),
             y: Math.round(originY + (n.handleIn.y - originY) * scaleY),
           }
-        : undefined,
+        : null,
       handleOut: n.handleOut
         ? {
             x: Math.round(originX + (n.handleOut.x - originX) * scaleX),
             y: Math.round(originY + (n.handleOut.y - originY) * scaleY),
           }
-        : undefined,
+        : null,
     })),
   };
 }
@@ -251,17 +256,23 @@ export function setContoursExactDimensions(
   }
 
   const groupBBox = getContoursBoundingBox(selectedContours);
-  if (groupBBox.width <= 0 || groupBBox.height <= 0) {
+  if (groupBBox.width <= 0 && groupBBox.height <= 0) {
     return contours;
   }
 
-  let scaleX = newWidth / groupBBox.width;
-  let scaleY = newHeight / groupBBox.height;
+  let scaleX = groupBBox.width > 0 ? newWidth / groupBBox.width : 1;
+  let scaleY = groupBBox.height > 0 ? newHeight / groupBBox.height : 1;
 
   if (keepAspect) {
-    const avgScale = Math.min(scaleX, scaleY);
-    scaleX = avgScale;
-    scaleY = avgScale;
+    if (groupBBox.width > 0 && groupBBox.height > 0) {
+      const avgScale = Math.min(scaleX, scaleY);
+      scaleX = avgScale;
+      scaleY = avgScale;
+    } else if (groupBBox.width > 0) {
+      scaleY = scaleX;
+    } else {
+      scaleX = scaleY;
+    }
   }
 
   const originX = groupBBox.minX;
@@ -280,13 +291,13 @@ export function setContoursExactDimensions(
               x: Math.round(originX + (n.handleIn.x - originX) * scaleX),
               y: Math.round(originY + (n.handleIn.y - originY) * scaleY),
             }
-          : undefined,
+          : null,
         handleOut: n.handleOut
           ? {
               x: Math.round(originX + (n.handleOut.x - originX) * scaleX),
               y: Math.round(originY + (n.handleOut.y - originY) * scaleY),
             }
-          : undefined,
+          : null,
       })),
     };
   });

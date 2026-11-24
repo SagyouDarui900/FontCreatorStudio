@@ -335,8 +335,8 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
       {/* Divider */}
       <div
         className={`hidden sm:block ${
-          orientation === 'vertical' ? 'w-5 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
-        } opacity-70 ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`}
+          orientation === 'vertical' ? 'w-6 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
+        } ${isLight ? 'bg-stone-300' : 'bg-[#2a3c30]'}`}
       />
 
       {/* Desktop View & Snapping Toggles + Quick Actions */}
@@ -367,8 +367,8 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
           {/* Divider before position button */}
           <div
             className={`hidden sm:block ${
-              orientation === 'vertical' ? 'w-5 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
-            } opacity-70 ${isLight ? 'bg-stone-200' : 'bg-[#222e25]'}`}
+              orientation === 'vertical' ? 'w-6 h-[1px] mx-auto my-1' : 'w-[1px] h-5 my-auto mx-1'
+            } ${isLight ? 'bg-stone-300' : 'bg-[#2a3c30]'}`}
           />
 
           <button

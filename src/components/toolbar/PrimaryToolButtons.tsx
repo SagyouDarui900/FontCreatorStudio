@@ -7,7 +7,6 @@ import {
   Ruler,
   Hand,
   Grid,
-  Crosshair,
 } from 'lucide-react';
 import { ToolMode, GridSettings, UserPenPreset } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
@@ -97,7 +96,21 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
         }`}
         title="パス・頂点編集ツール (A) - アンカーポイントとベジェ曲線の直接編集"
       >
-        <Crosshair className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="w-4 h-4 sm:w-4 sm:h-4 shrink-0"
+          aria-hidden="true"
+        >
+          <path d="M4 17c2.5-6 6.5-9 12-9" />
+          <path d="M16 4v4h4V4h-4z" />
+          <path d="M9 12l3 8 1.5-3.5L17 15z" fill="currentColor" stroke="none" />
+          <circle cx="4" cy="17" r="1.8" fill="currentColor" />
+        </svg>
         <span className="hidden sm:block absolute bottom-0.5 right-0.5 text-[6.5px] font-mono font-bold opacity-60 leading-none pointer-events-none">
           A
         </span>

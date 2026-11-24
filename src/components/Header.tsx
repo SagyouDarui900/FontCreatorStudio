@@ -6,7 +6,7 @@ import {
   Redo2,
   Grid,
   Layers,
-  SlidersHorizontal,
+  MoveHorizontal,
   Lock,
   Unlock,
 } from 'lucide-react';
@@ -337,8 +337,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
             }`}
             title="メトリクス・文字ツール（送り幅・字面枠・変形など）"
           >
-            <SlidersHorizontal className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
-            <span className="font-bold leading-none hidden xl:inline">メトリクス</span>
+            <MoveHorizontal className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
+            <span className="font-bold leading-none hidden lg:inline">メトリクス</span>
           </button>
         )}
 
@@ -383,8 +383,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           onToggleFullscreen={toggleFullscreen}
         />
 
-        {/* In-App PWA Install Button (hidden on mobile; available in the tools menu) */}
-        <div className="flex items-center max-sm:hidden">
+        {/* In-App PWA Install Button (hidden below xl; available in the tools menu) */}
+        <div className="hidden xl:flex items-center">
           <PWAInstallButton isLight={isLight} />
         </div>
 

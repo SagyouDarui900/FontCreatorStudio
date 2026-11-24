@@ -39,11 +39,13 @@ export interface TransformSectionProps {
   onExecuteClear: () => void;
   isLight: boolean;
   themeClasses: ThemeClasses;
+  isGlyphLocked?: boolean;
 }
 
 export const TransformSection: React.FC<TransformSectionProps> = ({
   contours,
   upm,
+  selectedChar,
   isExpanded,
   onToggle,
   isOutlineExpanded,
@@ -65,7 +67,10 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
   onExecuteClear,
   isLight,
   themeClasses,
+  isGlyphLocked = false,
 }) => {
+  const isKanaChar = /[ぁ-んァ-ヶー]/.test(selectedChar);
+  const fitRatioPercent = isKanaChar ? 78 : 85;
   return (
     <>
       {/* 5. Transform Tools (Slant, Flip, Scale, Center) */}
@@ -85,7 +90,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
         </div>
 
         {isExpanded && (
-          <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
+          <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border} ${isGlyphLocked ? 'opacity-65' : ''}`}>
             {/* Slant Quick Presets */}
             <div
               className={`p-2.5 rounded-lg border space-y-1.5 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
@@ -189,10 +194,10 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
               disabled={contours.length === 0}
               onClick={onFitToEmBox}
               className={`w-full min-h-[42px] py-2 rounded-lg border text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-              title="はみ出た文字や大きすぎる文字を、キャンバスの字面枠（漢字85%/仮名78%）にぴったり収まるよう自動縮小・中央配置します"
+              title={`はみ出た文字や大きすぎる文字を、キャンバスの字面枠（漢字85%/仮名78%）にぴったり収まるよう自動縮小・中央配置します（現在: ${fitRatioPercent}%）`}
             >
               <Maximize2 className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
-              <span>キャンバス枠内に自動収める (字面85%最適化)</span>
+              <span>キャンバス枠内に自動収める (字面{fitRatioPercent}%最適化)</span>
             </button>
 
             <button
@@ -237,7 +242,7 @@ export const TransformSection: React.FC<TransformSectionProps> = ({
         </div>
 
         {isOutlineExpanded && (
-          <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
+          <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border} ${isGlyphLocked ? 'opacity-65' : ''}`}>
             <div className="flex items-center space-x-2 pt-2">
               <input
                 type="range"

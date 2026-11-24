@@ -3,8 +3,8 @@ import { Sliders, X, Layers, Lock } from 'lucide-react';
 import { PathContour, ThemeClasses } from '../../types';
 import { PrecisionInspector } from '../precision/PrecisionInspector';
 import {
-  flipContoursHorizontal,
-  flipContoursVertical,
+  flipMultipleContoursH,
+  flipMultipleContoursV,
   slantContours,
   scaleContours,
   centerContoursInBox,
@@ -133,6 +133,16 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   const totalNodes = useMemo(() => {
     return contours.reduce((acc, c) => acc + (c.nodes ? c.nodes.length : 0), 0);
   }, [contours]);
+  const hasContourNodes = totalNodes > 0;
+
+  const syncLsbFromContours = (nextContours: PathContour[]) => {
+    if (!nextContours.some((c) => c.nodes && c.nodes.length > 0)) return;
+    const nextBBox = getContoursBoundingBox(nextContours);
+    const nextLsb = Math.round(nextBBox.minX);
+    if (nextLsb !== lsb) {
+      onChangeLsb(nextLsb, { skipHistory: true });
+    }
+  };
 
   const guardLocked = () => {
     if (isGlyphLocked) {
@@ -213,7 +223,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   // Apply target LSB by shifting glyph contours horizontally and syncing glyph.lsb
   const applyTargetLsb = (targetLsb: number) => {
     const nextLsb = Math.round(targetLsb);
-    if (contours.length > 0 && bbox.width > 0) {
+    if (hasContourNodes) {
       const deltaX = nextLsb - Math.round(bbox.minX);
       if (deltaX !== 0) {
         onCommitHistory();
@@ -236,7 +246,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   // Horizontal Centering within current Advance Width
   const handleCenterWithinAdvance = () => {
     if (guardLocked()) return;
-    if (contours.length === 0 || bbox.width <= 0) {
+    if (!hasContourNodes) {
       onShowToast?.('センタリングする輪郭がありません', 'warning');
       return;
     }
@@ -266,7 +276,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
 
   const handleStepLsb = (delta: number) => {
     if (guardLocked()) return;
-    const nextVal = Math.round((lsb ?? 50) + delta);
+    const baseLsb = hasContourNodes ? Math.round(bbox.minX) : (lsb ?? 50);
+    const nextVal = Math.round(baseLsb + delta);
     applyTargetLsb(nextVal);
   };
 
@@ -291,35 +302,45 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(flipContoursHorizontal(contours), { skipHistory: true });
+    const nextContours = flipMultipleContoursH(contours);
+    onChangeContours(nextContours, { skipHistory: true });
+    syncLsbFromContours(nextContours);
   };
 
   const handleFlipV = () => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(flipContoursVertical(contours), { skipHistory: true });
+    const nextContours = flipMultipleContoursV(contours);
+    onChangeContours(nextContours, { skipHistory: true });
+    syncLsbFromContours(nextContours);
   };
 
   const handleSlant = (degrees: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(slantContours(contours, degrees), { skipHistory: true });
+    const nextContours = slantContours(contours, degrees);
+    onChangeContours(nextContours, { skipHistory: true });
+    syncLsbFromContours(nextContours);
   };
 
   const handleScale = (factor: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(scaleContours(contours, factor, factor), { skipHistory: true });
+    const nextContours = scaleContours(contours, factor, factor);
+    onChangeContours(nextContours, { skipHistory: true });
+    syncLsbFromContours(nextContours);
   };
 
   const handleAspectScale = (scaleX: number, scaleY: number) => {
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    onChangeContours(scaleContours(contours, scaleX, scaleY), { skipHistory: true });
+    const nextContours = scaleContours(contours, scaleX, scaleY);
+    onChangeContours(nextContours, { skipHistory: true });
+    syncLsbFromContours(nextContours);
   };
 
   const handleSmoothAndFix = () => {
@@ -328,6 +349,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     onCommitHistory();
     const cleaned = smoothAndFixTransformedContours(contours);
     onChangeContours(cleaned, { skipHistory: true });
+    syncLsbFromContours(cleaned);
     onShowToast?.('輪郭のガタツキと変形歪みを滑らかに補正しました', 'success');
   };
 
@@ -335,12 +357,9 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    const centered = centerContoursInBox(contours, upm, Math.round(upm * 0.8));
+    const centered = centerContoursInBox(contours, upm, Math.round(upm * 0.8), upm);
     onChangeContours(centered, { skipHistory: true });
-    const centeredBBox = getContoursBoundingBox(centered);
-    if (centeredBBox.width > 0) {
-      onChangeLsb(Math.round(centeredBBox.minX), { skipHistory: true });
-    }
+    syncLsbFromContours(centered);
   };
 
   const handleFitToEmBox = () => {
@@ -351,10 +370,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     const targetRatio = isKana ? 0.78 : 0.85;
     const fitted = fitContoursToEmBox(contours, upm, upm, targetRatio);
     onChangeContours(fitted, { skipHistory: true });
-    const fittedBBox = getContoursBoundingBox(fitted);
-    if (fittedBBox.width > 0) {
-      onChangeLsb(Math.round(fittedBBox.minX), { skipHistory: true });
-    }
+    syncLsbFromContours(fitted);
     onShowToast?.(`文字の輪郭をキャンバス枠内（字面枠 ${Math.round(targetRatio * 100)}%基準）に最適化しました`, 'success');
   };
 
@@ -377,6 +393,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     onCommitHistory();
     const transformed = contours.map((c) => (c.closed ? c : outlineOpenContour(c, strokeOutlineWidth)));
     onChangeContours(transformed, { skipHistory: true });
+    syncLsbFromContours(transformed);
     onShowToast?.(`骨格線を太さ ${strokeOutlineWidth}px でアウトライン化しました`, 'success');
   };
 
@@ -384,12 +401,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (guardLocked()) return;
     if (contours.length === 0) return;
     onCommitHistory();
-    const smallKana = createSmallKanaContours(contours, { unitsPerEm: upm });
+    const smallKana = createSmallKanaContours(contours, { weightDelta: 4, unitsPerEm: upm });
     onChangeContours(smallKana, { skipHistory: true });
-    const smallBBox = getContoursBoundingBox(smallKana);
-    if (smallBBox.width > 0) {
-      onChangeLsb(Math.round(smallBBox.minX), { skipHistory: true });
-    }
+    syncLsbFromContours(smallKana);
+    onShowToast?.('小文字サイズ・位置に変換しました', 'success');
   };
 
   if (!isOpen) return null;
@@ -489,7 +504,10 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
               selectedContourIds={selectedContourIds || []}
               selectedNodeId={selectedNodeId || null}
               selectedHandleType={selectedHandleType || null}
-              onChangeContours={onChangeContours}
+              onChangeContours={(nextContours, options) => {
+                onChangeContours(nextContours, options);
+                syncLsbFromContours(nextContours);
+              }}
               onCommitHistory={onCommitHistory}
               unitsPerEm={upm}
               advanceWidth={advanceWidth}
@@ -541,6 +559,8 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             onToggle={() => toggleSection('metrics')}
             isLight={isLight}
             themeClasses={themeClasses}
+            selectedUnicode={selectedUnicode}
+            isGlyphLocked={isGlyphLocked}
             onChangeAdvanceWidth={(v) => {
               if (guardLocked()) return;
               const nextVal = Math.max(50, Math.round(v));
@@ -552,7 +572,6 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
               if (guardLocked()) return;
               applyTargetLsb(v);
             }}
-            onCommitHistory={onCommitHistory}
             onStepAdvance={handleStepAdvance}
             onStepLsb={handleStepLsb}
             onSetAdvancePreset={handleSetAdvancePreset}
@@ -570,6 +589,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             isExpanded={expandedSections.autospace}
             onToggle={() => toggleSection('autospace')}
             themeClasses={themeClasses}
+            isGlyphLocked={isGlyphLocked}
           />
 
           {/* 4. Simplify (輪郭の単純化・頂点数削減) Section */}
@@ -610,6 +630,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             onExecuteClear={handleExecuteClear}
             isLight={isLight}
             themeClasses={themeClasses}
+            isGlyphLocked={isGlyphLocked}
           />
         </div>
       )}

@@ -95,17 +95,17 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
           <button
             type="button"
             onClick={onOpenPenPresetsModal}
-            className="px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 cursor-pointer"
+            className="px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 shrink-0 cursor-pointer whitespace-nowrap"
             title="ペン作成・ブラシカスタマイズスタジオを開く"
           >
-            <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>ペン作成・編集</span>
+            <Sliders className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>ペン設定</span>
           </button>
         )}
 
         {/* Width Stepper */}
         {onChangeBrushWidth && (
-          <div className="flex items-center gap-0.5 bg-stone-100 dark:bg-[#18231c] px-1 py-0.5 rounded border border-stone-200 dark:border-stone-700 text-xs">
+          <div className="flex items-center gap-0.5 bg-stone-100 dark:bg-[#18231c] px-1 py-0.5 rounded border border-stone-200 dark:border-stone-700 text-xs shrink-0">
             <button
               type="button"
               onClick={() => onChangeBrushWidth(Math.max(4, brushWidth - 4))}
@@ -126,48 +126,34 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
           </div>
         )}
 
-        {/* Pressure Sensitivity */}
+        {/* Unified Pressure Sensitivity Selector */}
         {onChangePressureSensitivity && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                if (pressureSensitivity === 'off') {
-                  onChangePressureSensitivity('high');
-                } else {
-                  onChangePressureSensitivity('off');
-                }
-              }}
-              className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
-                pressureSensitivity !== 'off'
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
-              }`}
-              title={pressureSensitivity !== 'off' ? '筆圧感知有効 (クリックでOFF)' : '筆圧感知無効 (クリックでON)'}
+          <div
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded border shrink-0 ${
+              pressureSensitivity !== 'off'
+                ? isLight
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-[#18231c] border-emerald-700 text-emerald-200'
+                : isLight
+                ? 'bg-stone-100 border-stone-300 text-stone-500'
+                : 'bg-stone-800 border-stone-700 text-stone-400'
+            }`}
+            title="筆圧感知の有効/無効と感度を変更"
+          >
+            <Activity className="w-3 h-3 shrink-0" />
+            <select
+              value={pressureSensitivity || 'normal'}
+              onChange={(e) =>
+                onChangePressureSensitivity(e.target.value as 'high' | 'normal' | 'low' | 'off')
+              }
+              className="text-[11px] font-bold bg-transparent cursor-pointer outline-none"
+              aria-label="筆圧感度"
             >
-              <Activity className="w-3 h-3" />
-              <span className="hidden sm:inline">筆圧:</span>
-              <span>{pressureSensitivity !== 'off' ? 'ON' : 'OFF'}</span>
-            </button>
-
-            {pressureSensitivity !== 'off' && (
-              <select
-                value={pressureSensitivity || 'normal'}
-                onChange={(e) =>
-                  onChangePressureSensitivity(e.target.value as 'high' | 'normal' | 'low' | 'off')
-                }
-                className={`text-[11px] font-bold px-1.5 py-0.5 rounded border cursor-pointer outline-none ${
-                  isLight
-                    ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
-                    : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
-                }`}
-                title="筆圧感度の強さを変更"
-              >
-                <option value="high">感度: 高</option>
-                <option value="normal">感度: 標準</option>
-                <option value="low">感度: 弱</option>
-              </select>
-            )}
+              <option value="high">筆圧: 高</option>
+              <option value="normal">筆圧: 標準</option>
+              <option value="low">筆圧: 弱</option>
+              <option value="off">筆圧: OFF</option>
+            </select>
           </div>
         )}
 
@@ -179,70 +165,64 @@ export const BrushSubToolbar: React.FC<BrushSubToolbarProps> = ({
             setBrushStraightMode(next);
             showCanvasToast(next ? '直線モードをONにしました (定規のようにまっすぐ描画)' : 'フリーハンド描画に戻しました');
           }}
-          className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
+          className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer shrink-0 whitespace-nowrap ${
             brushStraightMode
               ? 'bg-emerald-600 text-white border-emerald-600'
               : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
           }`}
-          title="直線モード (始点と終点をまっすぐ結ぶ)"
+          title={`直線モード: ${brushStraightMode ? 'ON' : 'OFF'} (始点と終点をまっすぐ結ぶ)`}
         >
-          <span className="hidden sm:inline">直線:</span>
-          <span>{brushStraightMode ? 'ON' : 'OFF'}</span>
+          <span>{brushStraightMode ? '直線 ON' : '直線'}</span>
         </button>
 
-        {/* Auto Smooth */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              const next = !autoSmoothBrush;
-              setAutoSmoothBrush(next);
-              showCanvasToast(next ? '手ブレ補正・自動平滑化をONにしました' : '自動平滑化をOFFにしました');
-            }}
-            className={`px-2 py-0.5 rounded text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
-              autoSmoothBrush
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-stone-100 dark:bg-stone-800 text-stone-500 border-stone-300 dark:border-stone-700'
-            }`}
-            title="手書きストローク自動平滑化・手ブレ補正"
-          >
-            <Wand2 className="w-3 h-3" />
-            <span className="hidden sm:inline">手ブレ補正:</span>
-            <span>{autoSmoothBrush ? 'ON' : 'OFF'}</span>
-          </button>
-
-          {autoSmoothBrush && (
-            <select
-              value={smoothStrength || 'standard'}
-              onChange={(e) => {
-                const val = e.target.value as 'mild' | 'standard' | 'strong';
+        {/* Unified Auto Smooth Selector */}
+        <div
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded border shrink-0 ${
+            autoSmoothBrush
+              ? isLight
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                : 'bg-[#18231c] border-emerald-700 text-emerald-200'
+              : isLight
+              ? 'bg-stone-100 border-stone-300 text-stone-500'
+              : 'bg-stone-800 border-stone-700 text-stone-400'
+          }`}
+          title="手書きストローク自動平滑化・手ブレ補正の強さを変更"
+        >
+          <Wand2 className="w-3 h-3 shrink-0" />
+          <select
+            value={autoSmoothBrush ? smoothStrength || 'standard' : 'off'}
+            onChange={(e) => {
+              const val = e.target.value as 'mild' | 'standard' | 'strong' | 'off';
+              if (val === 'off') {
+                setAutoSmoothBrush(false);
+                showCanvasToast('自動平滑化・手ブレ補正をOFFにしました');
+              } else {
+                setAutoSmoothBrush(true);
                 setSmoothStrength(val);
-                showCanvasToast(`手ブレ補正レベル: ${val === 'strong' ? '強 (なめらか)' : val === 'standard' ? '標準' : '弱 (そのまま)'}`);
-              }}
-              className={`text-[11px] font-bold px-1.5 py-0.5 rounded border cursor-pointer outline-none ${
-                isLight
-                  ? 'bg-stone-50 border-stone-300 text-stone-800 focus:border-emerald-600'
-                  : 'bg-[#18231c] border-[#25382c] text-emerald-200 focus:border-emerald-500'
-              }`}
-              title="手ブレ補正の強さを変更"
-            >
-              <option value="strong">補正: 強 (なめらか)</option>
-              <option value="standard">補正: 標準</option>
-              <option value="mild">補正: 弱</option>
-            </select>
-          )}
+                showCanvasToast(
+                  `手ブレ補正レベル: ${val === 'strong' ? '強 (なめらか)' : val === 'standard' ? '標準' : '弱 (そのまま)'}`
+                );
+              }
+            }}
+            className="text-[11px] font-bold bg-transparent cursor-pointer outline-none"
+            aria-label="手ブレ補正"
+          >
+            <option value="strong">手ブレ: 強</option>
+            <option value="standard">手ブレ: 標準</option>
+            <option value="mild">手ブレ: 弱</option>
+            <option value="off">手ブレ: OFF</option>
+          </select>
         </div>
 
         {/* Straighten Wobbly Contour Action */}
         <button
           type="button"
           onClick={handleStraightenWobblySelected}
-          className="px-2 py-0.5 rounded text-xs font-bold border flex items-center space-x-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 border-stone-300 dark:border-stone-700 cursor-pointer"
+          className="px-2 py-0.5 rounded text-xs font-bold border flex items-center gap-1 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 border-stone-300 dark:border-stone-700 cursor-pointer shrink-0 whitespace-nowrap"
           title="描いた線のうねり・ガタガタ歪みを自動でまっすぐ直線化補正します"
         >
-          <Compass className="w-3 h-3" />
-          <span className="hidden sm:inline">うねり直線補正</span>
-          <span className="sm:hidden">直線補正</span>
+          <Compass className="w-3 h-3 shrink-0" />
+          <span>直線補正</span>
         </button>
       </div>
     </>

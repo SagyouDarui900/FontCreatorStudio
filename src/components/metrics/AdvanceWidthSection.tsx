@@ -14,12 +14,13 @@ export interface AdvanceWidthSectionProps {
   themeClasses: ThemeClasses;
   onChangeAdvanceWidth: (val: number) => void;
   onChangeLsb: (val: number) => void;
-  onCommitHistory?: () => void;
   onStepAdvance: (delta: number) => void;
   onStepLsb: (delta: number) => void;
   onSetAdvancePreset: (val: number) => void;
   onSetLsbPreset: (val: number) => void;
   onCenterWithinAdvance: () => void;
+  selectedUnicode?: number;
+  isGlyphLocked?: boolean;
 }
 
 export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
@@ -39,6 +40,8 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
   onSetAdvancePreset,
   onSetLsbPreset,
   onCenterWithinAdvance,
+  selectedUnicode,
+  isGlyphLocked = false,
 }) => {
   const effectiveAdv = advanceWidth ?? upm;
   const effectiveLsb = lsb ?? 50;
@@ -48,11 +51,11 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
 
   useEffect(() => {
     setAdvDraft(String(effectiveAdv));
-  }, [effectiveAdv]);
+  }, [effectiveAdv, selectedUnicode]);
 
   useEffect(() => {
     setLsbDraft(String(effectiveLsb));
-  }, [effectiveLsb]);
+  }, [effectiveLsb, selectedUnicode]);
 
   const commitAdvanceDraft = () => {
     const trimmed = advDraft.trim();
@@ -112,7 +115,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
       </div>
 
       {isExpanded && (
-        <div className={`p-3 pt-0 space-y-3 border-t ${themeClasses.border}`}>
+        <div className={`p-3 pt-0 space-y-3 border-t ${themeClasses.border} ${isGlyphLocked ? 'opacity-65' : ''}`}>
           {/* Advance Width Section */}
           <div
             className={`p-2.5 rounded-lg border space-y-2 mt-2 ${themeClasses.toolbarBg} ${themeClasses.border}`}
@@ -313,7 +316,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
           </div>
 
           {/* Bounding Box & Margin Balance Readout */}
-          {contours.length > 0 && bbox.width > 0 && (() => {
+          {contours.some((c) => c.nodes && c.nodes.length > 0) && (() => {
             const actualLsb = Math.round(bbox.minX);
             const actualRsb = Math.round(advanceWidth - bbox.maxX);
             const diff = actualLsb - actualRsb;

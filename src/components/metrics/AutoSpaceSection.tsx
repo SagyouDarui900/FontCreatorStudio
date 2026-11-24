@@ -12,6 +12,7 @@ export interface AutoSpaceSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   themeClasses: ThemeClasses;
+  isGlyphLocked?: boolean;
 }
 
 export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
@@ -23,6 +24,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
   isExpanded,
   onToggle,
   themeClasses,
+  isGlyphLocked = false,
 }) => {
   return (
     <div
@@ -42,7 +44,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
       </div>
 
       {isExpanded && (
-        <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
+        <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border} ${isGlyphLocked ? 'opacity-65' : ''}`}>
           <p className={`text-[11px] leading-relaxed ${themeClasses.textMuted} pt-1`}>
             文字の実幅と形状の光学バランスに応じて、最適な送り幅(Advance)と左右余白(LSB/RSB)を一括計算します。
           </p>
@@ -54,6 +56,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
               { id: 'japanese-fullwidth' as AutoSpacingPreset, label: `和文全角センタリング (${upm}EM)`, desc: '枠の中心に正確に配置' },
               { id: 'proportional-balanced' as AutoSpacingPreset, label: '欧文プロポーショナル', desc: '字形ごとの光学余白' },
               { id: 'proportional-tight' as AutoSpacingPreset, label: '欧文タイト (詰まり気味)', desc: '余白を狭めて配置' },
+              { id: 'proportional-loose' as AutoSpacingPreset, label: '欧文ルーズ (ゆったり)', desc: '余白を広めに確保して配置' },
             ].map((preset) => {
               const PIcon = preset.icon;
               const isSelected = spacingPreset === preset.id;
