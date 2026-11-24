@@ -18,6 +18,279 @@ import {
 } from '../persistedState';
 export { createDefaultTestPreviewPersistedState, type TestPreviewPersistedState };
 
+// ---------------------------------------------------------------------------
+// Preview-only compilation (review item 9).
+//
+// The compile effect used to depend on the whole `project`, so every edit —
+// even moving one node of a glyph that never appears in the preview text —
+// re-ran full validation + unionContours + winding normalization +
+// opentype.js construction + FontFace loading for every glyph.
+//
+// The preview only ever renders `testText` (see PreviewCanvas: the only
+// string rendered with the compiled font family is the test text, including
+// waterfall mode). So the compiled font only needs the glyphs that can
+// affect how that text is shaped:
+//
+// - the characters in the text itself;
+// - vertical-writing derivations: compileFont derives a vertical-form glyph
+//   from its horizontal source (and registers a `vert` substitution), so
+//   when the text contains a derivation source or its vertical target, both
+//   glyphs are needed. The pair table below mirrors the hardcoded
+//   `verticalDerivations` in `src/utils/font/compilerCore.ts` — keep them
+//   in sync. User-configured vertical substitutions are handled the same
+//   way from `project.openTypeFeatures`;
+// - ligature substitutes: when every input character of an enabled
+//   ligature appears in the text, the substitute glyph must be present;
+// - kerning: a kern pair only affects rendering when both glyphs are in
+//   the text, so pairs touching other glyphs are dropped below. The same
+//   holds for the palt-derived pairs compileFont generates internally:
+//   they are built from the subset project, and a pair is only registered
+//   when both glyphs exist in the compiled font.
+//
+// Anything else (metadata, unitsPerEm, ascender, pixel settings, palt /
+// mojikumi config) is carried over unchanged into the subset project, so a
+// project-wide settings change still recompiles — with the subset, not the
+// whole project. A full compile is only kept when the subset would cover
+// almost all glyphs (>= 80%), where subsetting saves nothing.
+// ---------------------------------------------------------------------------
+
+/** Vertical-form derivations, mirroring `verticalDerivations` in compilerCore.ts. */
+export const VERTICAL_DERIVATION_PAIRS: ReadonlyArray<{
+  sourceUnicode: number;
+  targetUnicode: number;
+}> = [
+  { sourceUnicode: 0x30fc, targetUnicode: 0xfe31 }, // 長音符 ー -> ︱
+  { sourceUnicode: 0x2015, targetUnicode: 0xfe33 }, // ダッシュ ― -> ︳
+  { sourceUnicode: 0x300c, targetUnicode: 0xfe41 }, // 鉤括弧 「 -> ﹁
+  { sourceUnicode: 0x300d, targetUnicode: 0xfe42 }, // 鉤括弧 」 -> ﹂
+  { sourceUnicode: 0x300e, targetUnicode: 0xfe43 }, // 二重鉤括弧 『 -> ﹃
+  { sourceUnicode: 0x300f, targetUnicode: 0xfe44 }, // 二重鉤括弧 』 -> ﹄
+  { sourceUnicode: 0xff08, targetUnicode: 0xfe35 }, // 丸括弧 （ -> ︵
+  { sourceUnicode: 0xff09, targetUnicode: 0xfe36 }, // 丸括弧 ） -> ︶
+  { sourceUnicode: 0x3010, targetUnicode: 0xfe3b }, // 隅付き括弧 【 -> ︻
+  { sourceUnicode: 0x3011, targetUnicode: 0xfe3c }, // 隅付き括弧 】 -> ︼
+  { sourceUnicode: 0x3001, targetUnicode: 0xfe11 }, // 読点 、 -> ︑
+  { sourceUnicode: 0x3002, targetUnicode: 0xfe12 }, // 句点 。 -> ︒
+  { sourceUnicode: 0x2026, targetUnicode: 0xfe19 }, // 三点リーダー … -> ︙
+  { sourceUnicode: 0x301c, targetUnicode: 0xfe4f }, // 波ダッシュ 〜 -> ︴
+];
+
+/** Code points in a string, as a set (surrogate pairs count as one). */
+export function extractPreviewUnicodes(text: string): Set<number> {
+  const unicodes = new Set<number>();
+  for (const ch of Array.from(text)) {
+    const code = ch.codePointAt(0);
+    if (code !== undefined) unicodes.add(code);
+  }
+  return unicodes;
+}
+
+/**
+ * Unicodes the preview font needs: the text itself plus every glyph that
+ * can change how that text is shaped (vertical derivations, configured
+ * vertical substitutions, ligature substitutes). Kerning adds no glyphs:
+ * a pair only applies when both sides are already in the text.
+ */
+export function collectPreviewGlyphUnicodes(
+  testText: string,
+  project: FontProject
+): Set<number> {
+  const needed = extractPreviewUnicodes(testText);
+  for (const { sourceUnicode, targetUnicode } of VERTICAL_DERIVATION_PAIRS) {
+    if (needed.has(sourceUnicode) || needed.has(targetUnicode)) {
+      needed.add(sourceUnicode);
+      needed.add(targetUnicode);
+    }
+  }
+  const features = project.openTypeFeatures;
+  if (features) {
+    for (const sub of features.verticalWriting?.substitutions || []) {
+      if (!sub.enabled) continue;
+      if (needed.has(sub.sourceUnicode) || needed.has(sub.vertUnicode)) {
+        needed.add(sub.sourceUnicode);
+        needed.add(sub.vertUnicode);
+      }
+    }
+    for (const ligature of features.ligatures || []) {
+      if (!ligature.enabled || ligature.inputChars.length < 2) continue;
+      const inputsInText = ligature.inputChars.every((ch) => {
+        const code = ch.codePointAt(0);
+        return code !== undefined && needed.has(code);
+      });
+      if (inputsInText) needed.add(ligature.substituteUnicode);
+    }
+  }
+  return needed;
+}
+
+/**
+ * Parse one side of a `project.kerning` key. Mirrors `parseKerningPairKey`
+ * in `src/utils/font/validation.ts`: `U+XXXX` / `0xXXXX` hex, otherwise the
+ * first code point of the token. Returns null when unparseable; such keys
+ * are kept as-is (compileFont skips pairs whose glyphs are absent).
+ */
+function parseKerningPairSide(token: string | undefined): number | null {
+  if (!token) return null;
+  if (token.startsWith('U+') || token.startsWith('0x')) {
+    const code = parseInt(token.replace(/^U\+|^0x/, ''), 16);
+    return Number.isFinite(code) ? code : null;
+  }
+  const code = token.codePointAt(0);
+  return code === undefined ? null : code;
+}
+
+function parseKerningPairKeyForPreview(pairKey: string): {
+  left: number | null;
+  right: number | null;
+} {
+  if (pairKey.includes(',')) {
+    const parts = pairKey.split(',');
+    return { left: parseKerningPairSide(parts[0]), right: parseKerningPairSide(parts[1]) };
+  }
+  const chars = [...pairKey];
+  if (chars.length === 2) {
+    return { left: parseKerningPairSide(chars[0]), right: parseKerningPairSide(chars[1]) };
+  }
+  return { left: null, right: null };
+}
+
+function isSameKerning(
+  a: FontProject['kerning'],
+  b: FontProject['kerning']
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
+}
+
+function isSameStringArrayByRef(
+  a: readonly unknown[] | undefined,
+  b: readonly unknown[] | undefined
+): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((item, i) => item === b[i]);
+}
+
+/** Structural equality for the OpenType-features slice compileFont reads. */
+export function isSameOpenTypeFeatures(
+  a: FontProject['openTypeFeatures'],
+  b: FontProject['openTypeFeatures']
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (a.enabled !== b.enabled) return false;
+  if (a.palt !== b.palt || a.mojikumi !== b.mojikumi) return false;
+  if (!isSameStringArrayByRef(a.customKerningPairs, b.customKerningPairs)) return false;
+  if (!isSameStringArrayByRef(a.ligatures, b.ligatures)) return false;
+  const av = a.verticalWriting;
+  const bv = b.verticalWriting;
+  if (av === bv) return true;
+  if (!av || !bv) return false;
+  return (
+    av.enabled === bv.enabled &&
+    av.defaultVertAdvance === bv.defaultVertAdvance &&
+    av.vertOriginY === bv.vertOriginY &&
+    isSameStringArrayByRef(av.substitutions, bv.substitutions)
+  );
+}
+
+/**
+ * Whether two preview projects would compile to the same preview font.
+ * Compares everything compileFont / validateFontProject read from a
+ * project (metadata, pixel settings, kerning, OpenType features, and the
+ * glyph objects themselves by reference) and ignores the rest (id, name,
+ * timestamps, trace settings, and glyphs outside the preview set).
+ */
+export function isEquivalentPreviewProject(prev: FontProject, next: FontProject): boolean {
+  if (prev.metadata !== next.metadata) return false;
+  if (prev.pixelFontSettings !== next.pixelFontSettings) return false;
+  if (!isSameKerning(prev.kerning, next.kerning)) return false;
+  if (!isSameOpenTypeFeatures(prev.openTypeFeatures, next.openTypeFeatures)) return false;
+  const prevGlyphs = prev.glyphs || {};
+  const nextGlyphs = next.glyphs || {};
+  const prevKeys = Object.keys(prevGlyphs);
+  const nextKeys = Object.keys(nextGlyphs);
+  if (prevKeys.length !== nextKeys.length) return false;
+  return prevKeys.every((key) => prevGlyphs[Number(key)] === nextGlyphs[Number(key)]);
+}
+
+/**
+ * Build the project to compile for the preview: only the glyphs (and
+ * kerning / feature entries) that can affect the preview text. Returns the
+ * original project unchanged when the preview would need almost all glyphs
+ * (>= 80% of the project), where subsetting saves nothing.
+ */
+export function buildPreviewProject(project: FontProject, testText: string): FontProject {
+  const needed = collectPreviewGlyphUnicodes(testText, project);
+  const glyphs: Record<number, GlyphData> = {};
+  for (const unicode of needed) {
+    const glyph = project.glyphs?.[unicode];
+    if (glyph) glyphs[unicode] = glyph;
+  }
+  const totalCount = Object.keys(project.glyphs || {}).length;
+  if (totalCount > 0 && Object.keys(glyphs).length * 5 >= totalCount * 4) {
+    return project;
+  }
+
+  let kerning = project.kerning;
+  if (project.kerning) {
+    const filtered: Record<string, number> = {};
+    let changed = false;
+    for (const [key, value] of Object.entries(project.kerning)) {
+      const { left, right } = parseKerningPairKeyForPreview(key);
+      if (left !== null && right !== null && (!needed.has(left) || !needed.has(right))) {
+        changed = true;
+        continue;
+      }
+      filtered[key] = value;
+    }
+    kerning = changed ? filtered : project.kerning;
+  }
+
+  let openTypeFeatures = project.openTypeFeatures;
+  if (project.openTypeFeatures) {
+    const features = project.openTypeFeatures;
+    const customKerningPairs = (features.customKerningPairs || []).filter(
+      (pair) =>
+        !pair.enabled ||
+        (needed.has(pair.firstUnicode) && needed.has(pair.secondUnicode))
+    );
+    const ligatures = (features.ligatures || []).filter(
+      (ligature) =>
+        !ligature.enabled ||
+        needed.has(ligature.substituteUnicode) ||
+        ligature.inputChars.every((ch) => {
+          const code = ch.codePointAt(0);
+          return code !== undefined && needed.has(code);
+        })
+    );
+    const substitutions = (features.verticalWriting?.substitutions || []).filter(
+      (sub) =>
+        !sub.enabled || needed.has(sub.sourceUnicode) || needed.has(sub.vertUnicode)
+    );
+    if (
+      customKerningPairs.length !== (features.customKerningPairs || []).length ||
+      ligatures.length !== (features.ligatures || []).length ||
+      substitutions.length !== (features.verticalWriting?.substitutions || []).length
+    ) {
+      openTypeFeatures = {
+        ...features,
+        customKerningPairs,
+        ligatures,
+        verticalWriting: features.verticalWriting
+          ? { ...features.verticalWriting, substitutions }
+          : features.verticalWriting,
+      };
+    }
+  }
+
+  return { ...project, glyphs, kerning, openTypeFeatures };
+}
+
 // A single field of the lifted state. When no lifted state is supplied the
 // field falls back to local useState, so the hook also works standalone.
 function usePersistedField<S extends object, K extends keyof S>(
@@ -417,6 +690,25 @@ const [testText, setTestText] = usePersistedField(
     };
   }, [cleanupActivePreviewFont]);
 
+  // Compile only the glyphs the preview text can show. The candidate is
+  // rebuilt on every render (cheap: a text scan plus glyph lookups), but
+  // the state below only adopts it when it is not equivalent to the
+  // previous one, so the compile effect does not re-run for edits to
+  // glyphs outside the preview text. (Adjusting state during render is
+  // the documented React pattern for deriving state from props.)
+  const [previewProjectState, setPreviewProjectState] = useState(() => ({
+    testText,
+    preview: buildPreviewProject(project, testText),
+  }));
+  const previewProjectCandidate = buildPreviewProject(project, testText);
+  if (
+    previewProjectState.testText !== testText ||
+    !isEquivalentPreviewProject(previewProjectState.preview, previewProjectCandidate)
+  ) {
+    setPreviewProjectState({ testText, preview: previewProjectCandidate });
+  }
+  const previewProject = previewProjectState.preview;
+
   // Compile font dynamically and create @font-face style rule with FontFace API
   useEffect(() => {
     if (!isOpen) {
@@ -446,13 +738,15 @@ const [testText, setTestText] = usePersistedField(
         // Pixel projects preview at 1.0 with no centering or overlap
         // merging, matching the pixel studio export. Broken pixelData is
         // stripped first so one broken glyph does not stop the preview.
-        const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
-        const previewProject = stripInvalidPixelData(project).project;
-        const validation = validateFontProject(previewProject);
+        // Only the glyphs in `previewProject` (the preview text plus its
+        // shaping dependencies) are compiled; see buildPreviewProject.
+        const isPixelProject = Boolean(previewProject.pixelFontSettings?.isPixelFontProject);
+        const previewProjectCleaned = stripInvalidPixelData(previewProject).project;
+        const validation = validateFontProject(previewProjectCleaned);
         if (!validation.valid) {
           throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
         }
-        const { blobUrl } = compileFont(previewProject, {
+        const { blobUrl } = compileFont(previewProjectCleaned, {
           scaleFactor: isPixelProject ? 1.0 : fontScaleMultiplier,
           balanceSideBearings: isPixelProject ? false : autoBalanceMargins,
           mergeOverlaps: isPixelProject ? false : true,
@@ -535,7 +829,7 @@ const [testText, setTestText] = usePersistedField(
         compileTimerRef.current = null;
       }
     };
-  }, [isOpen, project, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
+  }, [isOpen, previewProject, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
 
   // Derive effective contours including pixel-only glyphs for metrics & preview
   const resolveGlyphPreviewContours = useCallback(

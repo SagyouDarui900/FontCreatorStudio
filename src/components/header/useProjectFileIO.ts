@@ -3,6 +3,7 @@ import { FontMetadata, FontProject, GlyphData } from '../../types';
 import { createDefaultProject } from '../../utils/font/projectDefaults';
 import { validateStoredFontProjectWithReport } from '../../utils/font/validation';
 import {
+  createLocalSnapshot,
   exportProjectJsonFile,
   normalizeValidatedProject,
   formatRemovedDataNotice,
@@ -81,18 +82,51 @@ export function useProjectFileIO({
     notify(`新しいフォント『${finalName}』を作成・キャンバスをリセットしました`, 'success');
   };
 
-  const handleSaveProjectJson = () => {
+  /**
+   * Download the current project as a JSON backup file. Returns whether
+   * the backup succeeded, so callers that reset the project afterwards
+   * can abort instead of wiping the project when the download failed.
+   */
+  const handleSaveProjectJson = (): boolean => {
     try {
       const res = exportProjectJsonFile(project);
       if (res.success) {
         notify(`プロジェクトセーブデータ『${res.filename}』を保存しました`, 'success');
-      } else {
-        notify('プロジェクトの保存に失敗しました', 'error');
+        return true;
       }
+      notify('プロジェクトの保存に失敗しました', 'error');
+      return false;
     } catch (err) {
       console.error('Failed to export project JSON:', err);
       notify('プロジェクトの保存に失敗しました', 'error');
+      return false;
     }
+  };
+
+  /**
+   * "JSONバックアップして新規リセット": download a JSON backup first and
+   * abort the reset when the backup fails, so a failed download can never
+   * wipe the current project. Before resetting, also keep the current
+   * project as a local snapshot; abort when even that retreat cannot be
+   * created (same rule as creating a new weight project).
+   */
+  const handleBackupAndResetProject = (customName?: string): boolean => {
+    if (!handleSaveProjectJson()) return false;
+    const snapshotRes = createLocalSnapshot(
+      project,
+      'manual',
+      `新規リセット前のバックアップ (${project.name || project.metadata.familyName || '名称未設定'})`
+    );
+    if (!snapshotRes.success) {
+      notify(
+        snapshotRes.error ||
+          'スナップショットの作成に失敗したため、新規作成を中止しました',
+        'error'
+      );
+      return false;
+    }
+    handleNewProjectWithCustomName(customName);
+    return true;
   };
 
   const handleLoadProjectJson = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,6 +322,7 @@ export function useProjectFileIO({
     applyPendingFontImport,
     cancelPendingFontImport,
     handleNewProjectWithCustomName,
+    handleBackupAndResetProject,
     handleSaveProjectJson,
     handleLoadProjectJson,
     handleImportTtf,

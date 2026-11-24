@@ -386,6 +386,83 @@ describe('Weight Interpolation & Family Settings Audit Fixes', () => {
     confirmSpy.mockRestore();
   });
 
+  it('WeightInterpolationModal batch apply commits history for every changed glyph and for the project metadata', () => {
+    const proj = makeProject();
+    // Add a second unlocked glyph so the batch apply changes two glyphs
+    // while the locked 'い' stays untouched.
+    proj.glyphs[0x3046] = {
+      unicode: 0x3046,
+      char: 'う',
+      name: 'uni3046',
+      advanceWidth: 1000,
+      lsb: 220,
+      contours: [
+        {
+          id: 'c-u',
+          closed: true,
+          nodes: [
+            { id: 'u1', x: 220, y: 220, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'u2', x: 780, y: 220, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'u3', x: 780, y: 780, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'u4', x: 220, y: 780, handleIn: null, handleOut: null, type: 'corner' },
+          ],
+        },
+      ],
+    };
+    let currentProj = proj;
+    const setProject = vi.fn((updater) => {
+      currentProj = typeof updater === 'function' ? updater(currentProj) : updater;
+    });
+    const onCommitHistory = vi.fn();
+    const onCommitProjectHistory = vi.fn();
+
+    const { container, unmount } = renderModal(
+      <WeightInterpolationModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={currentProj}
+        setProject={setProject}
+        selectedUnicode={0x3042}
+        theme="dark"
+        onShowToast={vi.fn()}
+        onCommitHistory={onCommitHistory}
+        onCommitProjectHistory={onCommitProjectHistory}
+      />
+    );
+
+    expect(container.textContent).toContain('対象: 2 文字 (ロック除外 1)');
+
+    const applyBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('現在のプロジェクトに適用')
+    );
+    expect(applyBtn).toBeDefined();
+    act(() => {
+      applyBtn!.click();
+    });
+
+    // Both changed glyphs get their own pre-change history entry, and the
+    // locked glyph gets none. The metadata change gets a project-level
+    // entry, so Ctrl+Z can restore the previous styleName/usWeightClass.
+    expect(onCommitHistory).toHaveBeenCalledTimes(2);
+    expect(onCommitHistory).toHaveBeenCalledWith(0x3042);
+    expect(onCommitHistory).toHaveBeenCalledWith(0x3046);
+    expect(onCommitHistory).not.toHaveBeenCalledWith(0x3044);
+    expect(onCommitProjectHistory).toHaveBeenCalledTimes(1);
+    // All history commits happen before the project is replaced.
+    for (const callOrder of onCommitHistory.mock.invocationCallOrder) {
+      expect(callOrder).toBeLessThan(setProject.mock.invocationCallOrder[0]);
+    }
+    expect(onCommitProjectHistory.mock.invocationCallOrder[0]).toBeLessThan(
+      setProject.mock.invocationCallOrder[0]
+    );
+    expect(setProject).toHaveBeenCalledTimes(1);
+    expect(currentProj.glyphs[0x3042].lsb).toBe(130);
+    expect(currentProj.glyphs[0x3046].lsb).toBe(150);
+    expect(currentProj.metadata.styleName).toBe('Bold');
+    expect(currentProj.metadata.usWeightClass).toBe(700);
+    unmount();
+  });
+
   it('WeightInterpolationModal Master tab labels target glyph consistently with selectedUnicode', () => {
     const proj = makeProject();
     const { container, unmount } = renderModal(

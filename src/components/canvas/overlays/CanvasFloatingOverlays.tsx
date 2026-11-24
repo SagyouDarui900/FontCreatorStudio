@@ -11,6 +11,7 @@ import {
   PathContour,
 } from '../../../types';
 import { ThemeMode } from '../../../utils/theme';
+import type { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 import { TraceAdjustFloatingHud } from './TraceAdjustFloatingHud';
 import { CanvasTouchLoupe } from './CanvasTouchLoupe';
 import { CanvasToastNotification } from './CanvasToastNotification';
@@ -78,6 +79,8 @@ export interface CanvasFloatingOverlaysProps {
   handleRotateSelected: (angleDeg?: number) => void;
   handleSlantSelected: (slantDelta: number) => void;
   handleScaleSelected: (scaleFactor: number) => void;
+  handleAlignSelected?: (direction: AlignDirection) => void;
+  handleDistributeSelected?: (direction: DistributeDirection) => void;
   handleSmoothStrokeSelected: () => void;
   handleSimplifySelected: () => void;
   showMobileBrushSheet: boolean;
@@ -168,6 +171,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   handleRotateSelected,
   handleSlantSelected,
   handleScaleSelected,
+  handleAlignSelected,
+  handleDistributeSelected,
   handleSmoothStrokeSelected,
   handleSimplifySelected,
   showMobileBrushSheet,
@@ -354,6 +359,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleRotateSelected={handleRotateSelected}
         handleSlantSelected={handleSlantSelected}
         handleScaleSelected={handleScaleSelected}
+        handleAlignSelected={handleAlignSelected}
+        handleDistributeSelected={handleDistributeSelected}
         handleDuplicateSelected={handleDuplicateSelected}
         handleSmoothStrokeSelected={handleSmoothStrokeSelected}
         handleSimplifySelected={handleSimplifySelected}

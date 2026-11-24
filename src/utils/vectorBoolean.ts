@@ -621,10 +621,25 @@ function booleanUnionContoursOrNull(contours: PathContour[]): PathContour[] | nu
     const paperPaths: paper.Path[] = closedContours.map((c) => contourToPaperPath(scope, c));
     const n = paperPaths.length;
 
-    // Determine containment hierarchy: a path is a hole if it is strictly enclosed by another path of larger area.
+    // Determine containment depth for each path: the number of other
+    // paths that strictly enclose it. A path is a hole exactly when
+    // its depth is odd (even-odd / parity rule):
+    //   depth 0: outer solid (e.g. the frame of "回")
+    //   depth 1: hole cut out of the outer (the counter of "回")
+    //   depth 2: island inside the hole (the inner "口" of "回") — solid again
+    //   depth 3: hole inside the island — cut out again
+    // The old single-layer test marked a path a hole as soon as ANY
+    // larger path contained it, so a depth-2 island was subtracted
+    // from the united outer and vanished (it lies inside the hole
+    // void, so the subtraction was a no-op geometrically and the
+    // island was never added back as solid).
     // Crucially: if path i crosses or intersects path j (crossings.length > 0), they are crossing/overlapping
     // strokes, NEVER an isolated hole! Crossing strokes MUST be united together, not subtracted.
-    const isHole = new Array<boolean>(n).fill(false);
+    // (A merely touching boundary — e.g. an island sharing an edge
+    // with the hole boundary — reports no crossings in Paper.js, so
+    // it is still counted as contained; see the touching-island test.)
+    // contains[i][j] is true when path j strictly encloses path i.
+    const contains: boolean[][] = Array.from({ length: n }, () => new Array<boolean>(n).fill(false));
     for (let i = 0; i < n; i++) {
       const pi = paperPaths[i];
       const areaI = Math.abs(pi.area);
@@ -658,56 +673,82 @@ function booleanUnionContoursOrNull(contours: PathContour[]): PathContour[] | nu
         const q2Contained = pj.contains(new scope.Point(bI.right - bI.width * 0.25, bI.bottom - bI.height * 0.25));
 
         if (centerContained && q1Contained && q2Contained) {
-          isHole[i] = true;
-          break;
+          contains[i][j] = true;
         }
       }
     }
 
-    // Unite all outer strokes together into solid boundaries (fusing crossings & overlapping areas)
-    let outerAcc: paper.PathItem | null = null;
-    for (let i = 0; i < n; i++) {
-      if (!isHole[i]) {
-        const p = paperPaths[i];
-        const empty = new scope.Path();
-        const pClean = p.unite(empty);
-        empty.remove();
-        p.remove();
+    // Parity alone is not enough: the operations must also run in
+    // depth order, per containment cluster. Uniting all even-depth
+    // paths first would swallow a depth-2 island into its outer
+    // (the island lies inside the outer's filled area), and the
+    // later hole subtraction would then erase the island's region
+    // for good. Instead, within each cluster (one root outer plus
+    // everything nested in it) start from the root and alternate
+    // subtract / unite as the depth grows: subtract depth-1 holes
+    // first, then unite the depth-2 islands back into the emptied
+    // hole, then subtract depth-3 holes, and so on. A hole is only
+    // subtracted from its own cluster's accumulator, so it cannot
+    // cut ink belonging to an overlapping stroke of another cluster.
+    // Clusters are united with each other only at the end.
+    const cleanPaperPath = (p: paper.Path): paper.PathItem => {
+      const empty = new scope.Path();
+      const cleaned = p.unite(empty);
+      empty.remove();
+      p.remove();
+      return cleaned;
+    };
 
-        if (!outerAcc) {
-          outerAcc = pClean;
+    const clusterAccs: paper.PathItem[] = [];
+    for (const group of groupContoursWithHoles(closedContours)) {
+      const members = group
+        .map((c) => closedContours.indexOf(c))
+        .filter((idx) => idx >= 0);
+      if (members.length === 0) continue;
+      // Depth within this cluster only: a contour nested in an outer
+      // of another cluster must not change its role here.
+      const clusterDepth = (idx: number): number => {
+        let d = 0;
+        for (const j of members) {
+          if (contains[idx][j]) d += 1;
+        }
+        return d;
+      };
+      members.sort((a, b) => {
+        const dd = clusterDepth(a) - clusterDepth(b);
+        if (dd !== 0) return dd;
+        // Root first; among equal depths, larger area first.
+        return Math.abs(paperPaths[b].area) - Math.abs(paperPaths[a].area);
+      });
+
+      let acc: paper.PathItem | null = null;
+      for (const idx of members) {
+        const cleaned = cleanPaperPath(paperPaths[idx]);
+        if (!acc) {
+          // Depth-0 root of the cluster: the solid to start from.
+          acc = cleaned;
+        } else if (clusterDepth(idx) % 2 === 1) {
+          const next: paper.PathItem = acc.subtract(cleaned);
+          acc.remove();
+          cleaned.remove();
+          acc = next;
         } else {
-          const next: paper.PathItem = outerAcc.unite(pClean);
-          outerAcc.remove();
-          pClean.remove();
-          outerAcc = next;
+          const next: paper.PathItem = acc.unite(cleaned);
+          acc.remove();
+          cleaned.remove();
+          acc = next;
         }
       }
+      if (acc) clusterAccs.push(acc);
     }
 
-    if (!outerAcc) {
+    if (clusterAccs.length === 0) {
       // Fallback: clean all
       for (const p of paperPaths) p.remove();
       return contours;
     }
 
-    // Subtract holes (e.g. inner cutouts of 日, 口, 目, O) from the united solid outer boundary
-    for (let i = 0; i < n; i++) {
-      if (isHole[i]) {
-        const p = paperPaths[i];
-        const empty = new scope.Path();
-        const cleanHole = p.unite(empty);
-        empty.remove();
-        p.remove();
-
-        if (outerAcc) {
-          const next: paper.PathItem = outerAcc.subtract(cleanHole);
-          outerAcc.remove();
-          cleanHole.remove();
-          outerAcc = next;
-        }
-      }
-    }
+    const outerAcc = unionPaperPathItems(scope, clusterAccs);
 
     if (!outerAcc) {
       return contours;

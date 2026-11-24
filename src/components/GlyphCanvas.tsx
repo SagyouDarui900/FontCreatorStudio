@@ -19,6 +19,22 @@ import {
   getThemeClasses,
 } from '../utils/theme';
 import { useBrushDrawing } from '../hooks/useBrushDrawing';
+
+/** Long-press hold time for the canvas touch context menu (same as the glyph grid card). */
+export const CANVAS_LONG_PRESS_MS = 480;
+/** Finger movement that cancels a pending canvas long-press (same as the glyph grid card). */
+export const CANVAS_LONG_PRESS_CANCEL_PX = 10;
+
+/** Pure check: has the finger moved far enough to cancel a pending long-press? */
+export function isLongPressMoveCancelled(
+  start: { x: number; y: number },
+  current: { x: number; y: number }
+): boolean {
+  return (
+    Math.abs(current.x - start.x) > CANVAS_LONG_PRESS_CANCEL_PX ||
+    Math.abs(current.y - start.y) > CANVAS_LONG_PRESS_CANCEL_PX
+  );
+}
 import { useNodeEditing } from '../hooks/useNodeEditing';
 import { CanvasSubToolbar } from './canvas/overlays/CanvasSubToolbar';
 import { CanvasFloatingOverlays } from './canvas/overlays/CanvasFloatingOverlays';
@@ -745,6 +761,67 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   );
 
   const handleCloseContextMenu = useCallback(() => setContextMenuState(null), []);
+
+  // Canvas long-press context menu (touch equivalent of right-click).
+  // Mirrors the glyph grid card (GlyphGridCard): 480ms hold, cancelled
+  // when the finger moves more than 10px. Restricted to select/node
+  // tools: other tools start drawing or erasing on pointerdown, so a
+  // hold there must not open a menu instead.
+  const canvasLongPressTimerRef = useRef<number | null>(null);
+  const canvasTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearCanvasLongPress = useCallback(() => {
+    if (canvasLongPressTimerRef.current !== null) {
+      window.clearTimeout(canvasLongPressTimerRef.current);
+      canvasLongPressTimerRef.current = null;
+    }
+    canvasTouchStartPosRef.current = null;
+  }, []);
+
+  useEffect(() => clearCanvasLongPress, [clearCanvasLongPress]);
+
+  const handleCanvasTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length !== 1) {
+        clearCanvasLongPress();
+        return;
+      }
+      if (toolMode !== 'select' && toolMode !== 'node') return;
+      const targetEl = e.target as HTMLElement;
+      if (targetEl.closest('button, a, input, select, textarea, [role="button"]')) return;
+      const touch = e.touches[0];
+      const clientX = touch.clientX;
+      const clientY = touch.clientY;
+      canvasTouchStartPosRef.current = { x: clientX, y: clientY };
+      clearCanvasLongPress();
+      canvasLongPressTimerRef.current = window.setTimeout(() => {
+        const syntheticEvent = {
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          clientX,
+          clientY,
+        } as unknown as React.MouseEvent;
+        handleCanvasContextMenu(syntheticEvent);
+      }, CANVAS_LONG_PRESS_MS);
+    },
+    [clearCanvasLongPress, toolMode, handleCanvasContextMenu]
+  );
+
+  const handleCanvasTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!canvasTouchStartPosRef.current || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      if (
+        isLongPressMoveCancelled(canvasTouchStartPosRef.current, {
+          x: touch.clientX,
+          y: touch.clientY,
+        })
+      ) {
+        clearCanvasLongPress();
+      }
+    },
+    [clearCanvasLongPress]
+  );
   const handleTraceImageError = useCallback(
     () => showCanvasToast('下絵画像を読み込めませんでした', '画像ファイルを確認してください'),
     [showCanvasToast]
@@ -1233,6 +1310,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
             }
           }}
           onContextMenu={handleCanvasContextMenu}
+          onTouchStart={handleCanvasTouchStart}
+          onTouchMove={handleCanvasTouchMove}
+          onTouchEnd={clearCanvasLongPress}
+          onTouchCancel={clearCanvasLongPress}
         >
           {/* SVG Canvas Stage */}
           <CanvasSvgStage
@@ -1393,6 +1474,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleRotateSelected={handleRotateSelectedWithDefault}
           handleSlantSelected={handleSlantSelected}
           handleScaleSelected={handleScaleSelected}
+          handleAlignSelected={handleAlignSelected}
+          handleDistributeSelected={handleDistributeSelected}
           handleSmoothStrokeSelected={handleSmoothStrokeSelected}
           handleSimplifySelected={handleSimplifySelected}
           showMobileBrushSheet={showMobileBrushSheet}

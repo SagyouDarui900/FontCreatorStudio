@@ -12,6 +12,7 @@ import {
   TraceSettings,
 } from '../../../types';
 import { snapSinglePoint } from '../../../utils/snap';
+import { isPointNearContour } from '../../../utils/path';
 import { generateId } from '../../../utils/path';
 import { usePointerMetricsDrag } from './usePointerMetricsDrag';
 import { usePointerTransformDispatch } from './usePointerTransformDispatch';
@@ -20,6 +21,31 @@ import { computePinchTransform } from './viewportMath';
 import { setHoverCanvasPos, getHoverCanvasPos } from '../hoverStore';
 import { setPenMousePos } from '../penMouseStore';
 import { setLiveViewport } from '../viewportStore';
+
+/** Double-tap window for the touch Fit / 100% toggle. */
+export const DOUBLE_TAP_MAX_INTERVAL_MS = 300;
+/** Two taps count as one double-tap only within this screen distance. */
+export const DOUBLE_TAP_MAX_DISTANCE_PX = 16;
+
+export interface TapPoint {
+  time: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Pure double-tap check: the second tap must land soon enough after the
+ * first and close enough to it on screen. Without the distance check,
+ * two quick taps at unrelated positions would also toggle the view.
+ */
+export function isDoubleTap(prev: TapPoint | null, next: TapPoint): boolean {
+  if (!prev) return false;
+  const dt = next.time - prev.time;
+  if (dt < 0 || dt >= DOUBLE_TAP_MAX_INTERVAL_MS) return false;
+  const dx = next.x - prev.x;
+  const dy = next.y - prev.y;
+  return dx * dx + dy * dy <= DOUBLE_TAP_MAX_DISTANCE_PX * DOUBLE_TAP_MAX_DISTANCE_PX;
+}
 
 export interface UseCanvasPointerDispatcherOptions {
   // Viewport
@@ -364,7 +390,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   const touchStartTimeRef = useRef<number>(0);
   const maxTouchCountRef = useRef<number>(0);
   const hasMovedSignificantRef = useRef<boolean>(false);
-  const lastTapTimeRef = useRef<number>(0);
+  const lastTapRef = useRef<TapPoint | null>(null);
   // A3: set when a pinch starts. A pinch starts when the 2nd finger arrives
   // well after the 1st finger was already down, or when the fingers move
   // during the gesture. While set, tap Undo/Redo does not fire.
@@ -698,18 +724,30 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     // Double tap on mobile screen -> quick toggle Fit / 100%
     if (e.pointerType === 'touch' && (toolMode === 'select' || (toolMode as string) === 'hand')) {
       const now = Date.now();
-      if (now - lastTapTimeRef.current < 300 && touchPointersRef.current.size === 1) {
-        if (Math.abs(zoomRef.current - 1.0) < 0.08) {
-          resetView('fit');
-          showCanvasToast('画面にフィット');
-        } else {
-          resetView('100%');
-          showCanvasToast('100% 等倍表示');
+      const tap: TapPoint = { time: now, x: e.clientX, y: e.clientY };
+      if (isDoubleTap(lastTapRef.current, tap) && touchPointersRef.current.size === 1) {
+        lastTapRef.current = null;
+        // On a contour, suppress the Fit toggle: the dblclick handler in
+        // CanvasSvgStage moves to node-edit mode for the same double-tap,
+        // and both actions must not fire at once. Fall through so this
+        // pointerdown still selects the contour as usual.
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        const onContour = (opts.contoursRef.current || contours).some((c) =>
+          isPointNearContour(canvasPos, c, 24 / zoomRef.current)
+        );
+        if (!onContour) {
+          if (Math.abs(zoomRef.current - 1.0) < 0.08) {
+            resetView('fit');
+            showCanvasToast('画面にフィット');
+          } else {
+            resetView('100%');
+            showCanvasToast('100% 等倍表示');
+          }
+          return;
         }
-        lastTapTimeRef.current = 0;
-        return;
+      } else {
+        lastTapRef.current = tap;
       }
-      lastTapTimeRef.current = now;
     }
 
     const pos = screenToCanvas(e.clientX, e.clientY);

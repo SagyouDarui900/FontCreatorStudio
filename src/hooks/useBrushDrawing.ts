@@ -21,7 +21,7 @@ import {
   computeMouseSpeedPressure,
   blendStrokePressure,
   trimTerminalJitter,
-  isAccidentalStrayTap,
+  classifyBrushTap,
   calculateEffectiveSmoothing,
   getDecimatedPointsForLivePreview,
 } from '../utils/brush';
@@ -115,7 +115,7 @@ export interface UseBrushDrawingReturn {
   activeBrushPathRef: React.RefObject<SVGPathElement | null>;
   activeBrushSvgDRef: React.MutableRefObject<string>;
   resetBrushDrawing: () => void;
-  finalizeBrushDrawing: () => boolean;
+  finalizeBrushDrawing: (options?: { allowTapDot?: boolean }) => boolean;
   handleBrushPointerDown: (e: React.PointerEvent<SVGSVGElement>, pos: Point) => void;
   handleBrushPointerMove: (e: React.PointerEvent<SVGSVGElement>) => boolean;
   handleBrushPointerUp: (e: React.PointerEvent<SVGSVGElement>) => boolean;
@@ -150,6 +150,15 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   const wasStraightModeRef = useRef<boolean>(false);
   const brushStrokeStartTimeRef = useRef<number>(0);
   const brushStrokeStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Pointer that started the current stroke, so a finalize triggered by a
+  // different pointer (e.g. the second finger of a pinch, routed through
+  // handleBrushPointerUp) can be told apart from the stroke pointer
+  // lifting. See handleBrushPointerUp.
+  const brushStrokePointerIdRef = useRef<number | null>(null);
+  // Largest PointerEvent contact dimension (CSS px) seen during the stroke.
+  // Unknown when the platform does not report contact size (<= 1).
+  // Used to keep a palm-sized tap discarded while a fingertip tap dots.
+  const brushTapContactSizeRef = useRef<number | undefined>(undefined);
   const pendingBrushEventsRef = useRef<
     { clientX: number; clientY: number; pressure: number; timeStamp: number; pointerType: string }[]
   >([]);
@@ -170,9 +179,27 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     wasStraightModeRef.current = false;
     pendingBrushEventsRef.current = [];
     strokeBrushConfigRef.current = null;
+    brushStrokePointerIdRef.current = null;
+    brushTapContactSizeRef.current = undefined;
     activeBrushSvgDRef.current = '';
     if (activeBrushPathRef.current) {
       activeBrushPathRef.current.setAttribute('d', '');
+    }
+  }, []);
+
+  // Record the largest contact ellipse seen so far in this stroke.
+  // PointerEvent width/height are CSS px; values <= 1 mean "unknown"
+  // (some browsers report 1 for touch) and are ignored.
+  const noteTapContactSize = useCallback((width?: number, height?: number) => {
+    const size = Math.max(
+      typeof width === 'number' ? width : 0,
+      typeof height === 'number' ? height : 0
+    );
+    if (size > 1) {
+      brushTapContactSizeRef.current = Math.max(
+        brushTapContactSizeRef.current ?? 0,
+        size
+      );
     }
   }, []);
 
@@ -304,6 +331,10 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       mouseSmoothSpeedRef.current = 0.5;
       brushStrokeStartTimeRef.current = Date.now();
       brushStrokeStartPosRef.current = { x: pos.x, y: pos.y };
+      brushStrokePointerIdRef.current =
+        typeof e.pointerId === 'number' ? e.pointerId : null;
+      brushTapContactSizeRef.current = undefined;
+      noteTapContactSize(e.width, e.height);
 
       // Snapshot active brush configuration at stroke inception to prevent mid-stroke jump
       strokeBrushConfigRef.current = {
@@ -382,6 +413,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       setIsStylusActive,
       onPressureUpdate,
       getLivePreviewSvgPath,
+      noteTapContactSize,
     ]
   );
 
@@ -390,6 +422,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       if (toolMode !== 'brush' || brushStrokePointsRef.current.length === 0) {
         return false;
       }
+      noteTapContactSize(e.width, e.height);
       const isPen = e.pointerType === 'pen';
       if (isPen && !isStylusActive && setIsStylusActive) {
         setIsStylusActive(true);
@@ -496,6 +529,8 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
       for (let k = 0; k < eventsToProcess.length; k++) {
         const ev = eventsToProcess[k];
+        // A palm landing grows over a few ms; keep the largest contact seen.
+        noteTapContactSize(ev.width, ev.height);
         pendingBrushEventsRef.current.push({
           clientX: ev.clientX,
           clientY: ev.clientY,
@@ -534,10 +569,11 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       pressureSensitivity,
       ingestRawEvents,
       getLivePreviewSvgPath,
+      noteTapContactSize,
     ]
   );
 
-  const finalizeBrushDrawing = useCallback((): boolean => {
+  const finalizeBrushDrawing = useCallback((options?: { allowTapDot?: boolean }): boolean => {
     if (brushRafIdRef.current != null) {
       cancelAnimationFrame(brushRafIdRef.current);
       brushRafIdRef.current = null;
@@ -570,30 +606,48 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     // Trim micro-jitter at stroke end
     trimTerminalJitter(pts);
 
-    // Distinguish accidental stray tap vs intentional mark
+    // Distinguish an accidental stray tap from an intentional mark or a
+    // finger tap that stamps a dot (see classifyBrushTap).
     const duration = Date.now() - brushStrokeStartTimeRef.current;
-    const isAccidental = isAccidentalStrayTap(
+    const classification = classifyBrushTap(
       pts,
       brushStrokeStartPosRef.current,
       duration,
-      pts[0]?.pointerType
+      pts[0]?.pointerType,
+      brushTapContactSizeRef.current
     );
+    brushTapContactSizeRef.current = undefined;
+    brushStrokePointerIdRef.current = null;
 
-    if (isAccidental) {
+    // A tap-dot is only stamped when the stroke pointer itself lifted.
+    // When allowTapDot is false the finalize was triggered by a different
+    // pointer (e.g. the second finger of a pinch), so a tap-shaped
+    // stroke is the first finger of a gesture, not a dot.
+    if (
+      classification === 'accidental' ||
+      (classification === 'tapDot' && options?.allowTapDot === false)
+    ) {
       strokeBrushConfigRef.current = null;
       return true;
     }
 
-    if (pts.length > 0) {
-      const finalizedContour = getProcessedBrushContour(pts, true);
+    // A finger tap stamps a minimum-size dot at the tap position: reduce
+    // the tap to its first point so the outline builder takes its
+    // single-point dot branch (a circle of radius max(6, width/2) for the
+    // brush style, a square/circle for the sharp styles) instead of a
+    // sliver from two near-identical points.
+    const commitPts = classification === 'tapDot' ? [pts[0]] : pts;
+
+    if (commitPts.length > 0) {
+      const finalizedContour = getProcessedBrushContour(commitPts, true);
       const currentContours = contoursRef.current || [];
       const nextContours = [...currentContours, finalizedContour];
       onCommitHistory?.();
       contoursRef.current = nextContours;
       onChangeContours(nextContours, { skipHistory: true });
       lastBrushPointRef.current = {
-        x: pts[pts.length - 1].x,
-        y: pts[pts.length - 1].y,
+        x: commitPts[commitPts.length - 1].x,
+        y: commitPts[commitPts.length - 1].y,
         time: Date.now(),
       };
     }
@@ -608,7 +662,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
   ]);
 
   const handleBrushPointerUp = useCallback(
-    (_e: React.PointerEvent<SVGSVGElement>): boolean => {
+    (e: React.PointerEvent<SVGSVGElement>): boolean => {
       if (
         toolMode !== 'brush' ||
         (brushStrokePointsRef.current.length === 0 &&
@@ -618,7 +672,20 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         return false;
       }
 
-      return finalizeBrushDrawing();
+      // The dispatcher also routes a second finger's pointerdown through
+      // this handler when a pinch starts, to finalize the stroke in
+      // progress. That event carries the second finger's pointerId, not
+      // the stroke pointer's. A tap-shaped stroke finalized that way is
+      // the first finger of a pinch gesture, not a dot, so suppress the
+      // tap-dot there (a real stroke is still committed, as before).
+      // When the pointerId is missing or matches the stroke pointer, the
+      // stroke pointer itself lifted and a tap may stamp a dot.
+      const strokePointerId = brushStrokePointerIdRef.current;
+      const allowTapDot =
+        strokePointerId === null ||
+        typeof e.pointerId !== 'number' ||
+        e.pointerId === strokePointerId;
+      return finalizeBrushDrawing({ allowTapDot });
     },
     [toolMode, finalizeBrushDrawing]
   );

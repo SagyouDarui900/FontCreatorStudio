@@ -96,6 +96,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     applyPendingFontImport,
     cancelPendingFontImport,
     handleNewProjectWithCustomName,
+    handleBackupAndResetProject,
     handleSaveProjectJson,
     handleLoadProjectJson,
     handleImportTtf,
@@ -432,10 +433,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         glyphCount={glyphCount}
         newProjectName={newProjectName}
         setNewProjectName={setNewProjectName}
-        onSaveAndReset={() => {
-          handleSaveProjectJson();
-          handleNewProjectWithCustomName(newProjectName);
-        }}
+        onSaveAndReset={() => handleBackupAndResetProject(newProjectName)}
         onResetWithoutSave={() => handleNewProjectWithCustomName(newProjectName)}
       />
 

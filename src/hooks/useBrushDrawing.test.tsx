@@ -167,6 +167,201 @@ describe('useBrushDrawing (Round 3)', () => {
     }
   });
 
+describe('useBrushDrawing (finger tap dots)', () => {
+  it('stamps a minimum-size dot for a brief fingertip tap', async () => {
+    const { store, cleanup } = renderBrush(1);
+    try {
+      act(() => {
+        store.current.handleBrushPointerDown(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            width: 10,
+            height: 10,
+            timeStamp: 1000,
+          }),
+          { x: 100, y: 100 }
+        );
+      });
+      act(() => {
+        store.current.handleBrushPointerUp(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            timeStamp: 1100,
+          })
+        );
+      });
+      expect(store.contours).toHaveLength(1);
+      const dot = store.contours![0];
+      expect(dot.closed).toBe(true);
+      // brushWidth 40 -> single-point dot branch: circle of radius
+      // max(6, 40/2) = 20 around the tap position.
+      const xs = dot.nodes.map((n: any) => n.x);
+      const ys = dot.nodes.map((n: any) => n.y);
+      expect(Math.min(...xs)).toBeCloseTo(80, 0);
+      expect(Math.max(...xs)).toBeCloseTo(120, 0);
+      expect(Math.min(...ys)).toBeCloseTo(80, 0);
+      expect(Math.max(...ys)).toBeCloseTo(120, 0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('discards a brief palm-sized touch tap', async () => {
+    const { store, cleanup } = renderBrush(1);
+    try {
+      act(() => {
+        store.current.handleBrushPointerDown(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            width: 80,
+            height: 80,
+            timeStamp: 1000,
+          }),
+          { x: 100, y: 100 }
+        );
+      });
+      act(() => {
+        store.current.handleBrushPointerUp(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            timeStamp: 1100,
+          })
+        );
+      });
+      expect(store.contours).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('does not stamp a dot when a second finger interrupts the tap (pinch start)', async () => {
+    const { store, cleanup } = renderBrush(1);
+    try {
+      act(() => {
+        store.current.handleBrushPointerDown(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            width: 10,
+            height: 10,
+            timeStamp: 1000,
+          }),
+          { x: 100, y: 100 }
+        );
+      });
+      // The dispatcher routes the second finger's pointerdown through
+      // handleBrushPointerUp to finalize the stroke in progress; its
+      // pointerId differs from the stroke pointer's.
+      act(() => {
+        store.current.handleBrushPointerUp(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 9,
+            clientX: 200,
+            clientY: 200,
+            pressure: 0.5,
+            timeStamp: 1100,
+          })
+        );
+      });
+      expect(store.contours).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('still commits a real stroke when a second finger interrupts it', async () => {
+    const { store, cleanup } = renderBrush(1);
+    try {
+      act(() => {
+        store.current.handleBrushPointerDown(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 5,
+            clientX: 100,
+            clientY: 100,
+            pressure: 0.5,
+            width: 10,
+            height: 10,
+            timeStamp: 1000,
+          }),
+          { x: 100, y: 100 }
+        );
+      });
+      act(() => {
+        store.current.handleBrushPointerMove(
+          fakePointerEvent({ pointerType: 'touch', pointerId: 5, clientX: 120, clientY: 100, timeStamp: 1016 })
+        );
+        store.current.handleBrushPointerMove(
+          fakePointerEvent({ pointerType: 'touch', pointerId: 5, clientX: 140, clientY: 110, timeStamp: 1032 })
+        );
+        store.current.handleBrushPointerMove(
+          fakePointerEvent({ pointerType: 'touch', pointerId: 5, clientX: 160, clientY: 100, timeStamp: 1048 })
+        );
+      });
+      await flushRaf();
+      act(() => {
+        store.current.handleBrushPointerUp(
+          fakePointerEvent({
+            pointerType: 'touch',
+            pointerId: 9,
+            clientX: 200,
+            clientY: 200,
+            pressure: 0.5,
+            timeStamp: 1100,
+          })
+        );
+      });
+      expect(store.contours).toHaveLength(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('keeps the existing mouse click dot', async () => {
+    const { store, cleanup } = renderBrush(1);
+    try {
+      act(() => {
+        store.current.handleBrushPointerDown(
+          fakePointerEvent({ clientX: 100, clientY: 100, timeStamp: 1000 }),
+          { x: 100, y: 100 }
+        );
+      });
+      act(() => {
+        store.current.handleBrushPointerUp(
+          fakePointerEvent({ clientX: 100, clientY: 100, timeStamp: 1100 })
+        );
+      });
+      expect(store.contours).toHaveLength(1);
+      const dot = store.contours![0];
+      const xs = dot.nodes.map((n: any) => n.x);
+      expect(Math.min(...xs)).toBeCloseTo(80, 0);
+      expect(Math.max(...xs)).toBeCloseTo(120, 0);
+    } finally {
+      cleanup();
+    }
+  });
+});
+
   it('L11: micro-sampling distance is 1.5 screen px, not 1.5 canvas units', async () => {
     // zoom 2: 1.0-unit steps are 2 screen px apart, so all are kept.
     const hi = renderBrush(2);

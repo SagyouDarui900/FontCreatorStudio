@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   trimTerminalJitter,
   isAccidentalStrayTap,
+  classifyBrushTap,
+  isPalmSizedContact,
+  PALM_CONTACT_SIZE_PX,
 } from './brushTapDetection';
 import {
   calibrateStylusPressure,
@@ -39,13 +42,22 @@ describe('brushTapDetection', () => {
     expect(pts.length).toBe(3);
   });
 
-  it('detects accidental stray tap when touch is brief and minimal distance', () => {
+  it('detects accidental stray tap when a palm-sized touch is brief and minimal distance', () => {
     const pts: StrokePoint[] = [
       { x: 100, y: 100 },
       { x: 101, y: 101 },
     ];
-    const isAccidental = isAccidentalStrayTap(pts, { x: 100, y: 100 }, 150, 'touch');
+    const isAccidental = isAccidentalStrayTap(pts, { x: 100, y: 100 }, 150, 'touch', 80);
     expect(isAccidental).toBe(true);
+  });
+
+  it('does not treat a fingertip touch tap as accidental (it stamps a dot)', () => {
+    const pts: StrokePoint[] = [
+      { x: 100, y: 100 },
+      { x: 101, y: 101 },
+    ];
+    expect(isAccidentalStrayTap(pts, { x: 100, y: 100 }, 150, 'touch')).toBe(false);
+    expect(isAccidentalStrayTap(pts, { x: 100, y: 100 }, 150, 'touch', 30)).toBe(false);
   });
 
   it('preserves deliberate stylus tap even if brief when pressure is firm (> 0.38)', () => {
@@ -69,6 +81,69 @@ describe('brushTapDetection', () => {
   });
 });
 
+describe('classifyBrushTap (finger tap dots)', () => {
+  const tapPts: StrokePoint[] = [
+    { x: 100, y: 100 },
+    { x: 101, y: 101 },
+  ];
+  const start = { x: 100, y: 100 };
+
+  it('classifies a brief, near-stationary fingertip tap as a dot', () => {
+    // No contact size reported (e.g. Safari reports 1) -> fingertip dot.
+    expect(classifyBrushTap(tapPts, start, 150, 'touch')).toBe('tapDot');
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', undefined)).toBe('tapDot');
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', 0)).toBe('tapDot');
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', 1)).toBe('tapDot');
+    // A small contact ellipse is a fingertip.
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', 30)).toBe('tapDot');
+    // Exactly at the palm threshold is still a fingertip.
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', PALM_CONTACT_SIZE_PX)).toBe('tapDot');
+  });
+
+  it('classifies a palm-sized touch tap as accidental', () => {
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', PALM_CONTACT_SIZE_PX + 1)).toBe(
+      'accidental'
+    );
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', 80)).toBe('accidental');
+    expect(classifyBrushTap(tapPts, start, 150, 'touch', 200)).toBe('accidental');
+  });
+
+  it('classifies a moved or long touch stroke as a stroke, not a tap', () => {
+    const moved: StrokePoint[] = [
+      { x: 100, y: 100 },
+      { x: 120, y: 120 },
+    ];
+    expect(classifyBrushTap(moved, start, 100, 'touch')).toBe('stroke');
+    expect(classifyBrushTap(tapPts, start, 350, 'touch')).toBe('stroke');
+  });
+
+  it('keeps mouse and firm stylus taps as strokes', () => {
+    expect(classifyBrushTap(tapPts, start, 150, 'mouse')).toBe('stroke');
+    const firmPen: StrokePoint[] = [{ x: 100, y: 100, pressure: 0.65 }];
+    expect(classifyBrushTap(firmPen, start, 120, 'pen')).toBe('stroke');
+  });
+
+  it('classifies a light stylus tap as accidental (unchanged)', () => {
+    const lightPen: StrokePoint[] = [{ x: 100, y: 100, pressure: 0.2 }];
+    expect(classifyBrushTap(lightPen, start, 120, 'pen')).toBe('accidental');
+  });
+
+  it('classifies an empty stroke as accidental', () => {
+    expect(classifyBrushTap([], start, 100, 'touch')).toBe('accidental');
+  });
+});
+
+describe('isPalmSizedContact', () => {
+  it('treats only clearly large contacts as palm', () => {
+    expect(isPalmSizedContact(undefined)).toBe(false);
+    expect(isPalmSizedContact(0)).toBe(false);
+    expect(isPalmSizedContact(1)).toBe(false);
+    expect(isPalmSizedContact(30)).toBe(false);
+    expect(isPalmSizedContact(PALM_CONTACT_SIZE_PX)).toBe(false);
+    expect(isPalmSizedContact(PALM_CONTACT_SIZE_PX + 1)).toBe(true);
+    expect(isPalmSizedContact(120)).toBe(true);
+  });
+});
 describe('brushPressure', () => {
   it('calibrates stylus hardware pressure to dynamic range', () => {
     expect(calibrateStylusPressure(0)).toBe(0.15);

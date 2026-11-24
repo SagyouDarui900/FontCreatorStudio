@@ -6,13 +6,21 @@ import {
   FlipHorizontal,
   FlipVertical,
   RotateCw,
+  RotateCcw,
   Italic,
   Plus,
   Minus,
   Copy,
   Wand2,
   Trash2,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
 } from 'lucide-react';
+import type { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 
 export interface MobilePartTransformSheetProps {
   isOpen: boolean;
@@ -25,6 +33,8 @@ export interface MobilePartTransformSheetProps {
   handleRotateSelected: (deg: number) => void;
   handleSlantSelected: (amt: number) => void;
   handleScaleSelected: (factor: number) => void;
+  handleAlignSelected?: (direction: AlignDirection) => void;
+  handleDistributeSelected?: (direction: DistributeDirection) => void;
   handleDuplicateSelected: () => void;
   handleSmoothStrokeSelected: (strength?: 'mild' | 'standard' | 'strong', keepShape?: boolean) => void;
   handleSimplifySelected: (tol?: number) => void;
@@ -43,6 +53,8 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
     handleRotateSelected,
     handleSlantSelected,
     handleScaleSelected,
+    handleAlignSelected,
+    handleDistributeSelected,
     handleDuplicateSelected,
     handleSmoothStrokeSelected,
     handleSimplifySelected,
@@ -101,7 +113,7 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
             {/* Flip and Rotate */}
             <div>
               <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">反転・回転</div>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-5 gap-1.5">
                 <button
                   onClick={handleFlipHSelected}
                   className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
@@ -124,6 +136,13 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                   <span>+90°回転</span>
                 </button>
                 <button
+                  onClick={() => handleRotateSelected(-90)}
+                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                >
+                  <RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>-90°回転</span>
+                </button>
+                <button
                   onClick={() => handleSlantSelected(0.2)}
                   className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
                 >
@@ -132,6 +151,87 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                 </button>
               </div>
             </div>
+
+            {/* Align (2+ selected) and Distribute (3+ selected).
+                Same handlers as the desktop SelectionSubToolbar; the
+                subtoolbar itself is hidden below 640px, so without
+                these the operations were unreachable on mobile. */}
+            {selectedContourIds.length >= 2 && handleAlignSelected && (
+              <div>
+                <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">整列</div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    onClick={() => handleAlignSelected('left')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>左揃え</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('centerH')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignCenter className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>水平中央</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('right')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>右揃え</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('top')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignStartVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>上揃え</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('centerV')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignCenterVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>垂直中央</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('bottom')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <AlignEndVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>下揃え</span>
+                  </button>
+                  <button
+                    onClick={() => handleAlignSelected('emBoxCenterH')}
+                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold"
+                  >
+                    <AlignCenter className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>全角中央</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {selectedContourIds.length >= 3 && handleDistributeSelected && (
+              <div>
+                <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">等間隔</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => handleDistributeSelected('horizontal')}
+                    className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <span>水平等間隔</span>
+                  </button>
+                  <button
+                    onClick={() => handleDistributeSelected('vertical')}
+                    className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  >
+                    <span>垂直等間隔</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Scale and Duplicate */}
             <div>

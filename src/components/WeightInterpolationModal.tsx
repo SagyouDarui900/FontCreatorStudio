@@ -46,7 +46,14 @@ interface WeightInterpolationModalProps {
   selectedUnicode: number;
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
-  onCommitHistory?: () => void;
+  // Commits the pre-change snapshot of one glyph's history. Called with a
+  // unicode for each glyph the batch apply actually changes; called with
+  // no argument it commits the selected glyph (used by the single-glyph
+  // master-interpolation apply).
+  onCommitHistory?: (targetUnicode?: number) => void;
+  // Commits the pre-change project-level config (styleName /
+  // usWeightClass) before the batch apply rewrites the metadata.
+  onCommitProjectHistory?: () => void;
 }
 
 export type WeightPresetKey = 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'heavy' | 'custom';
@@ -95,6 +102,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   theme,
   onShowToast,
   onCommitHistory,
+  onCommitProjectHistory,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -333,7 +341,15 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       return;
     }
 
-    onCommitHistory?.();
+    // Register undo history before changing anything: every glyph the
+    // batch rewrites gets its own pre-change snapshot (previously only
+    // the selected glyph was registered, so the other glyphs could not
+    // be restored with Ctrl+Z), and the metadata change below gets a
+    // project-level snapshot.
+    for (const g of targetGlyphs) {
+      if (!g.contours || g.contours.length === 0 || g.locked) continue;
+      onCommitHistory?.(g.unicode);
+    }
 
     const updatedGlyphs = { ...project.glyphs };
     let count = 0;
@@ -350,6 +366,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       };
       count++;
     }
+
+    onCommitProjectHistory?.();
 
     // Keep the font metadata in sync with the visible thickening, so the
     // exported OTF is not still Regular: an exact preset match updates both

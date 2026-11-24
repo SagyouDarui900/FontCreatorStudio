@@ -120,7 +120,24 @@ export function isLightTheme(mode: ThemeMode): boolean {
   return preset.base === 'light';
 }
 
+/**
+ * Per-mode cache of the objects returned by getThemeClasses(). The class
+ * strings are constants, so returning the same object for the same mode
+ * keeps memoized children (e.g. CharacterCell) from re-rendering on every
+ * parent render. Callers must treat the returned object as read-only.
+ */
+const themeClassesCache = new Map<ThemeMode, ThemeClasses>();
+
 export function getThemeClasses(mode: ThemeMode = 'light'): ThemeClasses {
+  const resolved: ThemeMode = THEME_PRESETS.some((p) => p.id === mode) ? mode : 'light';
+  const cached = themeClassesCache.get(resolved);
+  if (cached) return cached;
+  const classes = buildThemeClasses(resolved);
+  themeClassesCache.set(resolved, classes);
+  return classes;
+}
+
+function buildThemeClasses(mode: ThemeMode = 'light'): ThemeClasses {
   switch (mode) {
     case 'sepia':
       return {

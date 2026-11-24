@@ -122,6 +122,79 @@ describe('vectorBoolean - Vector Boolean Operations & Geometry Sanitation', () =
       expect(Math.round(bbox!.maxX)).toBe(500);
     });
 
+    it('H14 (item 3): keeps the island of "回" — detached island inside a hole', () => {
+      // Outer [100,100]-[500,500], hole [200,200]-[400,400],
+      // island [250,250]-[350,350] detached inside the hole.
+      // Containment depth: outer 0 (solid), hole 1 (cut out),
+      // island 2 (solid again). The island must survive the union.
+      const outer = createRectContour(100, 100, 500, 500);
+      const hole = createRectContour(200, 200, 400, 400);
+      const island = createRectContour(250, 250, 350, 350);
+
+      const result = booleanUnionContours([outer, hole, island]);
+      expect(result.length).toBe(3);
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 250 && Math.round(b.maxX) === 350)).toBe(true);
+    });
+
+    it('H14 (item 3): keeps the island of "回" when it touches the hole boundary', () => {
+      // Same as above, but the island shares the hole's right edge
+      // (x = 400) — the touching case from the review. The island
+      // fuses with the frame along the shared edge, so the union has
+      // 2 contours, not 3: the outer boundary and the remaining
+      // L-shaped hole. What must survive is the island's AREA:
+      // filled = outer (400x400) - hole (200x200) + island (150x100)
+      //       = 160000 - 40000 + 15000 = 135000.
+      // (Before the fix the island vanished: filled was 120000.)
+      const outer = createRectContour(100, 100, 500, 500);
+      const hole = createRectContour(200, 200, 400, 400);
+      const island = createRectContour(250, 250, 400, 350);
+
+      const result = booleanUnionContours([outer, hole, island]);
+      expect(result.length).toBe(2);
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 100 && Math.round(b.maxX) === 500)).toBe(true);
+      expect(bboxes.some((b) => Math.round(b.minX) === 200 && Math.round(b.maxX) === 400)).toBe(true);
+
+      // Even-odd point-in-fill over the resulting contour polygons.
+      const isFilled = (x: number, y: number): boolean => {
+        let inside = false;
+        for (const c of result) {
+          const pts = c.nodes;
+          for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
+            const xa = pts[a].x;
+            const ya = pts[a].y;
+            const xb = pts[b].x;
+            const yb = pts[b].y;
+            if (ya > y !== yb > y && x < ((xb - xa) * (y - ya)) / (yb - ya) + xa) {
+              inside = !inside;
+            }
+          }
+        }
+        return inside;
+      };
+      expect(isFilled(325, 300)).toBe(true); // inside the island
+      expect(isFilled(150, 150)).toBe(true); // frame
+      expect(isFilled(225, 225)).toBe(false); // hole, outside the island
+      expect(isFilled(225, 375)).toBe(false); // hole, outside the island
+    });
+
+    it('H14 (item 3): keeps a hole inside the island (depth 3) of "回"', () => {
+      // Outer [0,0]-[500,500], hole [100,100]-[400,400],
+      // island [150,150]-[350,350] with its own hole [200,200]-[300,300].
+      // Depths 0/1/2/3: solid / cut out / solid / cut out.
+      const outer = createRectContour(0, 0, 500, 500);
+      const hole = createRectContour(100, 100, 400, 400);
+      const island = createRectContour(150, 150, 350, 350);
+      const islandHole = createRectContour(200, 200, 300, 300);
+
+      const result = booleanUnionContours([outer, hole, island, islandHole]);
+      expect(result.length).toBe(4);
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 150 && Math.round(b.maxX) === 350)).toBe(true);
+      expect(bboxes.some((b) => Math.round(b.minX) === 200 && Math.round(b.maxX) === 300)).toBe(true);
+    });
+
     it('resolves self-intersecting figure-8 contour into clean outer boundary', () => {
       // Figure-8 with crossing at (150, 150)
       const figure8: PathContour = {
