@@ -237,9 +237,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
     return (
       <div
         key={key}
-        className={`relative flex items-center justify-center border ${
-          showGrid ? gridColor : 'border-transparent'
-        }`}
+        className={`relative flex items-center justify-center border ${gridColor}`}
         style={{
           width: `${cellSizePx}px`,
           height: `${cellSizePx}px`,
