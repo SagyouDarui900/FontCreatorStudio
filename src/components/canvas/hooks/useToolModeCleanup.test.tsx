@@ -15,12 +15,20 @@ function CleanupHarness({
   handleNodeDragEnd,
   finalizeBrushDrawing,
   setActiveSnapGuides,
+  setIsGuideEraserActive,
+  activePenContour,
+  finalizePenContour,
+  handleNodeDragCancel,
 }: {
   toolMode: ToolMode;
   selectedUnicode: number;
   handleNodeDragEnd: () => boolean;
   finalizeBrushDrawing: () => boolean;
   setActiveSnapGuides: React.Dispatch<React.SetStateAction<any[]>>;
+  setIsGuideEraserActive?: (active: boolean) => void;
+  activePenContour?: any;
+  finalizePenContour?: () => void;
+  handleNodeDragCancel?: () => boolean;
 }) {
   const emptyRef = React.useRef<any>(null);
   const falseRef = React.useRef<boolean>(false);
@@ -63,8 +71,12 @@ function CleanupHarness({
     isErasingRef: falseRef,
     activeDrawingPointerIdRef: numRef,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     handleTransformPointerUp: vi.fn(() => false),
     handleEraserPointerUp: vi.fn(() => false),
+    setIsGuideEraserActive,
+    activePenContour,
+    finalizePenContour,
   });
 
   return null;
@@ -156,6 +168,184 @@ describe('useToolModeCleanup & modal render loop guards', () => {
         );
       });
     }).not.toThrow();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('H9: switching tools resets the guide-eraser mode', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const setIsGuideEraserActive = vi.fn();
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="ruler"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          setIsGuideEraserActive={setIsGuideEraserActive}
+        />
+      );
+    });
+    expect(setIsGuideEraserActive).toHaveBeenCalledWith(false);
+    setIsGuideEraserActive.mockClear();
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="select"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          setIsGuideEraserActive={setIsGuideEraserActive}
+        />
+      );
+    });
+    expect(setIsGuideEraserActive).toHaveBeenCalledWith(false);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('L13: switching away from pen finalizes an uncommitted path with 2+ nodes, like the brush', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const finalizePenContour = vi.fn();
+    const penContour = {
+      id: 'pen1',
+      closed: false,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 200, y: 100, type: 'corner' },
+      ],
+    };
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="pen"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          activePenContour={penContour}
+          finalizePenContour={finalizePenContour}
+        />
+      );
+    });
+    // Mounting in pen mode must not finalize the path being drawn.
+    expect(finalizePenContour).not.toHaveBeenCalled();
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="select"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          activePenContour={penContour}
+          finalizePenContour={finalizePenContour}
+        />
+      );
+    });
+    expect(finalizePenContour).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('L13: a single-point pen path is not finalized on tool switch', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const finalizePenContour = vi.fn();
+    const penContour = {
+      id: 'pen1',
+      closed: false,
+      nodes: [{ id: 'n1', x: 100, y: 100, type: 'corner' }],
+    };
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="pen"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          activePenContour={penContour}
+          finalizePenContour={finalizePenContour}
+        />
+      );
+    });
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="select"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          activePenContour={penContour}
+          finalizePenContour={finalizePenContour}
+        />
+      );
+    });
+    expect(finalizePenContour).not.toHaveBeenCalled();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('L16: switching glyphs cancels an in-progress node drag instead of dropping the session', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const handleNodeDragCancel = vi.fn(() => true);
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="select"
+          selectedUnicode={0x3042}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          handleNodeDragCancel={handleNodeDragCancel}
+        />
+      );
+    });
+    // The glyph-switch effect also runs on mount.
+    expect(handleNodeDragCancel).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <CleanupHarness
+          toolMode="select"
+          selectedUnicode={0x3044}
+          handleNodeDragEnd={vi.fn(() => false)}
+          finalizeBrushDrawing={vi.fn(() => false)}
+          setActiveSnapGuides={vi.fn()}
+          handleNodeDragCancel={handleNodeDragCancel}
+        />
+      );
+    });
+    expect(handleNodeDragCancel).toHaveBeenCalledTimes(2);
 
     act(() => {
       root.unmount();

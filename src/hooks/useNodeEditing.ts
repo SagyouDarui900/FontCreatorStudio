@@ -30,6 +30,10 @@ export interface UseNodeEditingOptions {
   contoursRef: React.MutableRefObject<PathContour[]>;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
+  // Drops the phantom undo entry a cancelled drag leaves behind, mirroring
+  // cancelTransformSession. Only removes the top entry when it still
+  // matches the restored contours.
+  onDiscardLastHistory?: (initialContours: PathContour[]) => void;
   screenToCanvas: (clientX: number, clientY: number) => Point;
   gridSettings: GridSettings;
   snapMetrics: {
@@ -92,6 +96,9 @@ export interface UseNodeEditingReturn {
   handleInsertNodeOnContour: (e: React.PointerEvent, contour: PathContour) => boolean;
   handleNodeDragMove: (e: React.PointerEvent, pos: Point) => boolean;
   handleNodeDragEnd: () => boolean;
+  // Cancels an in-progress node/handle drag and restores the pre-drag
+  // contour. Returns true when a drag was actually cancelled.
+  handleNodeDragCancel: () => boolean;
   handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
   handleAddNodeToSelected: () => void;
   handleDeleteSelectedNode: () => void;
@@ -107,6 +114,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     contoursRef,
     onChangeContours,
     onCommitHistory,
+    onDiscardLastHistory,
     screenToCanvas,
     gridSettings,
     snapMetrics,
@@ -465,6 +473,11 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
       if (!isDraggingNode) return false;
 
+      // H6: without a drag session, a move must come from a pressed
+      // pointer. A bare hover (e.buttons === 0, e.g. after pointercancel
+      // cleared the session) must not move the selected node.
+      if (!nodeDragSessionRef.current && e.buttons === 0) return false;
+
       const activeContourId = nodeDragSessionRef.current?.contourId || selectedContourId!;
       const activeNodeId = nodeDragSessionRef.current?.nodeId || selectedNodeId!;
       const activeHandleType = nodeDragSessionRef.current?.handleType || selectedHandleType!;
@@ -477,6 +490,27 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           : [activeNodeId];
 
       const currentContours: PathContour[] = (contoursRef.current as PathContour[]) || contours;
+
+      // H6: a drag that reaches here without a session (selection kept
+      // after pointer capture loss, for example) gets a session, so a
+      // later cancel can restore the pre-drag contour instead of leaving
+      // moved contours behind.
+      if (!nodeDragSessionRef.current) {
+        const fallbackContour = currentContours.find((c) => c.id === activeContourId);
+        const fallbackNode = fallbackContour?.nodes.find((n) => n.id === activeNodeId);
+        if (fallbackContour && fallbackNode) {
+          nodeDragSessionRef.current = {
+            contourId: fallbackContour.id,
+            nodeId: fallbackNode.id,
+            selectedNodeIds: multiNodeIds,
+            handleType: activeHandleType,
+            startPos: pos,
+            initialNode: { ...fallbackNode },
+            initialContour: { ...fallbackContour },
+            hasCommittedHistory: false,
+          };
+        }
+      }
       let snapPos = pos;
 
       if (e.pointerType === 'touch') {
@@ -681,6 +715,50 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     return false;
   }, [toolMode, selectedHandleType, onChangeContours, onCommitHistory, setActiveSnapGuides]);
 
+  // Cancel an in-progress node/handle drag (pointercancel, Escape, glyph
+  // switch): drop the pending RAF update, restore the contour captured
+  // at drag start, and clear the handle selection so a later hover cannot
+  // move the node (H6). When the drag's RAF already committed history,
+  // the top undo entry is a phantom for the restored state and is
+  // discarded, mirroring cancelTransformSession.
+  const handleNodeDragCancel = useCallback((): boolean => {
+    const session = nodeDragSessionRef.current;
+    const pending = pendingContoursRef.current;
+    if (nodeDragRafRef.current != null) {
+      cancelAnimationFrame(nodeDragRafRef.current);
+      nodeDragRafRef.current = null;
+    }
+    pendingContoursRef.current = null;
+    const hadCommittedHistory =
+      hasCommittedDragHistoryRef.current || session?.hasCommittedHistory === true;
+    hasCommittedDragHistoryRef.current = false;
+    nodeDragSessionRef.current = null;
+    if (session) {
+      const currentContours: PathContour[] = contoursRef.current || contours;
+      // Only restore when the dragged contour still belongs to the
+      // current glyph: after a glyph switch its id is absent and the
+      // restore is a no-op instead of touching the new glyph.
+      if (currentContours.some((c) => c.id === session.initialContour.id)) {
+        const restored = currentContours.map((c) =>
+          c.id === session.initialContour.id ? session.initialContour : c
+        );
+        contoursRef.current = restored;
+        onChangeContours(restored, { skipHistory: true });
+        if (hadCommittedHistory) {
+          onDiscardLastHistory?.([session.initialContour]);
+        }
+      }
+    } else if (pending) {
+      // No session to restore from: flush the pending contours so the
+      // ref and the React state do not diverge.
+      contoursRef.current = pending;
+      onChangeContours(pending, { skipHistory: true });
+    }
+    setSelectedHandleType((prev) => (prev === null ? prev : null));
+    setActiveSnapGuides?.((prev) => (prev.length === 0 ? prev : []));
+    return session !== null || pending !== null;
+  }, [contours, contoursRef, onChangeContours, onDiscardLastHistory, setActiveSnapGuides]);
+
   // Toggle smooth / corner node type (supports 'C' key toggle on selection or direct click)
   const handleToggleNodeType = useCallback(
     (contourId?: string, nodeId?: string) => {
@@ -824,7 +902,11 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     const updated = liveContours
       .map((c) => {
         const remaining = c.nodes.filter((n) => !targetIds.includes(n.id));
-        if (remaining.length <= 2) {
+        // M13: an open contour stays a valid line with 2 nodes; only a
+        // closed contour needs 3. Previously an open 3-node contour lost
+        // the whole contour when one node was deleted.
+        const minNodes = c.closed ? 3 : 2;
+        if (remaining.length < minNodes) {
           anyContourCollapsed = true;
           return null;
         }
@@ -962,6 +1044,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     handleInsertNodeOnContour,
     handleNodeDragMove,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     handleToggleNodeType,
     handleAddNodeToSelected,
     handleDeleteSelectedNode,

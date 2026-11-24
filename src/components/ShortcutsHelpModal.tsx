@@ -71,8 +71,8 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['H'], description: '照準ポインター・十字線の表示を切り替え', category: 'view' },
 
   // 文字移動
-  { keys: ['Alt', '+', '→'], description: '次の文字に移動', category: 'nav' },
-  { keys: ['Alt', '+', '←'], description: '前の文字に移動', category: 'nav' },
+  { keys: ['Alt', '+', '→'], description: '次の文字に移動（輪郭・頂点の選択中は0.1単位のナッジ）', category: 'nav' },
+  { keys: ['Alt', '+', '←'], description: '前の文字に移動（輪郭・頂点の選択中は0.1単位のナッジ）', category: 'nav' },
 
   // 履歴・保存
   { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す（ペン描画中は直前の 1 点を取り消し）', category: 'edit' },

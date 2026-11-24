@@ -378,6 +378,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     pressureSensitivity,
     pressureCurve,
     smoothingIntensity,
+    zoom,
     autoSmoothBrush,
     smoothStrength,
     activePenPreset,
@@ -412,6 +413,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleInsertNodeOnContour,
     handleNodeDragMove,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     handleToggleNodeType,
     handleAddNodeToSelected,
     handleDeleteSelectedNode,
@@ -424,6 +426,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     contoursRef,
     onChangeContours,
     onCommitHistory,
+    onDiscardLastHistory,
     screenToCanvas,
     gridSettings,
     snapMetrics,
@@ -820,6 +823,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleNodePointerDownOnCanvas,
     handleNodeDragMove,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     nodeDragSessionRef,
     shapeStartPoint,
     handleShapePointerDown,
@@ -928,8 +932,15 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isErasingRef,
     activeDrawingPointerIdRef,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     handleTransformPointerUp,
     handleEraserPointerUp,
+    // H9: the guide-eraser mode is reset when the tool or glyph changes.
+    setIsGuideEraserActive,
+    // L13: finalize the uncommitted pen path on tool switch instead of
+    // discarding it.
+    activePenContour,
+    finalizePenContour: () => handleFinishPenContour(false),
   });
 
   const handleWindowPointerEndRef = useRef<(() => void) | undefined>(undefined);
@@ -1060,6 +1071,13 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     showCanvasToast,
     onNudgeSelection: handleNudgeSelection,
     isGlyphLocked,
+    // L14: Escape cancels an in-progress marquee / node drag / transform
+    // drag before falling through to clearing the selection.
+    marqueeSelection,
+    setMarqueeSelection,
+    handleCancelNodeDrag: handleNodeDragCancel,
+    cancelTransformSession,
+    isTransformActive: Boolean(transformSession),
   });
 
   const lastNotifiedSelectionRef = useRef<{
@@ -1260,7 +1278,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           onTraceImageError={handleTraceImageError}
           isResizingTrace={isResizingTrace}
           customGuidelines={customGuidelines}
-          isGuideEraserActive={isGuideEraserActive}
+          // H9: the guide-eraser mode belongs to the ruler tool only.
+          // Outside it, guides cannot be click-deleted even if the mode
+          // was left on (it is also reset on tool switch).
+          isGuideEraserActive={isGuideEraserActive && toolMode === 'ruler'}
           lockGuidelines={lockGuidelines}
           isShapeTool={isShapeTool}
           handlePointerDownGuide={handlePointerDownGuide}
@@ -1396,6 +1417,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           setShowNodes={setShowNodes}
           customGuidelines={customGuidelines}
           setCustomGuidelines={setCustomGuidelines}
+          handleClearAllGuidelines={handleClearAllGuidelines}
           lockGuidelines={lockGuidelines}
           setLockGuidelines={setLockGuidelines}
           activeChar={activeChar}

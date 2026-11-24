@@ -76,7 +76,6 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   handleConvertRulerToGuideline,
   setRulerMeasurement,
   customGuidelines,
-  setCustomGuidelines,
   lockGuidelines,
   setLockGuidelines,
   contours,
@@ -239,18 +238,12 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
             </button>
           )}
 
-          {/* Scrollable Center Track */}
+          {/* Scrollable Center Track
+              L9: wheel scrolling is handled by the native listener in the
+              effect above (which also handles line/page delta modes).
+              A React onWheel here would scroll a second time. */}
           <div
             ref={subToolbarRef}
-            onWheel={(e) => {
-              if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
-                if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-                  const delta = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
-                  e.currentTarget.scrollLeft += delta;
-                  checkSubToolbarScroll();
-                }
-              }
-            }}
             className="flex-1 min-w-0 flex items-center justify-between gap-2 overflow-x-auto touch-scroll-x no-scrollbar"
           >
             {/* Left: Quick Character Switcher & Context Tool Settings */}
@@ -436,11 +429,12 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 <button
                   type="button"
                   onClick={() => {
-                    setCustomGuidelines([]);
-                    showCanvasToast('カスタムガイド線を消去しました');
+                    // M14: route through the shared handler so clearing
+                    // asks for confirmation (guidelines have no Undo).
+                    handleClearAllGuidelines();
                   }}
                   className="p-1 rounded hover:bg-rose-100 dark:hover:bg-rose-950 text-stone-400 hover:text-rose-600 cursor-pointer"
-                  title="カスタムガイド線を全消去"
+                  title="カスタムガイド線を全消去（確認あり）"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -470,7 +464,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                   type="button"
                   onClick={onSelectPrevGlyph}
                   className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                  title="前の文字 (Alt+←)"
+                  title="前の文字 (Alt+←、選択中は0.1ナッジ)"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
@@ -484,7 +478,7 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                   type="button"
                   onClick={onSelectNextGlyph}
                   className="p-0.5 rounded hover:bg-stone-200 dark:hover:bg-emerald-950 text-stone-600 dark:text-emerald-300 cursor-pointer"
-                  title="次の文字 (Alt+→)"
+                  title="次の文字 (Alt+→、選択中は0.1ナッジ)"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>

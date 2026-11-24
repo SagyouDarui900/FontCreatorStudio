@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Lock,
   X,
   Layers,
   Wand2,
@@ -140,8 +139,7 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
         選択中{selectedContourIds.length > 1 ? ` (${selectedContourIds.length}個)` : ''}:
       </span>
       <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1 py-0.5 rounded border border-amber-300 dark:border-amber-700 flex items-center gap-0.5">
-        <Lock className="w-2.5 h-2.5" />
-        <span>描画ロック中</span>
+        <span>描画開始で選択解除</span>
       </span>
       <button
         type="button"
@@ -150,10 +148,10 @@ export const SelectionSubToolbar: React.FC<SelectionSubToolbarProps> = ({
           setSelectedContourId(null);
           setSelectedNodeId(null);
           setSelectedHandleType(null);
-          showCanvasToast('選択を解除しました（描画可能）');
+          showCanvasToast('選択を解除しました');
         }}
         className="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 text-[10px] font-bold hover:bg-stone-300 dark:hover:bg-stone-600 flex items-center gap-0.5 mr-0.5 cursor-pointer"
-        title="選択を解除してキャンバス描画を再開 (Esc)"
+        title="選択を解除 (Esc)"
       >
         <X className="w-2.5 h-2.5" />
         <span>解除(Esc)</span>

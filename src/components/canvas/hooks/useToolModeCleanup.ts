@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef } from 'react';
-import { ToolMode, Point, SnapGuideLine } from '../../../types';
+import { ToolMode, Point, PathContour, SnapGuideLine } from '../../../types';
 import type { TouchLoupeState } from '../overlays/CanvasTouchLoupe';
 import { isShapeToolMode } from './useShapeCreation';
 
@@ -41,8 +41,16 @@ export interface UseToolModeCleanupOptions {
   isErasingRef: React.MutableRefObject<boolean>;
   activeDrawingPointerIdRef?: React.MutableRefObject<number | null>;
   handleNodeDragEnd?: () => boolean | void;
+  handleNodeDragCancel?: () => boolean | void;
   handleTransformPointerUp?: () => boolean;
   handleEraserPointerUp?: (e?: any) => boolean | void;
+  // H9: reset the guide-eraser mode when the tool changes, so it cannot
+  // survive into another tool and delete guides on click there.
+  setIsGuideEraserActive?: (active: boolean) => void;
+  // L13: the uncommitted pen path, to finalize it on tool switch instead
+  // of discarding it like the brush stroke is finalized.
+  activePenContour?: PathContour | null;
+  finalizePenContour?: () => void;
 }
 
 export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
@@ -75,10 +83,19 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       opts.resetBrushDrawing();
     }
     if (toolMode !== 'pen') {
+      // L13: finalize the uncommitted pen path (as a line, like Enter)
+      // instead of discarding it, so switching tools treats the pen
+      // like the brush, whose in-progress stroke is also finalized.
+      // A single point cannot form a path and is dropped.
+      if (opts.activePenContour && opts.activePenContour.nodes.length >= 2) {
+        opts.finalizePenContour?.();
+      }
       opts.isPenDrawingRef.current = false;
       opts.setActivePenContour(null);
       opts.setPenMousePos?.(null);
     }
+    // H9: the guide-eraser mode belongs to the ruler tool only.
+    opts.setIsGuideEraserActive?.(false);
     if (toolMode !== 'ruler' || opts.gridSettingsShowRulers === false) {
       opts.setRulerMeasurement(null);
     }
@@ -127,7 +144,16 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
         ? prev
         : { visible: false, screenX: 0, screenY: 0, canvasPos: null }
     );
-    opts.nodeDragSessionRef.current = null;
+    // H9: switching glyphs also ends the ruler-only guide-eraser mode.
+    opts.setIsGuideEraserActive?.(false);
+    // L16: cancel any in-progress node drag instead of just dropping the
+    // session ref: the pending RAF update must not fire after the glyph
+    // changed and apply the old glyph's contours to the new one.
+    if (opts.handleNodeDragCancel) {
+      opts.handleNodeDragCancel();
+    } else {
+      opts.nodeDragSessionRef.current = null;
+    }
     if (opts.activeBrushPathRef.current) {
       opts.activeBrushPathRef.current.setAttribute('d', '');
     }

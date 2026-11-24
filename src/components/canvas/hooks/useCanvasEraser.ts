@@ -198,6 +198,16 @@ export function useCanvasEraser({
           onCommitHistory?.();
           contoursRef.current = updated;
           onChangeContours(updated, { skipHistory: true });
+          // M12: a cut re-ids split contours, so filter the selection
+          // against the surviving ids like the stroke/node modes do.
+          // Otherwise the selection keeps pointing at ids that no longer
+          // exist and transform handles / Delete stop working.
+          setSelectedContourIds((prev) => prev.filter((id) => updated.some((c) => c.id === id)));
+          setSelectedContourId((prev) => (prev && updated.some((c) => c.id === prev) ? prev : null));
+          setSelectedNodeId((prev) => {
+            if (!prev) return null;
+            return updated.some((c) => c.nodes.some((n) => n.id === prev)) ? prev : null;
+          });
           showCanvasToast('パスを削り・分割しました');
         }
       } else if (erasedAnyInSessionRef.current) {

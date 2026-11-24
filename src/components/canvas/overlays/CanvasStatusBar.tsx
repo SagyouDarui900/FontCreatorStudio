@@ -248,7 +248,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 type="button"
                 onClick={onSelectPrevGlyph}
                 className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="前の文字 (Alt+←)"
+                title="前の文字 (Alt+←、選択中は0.1ナッジ)"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -256,7 +256,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 type="button"
                 onClick={onSelectNextGlyph}
                 className={`h-6 w-5 flex items-center justify-center rounded transition-colors ${iconBtnClass}`}
-                title="次の文字 (Alt+→)"
+                title="次の文字 (Alt+→、選択中は0.1ナッジ)"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -400,7 +400,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             <div className="hidden xl:flex items-center text-[10px] opacity-65 truncate">
               {toolMode === 'ruler' && 'ドラッグ計測 (Shift: 15° / Enter: 直線化)'}
               {toolMode === 'select' && '輪郭選択 (ドラッグ移動 / Shift: 複数選択)'}
-              {toolMode === 'node' && '頂点ドラッグ / 線上クリックで追加 / Alt: 角切替'}
+              {toolMode === 'node' && '頂点ドラッグ / 線上クリックで追加 / Alt: ハンドル対称解除 / C: 角・曲線切替'}
               {toolMode === 'pen' && 'クリック: 頂点 / ドラッグ: ハンドル / 始点: 閉じる'}
               {toolMode === 'brush' && 'ドラッグ描画 (Shift: 水平垂直直線)'}
               {toolMode === 'eraser' && 'ドラッグ消去'}

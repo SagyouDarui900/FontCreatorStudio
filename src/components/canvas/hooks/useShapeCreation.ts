@@ -262,7 +262,10 @@ export function useShapeCreation({
         endPoint.x - shapeStartPoint.x,
         endPoint.y - shapeStartPoint.y
       );
-      const isClickCreate = dist < 10;
+      // L11: the click-vs-drag threshold must be constant on screen
+      // (10 screen px), not 10 canvas units, or it is 30 screen px at
+      // zoom 3 and 5.5 screen px at zoom 0.55.
+      const isClickCreate = dist < 10 / (zoom || 1);
       const p1 = isClickCreate
         ? { x: shapeStartPoint.x - 90, y: shapeStartPoint.y - 90 }
         : shapeStartPoint;
@@ -301,6 +304,7 @@ export function useShapeCreation({
       shapeCurrentPoint,
       shapeStartPoint,
       toolMode,
+      zoom,
     ]
   );
 

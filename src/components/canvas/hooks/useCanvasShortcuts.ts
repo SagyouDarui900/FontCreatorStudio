@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GridSettings, PathContour, RulerMeasurement, ToolMode } from '../../../types';
+import { GridSettings, PathContour, Point, RulerMeasurement, ToolMode } from '../../../types';
 
 export interface UseCanvasShortcutsProps {
   isAnyModalOpen: boolean;
@@ -43,6 +43,14 @@ export interface UseCanvasShortcutsProps {
   showCanvasToast: (msg: string, sub?: string) => void;
   onNudgeSelection?: (dx: number, dy: number) => void;
   isGlyphLocked?: boolean;
+  // L14: Escape cancels in-progress drags before falling through to
+  // clearing the selection.
+  marqueeSelection?: { start: Point; current: Point } | null;
+  setMarqueeSelection?: (val: { start: Point; current: Point } | null) => void;
+  // Returns true when a node drag was actually cancelled.
+  handleCancelNodeDrag?: () => boolean | void;
+  cancelTransformSession?: () => void;
+  isTransformActive?: boolean;
 }
 
 export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
@@ -88,6 +96,11 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
         showCanvasToast,
         onNudgeSelection,
         isGlyphLocked = false,
+        marqueeSelection,
+        setMarqueeSelection,
+        handleCancelNodeDrag,
+        cancelTransformSession,
+        isTransformActive,
       } = propsRef.current;
 
       const activeEl = document.activeElement;
@@ -260,6 +273,19 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
         if (toolMode === 'pen' && activePenContour) {
           e.preventDefault();
           handleResetPenContour();
+        } else if (marqueeSelection) {
+          // L14: cancel the marquee selection drag in progress.
+          e.preventDefault();
+          setMarqueeSelection?.(null);
+        } else if (handleCancelNodeDrag?.()) {
+          // L14: cancel the node/handle drag in progress (the contour
+          // is restored to its pre-drag state).
+          e.preventDefault();
+        } else if (isTransformActive) {
+          // L14: cancel the transform drag in progress (the contours
+          // are restored to their pre-drag state).
+          e.preventDefault();
+          cancelTransformSession?.();
         } else if (selectedContourIds.length > 0) {
           setSelectedContourIds([]);
           setSelectedNodeId(null);

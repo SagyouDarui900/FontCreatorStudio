@@ -91,6 +91,10 @@ export interface UseCanvasPointerDispatcherOptions {
   handleNodePointerDownOnCanvas: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean;
   handleNodeDragMove: (e: React.PointerEvent<SVGSVGElement>, pos: Point) => boolean;
   handleNodeDragEnd: () => void;
+  // H6: cancels an in-progress node drag and restores the pre-drag
+  // contour. Used by handlePointerCancel instead of just dropping the
+  // session ref. Optional: falls back to dropping the session ref.
+  handleNodeDragCancel?: () => boolean | void;
   nodeDragSessionRef: React.MutableRefObject<any>;
 
   shapeStartPoint: Point | null;
@@ -215,6 +219,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleNodePointerDownOnCanvas,
     handleNodeDragMove,
     handleNodeDragEnd,
+    handleNodeDragCancel,
     nodeDragSessionRef,
     shapeStartPoint,
     handleShapePointerDown,
@@ -303,6 +308,24 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     pendingHoverPosRef.current = null;
     hoverCanvasPosRef.current = null;
     setHoverCanvasPos(null);
+  }, []);
+
+  // L12: throttled hover update (0.5 canvas units threshold + rAF).
+  // Kept as a helper so handlePointerMove can update hover before the
+  // pan / pinch / trace early returns below; previously hover froze
+  // during those gestures because the update sat behind them.
+  const updateHoverPos = useCallback((pos: Point) => {
+    const currentHover = pendingHoverPosRef.current ?? hoverCanvasPosRef.current;
+    if (!currentHover || Math.abs(currentHover.x - pos.x) > 0.5 || Math.abs(currentHover.y - pos.y) > 0.5) {
+      pendingHoverPosRef.current = pos;
+      if (hoverRafIdRef.current === null) {
+        hoverRafIdRef.current = requestAnimationFrame(() => {
+          hoverRafIdRef.current = null;
+          hoverCanvasPosRef.current = pendingHoverPosRef.current;
+          setHoverCanvasPos(pendingHoverPosRef.current);
+        });
+      }
+    }
   }, []);
 
   // Synchronous mirrors for panning & marquee selection so rapid single-frame sequences never miss updates
@@ -602,23 +625,38 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       if (activeBrushPathRef.current) {
         activeBrushPathRef.current.setAttribute('d', '');
       }
-      setShapeStartPoint(null);
-      setShapeCurrentPoint(null);
+      // M9: pinch interruption used to finalize some tools and silently
+      // discard others (transform reverted, shape vanished). Unify on
+      // finalize: a shape in progress is committed, like the brush
+      // stroke and node drag above.
+      if (shapeStartPoint) {
+        handleShapePointerUp(e);
+      } else {
+        setShapeStartPoint(null);
+        setShapeCurrentPoint(null);
+      }
       marqueeSelectionRef.current = null;
       setMarqueeSelection(null);
       setDraggingMetric(null);
       setDraggingGuidelineId(null);
       resetTraceDragState();
-      // A2: cancel the transform session so pendingTransformContoursRef is
-      // cleared the same way cancelTransformSession does. Falls back to
-      // setTransformSession(null) when the cancel callback is not wired.
-      if (cancelTransformSession) {
-        cancelTransformSession();
-      } else {
-        setTransformSession(null);
+      // Commit an in-progress transform instead of cancelling it. Only
+      // fall back to cancel when there is nothing to commit, so
+      // pendingTransformContoursRef is still cleared.
+      if (!dispatchTransformUp()) {
+        if (cancelTransformSession) {
+          cancelTransformSession();
+        } else {
+          setTransformSession(null);
+        }
       }
-      isErasingRef.current = false;
-      lastErasePosRef.current = null;
+      // Same for the eraser: a cut stroke in progress is committed; a
+      // stroke-mode sweep already applied incrementally.
+      if (isErasingRef.current) {
+        handleEraserPointerUp(e);
+      } else {
+        lastErasePosRef.current = null;
+      }
 
       if (activePenContour && activePenContour.nodes.length <= 1) {
         setActivePenContour(null);
@@ -949,11 +987,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     opts.contoursRef,
     handleMetricsPointerDown,
     handleShapePointerDown,
+    handleShapePointerUp,
     handleEraserPointerDown,
+    handleEraserPointerUp,
     handleBrushPointerDown,
     handleBrushPointerUp,
     handleNodePointerDownOnCanvas,
     handleNodeDragEnd,
+    dispatchTransformUp,
     isGlyphLocked,
     isDrawingTool,
     isContextMenuOpen,
@@ -978,6 +1019,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     if (e.pointerType === 'pen' && e.pressure > 0) {
       updateLivePressureThrottled(Math.round(e.pressure * 100));
     }
+
+    // L12: update hover before the pan / pinch / trace early returns
+    // below, so rulers and status-bar coordinates keep tracking.
+    updateHoverPos(screenToCanvas(e.clientX, e.clientY));
 
     // Multi-touch gestures (Pinch-to-zoom & 2-finger Pan)
     if (isTwoFingerGestureRef.current) {
@@ -1164,20 +1209,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
     }
 
-    // Update hover position (0.5 canvas units threshold + rAF throttling to reduce
-    // state updates and re-renders on pointer moves. Consumed independently by
-    // the status bar coordinates, rulers, anchor-eraser highlight, and pen rubber-band.)
-    const currentHover = pendingHoverPosRef.current ?? hoverCanvasPosRef.current;
-    if (!currentHover || Math.abs(currentHover.x - pos.x) > 0.5 || Math.abs(currentHover.y - pos.y) > 0.5) {
-      pendingHoverPosRef.current = pos;
-      if (hoverRafIdRef.current === null) {
-        hoverRafIdRef.current = requestAnimationFrame(() => {
-          hoverRafIdRef.current = null;
-          hoverCanvasPosRef.current = pendingHoverPosRef.current;
-          setHoverCanvasPos(pendingHoverPosRef.current);
-        });
-      }
-    }
+    // Update hover position (throttled; see updateHoverPos). The early
+    // call above already updated it for pan / pinch / trace moves, so
+    // this is a no-op when the position did not change since.
+    updateHoverPos(pos);
 
     // Guideline drag (delegated to hook)
     if (handleGuidelinePointerMove(pos)) {
@@ -1303,6 +1338,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     gridSettings.showCursorCrosshair,
     isSpacePressed,
     updateLivePressureThrottled,
+    updateHoverPos,
     handleGuidelinePointerMove,
     handleRulerPointerMove,
     handleMetricsPointerMove,
@@ -1385,7 +1421,17 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       hasMovedSignificantRef.current = false;
       pinchStartedRef.current = false;
 
-      if (duration < 380 && didNotMove && !wasPinch) {
+      // H17: never fire tap Undo/Redo while a pen path or another
+      // drawing session is uncommitted. Keyboard Ctrl+Z is already
+      // blocked during pen drawing for the same reason; a two-finger
+      // tap must not undo the contours underneath the open path.
+      const hasUncommittedDrawing =
+        activePenContourRef.current !== null ||
+        brushStrokePointsRef.current.length > 0 ||
+        isErasingRef.current ||
+        shapeStartPoint !== null ||
+        nodeDragSessionRef.current !== null;
+      if (duration < 380 && didNotMove && !wasPinch && !hasUncommittedDrawing) {
         if (touchCount === 2 && onUndo) {
           onUndo();
           isTwoFingerGestureRef.current = false;
@@ -1467,7 +1513,10 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       const boxW = maxX - minX;
       const boxH = maxY - minY;
 
-      if (boxW > 4 || boxH > 4) {
+      // L11: the click-vs-marquee threshold must be constant on screen
+      // (4 screen px), not 4 canvas units.
+      const marqueeThreshold = 4 / (zoomRef.current || 1);
+      if (boxW > marqueeThreshold || boxH > marqueeThreshold) {
         if (toolMode === 'node') {
           const capturedNodeIds: string[] = [];
           const capturedContourIds: string[] = [];
@@ -1703,7 +1752,15 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
     // Discard in-progress interactions without committing partial work or triggering tap undo/redo
     penDragHandleSessionRef.current = null;
-    nodeDragSessionRef.current = null;
+    // H6: cancel the node drag properly instead of just dropping the
+    // session: restore the pre-drag contour, drop the pending RAF
+    // update, and clear the handle selection, or the next hover moves
+    // the selected node.
+    if (handleNodeDragCancel) {
+      handleNodeDragCancel();
+    } else {
+      nodeDragSessionRef.current = null;
+    }
     marqueeSelectionRef.current = null;
     setMarqueeSelection(null);
     setShapeStartPoint(null);
@@ -1740,6 +1797,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     clampPan,
     setIsPanning,
     nodeDragSessionRef,
+    handleNodeDragCancel,
     setMarqueeSelection,
     setShapeStartPoint,
     setShapeCurrentPoint,

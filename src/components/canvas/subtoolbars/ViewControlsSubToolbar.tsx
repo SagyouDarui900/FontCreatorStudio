@@ -54,7 +54,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           type="button"
           onClick={onSelectPrevGlyph}
           className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 cursor-pointer"
-          title="前の文字 (Alt+←)"
+          title="前の文字 (Alt+←、選択中は0.1ナッジ)"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
         </button>
@@ -72,7 +72,7 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           type="button"
           onClick={onSelectNextGlyph}
           className="p-1 rounded hover:bg-emerald-100/70 dark:hover:bg-[#1e2d23] text-stone-600 dark:text-emerald-300 cursor-pointer"
-          title="次の文字 (Alt+→)"
+          title="次の文字 (Alt+→、選択中は0.1ナッジ)"
         >
           <ChevronRight className="w-3.5 h-3.5" />
         </button>

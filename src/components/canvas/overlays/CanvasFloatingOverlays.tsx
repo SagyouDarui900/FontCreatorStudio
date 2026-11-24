@@ -98,6 +98,9 @@ export interface CanvasFloatingOverlaysProps {
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
   customGuidelines: CustomGuideline[];
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>>;
+  // M14: shared clear-all handler (asks for confirmation; guidelines
+  // have no Undo). Returns true when the clear actually happened.
+  handleClearAllGuidelines?: () => boolean;
   lockGuidelines: boolean;
   setLockGuidelines: (val: boolean) => void;
   activeChar?: string;
@@ -185,6 +188,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   setShowNodes,
   customGuidelines,
   setCustomGuidelines,
+  handleClearAllGuidelines,
   lockGuidelines,
   setLockGuidelines,
   activeChar,
@@ -392,6 +396,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         setShowNodes={setShowNodes}
         customGuidelines={customGuidelines}
         setCustomGuidelines={setCustomGuidelines}
+        handleClearAllGuidelines={handleClearAllGuidelines}
         lockGuidelines={lockGuidelines}
         setLockGuidelines={setLockGuidelines}
         showCanvasToast={showCanvasToast}

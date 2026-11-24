@@ -43,6 +43,9 @@ interface GuidesAndGridModalProps {
   setShowNodes: React.Dispatch<React.SetStateAction<boolean>>;
   customGuidelines: CustomGuideline[];
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>> | ((val: CustomGuideline[]) => void);
+  // M14: shared clear-all handler (asks for confirmation; guidelines
+  // have no Undo). Returns true when the clear actually happened.
+  handleClearAllGuidelines?: () => boolean;
   lockGuidelines: boolean;
   setLockGuidelines: (val: boolean) => void;
   showCanvasToast: (msg: string) => void;
@@ -63,6 +66,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
   setShowNodes,
   customGuidelines,
   setCustomGuidelines,
+  handleClearAllGuidelines,
   lockGuidelines,
   setLockGuidelines,
   showCanvasToast,
@@ -624,9 +628,24 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                 </button>
                 <button
                   onClick={() => {
-                    setCustomGuidelines([]);
-                    showCanvasToast('カスタムガイド線を消去しました');
-                    onClose();
+                    // M14: route through the shared handler so clearing
+                    // asks for confirmation (guidelines have no Undo).
+                    // Only close the modal when the clear happened.
+                    let cleared: boolean;
+                    if (handleClearAllGuidelines) {
+                      cleared = handleClearAllGuidelines();
+                    } else {
+                      cleared = window.confirm(
+                        'カスタムガイド線をすべて消去しますか？この操作は取り消せません。'
+                      );
+                      if (cleared) {
+                        setCustomGuidelines([]);
+                        showCanvasToast('カスタムガイド線を消去しました');
+                      }
+                    }
+                    if (cleared) {
+                      onClose();
+                    }
                   }}
                   className="p-2 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-bold flex items-center justify-center gap-1"
                 >

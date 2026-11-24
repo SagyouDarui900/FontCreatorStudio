@@ -37,6 +37,9 @@ export interface UseBrushDrawingOptions {
   pressureSensitivity: 'high' | 'normal' | 'low' | 'off';
   pressureCurve?: PressureCurveConfig | null;
   smoothingIntensity: number;
+  // L11: viewport zoom, so the micro-sampling distance stays constant on
+  // screen (1.5 screen px) instead of 1.5 canvas units.
+  zoom?: number;
   autoSmoothBrush?: boolean;
   smoothStrength?: 'light' | 'standard' | 'strong' | 'mild';
   activePenPreset?: PenPresetInfo | UserPenPreset | null;
@@ -71,6 +74,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
     pressureSensitivity,
     pressureCurve,
     smoothingIntensity,
+    zoom = 1,
     autoSmoothBrush,
     smoothStrength,
     activePenPreset,
@@ -207,6 +211,9 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         cfg.smoothStrength,
         cfg.smoothingIntensity
       );
+      // H7: the preview must use the same parameters as finalize. In
+      // particular auto-straight must not be disabled here while finalize
+      // applies it, or a near-straight preview snaps straight on commit.
       return generateFastStrokeSvgPath(
         previewPts,
         cfg.brushWidth,
@@ -215,7 +222,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         cfg.pressureSensitivity,
         cfg.pressureCurve,
         effectiveSmoothing,
-        { customPreset: cfg.activePenPreset || undefined, disableAutoStraight: true }
+        { customPreset: cfg.activePenPreset || undefined }
       );
     },
     [
@@ -252,11 +259,14 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           };
         }
 
-        // Ignore micro-sampling (< 1.5px)
+        // Ignore micro-sampling (< 1.5 screen px, i.e. 1.5 / zoom canvas
+        // units, L11). A fixed canvas-unit threshold sampled far too
+        // coarsely at high zoom and far too finely at low zoom.
         if (lastP) {
           const dx = subPos.x - lastP.x;
           const dy = subPos.y - lastP.y;
-          if (dx * dx + dy * dy < 2.25) {
+          const minSampleDist = 1.5 / (zoom || 1);
+          if (dx * dx + dy * dy < minSampleDist * minSampleDist) {
             continue;
           }
         }
@@ -297,7 +307,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
 
       return hasNewPoints;
     },
-    [pressureSensitivity, screenToCanvas]
+    [pressureSensitivity, screenToCanvas, zoom]
   );
 
   const handleBrushPointerDown = useCallback(
@@ -402,7 +412,12 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       if (e.shiftKey || brushStraightMode) {
         wasStraightModeRef.current = true;
         const originPts = freehandPointsRef.current.length > 0 ? freehandPointsRef.current : brushStrokePointsRef.current;
-        const p0 = originPts[0] || { x: 0, y: 0 };
+        // M10: the straight segment starts from the end of the freehand
+        // part, not from the stroke origin. Previously the whole stroke
+        // was replaced by one straight line from its first point, so
+        // lifting the pen while Shift was held discarded the freehand
+        // curve. The stroke now keeps freehand points plus the tail.
+        const p0 = originPts[originPts.length - 1] || { x: 0, y: 0 };
         const subPos = screenToCanvas(e.clientX, e.clientY);
         const snapped = snapToStraightAngle(p0.x, p0.y, subPos.x, subPos.y);
         let endX = snapped.x;
@@ -450,7 +465,15 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
           pointerType: e.pointerType,
         };
 
-        brushStrokePointsRef.current = generateStraightStrokePoints(p0, pEnd);
+        // M10: keep the freehand part and append the straight tail, so
+        // the preview shows the whole stroke and finalize keeps both.
+        // With straight mode on from the start, freehand holds only the
+        // first point and this is exactly the straight line.
+        const straightPts = generateStraightStrokePoints(p0, pEnd);
+        brushStrokePointsRef.current =
+          freehandPointsRef.current.length > 1
+            ? [...freehandPointsRef.current, ...straightPts.slice(1)]
+            : straightPts;
 
         if (brushRafIdRef.current == null) {
           brushRafIdRef.current = requestAnimationFrame(() => {
@@ -468,7 +491,13 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       // Restore freehand points when releasing Shift / straight mode mid-stroke
       if (wasStraightModeRef.current) {
         wasStraightModeRef.current = false;
-        if (freehandPointsRef.current.length > 0) {
+        // M10: keep the straight tail that was drawn while Shift was
+        // held: adopt the current stroke (freehand + tail) as the new
+        // freehand base, so later points continue from the tail end
+        // instead of the tail vanishing.
+        if (brushStrokePointsRef.current.length > 0) {
+          freehandPointsRef.current = [...brushStrokePointsRef.current];
+        } else if (freehandPointsRef.current.length > 0) {
           brushStrokePointsRef.current = [...freehandPointsRef.current];
         }
       }

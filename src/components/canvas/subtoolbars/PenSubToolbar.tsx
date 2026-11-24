@@ -133,7 +133,7 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
           onClick={() => handleSetPenStrokeWidth(penStrokeWidth - (penStrokeWidth > 20 ? 5 : 2))}
           disabled={penStrokeWidth <= 2}
           className="w-5 h-5 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-xs flex items-center justify-center hover:bg-stone-200 dark:hover:bg-stone-600 disabled:opacity-30 cursor-pointer"
-          title="線の太さを減らす (-5px)"
+          title={`線の太さを減らす (-${penStrokeWidth > 20 ? 5 : 2}px)`}
         >
           -
         </button>
@@ -160,7 +160,7 @@ export const PenSubToolbar: React.FC<PenSubToolbarProps> = ({
           onClick={() => handleSetPenStrokeWidth(penStrokeWidth + (penStrokeWidth >= 20 ? 5 : 2))}
           disabled={penStrokeWidth >= 300}
           className="w-5 h-5 rounded bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold text-xs flex items-center justify-center hover:bg-stone-200 dark:hover:bg-stone-600 disabled:opacity-30 cursor-pointer"
-          title="線の太さを増やす (+5px)"
+          title={`線の太さを増やす (+${penStrokeWidth >= 20 ? 5 : 2}px)`}
         >
           +
         </button>
