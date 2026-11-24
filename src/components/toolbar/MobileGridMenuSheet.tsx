@@ -139,6 +139,28 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  </button>
  </div>
 
+ {/* Guide snap: guides keep snapping even when grid snap is off.
+     Previously this was only in the status bar / aux menu, which
+     toggled grid and guide snap together. */}
+ <button
+ type="button"
+ onClick={() =>
+ setGridSettings((s) => ({ ...s, snapToGuides: s.snapToGuides === false ? true : false }))
+ }
+ className={`w-full p-3 rounded-xl border text-xs font-bold flex items-center justify-between mb-3 shrink-0 ${
+ gridSettings.snapToGuides !== false
+ ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+ : isLight
+ ? 'bg-stone-50 border-stone-200 text-stone-600'
+ : 'bg-stone-900 border-stone-800 text-stone-400'
+ }`}
+ >
+ <span>ガイド線に吸着</span>
+ <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-black/10 dark:bg-white/10">
+ {gridSettings.snapToGuides !== false ? 'ON' : 'OFF'}
+ </span>
+ </button>
+
  {/* Grid Size Adjustment */}
  <div className="p-3 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 space-y-3 mb-3 shrink-0">
  <div className="flex items-center justify-between">

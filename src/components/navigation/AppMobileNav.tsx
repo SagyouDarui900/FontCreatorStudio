@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenTool, Grid, Ruler, Shapes } from 'lucide-react';
+import { PenTool, Grid, SlidersHorizontal, Shapes } from 'lucide-react';
 import { MobileTab } from '../../hooks/useAppLayout';
 import { ThemeClasses } from '../../types';
 
@@ -61,7 +61,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = React.memo(({
             : `${themeClasses.textMuted}`
         }`}
       >
-        <Ruler className="w-5 h-5" />
+        <SlidersHorizontal className="w-5 h-5" />
         <span>メトリクス</span>
       </button>
 

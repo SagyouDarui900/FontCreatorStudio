@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import { MobileAuxMenuDrawer } from './MobileAuxMenuDrawer';
 import { useCanvasNativeGestures } from '../hooks/useCanvasNativeGestures';
-import { GridSettings, TraceSettings } from '../../../types';
+import { TraceSettings } from '../../../types';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -91,18 +91,6 @@ describe('MobileAuxMenuDrawer & mobile native scroll behavior', () => {
           isOutlineMode={false}
           setOutlineOnly={vi.fn()}
           showCanvasToast={vi.fn()}
-          gridSettings={{
-            showGrid: true,
-            gridSize: 50,
-            snapToGrid: true,
-            snapToPoints: true,
-            snapToGuides: true,
-            showMetrics: true,
-            showPoints: true,
-            showHandles: true,
-            showCursorCrosshair: false,
-          } satisfies GridSettings}
-          onChangeGridSettings={vi.fn()}
           palmRejectionMode="auto"
           handleSetPalmRejectionMode={vi.fn()}
           toolMode="brush"
@@ -143,6 +131,13 @@ describe('MobileAuxMenuDrawer & mobile native scroll behavior', () => {
     expect(scrollBody?.className).toContain('min-h-0');
     expect(scrollBody?.className).toContain('overscroll-contain');
     expect(scrollBody?.className).toContain('touch-pan-y');
+
+    // Grid / guide settings live only in the toolbar grid menu now:
+    // the aux menu must not duplicate them, but keeps palm rejection.
+    expect(dialog?.textContent).not.toContain('方眼グリッドサイズ');
+    expect(dialog?.textContent).not.toContain('照準ポインター');
+    expect(dialog?.textContent).not.toContain('スナップ吸着');
+    expect(dialog?.textContent).toContain('手のひら誤作図防止');
 
     act(() => {
       root.unmount();

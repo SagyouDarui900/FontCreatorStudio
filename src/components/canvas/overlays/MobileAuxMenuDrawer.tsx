@@ -1,5 +1,4 @@
 import React from 'react';
-import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import {
   Sliders,
@@ -10,9 +9,6 @@ import {
   Square,
   Maximize,
   Minimize,
-  CircleDot,
-  Magnet,
-  Grid,
   Shield,
   Trash2,
   Eye,
@@ -22,7 +18,7 @@ import {
   Sparkles,
   Wand2,
 } from 'lucide-react';
-import { GridSettings, TraceSettings, GlyphOverlaySettings, PathContour, ToolMode } from '../../../types';
+import { TraceSettings, GlyphOverlaySettings, PathContour, ToolMode } from '../../../types';
 import { ThemeMode, getThemeClasses } from '../../../utils/theme';
 import { DAKUTEN_MAPPINGS } from '../../../utils/dakutenHelper';
 import { KANA_PAIRS } from '../../../data/unicodeTables';
@@ -40,8 +36,6 @@ export interface MobileAuxMenuDrawerProps {
   showCanvasToast: (msg: string, sub?: string) => void;
   onToggleZenMode?: () => void;
   isZenMode?: boolean;
-  gridSettings: GridSettings;
-  onChangeGridSettings?: React.Dispatch<React.SetStateAction<GridSettings>>;
   palmRejectionMode: 'auto' | 'strict_pen_only' | 'off';
   handleSetPalmRejectionMode: (mode: 'auto' | 'strict_pen_only' | 'off') => void;
   toolMode: ToolMode;
@@ -79,8 +73,6 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     showCanvasToast,
     onToggleZenMode,
     isZenMode,
-    gridSettings,
-    onChangeGridSettings,
     palmRejectionMode,
     handleSetPalmRejectionMode,
     toolMode,
@@ -247,175 +239,9 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
             </div>
           </div>
 
-          {/* Group 2: 作図補助・ガイド */}
+          {/* Group 2: 作図補助 */}
           <div className="space-y-2 pt-1 border-t border-stone-200 dark:border-[#25382c]">
-            <div className="text-xs font-bold text-stone-600 dark:text-emerald-400">作図補助・ガイド</div>
-            <div className="grid grid-cols-2 gap-2">
-              {/* 照準ポインター切替 */}
-              {onChangeGridSettings && (
-                <button
-                  onClick={() => {
-                    const next = !gridSettings.showCursorCrosshair;
-                    onChangeGridSettings((prev) => ({
-                      ...prev,
-                      showCursorCrosshair: next,
-                      highContrastCursor: next,
-                    }));
-                    showCanvasToast(
-                      next ? '照準ポインター・十字線: ON' : '照準ポインター・十字線: OFF',
-                      next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
-                    );
-                  }}
-                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-colors ${
-                    gridSettings.showCursorCrosshair
-                      ? isLight
-                        ? 'bg-amber-50 border-amber-400 text-amber-950'
-                        : 'bg-emerald-950 border-emerald-600 text-emerald-200'
-                      : isLight
-                      ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
-                      : 'bg-[#1a2b20] border-[#2a4030] text-stone-400 hover:bg-[#22382a]'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <CircleDot
-                      className={`w-4 h-4 ${
-                        gridSettings.showCursorCrosshair ? 'text-amber-600 dark:text-emerald-400' : 'text-stone-400'
-                      }`}
-                    />
-                    <span>照準ポインター</span>
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                      gridSettings.showCursorCrosshair
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
-                    }`}
-                  >
-                    {gridSettings.showCursorCrosshair ? 'ON' : 'OFF'}
-                  </span>
-                </button>
-              )}
-
-              {/* スマートスナップ切替 */}
-              {onChangeGridSettings && (
-                <button
-                  onClick={() => {
-                    const next = !(gridSettings.snapToGrid || gridSettings.snapToGuides);
-                    onChangeGridSettings((prev) => ({
-                      ...prev,
-                      snapToGrid: next,
-                      snapToGuides: next,
-                    }));
-                    showCanvasToast(next ? 'スナップ: ON (吸着有効)' : 'スナップ: OFF (自由配置)');
-                  }}
-                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-colors ${
-                    gridSettings.snapToGrid || gridSettings.snapToGuides
-                      ? isLight
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-900'
-                        : 'bg-emerald-950 border-emerald-600 text-emerald-200'
-                      : isLight
-                      ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'
-                      : 'bg-[#1a2b20] border-[#2a4030] text-stone-400 hover:bg-[#22382a]'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Magnet
-                      className={`w-4 h-4 ${
-                        gridSettings.snapToGrid || gridSettings.snapToGuides
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-stone-400'
-                      }`}
-                    />
-                    <span>スナップ吸着</span>
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                      gridSettings.snapToGrid || gridSettings.snapToGuides
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
-                    }`}
-                  >
-                    {gridSettings.snapToGrid || gridSettings.snapToGuides ? 'ON' : 'OFF'}
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* 方眼グリッド調整 */}
-            {gridSettings.showGrid && onChangeGridSettings && (
-              <div
-                className={`p-3 rounded-xl border space-y-2 ${
-                  isLight ? 'bg-white border-stone-200' : 'bg-[#1a2b20] border-[#2a4030]'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
-                    <Grid className="w-3.5 h-3.5" />
-                    <span>方眼グリッドサイズ</span>
-                  </span>
-                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
-                    {gridSettings.gridSize || DEFAULT_GRID_SIZE}px
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChangeGridSettings((prev) => {
-                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
-                        const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
-                        return { ...prev, gridSize: Math.max(5, current - step) };
-                      })
-                    }
-                    className="w-7 h-7 rounded-lg flex items-center justify-center border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="range"
-                    min="5"
-                    max="200"
-                    step="5"
-                    value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
-                    }}
-                    className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 touch-pan-x"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChangeGridSettings((prev) => {
-                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
-                        const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
-                        return { ...prev, gridSize: Math.min(250, current + step) };
-                      })
-                    }
-                    className="w-7 h-7 rounded-lg flex items-center justify-center border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 justify-between pt-1">
-                  {[10, 25, 50, 100, 128].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => onChangeGridSettings((prev) => ({ ...prev, gridSize: size }))}
-                      className={`flex-1 py-1 rounded text-[10px] font-mono font-bold border transition-colors ${
-                        (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
-                          ? 'bg-emerald-600 text-white border-emerald-600'
-                          : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300'
-                      }`}
-                    >
-                      {size}px
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
+            <div className="text-xs font-bold text-stone-600 dark:text-emerald-400">作図補助</div>
             {/* パームリジェクション */}
             <div className="flex items-center gap-2">
               <button

@@ -1,5 +1,4 @@
 import React from 'react';
-import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import {
   X,
   ChevronLeft,
@@ -9,8 +8,6 @@ import {
   Maximize2,
   Minimize,
   Maximize,
-  Grid,
-  Magnet,
   Square,
   ArrowRightLeft,
   RotateCcw,
@@ -27,13 +24,10 @@ import {
   Move,
   HelpCircle,
   Lock,
-  Undo,
-  Redo,
   SlidersHorizontal,
 } from 'lucide-react';
 import {
   ToolMode,
-  GridSettings,
   TraceSettings,
   GlyphOverlaySettings,
   PathContour,
@@ -69,8 +63,6 @@ export interface CanvasStatusBarProps {
   resetView: (mode?: 'fit' | 'width' | '100%') => void;
   handleZoomStep: (delta: number) => void;
   zoom: number;
-  onChangeGridSettings?: (updater: (prev: GridSettings) => GridSettings) => void;
-  gridSettings: GridSettings;
   showCanvasToast: (msg: string, desc?: string) => void;
   palmRejectionMode: 'auto' | 'strict_pen_only' | 'off';
   handleSetPalmRejectionMode: (mode: 'auto' | 'strict_pen_only' | 'off') => void;
@@ -78,9 +70,6 @@ export interface CanvasStatusBarProps {
   liveStylusPressure?: number | null;
   pressureSensitivity?: 'high' | 'normal' | 'low' | 'off';
   onChangePressureSensitivity?: (val: 'high' | 'normal' | 'low' | 'off') => void;
-  showQuickGridSlider: boolean;
-  setShowQuickGridSlider: (val: boolean | ((prev: boolean) => boolean)) => void;
-  quickGridSliderRef: React.RefObject<HTMLDivElement | null>;
   traceSettings: TraceSettings;
   onChangeTraceSettings?: React.Dispatch<React.SetStateAction<TraceSettings>>;
   handleResetTracePosition: () => void;
@@ -93,10 +82,6 @@ export interface CanvasStatusBarProps {
   isZenMode?: boolean;
   showGuideAssist: boolean;
   handleToggleGuideAssist: (show?: boolean) => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
 }
 
 const TOOL_LABELS: Partial<Record<ToolMode, string>> = {
@@ -156,8 +141,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   resetView,
   handleZoomStep,
   zoom,
-  onChangeGridSettings,
-  gridSettings,
   showCanvasToast,
   palmRejectionMode,
   handleSetPalmRejectionMode,
@@ -165,9 +148,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   liveStylusPressure,
   pressureSensitivity,
   onChangePressureSensitivity,
-  showQuickGridSlider,
-  setShowQuickGridSlider,
-  quickGridSliderRef,
   traceSettings,
   onChangeTraceSettings,
   handleResetTracePosition,
@@ -180,10 +160,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
   isZenMode,
   showGuideAssist,
   handleToggleGuideAssist,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
 }) => {
   const isShapeTool = isShapeToolMode(toolMode);
 
@@ -411,7 +387,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
           )}
         </div>
 
-        {/* Right: Palm Rejection, Grid Slider, Snap, Trace, Outline, Compare, Zen, Guide Legend, Zoom */}
+        {/* Right: Palm Rejection, Trace, Outline, Compare, Zen, Guide Legend, Zoom */}
         <div className="flex items-center gap-1 shrink-0 overflow-visible">
           {/* Palm Rejection */}
           <button
@@ -500,132 +476,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 </div>
               )}
             </div>
-          )}
-
-          {/* Grid Size Popover */}
-          {gridSettings.showGrid && onChangeGridSettings && (
-            <div className="relative" ref={quickGridSliderRef}>
-              <button
-                type="button"
-                onClick={() => setShowQuickGridSlider((prev) => !prev)}
-                className={`h-6 flex items-center gap-1 px-1.5 rounded border text-[10.5px] font-mono tabular-nums font-semibold transition-colors ${
-                  showQuickGridSlider
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : isLight
-                    ? 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : 'bg-[#17261c] hover:bg-emerald-900 border-emerald-700 text-emerald-200'
-                }`}
-                title="グリッドサイズ変更"
-              >
-                <Grid className="w-3 h-3" />
-                <span>{gridSettings.gridSize || DEFAULT_GRID_SIZE}px</span>
-              </button>
-
-              {showQuickGridSlider && (
-                <div
-                  className={`absolute bottom-full mb-1.5 right-0 w-60 p-2.5 rounded-lg border shadow-xl z-50 ${
-                    isLight
-                      ? 'bg-white border-[#c8ded3] text-stone-800'
-                      : 'bg-[#152119] border-[#25382c] text-emerald-100'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-xs flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
-                      <Grid className="w-3.5 h-3.5" />
-                      <span>グリッドサイズ</span>
-                    </span>
-                    <span className="font-mono tabular-nums font-bold text-xs px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
-                      {gridSettings.gridSize || DEFAULT_GRID_SIZE}px
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onChangeGridSettings((prev) => {
-                            const current = prev.gridSize || DEFAULT_GRID_SIZE;
-                            const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
-                            return { ...prev, gridSize: Math.max(5, current - step) };
-                          })
-                        }
-                        className="w-6 h-6 rounded flex items-center justify-center border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold shrink-0"
-                      >
-                        -
-                      </button>
-                      <input
-                        type="range"
-                        min="5"
-                        max="250"
-                        step="5"
-                        value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
-                        }}
-                        className="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded appearance-none cursor-pointer accent-emerald-600"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onChangeGridSettings((prev) => {
-                            const current = prev.gridSize || DEFAULT_GRID_SIZE;
-                            const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
-                            return { ...prev, gridSize: Math.min(250, current + step) };
-                          })
-                        }
-                        className="w-6 h-6 rounded flex items-center justify-center border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold shrink-0"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1 justify-between">
-                      {[25, 50, 100, 128, 250].map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() =>
-                            onChangeGridSettings((prev) => ({ ...prev, gridSize: size }))
-                          }
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums font-bold border transition-colors ${
-                            (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
-                              ? 'bg-emerald-600 text-white border-emerald-600'
-                              : 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Snap Toggle */}
-          {onChangeGridSettings && (
-            <button
-              type="button"
-              onClick={() => {
-                const next = !(gridSettings.snapToGrid || gridSettings.snapToGuides);
-                onChangeGridSettings((prev) => ({
-                  ...prev,
-                  snapToGrid: next,
-                  snapToGuides: next,
-                }));
-                showCanvasToast(next ? 'スナップ: ON' : 'スナップ: OFF');
-              }}
-              title={`スマートスナップ: ${gridSettings.snapToGrid || gridSettings.snapToGuides ? 'ON' : 'OFF'}`}
-              className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 font-bold text-[10.5px] ${
-                gridSettings.snapToGrid || gridSettings.snapToGuides
-                  ? 'bg-emerald-600 text-white'
-                  : iconBtnClass
-              }`}
-            >
-              <Magnet className="w-3 h-3" />
-              <span className="hidden lg:inline">スナップ</span>
-            </button>
           )}
 
           {/* Trace Opacity / Reset */}
@@ -796,28 +646,6 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             <SlidersHorizontal className="w-3 h-3" />
             <span>補助</span>
           </button>
-          {onUndo && (
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className={`h-6 w-6 flex items-center justify-center rounded disabled:opacity-30 ${iconBtnClass}`}
-              title="元に戻す"
-            >
-              <Undo className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {onRedo && (
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className={`h-6 w-6 flex items-center justify-center rounded disabled:opacity-30 ${iconBtnClass}`}
-              title="やり直す"
-            >
-              <Redo className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">

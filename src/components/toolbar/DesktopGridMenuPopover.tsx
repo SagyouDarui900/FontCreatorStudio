@@ -145,6 +145,25 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
         </button>
       </div>
 
+      {/* Guide snap: guides keep snapping even when grid snap is off.
+          Previously this was only in the status bar / aux menu, which
+          toggled grid and guide snap together. */}
+      <button
+        type="button"
+        onClick={() =>
+          setGridSettings((s) => ({ ...s, snapToGuides: s.snapToGuides === false ? true : false }))
+        }
+        className={`w-full p-1.5 rounded-lg border text-xs font-bold flex items-center justify-between cursor-pointer mb-3 ${
+          gridSettings.snapToGuides !== false
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
+        }`}
+        title="ルーラーから引いたガイド線などへの吸着。方眼への吸着を切ってもガイド線には吸着します"
+      >
+        <span>ガイド線に吸着</span>
+        <span className="text-[10px] font-mono">{gridSettings.snapToGuides !== false ? 'ON' : 'OFF'}</span>
+      </button>
+
       {/* Grid Size Adjustment Slider */}
       <div className="space-y-2 p-2 rounded-xl bg-stone-50/80 dark:bg-stone-900/60 border border-stone-200 dark:border-stone-800 mb-2.5">
         <div className="flex items-center justify-between">

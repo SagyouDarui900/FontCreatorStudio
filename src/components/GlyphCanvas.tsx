@@ -236,25 +236,20 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const [marqueeSelection, setMarqueeSelection] = useState<{ start: Point; current: Point } | null>(null);
   const [showShapePickerDropdown, setShowShapePickerDropdown] = useState<boolean>(false);
   const shapePickerRef = useRef<HTMLDivElement>(null);
-  const [showQuickGridSlider, setShowQuickGridSlider] = useState<boolean>(false);
-  const quickGridSliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (shapePickerRef.current && !shapePickerRef.current.contains(e.target as Node)) {
         setShowShapePickerDropdown(false);
       }
-      if (quickGridSliderRef.current && !quickGridSliderRef.current.contains(e.target as Node)) {
-        setShowQuickGridSlider(false);
-      }
     };
-    if (showShapePickerDropdown || showQuickGridSlider) {
+    if (showShapePickerDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showShapePickerDropdown, showQuickGridSlider]);
+  }, [showShapePickerDropdown]);
 
   // Dragging metrics guide lines
   const [draggingMetric, setDraggingMetric] = useState<'lsb' | 'rsb' | null>(null);
@@ -1483,8 +1478,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         resetView={resetView}
         handleZoomStep={handleZoomStep}
         zoom={zoom}
-        onChangeGridSettings={onChangeGridSettings as any}
-        gridSettings={gridSettings}
         showCanvasToast={showCanvasToast}
         palmRejectionMode={palmRejectionMode}
         handleSetPalmRejectionMode={handleSetPalmRejectionMode}
@@ -1492,9 +1485,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         liveStylusPressure={liveStylusPressure}
         pressureSensitivity={pressureSensitivity}
         onChangePressureSensitivity={onChangePressureSensitivity}
-        showQuickGridSlider={showQuickGridSlider}
-        setShowQuickGridSlider={setShowQuickGridSlider}
-        quickGridSliderRef={quickGridSliderRef}
         traceSettings={traceSettings}
         onChangeTraceSettings={onChangeTraceSettings}
         handleResetTracePosition={handleResetTracePosition}
@@ -1507,10 +1497,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         isZenMode={isZenMode}
         showGuideAssist={showGuideAssist}
         handleToggleGuideAssist={handleToggleGuideAssist}
-        onUndo={onUndo}
-        onRedo={onRedo}
-        canUndo={canUndo}
-        canRedo={canRedo}
       />
     </div>
   );
