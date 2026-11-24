@@ -55,6 +55,25 @@ describe('vectorBoolean - Vector Boolean Operations & Geometry Sanitation', () =
         expect(handleDist).toBeLessThan(150);
       }
     });
+
+    it('L8: clamps open contour end handles against the single adjacent segment, not the opposite end', () => {
+      // Open line (0,0) - (100,0) - (200,0) with runaway handles on both ends.
+      // Before the fix the first node's handleIn was clamped against the
+      // wrapped-around last node (200px away, limit 300) and the last
+      // node's handleOut against the first node, so both stayed at 300.
+      // The only real segment next to each end is 100px, so the limit is 150.
+      const nodes: BezierNode[] = [
+        { id: 'n1', x: 0, y: 0, handleIn: { x: -500, y: 0 }, type: 'smooth' },
+        { id: 'n2', x: 100, y: 0, type: 'corner' },
+        { id: 'n3', x: 200, y: 0, handleOut: { x: 700, y: 0 }, type: 'smooth' },
+      ];
+      const sanitized = sanitizeContourNodes(nodes, false);
+      expect(sanitized).toHaveLength(3);
+      expect(sanitized[0].handleIn).not.toBeNull();
+      expect(Math.hypot(sanitized[0].handleIn!.x - 0, sanitized[0].handleIn!.y - 0)).toBeCloseTo(150);
+      expect(sanitized[2].handleOut).not.toBeNull();
+      expect(Math.hypot(sanitized[2].handleOut!.x - 200, sanitized[2].handleOut!.y - 0)).toBeCloseTo(150);
+    });
   });
 
   describe('booleanUnionContours (結合・融着)', () => {
@@ -161,6 +180,46 @@ describe('vectorBoolean - Vector Boolean Operations & Geometry Sanitation', () =
       // Result should contain 2 contours: outer boundary and hole cutout
       expect(result.length).toBe(2);
     });
+
+    it('H14: keeps the hole of a ring subject when the cutter passes through the hole', () => {
+      // Subject: ring (outer [0, 0]-[100, 100] with hole [40, 40]-[60, 60])
+      // Cutter: vertical bar [45, 0]-[55, 100] running through the hole.
+      // The bar only cuts the ring's top and bottom strips; the hole stays
+      // empty, so each side keeps a notch where the hole was: 2 pieces
+      // with 8 nodes each.
+      // (Before the fix the hole was treated as solid fill, so the bar cut
+      // the disk into 2 plain 4-node rectangles.)
+      const subject = [createRectContour(0, 0, 100, 100), createRectContour(40, 40, 60, 60)];
+      const cutter = [createRectContour(45, 0, 55, 100)];
+
+      const result = booleanSubtractContours(subject, cutter);
+      expect(result.length).toBe(2);
+      for (const c of result) {
+        expect(c.nodes.length).toBe(8);
+      }
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 0 && Math.round(b.maxX) === 45)).toBe(true);
+      expect(bboxes.some((b) => Math.round(b.minX) === 55 && Math.round(b.maxX) === 100)).toBe(true);
+    });
+
+    it('H14: keeps the hole of a ring cutter when subtracting it', () => {
+      // Subject: solid [0, 0]-[100, 100]
+      // Cutter: ring (outer [20, 20]-[80, 80] with hole [40, 40]-[60, 60]).
+      // Subtracting the ring leaves the subject with a frame-shaped cutout,
+      // but the ring's own hole area (the [40, 40]-[60, 60] square) must
+      // stay filled as a separate island.
+      // (Before the fix the hole was treated as solid fill, so the cutter
+      // cut a solid [20, 20]-[80, 80] square and the result had 2 contours.)
+      const subject = [createRectContour(0, 0, 100, 100)];
+      const cutter = [createRectContour(20, 20, 80, 80), createRectContour(40, 40, 60, 60)];
+
+      const result = booleanSubtractContours(subject, cutter);
+      // Outer boundary + frame cutout + surviving island = 3 contours
+      expect(result.length).toBe(3);
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 20 && Math.round(b.maxX) === 80)).toBe(true);
+      expect(bboxes.some((b) => Math.round(b.minX) === 40 && Math.round(b.maxX) === 60)).toBe(true);
+    });
   });
 
   describe('booleanIntersectContours (交差・共通部分)', () => {
@@ -193,6 +252,23 @@ describe('vectorBoolean - Vector Boolean Operations & Geometry Sanitation', () =
 
       const result = booleanIntersectContours(s1, s2);
       expect(result.length).toBe(0);
+    });
+
+    it('H14: keeps the hole when intersecting with a ring subject', () => {
+      // Subject: ring (outer [0, 0]-[100, 100] with hole [40, 40]-[60, 60])
+      // Cutter: [30, 30]-[70, 70] covering the hole and the surrounding ring.
+      // The intersection is the frame [30, 30]-[70, 70] minus the hole,
+      // so the result is 2 contours (frame outer + hole).
+      // (Before the fix the hole was treated as solid fill, so the result
+      // was a single solid [30, 30]-[70, 70] rectangle.)
+      const subject = [createRectContour(0, 0, 100, 100), createRectContour(40, 40, 60, 60)];
+      const cutter = [createRectContour(30, 30, 70, 70)];
+
+      const result = booleanIntersectContours(subject, cutter);
+      expect(result.length).toBe(2);
+      const bboxes = result.map((c) => getContoursBoundingBox([c])!);
+      expect(bboxes.some((b) => Math.round(b.minX) === 30 && Math.round(b.maxX) === 70)).toBe(true);
+      expect(bboxes.some((b) => Math.round(b.minX) === 40 && Math.round(b.maxX) === 60)).toBe(true);
     });
   });
 

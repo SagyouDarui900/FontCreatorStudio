@@ -132,7 +132,6 @@ export async function vectorizeImage(
 
   // 3. Marching Squares / Boundary Edge Walk
   const edgeMap = new Map<string, Point[]>();
-  const visitedEdges = new Set<string>();
 
   const addEdge = (p1: Point, p2: Point) => {
     const key = `${p1.x},${p1.y}`;
@@ -181,60 +180,7 @@ export async function vectorizeImage(
   }
 
   // 4. Trace closed loops from edges
-  const loops: Point[][] = [];
-
-  for (const [startKey, targets] of edgeMap.entries()) {
-    while (targets.length > 0) {
-      const nextP = targets.pop()!;
-      const [sx, sy] = startKey.split(',').map(Number);
-      const startPt: Point = { x: sx, y: sy };
-
-      const edgeKey = `${startPt.x},${startPt.y}->${nextP.x},${nextP.y}`;
-      if (visitedEdges.has(edgeKey)) continue;
-      visitedEdges.add(edgeKey);
-
-      const loop: Point[] = [startPt, nextP];
-      let curr = nextP;
-      let steps = 0;
-      const maxSteps = canvasW * canvasH * 4;
-
-      while (steps++ < maxSteps) {
-        const currKey = `${curr.x},${curr.y}`;
-        const outList = edgeMap.get(currKey);
-
-        if (!outList || outList.length === 0) break;
-
-        let nextIdx = 0;
-        let chosen: Point | null = null;
-
-        for (let i = 0; i < outList.length; i++) {
-          const cand = outList[i];
-          const k = `${curr.x},${curr.y}->${cand.x},${cand.y}`;
-          if (!visitedEdges.has(k)) {
-            chosen = cand;
-            nextIdx = i;
-            break;
-          }
-        }
-
-        if (!chosen) break;
-
-        outList.splice(nextIdx, 1);
-        visitedEdges.add(`${curr.x},${curr.y}->${chosen.x},${chosen.y}`);
-        loop.push(chosen);
-        curr = chosen;
-
-        // Check if loop closed
-        if (curr.x === startPt.x && curr.y === startPt.y) {
-          break;
-        }
-      }
-
-      if (loop.length >= opts.minArea) {
-        loops.push(loop);
-      }
-    }
-  }
+  const loops = traceClosedBoundaryLoops(edgeMap, canvasW, canvasH, opts.minArea);
 
   // 5. Pre-filter loops with sub-pixel Laplacian anti-aliasing to eliminate 1px raster staircases
   // 5. Pre-filter loops with corner-preserving sub-pixel Laplacian anti-aliasing to eliminate 1px raster staircases
@@ -303,6 +249,80 @@ export async function vectorizeImage(
     width: canvasW,
     height: canvasH,
   };
+}
+
+/**
+ * Trace boundary loops from the marching-squares edge map.
+ * Only loops that return to their start point are closed contours and are
+ * returned. A walk that dead-ends (e.g. where two shapes touch at a single
+ * point) must not be adopted as a closed contour: the later steps would
+ * join its start and end with a spurious straight edge (M22).
+ */
+export function traceClosedBoundaryLoops(
+  edgeMap: Map<string, Point[]>,
+  canvasW: number,
+  canvasH: number,
+  minArea: number
+): Point[][] {
+  const loops: Point[][] = [];
+  const visitedEdges = new Set<string>();
+
+  for (const [startKey, targets] of edgeMap.entries()) {
+    while (targets.length > 0) {
+      const nextP = targets.pop()!;
+      const [sx, sy] = startKey.split(',').map(Number);
+      const startPt: Point = { x: sx, y: sy };
+
+      const edgeKey = `${startPt.x},${startPt.y}->${nextP.x},${nextP.y}`;
+      if (visitedEdges.has(edgeKey)) continue;
+      visitedEdges.add(edgeKey);
+
+      const loop: Point[] = [startPt, nextP];
+      let curr = nextP;
+      let steps = 0;
+      const maxSteps = canvasW * canvasH * 4;
+
+      while (steps++ < maxSteps) {
+        const currKey = `${curr.x},${curr.y}`;
+        const outList = edgeMap.get(currKey);
+
+        if (!outList || outList.length === 0) break;
+
+        let nextIdx = 0;
+        let chosen: Point | null = null;
+
+        for (let i = 0; i < outList.length; i++) {
+          const cand = outList[i];
+          const k = `${curr.x},${curr.y}->${cand.x},${cand.y}`;
+          if (!visitedEdges.has(k)) {
+            chosen = cand;
+            nextIdx = i;
+            break;
+          }
+        }
+
+        if (!chosen) break;
+
+        outList.splice(nextIdx, 1);
+        visitedEdges.add(`${curr.x},${curr.y}->${chosen.x},${chosen.y}`);
+        loop.push(chosen);
+        curr = chosen;
+
+        // Check if loop closed
+        if (curr.x === startPt.x && curr.y === startPt.y) {
+          break;
+        }
+      }
+
+      const lastPt = loop[loop.length - 1];
+      const isClosed = lastPt.x === startPt.x && lastPt.y === startPt.y;
+      if (isClosed && loop.length >= minArea) {
+        loops.push(loop);
+      }
+    }
+  }
+
+  return loops;
 }
 
 /**
@@ -445,8 +465,12 @@ export function perpendicularDistance(p: Point, p1: Point, p2: Point): number {
 /**
  * Convert polygon points into smooth cubic Bezier nodes with Catmull-Rom style handles,
  * while accurately preserving sharp corners (strokes, serifs, turns) and flat edges.
+ * @param closed When false, the point list is an open contour: the first node
+ * only sees the next segment and the last node only the previous one, so the
+ * ends get a single handle along their one real segment instead of a
+ * wrap-around handle from the opposite end (M21/L8).
  */
-export function pointsToBezierContourNodes(points: Point[]): BezierNode[] {
+export function pointsToBezierContourNodes(points: Point[], closed: boolean = true): BezierNode[] {
   let cleanPoints = points;
   if (cleanPoints.length >= 2) {
     const first = cleanPoints[0];
@@ -464,8 +488,45 @@ export function pointsToBezierContourNodes(points: Point[]): BezierNode[] {
 
   for (let i = 0; i < n; i++) {
     const curr = cleanPoints[i];
-    const prev = cleanPoints[(i - 1 + n) % n];
-    const next = cleanPoints[(i + 1) % n];
+    const prev = closed || i > 0 ? cleanPoints[(i - 1 + n) % n] : null;
+    const next = closed || i < n - 1 ? cleanPoints[(i + 1) % n] : null;
+
+    if (!prev || !next) {
+      // Open contour endpoint (or a lone point): only one adjacent segment
+      // exists, so the end gets a single handle along it instead of a
+      // wrap-around handle from the opposite end.
+      const neighbour = prev ?? next;
+      if (!neighbour) {
+        nodes.push({ id: generateId(), x: Math.round(curr.x), y: Math.round(curr.y), type: 'corner', handleIn: null, handleOut: null });
+        continue;
+      }
+      const dx = neighbour.x - curr.x;
+      const dy = neighbour.y - curr.y;
+      const segLen = Math.hypot(dx, dy);
+      if (segLen === 0) {
+        nodes.push({ id: generateId(), x: Math.round(curr.x), y: Math.round(curr.y), type: 'corner', handleIn: null, handleOut: null });
+        continue;
+      }
+      const hLen = Math.min(segLen * tension, Math.min(segLen * 0.35, 90));
+      const ux = dx / segLen;
+      const uy = dy / segLen;
+      // For the first node the neighbour is ahead (handleOut); for the
+      // last node it is behind (handleIn).
+      const isFirst = !prev;
+      const handle = {
+        x: Math.round(curr.x + ux * hLen),
+        y: Math.round(curr.y + uy * hLen),
+      };
+      nodes.push({
+        id: generateId(),
+        x: Math.round(curr.x),
+        y: Math.round(curr.y),
+        type: 'smooth',
+        handleIn: isFirst ? null : handle,
+        handleOut: isFirst ? handle : null,
+      });
+      continue;
+    }
 
     const v1x = curr.x - prev.x;
     const v1y = curr.y - prev.y;

@@ -234,16 +234,11 @@ export function interpolateContours(
         };
       });
 
+      // M21: open contours get smooth handles rebuilt from the blended
+      // points just like closed ones, instead of a corner-only polyline.
       const morphedNodes: BezierNode[] = closed
         ? pointsToBezierContourNodes(blendedPts)
-        : blendedPts.map((pt, i) => ({
-            id: `interp-${cIdx}-${i}`,
-            x: Math.round(pt.x),
-            y: Math.round(pt.y),
-            handleIn: null,
-            handleOut: null,
-            type: 'corner',
-          }));
+        : pointsToBezierContourNodes(blendedPts, false);
 
       result.push({
         id: `interp-contour-${cIdx}`,
@@ -267,9 +262,16 @@ export function straightenWobblyContour(contour: PathContour, devThreshold: numb
   const newNodes: BezierNode[] = [];
 
   for (let i = 0; i < n; i++) {
-    const prev = nodes[(i - 1 + n) % n];
+    // L8: on an open contour the end nodes have only one real neighbour,
+    // so there is no chord to straighten against. Keep them as-is instead
+    // of measuring against the opposite end.
+    const prev = contour.closed ? nodes[(i - 1 + n) % n] : nodes[i - 1];
     const curr = nodes[i];
-    const next = nodes[(i + 1) % n];
+    const next = contour.closed ? nodes[(i + 1) % n] : nodes[i + 1];
+    if (!prev || !next) {
+      newNodes.push(curr);
+      continue;
+    }
 
     // Check distance of curr from chord line (prev -> next)
     const dx = next.x - prev.x;

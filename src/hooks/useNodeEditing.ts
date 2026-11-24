@@ -805,19 +805,39 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
               let handleIn = node.handleIn;
               let handleOut = node.handleOut;
               if (!handleIn && !handleOut) {
-                const prev = c.nodes[(idx - 1 + c.nodes.length) % c.nodes.length];
-                const next = c.nodes[(idx + 1) % c.nodes.length];
+                // L8: on an open contour the end nodes have only one real
+                // neighbour. Measuring against the opposite end would bend
+                // the end toward it, so use only the adjacent segment.
+                const len = c.nodes.length;
+                const prev = !c.closed && idx === 0 ? null : c.nodes[(idx - 1 + len) % len];
+                const next =
+                  !c.closed && idx === len - 1 ? null : c.nodes[(idx + 1) % len];
                 if (prev && next) {
                   const angle = Math.atan2(next.y - prev.y, next.x - prev.x);
-                  const len = Math.min(45, Math.hypot(next.x - prev.x, next.y - prev.y) * 0.25);
+                  const hLen = Math.min(45, Math.hypot(next.x - prev.x, next.y - prev.y) * 0.25);
                   handleOut = {
-                    x: Math.round(node.x + Math.cos(angle) * len),
-                    y: Math.round(node.y + Math.sin(angle) * len),
+                    x: Math.round(node.x + Math.cos(angle) * hLen),
+                    y: Math.round(node.y + Math.sin(angle) * hLen),
                   };
                   handleIn = {
-                    x: Math.round(node.x - Math.cos(angle) * len),
-                    y: Math.round(node.y - Math.sin(angle) * len),
+                    x: Math.round(node.x - Math.cos(angle) * hLen),
+                    y: Math.round(node.y - Math.sin(angle) * hLen),
                   };
+                } else if (prev || next) {
+                  // Open contour endpoint: generate only the handle on the
+                  // side of the real adjacent segment.
+                  const other = (prev ?? next)!;
+                  const angle = Math.atan2(other.y - node.y, other.x - node.x);
+                  const hLen = Math.min(
+                    45,
+                    Math.hypot(other.x - node.x, other.y - node.y) * 0.25
+                  );
+                  const handle = {
+                    x: Math.round(node.x + Math.cos(angle) * hLen),
+                    y: Math.round(node.y + Math.sin(angle) * hLen),
+                  };
+                  if (prev) handleIn = handle;
+                  else handleOut = handle;
                 }
               }
               return {
@@ -862,7 +882,14 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     if (!target || target.nodes.length < 2) return;
     let idx = target.nodes.findIndex((n) => n.id === selectedNodeId);
     if (idx === -1) idx = 0;
-    const nextIdx = (idx + 1) % target.nodes.length;
+    // L8: on an open contour the last node has no following segment, so
+    // there is nothing to split. Wrapping to the first node would insert
+    // a node across the whole contour.
+    if (!target.closed && idx === target.nodes.length - 1) {
+      showCanvasToast('末端の頂点には追加できません', '開いたパスの端には次の区間がありません');
+      return;
+    }
+    const nextIdx = target.closed ? (idx + 1) % target.nodes.length : idx + 1;
     const n1 = target.nodes[idx];
     const n2 = target.nodes[nextIdx];
 

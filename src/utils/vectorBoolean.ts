@@ -70,8 +70,15 @@ export function sanitizeContourNodes(nodes: BezierNode[], closed: boolean): Bezi
   // Step 2: Clamp runaway handle vectors (anti-wild-loop guard)
   for (let i = 0; i < N; i++) {
     const node = { ...deduped[i] };
-    const prevNode = deduped[(i - 1 + N) % N];
-    const nextNode = deduped[(i + 1) % N];
+    // L8: on an open contour the end nodes have only one real neighbour.
+    // Wrapping to the opposite end would clamp their handles against a
+    // segment that does not exist, so reuse the single adjacent segment.
+    const prevNode = closed
+      ? deduped[(i - 1 + N) % N]
+      : deduped[i - 1] ?? deduped[Math.min(i + 1, N - 1)];
+    const nextNode = closed
+      ? deduped[(i + 1) % N]
+      : deduped[i + 1] ?? deduped[Math.max(i - 1, 0)];
 
     const dPrev = Math.hypot(node.x - prevNode.x, node.y - prevNode.y);
     const dNext = Math.hypot(node.x - nextNode.x, node.y - nextNode.y);
@@ -145,6 +152,32 @@ export function contourToPaperPath(
   }
 
   return path;
+}
+
+/**
+ * Build a CompoundPath from contours, preserving hole topology (H14):
+ * contours contained inside another contour are added as holes
+ * (counter-clockwise), exactly like the vector eraser does. Without
+ * this, Paper.js nonzero filling treats a hole as solid fill, so a
+ * subtraction/intersection through a counter (e.g. "O", "日") would cut
+ * or keep the hole area as if it were ink.
+ */
+function contoursToCompoundPath(
+  scope: paper.PaperScope,
+  contours: PathContour[]
+): paper.CompoundPath {
+  const compound = new scope.CompoundPath({});
+  const closedContours = contours.filter((c) => c.closed && c.nodes && c.nodes.length >= 3);
+  const openContours = contours.filter((c) => !(c.closed && c.nodes && c.nodes.length >= 3));
+  for (const group of groupContoursWithHoles(closedContours)) {
+    group.forEach((contour, index) => {
+      compound.addChild(contourToPaperPath(scope, contour, index > 0));
+    });
+  }
+  for (const contour of openContours) {
+    compound.addChild(contourToPaperPath(scope, contour, false));
+  }
+  return compound;
 }
 
 /**
@@ -746,15 +779,8 @@ function booleanSubtractContoursOrNull(
     const cutterItem = booleanUnionContoursOrNull(cutterContours);
     if (subjectItem === null || cutterItem === null) return null;
 
-    const paperSubject = new scope.CompoundPath({});
-    for (const sc of subjectItem) {
-      paperSubject.addChild(contourToPaperPath(scope, sc));
-    }
-
-    const paperCutter = new scope.CompoundPath({});
-    for (const cc of cutterItem) {
-      paperCutter.addChild(contourToPaperPath(scope, cc));
-    }
+    const paperSubject = contoursToCompoundPath(scope, subjectItem);
+    const paperCutter = contoursToCompoundPath(scope, cutterItem);
 
     const result = paperSubject.subtract(paperCutter);
     paperSubject.remove();
@@ -812,15 +838,8 @@ function booleanIntersectContoursOrNull(
   const scope = getPaperScope();
 
   try {
-    const paperSubject = new scope.CompoundPath({});
-    for (const sc of subjectContours) {
-      paperSubject.addChild(contourToPaperPath(scope, sc));
-    }
-
-    const paperCutter = new scope.CompoundPath({});
-    for (const cc of cutterContours) {
-      paperCutter.addChild(contourToPaperPath(scope, cc));
-    }
+    const paperSubject = contoursToCompoundPath(scope, subjectContours);
+    const paperCutter = contoursToCompoundPath(scope, cutterContours);
 
     const result = paperSubject.intersect(paperCutter);
     paperSubject.remove();
