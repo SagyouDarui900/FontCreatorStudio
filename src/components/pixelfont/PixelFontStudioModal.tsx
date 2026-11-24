@@ -52,6 +52,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
   selectedUnicode,
   onSelectGlyph,
   onShowToast,
+  commitHistory,
 }) => {
   const themeClasses = getThemeClasses(theme);
   const [glyphSearchQuery, setGlyphSearchQuery] = useState<string>('');
@@ -107,6 +108,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     isOpen,
     selectedUnicode,
     onShowToast,
+    commitHistory,
   });
 
   const {

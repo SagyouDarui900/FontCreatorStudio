@@ -336,6 +336,8 @@ export interface RemovedDataCounts {
   replacedAdvanceWidth: number;
   replacedLsb: number;
   removedPixelData: number;
+  replacedMetadata: number;
+  droppedKerning: number;
 }
 
 function readRemovedCounts(value: unknown): RemovedDataCounts | null {
@@ -354,9 +356,11 @@ function readRemovedCounts(value: unknown): RemovedDataCounts | null {
     replacedAdvanceWidth: num('replacedAdvanceWidth'),
     replacedLsb: num('replacedLsb'),
     removedPixelData: num('removedPixelData'),
+    replacedMetadata: num('replacedMetadata'),
+    droppedKerning: num('droppedKerning'),
   };
   const total =
-    counts.glyphs + counts.nodes + counts.contours + counts.replacedAdvanceWidth + counts.replacedLsb + counts.removedPixelData;
+    counts.glyphs + counts.nodes + counts.contours + counts.replacedAdvanceWidth + counts.replacedLsb + counts.removedPixelData + counts.replacedMetadata + counts.droppedKerning;
   return total > 0 ? counts : null;
 }
 
@@ -365,38 +369,79 @@ function readRemovedCounts(value: unknown): RemovedDataCounts | null {
  * counts, tolerating both return shapes: a bare FontProject (from
  * validateStoredFontProject) and a { project, removed } report (from
  * validateStoredFontProjectWithReport). Returns project null when the
- * input is null or has no project.
+ * input is null or has no project. The validation warnings and the
+ * labels of dropped glyphs are passed through as well: callers must
+ * show them, otherwise replacements and drops stay silent.
  */
 export function normalizeValidatedProject(validated: unknown): {
   project: FontProject | null;
   removed: RemovedDataCounts | null;
+  warnings: string[];
+  removedGlyphLabels: string[];
 } {
+  const empty = { project: null as FontProject | null, removed: null as RemovedDataCounts | null, warnings: [] as string[], removedGlyphLabels: [] as string[] };
   if (!validated || typeof validated !== 'object') {
-    return { project: null, removed: null };
+    return empty;
   }
   const record = validated as Record<string, unknown>;
+  const readWarnings = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+  const readLabels = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
   const nested = record.project;
   if (nested && typeof nested === 'object') {
-    return { project: nested as FontProject, removed: readRemovedCounts(validated) };
+    return {
+      project: nested as FontProject,
+      removed: readRemovedCounts(validated),
+      warnings: readWarnings(record.warnings),
+      removedGlyphLabels: readLabels(record.removedGlyphLabels),
+    };
   }
-  return { project: validated as FontProject, removed: readRemovedCounts(validated) };
+  return {
+    project: validated as FontProject,
+    removed: readRemovedCounts(validated),
+    warnings: readWarnings(record.warnings),
+    removedGlyphLabels: readLabels(record.removedGlyphLabels),
+  };
 }
 
 /**
  * Build a user-facing notice for removed invalid data, or null when
- * nothing was removed.
+ * nothing was removed or replaced. Dropped glyphs are listed by
+ * character so the user can tell what was lost; validation warnings
+ * (metadata replacements, dropped kerning) are appended, capped so the
+ * toast stays readable.
  */
-export function formatRemovedDataNotice(removed: RemovedDataCounts | null): string | null {
-  if (!removed) return null;
+export function formatRemovedDataNotice(
+  removed: RemovedDataCounts | null,
+  warnings: string[] = [],
+  removedGlyphLabels: string[] = []
+): string | null {
   const parts: string[] = [];
-  if (removed.glyphs > 0) parts.push(`グリフ${removed.glyphs}件`);
-  if (removed.contours > 0) parts.push(`輪郭${removed.contours}件`);
-  if (removed.nodes > 0) parts.push(`ノード${removed.nodes}件`);
-  if (removed.replacedAdvanceWidth > 0) parts.push(`送り幅の置換${removed.replacedAdvanceWidth}件`);
-  if (removed.replacedLsb > 0) parts.push(`左サイドベアリングの置換${removed.replacedLsb}件`);
-  if (removed.removedPixelData > 0) parts.push(`ピクセルデータ${removed.removedPixelData}件`);
-  if (parts.length === 0) return null;
-  return `復元時に無効なデータを除外しました（${parts.join('、')}）。`;
+  if (removed) {
+    if (removed.glyphs > 0) parts.push(`グリフ${removed.glyphs}件`);
+    if (removed.contours > 0) parts.push(`輪郭${removed.contours}件`);
+    if (removed.nodes > 0) parts.push(`ノード${removed.nodes}件`);
+    if (removed.replacedAdvanceWidth > 0) parts.push(`送り幅の置換${removed.replacedAdvanceWidth}件`);
+    if (removed.replacedLsb > 0) parts.push(`左サイドベアリングの置換${removed.replacedLsb}件`);
+    if (removed.removedPixelData > 0) parts.push(`ピクセルデータ${removed.removedPixelData}件`);
+    if (removed.replacedMetadata > 0) parts.push(`メタデータの置換${removed.replacedMetadata}件`);
+    if (removed.droppedKerning > 0) parts.push(`カーニングの除外${removed.droppedKerning}件`);
+  }
+  if (removedGlyphLabels.length > 0) {
+    const shown = removedGlyphLabels.slice(0, 8);
+    const rest = removedGlyphLabels.length - shown.length;
+    parts.push(`除外された文字「${shown.join('、')}」${rest > 0 ? `ほか${rest}文字` : ''}`);
+  }
+  if (parts.length === 0 && warnings.length === 0) return null;
+  let notice =
+    parts.length > 0 ? `復元時に無効なデータを除外しました（${parts.join('、')}）。` : '';
+  if (warnings.length > 0) {
+    const shownWarnings = warnings.slice(0, 3);
+    const rest = warnings.length - shownWarnings.length;
+    notice += `${notice ? ' ' : ''}${shownWarnings.join(' ')}${rest > 0 ? ` ほか${rest}件の注意があります。` : ''}`;
+  }
+  return notice;
 }
 
 /**
@@ -464,28 +509,52 @@ export function createLocalSnapshot(
 }
 
 /**
+ * Keep the raw (pre-sanitization) project as a local snapshot so data
+ * dropped during validation is not lost when auto-save overwrites the
+ * stored project with the sanitized one. Only call when validation
+ * actually removed or replaced something. Returns false when the raw
+ * data cannot be snapshotted; the restore itself still proceeds.
+ */
+export function preservePreRestoreSnapshot(rawProject: unknown): boolean {
+  try {
+    if (!rawProject || typeof rawProject !== 'object' || Array.isArray(rawProject)) return false;
+    const res = createLocalSnapshot(
+      rawProject as FontProject,
+      'auto',
+      '読み込み前のデータ（検証で除外された項目を含む）'
+    );
+    return res.success;
+  } catch (err) {
+    console.warn('Failed to preserve pre-restore snapshot:', err);
+    return false;
+  }
+}
+
+/**
  * Load project data from snapshot, also reporting invalid data removed
  * during validation (1-3).
  */
 export function loadProjectFromSnapshotWithReport(snapshotId: string): {
   project: FontProject | null;
   removed: RemovedDataCounts | null;
+  warnings: string[];
+  removedGlyphLabels: string[];
 } {
   try {
     const dataKey = `${SNAPSHOT_DATA_PREFIX}${snapshotId}`;
     const raw = localStorage.getItem(dataKey);
-    if (!raw) return { project: null, removed: null };
+    if (!raw) return { project: null, removed: null, warnings: [], removedGlyphLabels: [] };
     const parsed = JSON.parse(raw);
     const normalized = normalizeValidatedProject(validateStoredFontProjectWithReport(parsed));
     if (!normalized.project) {
       console.warn('Snapshot project data failed validation and was rejected:', snapshotId);
-      return { project: null, removed: null };
+      return { project: null, removed: null, warnings: [], removedGlyphLabels: [] };
     }
     return normalized;
   } catch (err) {
     console.error('Failed to parse snapshot project data:', err);
   }
-  return { project: null, removed: null };
+  return { project: null, removed: null, warnings: [], removedGlyphLabels: [] };
 }
 
 /**

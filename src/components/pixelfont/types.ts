@@ -17,4 +17,6 @@ export interface PixelFontStudioModalProps {
   selectedUnicode: number;
   onSelectGlyph?: (unicode: number) => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  /** Commit history for one glyph (target unicode) before pixel edits. */
+  commitHistory?: (targetUnicode?: number) => void;
 }

@@ -27,6 +27,7 @@ import {
  SNAPSHOT_DATA_PREFIX,
  normalizeValidatedProject,
  formatRemovedDataNotice,
+ preservePreRestoreSnapshot,
 } from '../utils/storageManager';
 import {
  HardDrive,
@@ -196,12 +197,12 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  // Handle restoring project from snapshot
  const handleRestoreSnapshot = (snap: ProjectBackupSnapshot) => {
- const { project: loaded, removed } = loadProjectFromSnapshotWithReport(snap.id);
+ const { project: loaded, removed, warnings, removedGlyphLabels } = loadProjectFromSnapshotWithReport(snap.id);
  if (loaded) {
  setProject(loaded);
  onProjectReplaced?.();
  onShowToast(`スナップショット「${snap.formattedDate}」をキャンバスに復元しました`, 'success');
- const removedNotice = formatRemovedDataNotice(removed);
+ const removedNotice = formatRemovedDataNotice(removed, warnings, removedGlyphLabels);
  if (removedNotice) {
  onShowToast(removedNotice, 'warning');
  }
@@ -215,12 +216,13 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  // Handle restoring project from IndexedDB autosave history entry
  const handleRestoreAutosaveEntry = (entry: IndexedDBAutoSaveEntry) => {
  if (entry.project) {
- const { project: validated, removed } = normalizeValidatedProject(validateStoredFontProjectWithReport(entry.project));
+ const { project: validated, removed, warnings, removedGlyphLabels } = normalizeValidatedProject(validateStoredFontProjectWithReport(entry.project));
  if (validated) {
+ if (removed) preservePreRestoreSnapshot(entry.project);
  setProject(validated);
  onProjectReplaced?.();
  onShowToast(`IndexedDB自動バックアップ「${formatDateTime(entry.timestamp)}」を復元しました`, 'success');
- const removedNotice = formatRemovedDataNotice(removed);
+ const removedNotice = formatRemovedDataNotice(removed, warnings, removedGlyphLabels);
  if (removedNotice) {
  onShowToast(removedNotice, 'warning');
  }

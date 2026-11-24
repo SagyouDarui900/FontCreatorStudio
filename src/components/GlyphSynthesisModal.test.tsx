@@ -155,10 +155,14 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
       executeDakuBtn!.click();
     });
 
-    expect(commitHistory).toHaveBeenCalledTimes(1);
+    expect(commitHistory).toHaveBeenCalledTimes(3);
+    expect(commitHistory).toHaveBeenCalledWith('ば'.codePointAt(0)!);
+    expect(commitHistory).toHaveBeenCalledWith('ぱ'.codePointAt(0)!);
+    expect(commitHistory).toHaveBeenCalledWith('づ'.codePointAt(0)!);
     expect(setProject).toHaveBeenCalledTimes(1);
     expect(project.glyphs['ば'.codePointAt(0)!]?.contours.length).toBe(3);
     expect(project.glyphs['ぱ'.codePointAt(0)!]?.contours.length).toBe(3);
+    expect(project.glyphs['づ'.codePointAt(0)!]?.contours.length).toBe(3);
     expect(onClose).toHaveBeenCalledTimes(1);
 
     // Switch to Small Kana tab and execute batch
@@ -178,7 +182,9 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
       executeSmallBtn!.click();
     });
 
-    expect(commitHistory).toHaveBeenCalledTimes(2);
+    // Cumulative: 3 commits from the dakuten batch (ば・ぱ・づ) plus 2
+    // from the small-kana batch (っ and the katakana small kana).
+    expect(commitHistory).toHaveBeenCalledTimes(5);
     expect(project.glyphs['っ'.codePointAt(0)!]?.contours.length).toBe(1);
 
     act(() => {

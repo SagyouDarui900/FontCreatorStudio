@@ -6,6 +6,10 @@ export interface HeaderProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
   onProjectReplaced?: () => void;
+  /** Commit history for one glyph (used when a font import overwrites glyphs). */
+  commitHistory?: (targetUnicode?: number) => void;
+  /** Commit project-level config history (used when a font import overwrites metadata). */
+  commitProjectHistory?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;

@@ -11,7 +11,7 @@ export interface FontQualityModalProps {
   onSelectGlyph?: (unicode: number) => void;
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
-  commitHistory?: () => void;
+  commitHistory?: (targetUnicode?: number) => void;
 }
 
 export type TabFilter = 'all' | QualityIssueType;

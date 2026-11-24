@@ -143,11 +143,45 @@ export function downloadFont(
 }
 
 /**
+ * What loadFontFromFile could not carry over into the project, so the
+ * caller can tell the user instead of silently dropping it.
+ */
+export interface FontImportReport {
+  /** Glyphs without any Unicode value (.notdef, ligatures, alternates). */
+  noUnicodeGlyphs: number;
+  noUnicodeGlyphNames: string[];
+  /** Glyphs whose Unicode was already taken by an earlier glyph (first one wins). */
+  duplicateUnicodes: number;
+  duplicateUnicodeLabels: string[];
+  /** kern-table pairs found in the file (none of them are imported). */
+  kerningPairsSkipped: number;
+  /** A kern or GPOS table exists, so kerning data was present but not imported. */
+  kerningTablesPresent: boolean;
+}
+
+function countKernTablePairs(font: opentype.Font): number {
+  try {
+    const tables = (font.tables as Record<string, unknown> | undefined)?.kern as
+      | { tables?: Array<{ pairs?: Record<string, unknown> }> }
+      | undefined;
+    if (!tables || !Array.isArray(tables.tables)) return 0;
+    let count = 0;
+    for (const table of tables.tables) {
+      const pairs = table?.pairs;
+      if (pairs && typeof pairs === 'object') count += Object.keys(pairs).length;
+    }
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Parse an uploaded font file (TTF/OTF) into project glyphs
  */
 export async function loadFontFromFile(
   file: File
-): Promise<{ metadata: Partial<FontMetadata>; glyphs: Record<number, GlyphData> }> {
+): Promise<{ metadata: Partial<FontMetadata>; glyphs: Record<number, GlyphData>; report: FontImportReport }> {
   if (typeof file.size === 'number' && file.size > MAX_IMPORT_FONT_BYTES) {
     throw new Error(
       `ファイルサイズが大きすぎます（${Math.round(file.size / (1024 * 1024))}MB / 上限 ${Math.round(MAX_IMPORT_FONT_BYTES / (1024 * 1024))}MB）。`
@@ -208,6 +242,41 @@ export async function loadFontFromFile(
       : undefined;
   const parsedIsFixedPitch =
     post?.isFixedPitch !== undefined ? Boolean(post.isFixedPitch) : undefined;
+  const hhea = font.tables?.hhea as Record<string, unknown> | undefined;
+  const scaledLineGap =
+    typeof hhea?.lineGap === 'number' && Number.isFinite(hhea.lineGap)
+      ? Math.round(hhea.lineGap * scale)
+      : typeof os2?.sTypoLineGap === 'number' && Number.isFinite(os2.sTypoLineGap)
+        ? Math.round(os2.sTypoLineGap * scale)
+        : undefined;
+  const scaledTypoAscender =
+    typeof os2?.sTypoAscender === 'number' && Number.isFinite(os2.sTypoAscender)
+      ? Math.round(os2.sTypoAscender * scale)
+      : undefined;
+  const scaledTypoDescender =
+    typeof os2?.sTypoDescender === 'number' && Number.isFinite(os2.sTypoDescender)
+      ? Math.round(os2.sTypoDescender * scale)
+      : undefined;
+  const scaledTypoLineGap =
+    typeof os2?.sTypoLineGap === 'number' && Number.isFinite(os2.sTypoLineGap)
+      ? Math.round(os2.sTypoLineGap * scale)
+      : undefined;
+  const scaledWinAscent =
+    typeof os2?.usWinAscent === 'number' && Number.isFinite(os2.usWinAscent) && os2.usWinAscent >= 0
+      ? Math.round(os2.usWinAscent * scale)
+      : undefined;
+  const scaledWinDescent =
+    typeof os2?.usWinDescent === 'number' && Number.isFinite(os2.usWinDescent) && os2.usWinDescent >= 0
+      ? Math.round(os2.usWinDescent * scale)
+      : undefined;
+  const parsedManufacturer =
+    (font.names as any)?.manufacturer?.en ||
+    (font.names as any)?.manufacturer?.ja ||
+    undefined;
+  const parsedDescription =
+    (font.names as any)?.description?.en ||
+    (font.names as any)?.description?.ja ||
+    undefined;
 
   const metadata: Partial<FontMetadata> = {
     familyName:
@@ -273,6 +342,14 @@ export async function loadFontFromFile(
     descender: resolvedDescender,
     ...(scaledCapHeight !== undefined ? { capHeight: scaledCapHeight } : {}),
     ...(scaledXHeight !== undefined ? { xHeight: scaledXHeight } : {}),
+    ...(scaledLineGap !== undefined ? { lineGap: scaledLineGap } : {}),
+    ...(scaledTypoAscender !== undefined ? { typoAscender: scaledTypoAscender } : {}),
+    ...(scaledTypoDescender !== undefined ? { typoDescender: scaledTypoDescender } : {}),
+    ...(scaledTypoLineGap !== undefined ? { typoLineGap: scaledTypoLineGap } : {}),
+    ...(scaledWinAscent !== undefined ? { winAscent: scaledWinAscent } : {}),
+    ...(scaledWinDescent !== undefined ? { winDescent: scaledWinDescent } : {}),
+    ...(parsedManufacturer !== undefined ? { manufacturer: parsedManufacturer } : {}),
+    ...(parsedDescription !== undefined ? { description: parsedDescription } : {}),
     ...(parsedWeightClass !== undefined ? { usWeightClass: parsedWeightClass } : {}),
     ...(parsedWidthClass !== undefined ? { usWidthClass: parsedWidthClass } : {}),
     ...(parsedVendorId !== undefined ? { vendorId: parsedVendorId } : {}),
@@ -281,6 +358,17 @@ export async function loadFontFromFile(
   };
 
   const glyphs: Record<number, GlyphData> = {};
+  const report: FontImportReport = {
+    noUnicodeGlyphs: 0,
+    noUnicodeGlyphNames: [],
+    duplicateUnicodes: 0,
+    duplicateUnicodeLabels: [],
+    kerningPairsSkipped: countKernTablePairs(font),
+    kerningTablesPresent: Boolean(
+      (font.tables as Record<string, unknown> | undefined)?.kern ||
+        (font.tables as Record<string, unknown> | undefined)?.GPOS
+    ),
+  };
 
   for (let i = 0; i < font.glyphs.length; i++) {
     const g = font.glyphs.get(i);
@@ -297,7 +385,16 @@ export async function loadFontFromFile(
         }
       }
     }
-    if (unicodes.length === 0) continue;
+    if (unicodes.length === 0) {
+      // .notdef, ligature and alternate glyphs have no Unicode: they
+      // cannot be addressed by character, so they are skipped — but the
+      // skip is counted and reported instead of happening silently.
+      report.noUnicodeGlyphs++;
+      if (report.noUnicodeGlyphNames.length < 5 && g.name) {
+        report.noUnicodeGlyphNames.push(g.name);
+      }
+      continue;
+    }
 
     // Retrieve normalized 1000 UPM path from opentype.js at the font's resolved baseline
     const path = g.getPath(0, importBaselineY, 1000);
@@ -310,6 +407,15 @@ export async function loadFontFromFile(
 
     for (const u of unicodes) {
       if (u <= 0 || u > 0x10ffff) continue;
+      if (glyphs[u] !== undefined) {
+        // Two glyphs sharing one Unicode: keep the first one instead of
+        // silently letting the later glyph overwrite the earlier one.
+        report.duplicateUnicodes++;
+        if (report.duplicateUnicodeLabels.length < 5) {
+          report.duplicateUnicodeLabels.push(`U+${u.toString(16).toUpperCase()}`);
+        }
+        continue;
+      }
       let charStr = '';
       try {
         charStr = String.fromCodePoint(u);
@@ -329,5 +435,5 @@ export async function loadFontFromFile(
     }
   }
 
-  return { metadata, glyphs };
+  return { metadata, glyphs, report };
 }

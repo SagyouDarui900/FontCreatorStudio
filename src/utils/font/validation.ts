@@ -11,6 +11,8 @@ export interface RemovedValidationCounts {
   replacedAdvanceWidth: number;
   replacedLsb: number;
   removedPixelData: number;
+  replacedMetadata: number;
+  droppedKerning: number;
 }
 
 export function createEmptyRemovedCounts(): RemovedValidationCounts {
@@ -21,6 +23,8 @@ export function createEmptyRemovedCounts(): RemovedValidationCounts {
     replacedAdvanceWidth: 0,
     replacedLsb: 0,
     removedPixelData: 0,
+    replacedMetadata: 0,
+    droppedKerning: 0,
   };
 }
 
@@ -371,6 +375,8 @@ export interface StoredValidationReport {
   project: FontProject;
   removed: RemovedValidationCounts;
   warnings: string[];
+  /** Labels (char or U+XXXX) of the glyphs dropped during sanitization, in file order. */
+  removedGlyphLabels: string[];
 }
 
 /**
@@ -452,6 +458,19 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
 
   const removed = createEmptyRemovedCounts();
   const warnings: string[] = [];
+  const removedGlyphLabels: string[] = [];
+  // Label a dropped glyph for the notice: prefer the stored char, else the
+  // key / unicode as U+XXXX, so the user can tell which glyph was lost.
+  const glyphLabel = (raw: Record<string, any> | null, key: string): string => {
+    if (raw && typeof raw.char === 'string' && raw.char) return raw.char;
+    const code = raw && typeof raw.unicode === 'number' && Number.isFinite(raw.unicode)
+      ? raw.unicode
+      : Number(key);
+    if (Number.isInteger(code) && code > 0) {
+      return `U+${code.toString(16).toUpperCase()}`;
+    }
+    return key;
+  };
 
   // Metadata: replace non-finite values with defaults and notify.
   const sanitizedMetadata: Record<string, unknown> = { ...proj.metadata };
@@ -474,18 +493,33 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value))) {
       warnings.push(`メタデータの${metadataLabels[key]}が無効だったため、既定値（${fallback}）に置き換えました。`);
       sanitizedMetadata[key] = fallback;
+      removed.replacedMetadata++;
     }
   }
+  // String fields: the defaults match createDefaultProject so a loaded
+  // project does not silently get different values from a new project.
+  // Replacements are warned about instead of happening silently.
   const stringFieldDefaults: Record<string, string> = {
-    familyName: 'マイ手書きフォント',
+    familyName: '手書きフォント',
     styleName: 'Regular',
     designer: '',
     copyright: '',
-    version: '1.000',
+    version: 'Version 1.000',
+  };
+  const stringFieldLabels: Record<string, string> = {
+    familyName: 'フォント名',
+    styleName: 'スタイル名',
+    designer: '作者名',
+    copyright: '著作権表示',
+    version: 'バージョン',
   };
   for (const [key, fallback] of Object.entries(stringFieldDefaults)) {
     if (typeof sanitizedMetadata[key] !== 'string') {
+      warnings.push(
+        `メタデータの${stringFieldLabels[key]}が無効だったため、既定値（${fallback || '（空）'}）に置き換えました。`
+      );
       sanitizedMetadata[key] = fallback;
+      removed.replacedMetadata++;
     }
   }
 
@@ -503,6 +537,7 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     }
     if (droppedKerning > 0) {
       warnings.push(`無効なカーニング値を ${droppedKerning}件除外しました。`);
+      removed.droppedKerning += droppedKerning;
     }
   }
 
@@ -513,20 +548,24 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     const unicodeNum = Number(key);
     if (!Number.isInteger(unicodeNum) || unicodeNum <= 0) {
       removed.glyphs++;
+      removedGlyphLabels.push(glyphLabel(rawGlyph as Record<string, any> | null, key));
       continue;
     }
     if (!rawGlyph || typeof rawGlyph !== 'object' || Array.isArray(rawGlyph)) {
       removed.glyphs++;
+      removedGlyphLabels.push(glyphLabel(null, key));
       continue;
     }
 
     const g = rawGlyph as Record<string, any>;
     if (!isValidUnicode(g.unicode)) {
       removed.glyphs++;
+      removedGlyphLabels.push(glyphLabel(g, key));
       continue;
     }
     if (unicodeNum !== g.unicode) {
       removed.glyphs++;
+      removedGlyphLabels.push(glyphLabel(g, key));
       warnings.push(
         `格納キー（${key}）とUnicode値（${g.unicode}）が一致しないグリフデータを除外しました。`
       );
@@ -534,6 +573,7 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     }
     if (seenUnicodes.has(g.unicode)) {
       removed.glyphs++;
+      removedGlyphLabels.push(glyphLabel(g, key));
       warnings.push(
         `重複しているUnicode（U+${g.unicode.toString(16).toUpperCase()}）のグリフデータを除外しました。`
       );
@@ -654,5 +694,5 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     ...(sanitizedTraceSettings !== undefined ? { traceSettings: sanitizedTraceSettings } : {}),
   } as unknown as FontProject;
 
-  return { project, removed, warnings };
+  return { project, removed, warnings, removedGlyphLabels };
 }

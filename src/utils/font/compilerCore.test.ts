@@ -234,6 +234,8 @@ describe('Font Project Validation & Compilation', () => {
       replacedAdvanceWidth: 0,
       replacedLsb: 0,
       removedPixelData: 0,
+      replacedMetadata: 0,
+      droppedKerning: 0,
     });
   });
 

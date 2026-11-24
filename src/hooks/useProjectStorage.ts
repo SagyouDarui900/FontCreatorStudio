@@ -10,6 +10,7 @@ import {
   loadProjectFromIndexedDB,
   normalizeValidatedProject,
   formatRemovedDataNotice,
+  preservePreRestoreSnapshot,
 } from '../utils/storageManager';
 
 export const LOCAL_STORAGE_KEY = LOCAL_STORAGE_PROJECT_KEY;
@@ -163,17 +164,18 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           restoreFailure = 'IndexedDBに保存されたプロジェクトデータの読み込みに失敗しました。';
         } else if (dbResult.status === 'ok' && dbResult.project) {
           storedDataFound = true;
-          const { project: validatedDb, removed } = normalizeValidatedProject(
+          const { project: validatedDb, removed, warnings, removedGlyphLabels } = normalizeValidatedProject(
             validateStoredFontProjectWithReport(dbResult.project)
           );
           if (validatedDb && !isCancelled) {
+            if (removed) preservePreRestoreSnapshot(dbResult.project);
             projectRef.current = validatedDb;
             lastHydratedUpdatedAtRef.current = validatedDb.updatedAt ?? null;
             lastHydratedProjectRef.current = validatedDb;
             setProject(validatedDb);
             isHydratedRef.current = true;
             setIsStorageLoading(false);
-            const removedNotice = formatRemovedDataNotice(removed);
+            const removedNotice = formatRemovedDataNotice(removed, warnings, removedGlyphLabels);
             if (removedNotice) {
               onShowToastRef.current(removedNotice, 'warning');
             }
@@ -198,17 +200,18 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
               parsed = undefined;
             }
             if (parsed !== undefined) {
-              const { project: validatedLocal, removed } = normalizeValidatedProject(
+              const { project: validatedLocal, removed, warnings, removedGlyphLabels } = normalizeValidatedProject(
                 validateStoredFontProjectWithReport(parsed)
               );
               if (validatedLocal && !isCancelled) {
+                if (removed) preservePreRestoreSnapshot(parsed);
                 projectRef.current = validatedLocal;
                 lastHydratedUpdatedAtRef.current = validatedLocal.updatedAt ?? null;
                 lastHydratedProjectRef.current = validatedLocal;
                 setProject(validatedLocal);
                 isHydratedRef.current = true;
                 setIsStorageLoading(false);
-                const removedNotice = formatRemovedDataNotice(removed);
+                const removedNotice = formatRemovedDataNotice(removed, warnings, removedGlyphLabels);
                 if (removedNotice) {
                   onShowToastRef.current(removedNotice, 'warning');
                 }

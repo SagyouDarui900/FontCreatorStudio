@@ -67,6 +67,8 @@ interface UseMojikumiStudioStateParams {
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   persistedState?: MojikumiPersistedState;
   onPersistedStateChange?: React.Dispatch<React.SetStateAction<MojikumiPersistedState>>;
+  /** Commit project-level config history before saving the mojikumi config. */
+  commitProjectHistory?: () => void;
 }
 
 export function useMojikumiStudioState({
@@ -77,6 +79,7 @@ export function useMojikumiStudioState({
   onShowToast,
   persistedState,
   onPersistedStateChange,
+  commitProjectHistory,
 }: UseMojikumiStudioStateParams) {
   const persistedDefaults = useMemo(() => createDefaultMojikumiPersistedState(project), [project]);
   const [layoutMode, setLayoutMode] = usePersistedField(
@@ -398,13 +401,16 @@ export function useMojikumiStudioState({
   }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
 
   const handleSaveToProject = useCallback(() => {
+    // Mojikumi config is project-level data: register it in the project
+    // history before saving so Ctrl+Z can restore the previous config.
+    commitProjectHistory?.();
     setProject((prev) => ({
       ...prev,
       mojikumiSettings: currentConfig,
       updatedAt: Date.now(),
     }));
     onShowToast('フォントプロジェクトに文字組み設定を保存しました', 'success');
-  }, [currentConfig, onShowToast, setProject]);
+  }, [currentConfig, onShowToast, setProject, commitProjectHistory]);
 
   const handleExportJson = useCallback(() => {
     const dataStr =

@@ -52,6 +52,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
   onOpenTestPreview,
   persistedState,
   onPersistedStateChange,
+  commitProjectHistory,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
@@ -64,6 +65,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
     onShowToast,
     persistedState,
     onPersistedStateChange,
+    commitProjectHistory,
   });
 
   if (!isOpen) return null;

@@ -29,7 +29,7 @@ interface UseGlyphSynthesisStateParams {
   project: FontProject;
   setProject?: React.Dispatch<React.SetStateAction<FontProject>>;
   onUpdateProject?: (updater: (prev: FontProject) => FontProject) => void;
-  commitHistory?: () => void;
+  commitHistory?: (targetUnicode?: number) => void;
   showToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   onShowToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
@@ -373,7 +373,13 @@ export function useGlyphSynthesisState({
       return;
     }
 
-    commitHistory?.();
+    // Register history for every generated glyph before applying, so
+    // each one can be undone individually.
+    for (const [key, glyph] of Object.entries(updatedGlyphs)) {
+      if (project.glyphs[Number(key)] !== glyph) {
+        commitHistory?.(Number(key));
+      }
+    }
     updateProject((prev) => ({
       ...prev,
       glyphs: updatedGlyphs,
@@ -418,7 +424,13 @@ export function useGlyphSynthesisState({
       return;
     }
 
-    commitHistory?.();
+    // Register history for every generated glyph before applying, so
+    // each one can be undone individually.
+    for (const [key, glyph] of Object.entries(updatedGlyphs)) {
+      if (project.glyphs[Number(key)] !== glyph) {
+        commitHistory?.(Number(key));
+      }
+    }
     updateProject((prev) => ({
       ...prev,
       glyphs: updatedGlyphs,

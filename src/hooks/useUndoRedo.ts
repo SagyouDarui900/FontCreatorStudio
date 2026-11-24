@@ -115,6 +115,33 @@ interface UseUndoRedoOptions {
 
 export const MAX_HISTORY_GLYPHS = 150;
 export const MAX_HISTORY_BYTES = 32 * 1024 * 1024;
+/** Maximum number of project-level (metadata / kerning / OpenType / mojikumi) snapshots kept. */
+export const MAX_PROJECT_HISTORY_ENTRIES = 50;
+
+/** Project-level data the per-glyph undo stack cannot restore. */
+export interface ProjectConfigSnapshot {
+  metadata: FontProject['metadata'];
+  kerning?: Record<string, number>;
+  openTypeFeatures?: FontProject['openTypeFeatures'];
+  mojikumiSettings?: FontProject['mojikumiSettings'];
+}
+
+function snapshotProjectConfig(project: FontProject): ProjectConfigSnapshot {
+  return {
+    metadata: JSON.parse(JSON.stringify(project.metadata)),
+    kerning: project.kerning ? { ...project.kerning } : undefined,
+    openTypeFeatures: project.openTypeFeatures
+      ? JSON.parse(JSON.stringify(project.openTypeFeatures))
+      : undefined,
+    mojikumiSettings: project.mojikumiSettings
+      ? JSON.parse(JSON.stringify(project.mojikumiSettings))
+      : undefined,
+  };
+}
+
+function projectConfigsEqual(a: ProjectConfigSnapshot, b: ProjectConfigSnapshot): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 const EMPTY_HISTORY_STACK: GlyphData[] = [];
 
 function estimateContourListBytes(contours?: PathContour[]): number {
@@ -187,6 +214,14 @@ export function useUndoRedo({
   // Store undo & redo histories isolated per glyph Unicode to prevent cross-glyph warping and contamination
   const [undoStacks, setUndoStacks] = useState<Record<number, GlyphData[]>>({});
   const [redoStacks, setRedoStacks] = useState<Record<number, GlyphData[]>>({});
+
+  // Project-level undo/redo for data the per-glyph stacks cannot restore:
+  // metadata, kerning, OpenType features and mojikumi settings. These
+  // stacks hold config-only snapshots; glyph edits never touch them.
+  const [projectUndoStack, setProjectUndoStack] = useState<ProjectConfigSnapshot[]>([]);
+  const [projectRedoStack, setProjectRedoStack] = useState<ProjectConfigSnapshot[]>([]);
+  const projectUndoStackRef = useRef<ProjectConfigSnapshot[]>([]);
+  const projectRedoStackRef = useRef<ProjectConfigSnapshot[]>([]);
 
   // Keep synchronous mirrors so Undo/Redo never invoke sibling setState/setProject inside another updater
   const undoStacksRef = useRef<Record<number, GlyphData[]>>({});
@@ -333,10 +368,85 @@ export function useUndoRedo({
     [selectedUnicode, selectedChar, projectRef, applyEvictionAndBudget]
   );
 
+  /**
+   * Snapshot the current project-level config (metadata, kerning, OpenType
+   * features, mojikumi settings) so a config-only change can be undone.
+   * Call before the change is applied. Consecutive identical snapshots
+   * are ignored, and the redo stack is cleared like commitHistory does.
+   */
+  const commitProjectHistory = useCallback(() => {
+    const snapshot = snapshotProjectConfig(projectRef.current);
+    const last =
+      projectUndoStackRef.current.length > 0
+        ? projectUndoStackRef.current[projectUndoStackRef.current.length - 1]
+        : null;
+    if (last && projectConfigsEqual(last, snapshot)) return;
+    const nextUndo = [...projectUndoStackRef.current.slice(-(MAX_PROJECT_HISTORY_ENTRIES - 1)), snapshot];
+    projectUndoStackRef.current = nextUndo;
+    setProjectUndoStack(nextUndo);
+    if (projectRedoStackRef.current.length > 0) {
+      projectRedoStackRef.current = [];
+      setProjectRedoStack([]);
+    }
+  }, [projectRef]);
+
+  /**
+   * Remove the most recent undo entry for a glyph, but only when its
+   * contours still match `expectedContours`. A cancelled transform drag
+   * commits history in a RAF callback and then restores the pre-drag
+   * contours, leaving a phantom entry whose contours equal the restored
+   * ones; discarding exactly that entry makes the next Ctrl+Z undo the
+   * previous real edit. When no history was committed (the RAF never
+   * fired) the top entry does not match and nothing is removed, so a
+   * legitimate earlier entry is never lost.
+   */
+  const discardLastHistoryEntry = useCallback(
+    (expectedContours?: PathContour[], targetUnicode?: number): boolean => {
+      const unicode = targetUnicode ?? selectedUnicode;
+      const stack = undoStacksRef.current[unicode] || [];
+      if (stack.length === 0) return false;
+      const top = stack[stack.length - 1];
+      if (expectedContours && !areContoursEqual(top.contours || [], expectedContours)) {
+        return false;
+      }
+      const nextUndoMap = {
+        ...undoStacksRef.current,
+        [unicode]: stack.slice(0, stack.length - 1),
+      };
+      undoStacksRef.current = nextUndoMap;
+      setUndoStacks(nextUndoMap);
+      return true;
+    },
+    [selectedUnicode]
+  );
+
   const handleUndo = useCallback(() => {
     const unicode = selectedUnicode;
     const stack = undoStacksRef.current[unicode] || [];
     if (stack.length === 0) {
+      // No glyph history for the selected glyph: fall back to the
+      // project-level config history (metadata / kerning / OpenType /
+      // mojikumi), if any entry was registered.
+      const projectStack = projectUndoStackRef.current;
+      if (projectStack.length === 0) return;
+      const previous = projectStack[projectStack.length - 1];
+      const nextProjectUndo = projectStack.slice(0, projectStack.length - 1);
+      const nextProjectRedo = [
+        ...projectRedoStackRef.current.slice(-(MAX_PROJECT_HISTORY_ENTRIES - 1)),
+        snapshotProjectConfig(projectRef.current),
+      ];
+      projectUndoStackRef.current = nextProjectUndo;
+      projectRedoStackRef.current = nextProjectRedo;
+      setProjectUndoStack(nextProjectUndo);
+      setProjectRedoStack(nextProjectRedo);
+      setProject((prevProj) => ({
+        ...prevProj,
+        metadata: previous.metadata,
+        kerning: previous.kerning,
+        openTypeFeatures: previous.openTypeFeatures,
+        mojikumiSettings: previous.mojikumiSettings,
+        updatedAt: Date.now(),
+      }));
       return;
     }
 
@@ -384,6 +494,28 @@ export function useUndoRedo({
     const unicode = selectedUnicode;
     const stack = redoStacksRef.current[unicode] || [];
     if (stack.length === 0) {
+      // Mirror of handleUndo: when the selected glyph has no redo entry,
+      // redo the most recent project-level config change instead.
+      const projectStack = projectRedoStackRef.current;
+      if (projectStack.length === 0) return;
+      const next = projectStack[projectStack.length - 1];
+      const nextProjectRedo = projectStack.slice(0, projectStack.length - 1);
+      const nextProjectUndo = [
+        ...projectUndoStackRef.current.slice(-(MAX_PROJECT_HISTORY_ENTRIES - 1)),
+        snapshotProjectConfig(projectRef.current),
+      ];
+      projectRedoStackRef.current = nextProjectRedo;
+      projectUndoStackRef.current = nextProjectUndo;
+      setProjectRedoStack(nextProjectRedo);
+      setProjectUndoStack(nextProjectUndo);
+      setProject((prevProj) => ({
+        ...prevProj,
+        metadata: next.metadata,
+        kerning: next.kerning,
+        openTypeFeatures: next.openTypeFeatures,
+        mojikumiSettings: next.mojikumiSettings,
+        updatedAt: Date.now(),
+      }));
       return;
     }
 
@@ -494,8 +626,12 @@ export function useUndoRedo({
     undoStacksRef.current = {};
     redoStacksRef.current = {};
     historyOrderRef.current = [];
+    projectUndoStackRef.current = [];
+    projectRedoStackRef.current = [];
     setUndoStacks({});
     setRedoStacks({});
+    setProjectUndoStack([]);
+    setProjectRedoStack([]);
   }, []);
 
   return {
@@ -506,10 +642,12 @@ export function useUndoRedo({
     setUndoStack,
     pushSnapshot,
     commitHistory,
+    commitProjectHistory,
+    discardLastHistoryEntry,
     clearHistory,
     handleUndo,
     handleRedo,
-    canUndo: currentUndoStack.length > 0,
-    canRedo: currentRedoStack.length > 0,
+    canUndo: currentUndoStack.length > 0 || projectUndoStack.length > 0,
+    canRedo: currentRedoStack.length > 0 || projectRedoStack.length > 0,
   };
 }

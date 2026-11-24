@@ -152,8 +152,11 @@ function AppMain({
     handleUndo,
     handleRedo,
     commitHistory,
+    commitProjectHistory,
+    discardLastHistoryEntry,
     clearHistory,
     clipboardContours,
+    hasClipboard,
     handleQuickSaveCurrentGlyph,
     handleSimplifyCurrentGlyph,
     handleAutoSpaceCurrentGlyph,
@@ -597,6 +600,7 @@ function AppMain({
     selectedUnicode,
     currentGlyph,
     clipboardContours,
+    hasClipboard,
     handleSelectPrevGlyph,
     handleSelectNextGlyph,
     toggleZenMode,
@@ -612,6 +616,8 @@ function AppMain({
         project={project}
         setProject={setProject}
         onProjectReplaced={handleProjectReplaced}
+        commitHistory={commitHistory}
+        commitProjectHistory={commitProjectHistory}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={handleUndo}
@@ -674,7 +680,7 @@ function AppMain({
             onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
             onOpenKerningModal={handleOpenKerningModal}
             onOpenQualityModal={handleOpenQualityModal}
-            hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
+            hasClipboard={hasClipboard}
             isOpen={showGridDrawer}
             onClose={handleCloseGridDrawer}
             theme={theme}
@@ -761,6 +767,9 @@ function AppMain({
               onSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
               isGlyphLocked={isGlyphLocked}
               onCommitHistory={commitHistory}
+              onDiscardLastHistory={(initialContours) =>
+                discardLastHistoryEntry(initialContours)
+              }
               onCopyFromChar={(char) => {
                 const code = char.codePointAt(0);
                 if (code) handleCopyGlyph(code);
@@ -770,7 +779,7 @@ function AppMain({
               onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
               onCopySelectedContours={handleCopySelectedContours}
               onPasteSelectedContours={handlePasteClipboardContours}
-              hasClipboard={Boolean(clipboardContours && clipboardContours.length > 0)}
+              hasClipboard={hasClipboard}
               onToggleGridDrawer={toggleGridDrawer}
               showGridDrawer={showGridDrawer}
               onToggleMetricsDrawer={toggleMetricsDrawer}
@@ -880,6 +889,7 @@ function AppMain({
         changeTheme={changeTheme}
         showToast={showToast}
         commitHistory={commitHistory}
+        commitProjectHistory={commitProjectHistory}
         traceSettings={traceSettings}
         setTraceSettings={setTraceSettings}
         overlaySettings={overlaySettings}

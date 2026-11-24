@@ -25,6 +25,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   isLight,
   theme,
   onShowToast,
+  commitHistory,
 }) => {
   const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
 
@@ -66,6 +67,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
     onClose,
     isLight,
     onShowToast,
+    commitHistory,
   });
 
   if (!isOpen) return null;

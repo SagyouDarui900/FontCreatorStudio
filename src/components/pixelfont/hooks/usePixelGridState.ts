@@ -16,6 +16,8 @@ interface UsePixelGridStateProps {
   isOpen: boolean;
   selectedUnicode: number;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  /** Commit history for one glyph (target unicode) before pixel edits. */
+  commitHistory?: (targetUnicode?: number) => void;
 }
 
 export function usePixelGridState({
@@ -24,6 +26,7 @@ export function usePixelGridState({
   isOpen,
   selectedUnicode,
   onShowToast,
+  commitHistory,
 }: UsePixelGridStateProps) {
   const defaultW = project.pixelFontSettings?.defaultWidth || 16;
   const defaultH = project.pixelFontSettings?.defaultHeight || 16;
@@ -60,6 +63,22 @@ export function usePixelGridState({
     grid: new Uint8Array(defaultW * defaultH),
   });
   const prevSizeRef = useRef<{ w: number; h: number }>({ w: defaultW, h: defaultH });
+
+  // Whether the pre-edit glyph of the current pixel-editing session has
+  // been registered in the main (per-glyph) undo history. The modal has
+  // its own 40-step grid history, but closing the modal used to make a
+  // single Ctrl+Z wipe the whole pixel edit at once. Registering once
+  // per session (first stroke / restore / save of the current glyph)
+  // makes the pixel edit one undoable step in the main history.
+  const mainHistoryCommittedRef = useRef(false);
+  const commitMainHistoryOnce = useCallback(
+    (uCode: number) => {
+      if (mainHistoryCommittedRef.current) return;
+      mainHistoryCommittedRef.current = true;
+      commitHistory?.(uCode);
+    },
+    [commitHistory]
+  );
 
   const isCurrentGridDirty = useCallback(() => {
     const saved = savedGridRef.current;
@@ -221,13 +240,17 @@ export function usePixelGridState({
   // unconditionally.
   const commitCurrentGlyphEdits = useCallback(() => {
     if (isCurrentGridDirty()) {
+      commitMainHistoryOnce(currentUnicode);
       autoSaveGlyphRef.current(currentGridRef.current, currentUnicode, gridWidth, gridHeight);
     }
-  }, [currentUnicode, gridWidth, gridHeight, isCurrentGridDirty]);
+  }, [currentUnicode, gridWidth, gridHeight, isCurrentGridDirty, commitMainHistoryOnce]);
 
   const loadGlyphPixelGrid = useCallback((uCode: number, w: number, h: number, opts?: { preserveHistory?: boolean }) => {
     const proj = projectRef.current;
     const g = proj.glyphs[uCode];
+    // A new glyph (or size) starts a new pixel-editing session: the
+    // next stroke registers the pre-edit glyph in the main history.
+    mainHistoryCommittedRef.current = false;
     // Capture the pre-load grid before replacing it, so a size change can
     // keep the previous state in the history.
     const prevGridBeforeLoad = new Uint8Array(currentGridRef.current);
@@ -339,6 +362,7 @@ export function usePixelGridState({
       asc,
       desc
     );
+    commitMainHistoryOnce(currentUnicode);
     setProject((prev) => {
       const existing = prev.glyphs[currentUnicode];
       if (!existing) return prev;
@@ -362,7 +386,7 @@ export function usePixelGridState({
     setHistory(nextHist);
     setHistoryIdx(0);
     onShowToast('ベクター輪郭に戻しました', 'success');
-  }, [currentUnicode, gridWidth, gridHeight, setProject, onShowToast]);
+  }, [currentUnicode, gridWidth, gridHeight, setProject, onShowToast, commitMainHistoryOnce]);
 
   const pushHistory = useCallback(
     (nextGrid: Uint8Array) => {
@@ -380,9 +404,10 @@ export function usePixelGridState({
       setHistory(newHistory);
       setHistoryIdx(nextIdx);
       setGrid(nextGrid);
+      commitMainHistoryOnce(currentUnicode);
       autoSaveGlyphRef.current(nextGrid, currentUnicode);
     },
-    [currentUnicode]
+    [currentUnicode, commitMainHistoryOnce]
   );
 
   const handleUndo = useCallback(() => {

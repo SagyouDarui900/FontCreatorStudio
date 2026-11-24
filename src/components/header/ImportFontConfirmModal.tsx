@@ -10,6 +10,14 @@ export interface PendingFontImportSummary {
   totalImportedCount: number;
   overwriteCount: number;
   newOnlyCount: number;
+  /** Glyphs dropped because they have no Unicode value. */
+  droppedNoUnicodeCount?: number;
+  /** Glyphs dropped because another glyph already uses their Unicode. */
+  droppedDuplicateUnicodeCount?: number;
+  /** kern-table pairs present in the file (not imported). */
+  droppedKerningCount?: number;
+  /** A kern/GPOS table exists, so kerning data was present but not imported. */
+  kerningNotImported?: boolean;
 }
 
 interface ImportFontConfirmModalProps {
@@ -118,6 +126,35 @@ export const ImportFontConfirmModal: React.FC<ImportFontConfirmModalProps> = ({
           <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>
             既存のグリフと重複はありません。「すべて上書き」を選ぶとフォント基本情報（書体名・メトリクス）も読み込んだフォントの内容に更新されます。
           </p>
+        )}
+
+        {((pendingImport.droppedNoUnicodeCount ?? 0) > 0 ||
+          (pendingImport.droppedDuplicateUnicodeCount ?? 0) > 0 ||
+          (pendingImport.droppedKerningCount ?? 0) > 0 ||
+          pendingImport.kerningNotImported) && (
+          <div
+            className={`p-3 rounded-xl border flex items-start gap-2 text-xs leading-relaxed ${
+              isLight
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-amber-950/40 border-amber-800 text-amber-200'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <div>
+              読み込めなかった情報があります。
+              {(pendingImport.droppedNoUnicodeCount ?? 0) > 0 && (
+                <div>Unicodeを持たないグリフ {pendingImport.droppedNoUnicodeCount}件（.notdef・合字など）は除外されます。</div>
+              )}
+              {(pendingImport.droppedDuplicateUnicodeCount ?? 0) > 0 && (
+                <div>重複するUnicodeのグリフ {pendingImport.droppedDuplicateUnicodeCount}件は除外されます（先に読み込んだものを採用）。</div>
+              )}
+              {(pendingImport.droppedKerningCount ?? 0) > 0 ? (
+                <div>カーニング {pendingImport.droppedKerningCount}件は読み込まれません。</div>
+              ) : (
+                pendingImport.kerningNotImported && <div>カーニングは読み込まれません。</div>
+              )}
+            </div>
+          </div>
         )}
 
         <div className={`space-y-2 pt-2 border-t ${themeClasses.border}`}>

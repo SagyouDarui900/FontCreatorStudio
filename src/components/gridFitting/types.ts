@@ -10,6 +10,8 @@ export interface GridFittingModalProps {
   isLight: boolean;
   theme?: ThemeMode;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  /** Commit history for one glyph (target unicode) before applying. */
+  commitHistory?: (targetUnicode?: number) => void;
 }
 
 export interface StemInfo {

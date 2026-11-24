@@ -4,6 +4,7 @@ import { compileFont, balanceProjectGlyphMargins, validateFontProject, stripInva
 import { DEFAULT_ASCENDER, DEFAULT_DESCENDER, DEFAULT_UPM } from '../../../utils/font/constants';
 import { pixelGridToContours, normalizePixelGrid } from '../../../utils/pixelFontUtils';
 import { getContoursBoundingBox } from '../../../utils/path';
+import { commitChangedGlyphHistory } from '../../../utils/historyHelper';
 import { isLightTheme } from '../../../utils/theme';
 import { TestPreviewModalProps } from '../types';
 import { transformGlyphContours } from '../previewUtils';
@@ -573,7 +574,9 @@ const [testText, setTestText] = usePersistedField(
       onShowToast?.('整列が必要な文字はありませんでした', 'info');
       return;
     }
-    commitHistory?.();
+    // Register history for every glyph the batch changed before
+    // applying, so each one can be undone individually.
+    commitChangedGlyphHistory(project, updatedProj, (unicode) => commitHistory?.(unicode));
     setProject(updatedProj);
     if (onShowToast) {
       onShowToast(`${modifiedCount} 文字の左右余白を中央に整列しました`, 'success');
@@ -637,7 +640,7 @@ const [testText, setTestText] = usePersistedField(
     const newBbox = getContoursBoundingBox(transformedContours);
     const newLsb = Math.max(0, Math.round(newBbox.minX));
 
-    commitHistory?.();
+    commitHistory?.(unicode);
     setProject((prev) => {
       const prevG = prev.glyphs[unicode];
       if (!prevG) return prev;

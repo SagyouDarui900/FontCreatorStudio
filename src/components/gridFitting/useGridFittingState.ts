@@ -22,6 +22,7 @@ interface UseGridFittingStateOptions {
   onClose: () => void;
   isLight: boolean;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  commitHistory?: (targetUnicode?: number) => void;
 }
 
 export function useGridFittingState({
@@ -31,6 +32,7 @@ export function useGridFittingState({
   onClose,
   isLight,
   onShowToast,
+  commitHistory,
 }: UseGridFittingStateOptions) {
   const [selectedPpem, setSelectedPpem] = useState<number>(16);
   const [renderingMode, setRenderingMode] = useState<RenderingMode>('grayscale');
@@ -151,6 +153,7 @@ export function useGridFittingState({
       return;
     }
     const updated = applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config, project.metadata);
+    commitHistory?.(selectedUnicode);
     setProject((prev) => ({
       ...prev,
       glyphs: {
@@ -163,21 +166,28 @@ export function useGridFittingState({
       `「${currentGlyph.char}」のステムを ${selectedPpem}px グリッドに最適化整列しました`,
       'success'
     );
-  }, [currentGlyph, selectedPpem, upm, config, project.metadata, setProject, selectedUnicode, onShowToast]);
+  }, [currentGlyph, selectedPpem, upm, config, project.metadata, setProject, selectedUnicode, commitHistory, onShowToast]);
 
   const handleBatchApplyHinting = useCallback(() => {
     let updatedCount = 0;
     const newGlyphs: Record<number, GlyphData> = { ...project.glyphs };
+    const updatedUnicodes: number[] = [];
 
     for (const uniStr of Object.keys(newGlyphs)) {
       const uni = Number(uniStr);
       const original = newGlyphs[uni];
       if (original && original.contours && original.contours.length > 0) {
         newGlyphs[uni] = applyGridFittingToGlyph(original, selectedPpem, upm, config, project.metadata);
+        updatedUnicodes.push(uni);
         updatedCount++;
       }
     }
 
+    // Register history for every glyph the batch touches before
+    // applying, so each one can be undone individually.
+    for (const uni of updatedUnicodes) {
+      commitHistory?.(uni);
+    }
     setProject((prev) => ({
       ...prev,
       glyphs: newGlyphs,
@@ -188,7 +198,7 @@ export function useGridFittingState({
       `全 ${updatedCount} 文字のステムを ${selectedPpem}px グリッドに最適化整列しました`,
       'success'
     );
-  }, [project.glyphs, project.metadata, selectedPpem, upm, config, setProject, onShowToast]);
+  }, [project.glyphs, project.metadata, selectedPpem, upm, config, setProject, commitHistory, onShowToast]);
 
   const applyPreset = useCallback(
     (presetType: GridFittingPresetType) => {

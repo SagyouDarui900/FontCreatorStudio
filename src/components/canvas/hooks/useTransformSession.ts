@@ -38,6 +38,8 @@ export interface UseTransformSessionOptions {
   screenToCanvas: (clientX: number, clientY: number) => Point;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
   onCommitHistory?: () => void;
+  /** Remove the history entry a cancelled drag committed, if it matches the restored contours. */
+  onDiscardLastHistory?: (initialContours: PathContour[]) => void;
   gridSettings: GridSettings;
   snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
@@ -54,6 +56,7 @@ export function useTransformSession({
   screenToCanvas,
   onChangeContours,
   onCommitHistory,
+  onDiscardLastHistory,
   gridSettings,
   snapMetrics,
   customGuidelines,
@@ -484,6 +487,9 @@ export function useTransformSession({
       transformRafRef.current = null;
     }
     pendingTransformContoursRef.current = null;
+    // Capture whether the drag already committed history before resetting
+    // the flag: only then is there a phantom entry to remove.
+    const hadCommittedHistory = hasCommittedTransformHistoryRef.current;
     hasCommittedTransformHistoryRef.current = false;
     const activeSession = transformSessionRef.current || transformSession;
     transformSessionRef.current = null;
@@ -495,10 +501,17 @@ export function useTransformSession({
         contoursRef.current = restoredContours;
       }
       onChangeContours(restoredContours, { skipHistory: true });
+      if (hadCommittedHistory) {
+        // The drag's RAF callback committed the pre-drag glyph and the
+        // contours are now restored to exactly that state, so the top
+        // undo entry is a phantom: drop it so the next Ctrl+Z undoes
+        // the previous real edit instead of doing nothing.
+        onDiscardLastHistory?.(activeSession.initialContours);
+      }
     }
     setTransformSession(null);
     setRotateDisplayAngle(null);
-  }, [transformSession, contours, contoursRef, onChangeContours]);
+  }, [transformSession, contours, contoursRef, onChangeContours, onDiscardLastHistory]);
 
   return {
     transformSession,

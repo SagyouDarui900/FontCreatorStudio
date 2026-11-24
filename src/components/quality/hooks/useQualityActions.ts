@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { FontProject } from '../../../types';
+import { commitChangedGlyphHistory } from '../../../utils/historyHelper';
 import {
   checkFontQuality,
   fixQualityIssue,
@@ -19,7 +20,7 @@ interface UseQualityActionsProps {
   onSelectGlyph?: (unicode: number) => void;
   onClose: () => void;
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
-  commitHistory?: () => void;
+  commitHistory?: (targetUnicode?: number) => void;
   state: QualityState;
 }
 
@@ -100,9 +101,11 @@ export function useQualityActions({
   // Single Fix
   const handleFixIssue = useCallback(
     (issue: QualityIssue) => {
-      if (commitHistory) commitHistory();
       const res = fixQualityIssue(project, issue);
       if (res.success) {
+        // Commit the issue's glyph, not the selected glyph: the fix
+        // may target a different character.
+        if (commitHistory) commitHistory(issue.unicode);
         setProject(res.updatedProject);
         notify(res.message, 'success');
         runScan(res.updatedProject);
@@ -117,9 +120,11 @@ export function useQualityActions({
   const handleBatchFix = useCallback(
     (type?: QualityIssueType) => {
       if (!report) return;
-      if (commitHistory) commitHistory();
       const res = batchFixQualityIssues(project, report.issues, type);
       if (res.fixedCount > 0) {
+        commitChangedGlyphHistory(project, res.updatedProject, (unicode) =>
+          commitHistory?.(unicode)
+        );
         setProject(res.updatedProject);
         notify(`${res.fixedCount} 件の問題を一括修正しました`, 'success');
         runScan(res.updatedProject);
@@ -137,8 +142,6 @@ export function useQualityActions({
 
     setTimeout(() => {
       try {
-        if (commitHistory) commitHistory();
-
         let targetUnicodes: number[] | undefined = undefined;
         if (optScope === 'excessive') {
           const excIssues = (report?.issues || []).filter((i) => i.type === 'excessive_nodes');
@@ -166,6 +169,9 @@ export function useQualityActions({
         setLastOptimizationResult(res);
 
         if (res.totalReducedNodes > 0) {
+          commitChangedGlyphHistory(project, res.updatedProject, (unicode) =>
+            commitHistory?.(unicode)
+          );
           setProject(res.updatedProject);
           notify(
             `${res.optimizedGlyphsCount} 文字の直線冗長ノード ${res.totalReducedNodes} 個を間引き、パスを滑らかに最適化しました（削減率: ${res.reductionPercentage}%）`,
@@ -200,7 +206,6 @@ export function useQualityActions({
   // Single glyph node optimization
   const handleOptimizeSingleGlyph = useCallback(
     (unicode: number, char: string) => {
-      if (commitHistory) commitHistory();
       const res = batchOptimizeProjectNodes(project, [unicode], {
         level: optLevel,
         preserveSharpCorners: true,
@@ -208,6 +213,7 @@ export function useQualityActions({
       });
 
       if (res.totalReducedNodes > 0) {
+        if (commitHistory) commitHistory(unicode);
         setProject(res.updatedProject);
         notify(
           `文字「${char}」の直線冗長ノード ${res.totalReducedNodes} 個を間引き、パスを滑らかに最適化しました`,
@@ -228,8 +234,6 @@ export function useQualityActions({
 
     setTimeout(() => {
       try {
-        if (commitHistory) commitHistory();
-
         let targetUnicodes: number[] | undefined = undefined;
         if (eqScope === 'uneven') {
           const unevenIssues = (report?.issues || []).filter((i) => i.type === 'uneven_stroke');
@@ -257,6 +261,9 @@ export function useQualityActions({
         setLastEqualizationResult(res);
 
         if (res.equalizedGlyphsCount > 0) {
+          commitChangedGlyphHistory(project, res.updatedProject, (unicode) =>
+            commitHistory?.(unicode)
+          );
           setProject(res.updatedProject);
           notify(
             `${res.equalizedGlyphsCount} 文字のストローク線幅を均一化しました (細線補強: ${res.totalThinFixed}箇所, 太線調整: ${res.totalThickFixed}箇所)`,
@@ -292,7 +299,6 @@ export function useQualityActions({
   // Single glyph stroke equalization
   const handleEqualizeSingleGlyph = useCallback(
     (unicode: number, char: string) => {
-      if (commitHistory) commitHistory();
       const res = batchEqualizeProjectStrokes(project, [unicode], {
         mode: eqMode,
         strength: eqStrength,
@@ -300,6 +306,7 @@ export function useQualityActions({
       });
 
       if (res.equalizedGlyphsCount > 0) {
+        if (commitHistory) commitHistory(unicode);
         setProject(res.updatedProject);
         notify(
           `文字「${char}」のストローク線幅を均一化しました (補強: ${res.totalThinFixed}箇所, 調整: ${res.totalThickFixed}箇所)`,
@@ -320,8 +327,6 @@ export function useQualityActions({
 
     setTimeout(() => {
       try {
-        if (commitHistory) commitHistory();
-
         let targetUnicodes: number[] | undefined = undefined;
         if (extScope === 'missing') {
           const missingIssues = (report?.issues || []).filter((i) => i.type === 'missing_extrema');
@@ -350,6 +355,9 @@ export function useQualityActions({
         setLastExtremaResult(res);
 
         if (res.optimizedGlyphsCount > 0) {
+          commitChangedGlyphHistory(project, res.updatedProject, (unicode) =>
+            commitHistory?.(unicode)
+          );
           setProject(res.updatedProject);
           notify(
             `${res.optimizedGlyphsCount} 文字のベジェ曲線極点に合計 ${res.totalNodesAdded} 個のノードを追加・最適化しました`,
@@ -385,7 +393,6 @@ export function useQualityActions({
   // Single glyph extrema optimization
   const handleOptimizeSingleGlyphExtrema = useCallback(
     (unicode: number, char: string) => {
-      if (commitHistory) commitHistory();
       const minDist = extSensitivity === 'strict' ? 8 : extSensitivity === 'fine' ? 3 : 5;
       const res = batchOptimizeProjectExtrema(project, [unicode], {
         alignHandlesToAxis: extAlignAxis,
@@ -394,6 +401,7 @@ export function useQualityActions({
       });
 
       if (res.optimizedGlyphsCount > 0) {
+        if (commitHistory) commitHistory(unicode);
         setProject(res.updatedProject);
         notify(
           `文字「${char}」のベジェ曲線極点にノードを ${res.totalNodesAdded} 箇所追加・最適化しました`,

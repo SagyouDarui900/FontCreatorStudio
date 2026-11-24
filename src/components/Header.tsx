@@ -30,6 +30,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   project,
   setProject,
   onProjectReplaced,
+  commitHistory,
+  commitProjectHistory,
   canUndo,
   canRedo,
   onUndo,
@@ -103,6 +105,8 @@ export const Header: React.FC<HeaderProps> = React.memo(({
     project,
     setProject,
     onProjectReplaced,
+    commitHistory,
+    commitProjectHistory,
     onShowToast,
     onOpenExportModal,
   });

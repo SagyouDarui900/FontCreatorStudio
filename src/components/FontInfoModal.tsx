@@ -33,6 +33,10 @@ interface FontInfoModalProps {
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  /** Commit history for one glyph (target unicode) before UPM scaling. */
+  commitHistory?: (targetUnicode?: number) => void;
+  /** Commit project-level config history before metadata changes. */
+  commitProjectHistory?: () => void;
 }
 
 type ModalTab = 'info' | 'license' | 'opentype' | 'guide';
@@ -56,6 +60,8 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   setProject,
   theme,
   onShowToast,
+  commitHistory,
+  commitProjectHistory,
 }) => {
   const [activeTab, setActiveTab] = useState<ModalTab>('info');
   const [formData, setFormData] = useState<FontMetadata>({
@@ -188,6 +194,16 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     const newUpm = formData.unitsPerEm || 1000;
     const shouldScale = scaleGlyphsOnResize && oldUpm !== newUpm && oldUpm > 0 && newUpm > 0;
     const scale = shouldScale ? newUpm / oldUpm : 1;
+
+    // Metadata changes are undoable via the project-level history.
+    // When UPM scaling rewrites every glyph's coordinates, register
+    // history for every glyph first so each one can be undone.
+    commitProjectHistory?.();
+    if (shouldScale) {
+      for (const key of Object.keys(project.glyphs || {})) {
+        commitHistory?.(Number(key));
+      }
+    }
 
     setProject((prev) => {
       const updatedGlyphs: Record<number, any> = {};

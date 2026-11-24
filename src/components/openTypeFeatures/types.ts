@@ -10,6 +10,8 @@ export interface OpenTypeFeaturesModalProps {
   isLight: boolean;
   theme?: ThemeMode;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  /** Commit project-level config history before feature changes. */
+  commitProjectHistory?: () => void;
 }
 
 export type OpenTypeTab = 'vert' | 'liga' | 'gpos' | 'palt' | 'preview';

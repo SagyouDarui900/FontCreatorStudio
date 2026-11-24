@@ -1,9 +1,43 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
+import { FontProject, GlyphData, PathContour, PixelGlyphData, ToolMode } from '../types';
 import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates, getContoursBoundingBox } from '../utils/path';
 import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
 import { KANA_PAIRS } from '../data/unicodeTables';
+
+/** What a clipboard entry holds, and how it must be pasted. */
+export interface GlyphClipboard {
+  /** 'glyph': a whole-glyph copy, pasted by replacing the target glyph (with its metrics and pixel data). 'contours': selected contours only, pasted by appending to the target glyph. */
+  kind: 'glyph' | 'contours';
+  /** Project the copy came from. Pasting into another project is refused. */
+  sourceProjectId: string;
+  contours: PathContour[];
+  /** Whole-glyph copies only. */
+  advanceWidth?: number;
+  lsb?: number;
+  pixelData?: PixelGlyphData;
+  vectorContoursBackup?: PathContour[];
+  notes?: string;
+}
+
+/** Whether a clipboard entry carries filled pixel data (a pixel-only glyph copy has no contours). */
+function hasCopiedPixelData(entry: GlyphClipboard): boolean {
+  return Boolean(entry.pixelData?.data?.some((d) => d !== 0));
+}
+
+/** Give pasted contours fresh contour and node ids so pasted outlines never share ids with the source or with an earlier paste. */
+export function regenerateContourIds(contours: PathContour[]): PathContour[] {
+  return contours.map((c) => ({
+    ...c,
+    id: generateId(),
+    nodes: c.nodes.map((n) => ({
+      ...n,
+      id: generateId(),
+      handleIn: n.handleIn ? { ...n.handleIn } : null,
+      handleOut: n.handleOut ? { ...n.handleOut } : null,
+    })),
+  }));
+}
 
 interface UseGlyphActionsOptions {
   project: FontProject;
@@ -36,7 +70,38 @@ export function useGlyphActions({
   onShowToast,
   handleUpdateContours,
 }: UseGlyphActionsOptions) {
-  const [clipboardContours, setClipboardContours] = useState<PathContour[] | null>(null);
+  const [clipboard, setClipboard] = useState<GlyphClipboard | null>(null);
+  // The contours alone, for callers (shortcuts, grid) that only need to
+  // know whether something is copied. The kind and the rest of the entry
+  // live in `clipboard` and decide how a paste behaves.
+  const clipboardContours = clipboard?.contours ?? null;
+  const clipboardKind = clipboard?.kind ?? null;
+  // Keep the historical setter shape (contours array) for the context:
+  // replacing the contours keeps the entry kind, clearing empties it.
+  const setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>> =
+    useCallback(
+      (action) => {
+        setClipboard((prev) => {
+          const next = typeof action === 'function' ? action(prev?.contours ?? null) : action;
+          if (next === null) return null;
+          return {
+            kind: prev?.kind ?? 'contours',
+            sourceProjectId: prev?.sourceProjectId ?? project.id,
+            contours: next,
+            ...(prev?.kind === 'glyph'
+              ? {
+                  advanceWidth: prev.advanceWidth,
+                  lsb: prev.lsb,
+                  pixelData: prev.pixelData,
+                  vectorContoursBackup: prev.vectorContoursBackup,
+                  notes: prev.notes,
+                }
+              : {}),
+          };
+        });
+      },
+      [project.id]
+    );
 
   // Simplify current glyph contours
   const handleSimplifyCurrentGlyph = useCallback(
@@ -164,40 +229,60 @@ export function useGlyphActions({
     [project.glyphs, selectedUnicode, setSelectedUnicode, setSelectedChar, commitHistory, setProject, onShowToast]
   );
 
-  // Copy Glyph contours
+  // Copy a whole glyph: contours plus advanceWidth, lsb, pixel data,
+  // vector backup and notes. A pixel-only glyph (no contours) can be
+  // copied too; only a glyph with neither contours nor filled pixels
+  // has nothing to copy.
   const handleCopyGlyph = useCallback(
     (unicode: number) => {
       const glyph = project.glyphs[unicode];
-      if (glyph && glyph.contours && glyph.contours.length > 0) {
-        setClipboardContours(JSON.parse(JSON.stringify(glyph.contours)));
+      const contours = glyph?.contours || [];
+      const hasFilledPixels = Boolean(glyph?.pixelData?.data?.some((d) => d !== 0));
+      if (glyph && (contours.length > 0 || hasFilledPixels)) {
+        setClipboard({
+          kind: 'glyph',
+          sourceProjectId: project.id,
+          contours: JSON.parse(JSON.stringify(contours)),
+          advanceWidth: glyph.advanceWidth,
+          lsb: glyph.lsb,
+          pixelData: glyph.pixelData ? JSON.parse(JSON.stringify(glyph.pixelData)) : undefined,
+          vectorContoursBackup: glyph.vectorContoursBackup
+            ? JSON.parse(JSON.stringify(glyph.vectorContoursBackup))
+            : undefined,
+          notes: glyph.notes,
+        });
         const ch = glyph.char || String.fromCodePoint(unicode);
-        onShowToast(`文字「${ch}」の字形 (${glyph.contours.length}パス) をコピーしました`, 'success');
+        onShowToast(
+          contours.length > 0
+            ? `文字「${ch}」の字形 (${contours.length}パス) をコピーしました`
+            : `文字「${ch}」のピクセルデータをコピーしました`,
+          'success'
+        );
       } else {
         onShowToast('コピーする輪郭がありません', 'warning');
       }
     },
-    [project.glyphs, onShowToast]
+    [project.glyphs, project.id, onShowToast]
   );
 
-  // Paste Glyph contours
-  const handlePasteGlyph = useCallback(
-    (unicode: number) => {
-      if (project.glyphs[unicode]?.locked) {
-        onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
-        return;
-      }
-      if (!clipboardContours || clipboardContours.length === 0) {
-        onShowToast('クリップボードに字形がありません', 'warning');
-        return;
-      }
+  // Replace the target glyph with the clipboard's whole-glyph copy:
+  // fresh contour/node ids, plus the copied advanceWidth, lsb, pixel
+  // data, vector backup and notes. A new glyph gets its defaults from
+  // the project's unitsPerEm, not from fixed 1000/50.
+  const pasteReplaceGlyph = useCallback(
+    (unicode: number, entry: GlyphClipboard) => {
       commitHistory(unicode);
+      const upm = project.metadata?.unitsPerEm || 1000;
+      const defaultLsb = Math.round(50 * (upm / 1000));
+      const freshContours = regenerateContourIds(entry.contours);
       setProject((prev) => {
+        const prevUpm = prev.metadata?.unitsPerEm || upm;
         const existing = prev.glyphs[unicode] || {
           unicode,
           char: String.fromCodePoint(unicode),
           name: `uni${unicode.toString(16).toUpperCase().padStart(4, '0')}`,
-          advanceWidth: 1000,
-          lsb: 50,
+          advanceWidth: entry.advanceWidth ?? prevUpm,
+          lsb: entry.lsb ?? Math.round(50 * (prevUpm / 1000)),
         };
         return {
           ...prev,
@@ -205,23 +290,94 @@ export function useGlyphActions({
             ...prev.glyphs,
             [unicode]: {
               ...existing,
-              contours: JSON.parse(JSON.stringify(clipboardContours)),
+              contours: freshContours,
+              advanceWidth: entry.advanceWidth ?? existing.advanceWidth ?? prevUpm,
+              lsb: entry.lsb ?? existing.lsb ?? defaultLsb,
+              pixelData: entry.pixelData ? JSON.parse(JSON.stringify(entry.pixelData)) : undefined,
+              vectorContoursBackup: entry.vectorContoursBackup
+                ? JSON.parse(JSON.stringify(entry.vectorContoursBackup))
+                : undefined,
+              notes: entry.notes,
               modified: true,
             },
           },
           updatedAt: Date.now(),
         };
       });
+    },
+    [commitHistory, project.metadata?.unitsPerEm, setProject]
+  );
+
+  // Append the clipboard contours to the target glyph with fresh ids,
+  // keeping the target glyph's existing contours and metrics.
+  const pasteAppendContours = useCallback(
+    (unicode: number, entry: GlyphClipboard) => {
+      commitHistory(unicode);
+      const freshContours = regenerateContourIds(entry.contours);
+      if (unicode === selectedUnicode) {
+        handleUpdateContours([...(currentGlyph.contours || []), ...freshContours]);
+        return;
+      }
+      setProject((prev) => {
+        const prevUpm = prev.metadata?.unitsPerEm || 1000;
+        const existing = prev.glyphs[unicode] || {
+          unicode,
+          char: String.fromCodePoint(unicode),
+          name: `uni${unicode.toString(16).toUpperCase().padStart(4, '0')}`,
+          advanceWidth: prevUpm,
+          lsb: Math.round(50 * (prevUpm / 1000)),
+          contours: [],
+        };
+        return {
+          ...prev,
+          glyphs: {
+            ...prev.glyphs,
+            [unicode]: {
+              ...existing,
+              contours: [...(existing.contours || []), ...freshContours],
+              modified: true,
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [commitHistory, selectedUnicode, currentGlyph, handleUpdateContours, setProject]
+  );
+
+  // Paste into a glyph. The behaviour is fixed by how the clipboard was
+  // copied, not by where paste is invoked from: a whole-glyph copy
+  // replaces the target glyph, a selected-contours copy appends to it.
+  const handlePasteGlyph = useCallback(
+    (unicode: number) => {
+      if (project.glyphs[unicode]?.locked) {
+        onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
+        return;
+      }
+      if (!clipboard || (clipboard.contours.length === 0 && !hasCopiedPixelData(clipboard))) {
+        onShowToast('クリップボードに字形がありません', 'warning');
+        return;
+      }
+      if (clipboard.sourceProjectId !== project.id) {
+        onShowToast('コピー元のプロジェクトと異なるため貼り付けできません', 'warning');
+        return;
+      }
+      if (clipboard.kind === 'contours') {
+        pasteAppendContours(unicode, clipboard);
+        onShowToast(`輪郭 (${clipboard.contours.length}パス) を貼り付けました`, 'success');
+        return;
+      }
+      pasteReplaceGlyph(unicode, clipboard);
       const targetChar = String.fromCodePoint(unicode);
       onShowToast(`「${targetChar}」に字形を貼り付けました`, 'success');
     },
-    [project.glyphs, clipboardContours, commitHistory, setProject, onShowToast]
+    [project.glyphs, project.id, clipboard, pasteAppendContours, pasteReplaceGlyph, onShowToast]
   );
 
   // Copy only the selected contours into the shared clipboard. This uses
-  // the same clipboardContours state as the glyph-level Ctrl+C handler
-  // (handleCopyGlyph), so the glyph grid paste item and the canvas menu
-  // paste item read the same clipboard.
+  // the same clipboard as the glyph-level Ctrl+C handler
+  // (handleCopyGlyph), but records the kind as 'contours' so pasting
+  // appends instead of replacing the target glyph.
   const handleCopySelectedContours = useCallback(
     (contourIds: string[]) => {
       const selected = (currentGlyph.contours || []).filter((c) =>
@@ -231,42 +387,44 @@ export function useGlyphActions({
         onShowToast('コピーする輪郭が選択されていません', 'warning');
         return;
       }
-      setClipboardContours(JSON.parse(JSON.stringify(selected)));
+      setClipboard({
+        kind: 'contours',
+        sourceProjectId: project.id,
+        contours: JSON.parse(JSON.stringify(selected)),
+      });
       onShowToast(
         `選択した輪郭 (${selected.length}パス) をコピーしました`,
         'success'
       );
     },
-    [currentGlyph, onShowToast]
+    [currentGlyph, project.id, onShowToast]
   );
 
-  // Paste the shared clipboard contours into the current glyph. The
-  // clipboard contours are appended with fresh ids, so the current glyph
-  // contours are kept. The glyph-level handlePasteGlyph replaces the whole
-  // glyph, which is not what a contour paste should do.
+  // Paste the shared clipboard into the current glyph. The behaviour is
+  // fixed by the copy kind, same as handlePasteGlyph: a whole-glyph copy
+  // replaces the current glyph (with its metrics and pixel data), a
+  // selected-contours copy appends with fresh ids.
   const handlePasteClipboardContours = useCallback(() => {
     if (currentGlyph.locked) {
       onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
       return;
     }
-    if (!clipboardContours || clipboardContours.length === 0) {
+    if (!clipboard || (clipboard.contours.length === 0 && !hasCopiedPixelData(clipboard))) {
       onShowToast('クリップボードに字形がありません', 'warning');
       return;
     }
-    commitHistory();
-    const pasted = clipboardContours.map((c) => ({
-      ...c,
-      id: generateId(),
-      nodes: c.nodes.map((n) => ({
-        ...n,
-        id: generateId(),
-        handleIn: n.handleIn ? { ...n.handleIn } : null,
-        handleOut: n.handleOut ? { ...n.handleOut } : null,
-      })),
-    }));
-    handleUpdateContours([...(currentGlyph.contours || []), ...pasted]);
-    onShowToast(`輪郭 (${pasted.length}パス) を貼り付けました`, 'success');
-  }, [currentGlyph, clipboardContours, commitHistory, handleUpdateContours, onShowToast]);
+    if (clipboard.sourceProjectId !== project.id) {
+      onShowToast('コピー元のプロジェクトと異なるため貼り付けできません', 'warning');
+      return;
+    }
+    if (clipboard.kind === 'glyph') {
+      pasteReplaceGlyph(selectedUnicode, clipboard);
+      onShowToast(`「${selectedChar}」に字形を貼り付けました`, 'success');
+      return;
+    }
+    pasteAppendContours(selectedUnicode, clipboard);
+    onShowToast(`輪郭 (${clipboard.contours.length}パス) を貼り付けました`, 'success');
+  }, [currentGlyph, project.id, clipboard, selectedUnicode, selectedChar, pasteReplaceGlyph, pasteAppendContours, onShowToast]);
 
   // Duplicate Normal Kana to Small Kana automatically
   const handleDuplicateAsSmallKana = useCallback(
@@ -532,7 +690,9 @@ export function useGlyphActions({
 
   return useMemo(
     () => ({
+      clipboard,
       clipboardContours,
+      clipboardKind,
       setClipboardContours,
       handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph,
@@ -548,7 +708,10 @@ export function useGlyphActions({
       handleBatchInsertRadical,
     }),
     [
+      clipboard,
       clipboardContours,
+      clipboardKind,
+      setClipboardContours,
       handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph,
       handleClearGlyph,

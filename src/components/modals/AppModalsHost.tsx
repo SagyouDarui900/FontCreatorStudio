@@ -98,7 +98,8 @@ export interface AppModalsHostProps {
   isLight: boolean;
   changeTheme: (mode: ThemeMode) => void;
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
-  commitHistory: () => void;
+  commitHistory: (targetUnicode?: number) => void;
+  commitProjectHistory?: () => void;
   traceSettings: TraceSettings;
   setTraceSettings: React.Dispatch<React.SetStateAction<TraceSettings>>;
   overlaySettings: GlyphOverlaySettings;
@@ -143,6 +144,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   changeTheme,
   showToast,
   commitHistory,
+  commitProjectHistory,
   traceSettings,
   setTraceSettings,
   overlaySettings,
@@ -339,6 +341,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             setProject={setProject}
             theme={theme}
             onShowToast={showToast}
+            commitHistory={commitHistory}
+            commitProjectHistory={commitProjectHistory}
           />
         );
 
@@ -425,6 +429,8 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             theme={theme}
             onShowToast={showToast}
             showToast={showToast}
+            commitHistory={commitHistory}
+            commitProjectHistory={commitProjectHistory}
           />
         );
 
@@ -580,6 +586,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             isLight={isLight}
             theme={theme}
             onShowToast={showToast}
+            commitProjectHistory={commitProjectHistory}
           />
         );
 
@@ -593,6 +600,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             isLight={isLight}
             theme={theme}
             onShowToast={showToast}
+            commitHistory={commitHistory}
           />
         );
 
@@ -608,6 +616,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             selectedUnicode={selectedUnicode}
             onSelectGlyph={(u) => onSelectGlyph(u)}
             onShowToast={showToast}
+            commitHistory={commitHistory}
           />
         );
 
@@ -624,6 +633,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             onOpenTestPreview={() => openModal('test')}
             persistedState={mojikumiPersisted}
             onPersistedStateChange={setMojikumiPersisted}
+            commitProjectHistory={commitProjectHistory}
           />
         );
 

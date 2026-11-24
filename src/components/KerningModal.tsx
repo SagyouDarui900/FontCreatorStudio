@@ -34,6 +34,10 @@ interface KerningModalProps {
  showToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
  onShowToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
  theme: ThemeMode;
+ /** Commit history for one glyph (target unicode) before sidebearing batch changes. */
+ commitHistory?: (targetUnicode?: number) => void;
+ /** Commit project-level config history before kerning changes. */
+ commitProjectHistory?: () => void;
 }
 
 export const KerningModal: React.FC<KerningModalProps> = ({
@@ -45,6 +49,8 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  showToast,
  onShowToast,
  theme,
+ commitHistory,
+ commitProjectHistory,
 }) => {
  const isLight = isLightTheme(theme);
  const themeClasses = getThemeClasses(theme);
@@ -56,6 +62,13 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  if (setProject) return setProject;
  return (_updater: (prev: FontProject) => FontProject) => {};
  }, [onUpdateProject, setProject]);
+
+ // Kerning-only changes are project-level config: register them in the
+ // project history before applying so Ctrl+Z can restore them.
+ const commitKerningHistory = useMemo(
+   () => () => commitProjectHistory?.(),
+   [commitProjectHistory]
+ );
 
  const notify = (msg: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
  if (showToast) {
@@ -164,6 +177,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  notify('対象の文字がまだ作図されていないため、カーニングを追加できません', 'warning');
  return;
  }
+ commitKerningHistory();
  updateProject((prev) => ({
  ...prev,
  kerning: {
@@ -190,6 +204,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  }
  const safeVal = Number.isFinite(customValue) ? Math.round(customValue) : 0;
  const pairKey = `${leftChar},${rightChar}`;
+ commitKerningHistory();
  updateProject((prev) => ({
  ...prev,
  kerning: {
@@ -206,6 +221,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  // Remove kerning pair
  const handleRemovePair = (key: string) => {
+ commitKerningHistory();
  updateProject((prev) => {
  const next = { ...(prev.kerning || {}) };
  delete next[key];
@@ -230,6 +246,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  notify('プリセットの対象文字がまだ作図されていないため、登録できません', 'warning');
  return;
  }
+ commitKerningHistory();
  updateProject((prev) => {
  const next = { ...(prev.kerning || {}) };
  for (const p of existingPairs) {
@@ -289,6 +306,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  return;
  }
 
+ commitKerningHistory();
  updateProject((prev) => ({
  ...prev,
  kerning: nextKerning,
@@ -315,6 +333,12 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  return;
  }
 
+ // Register history for every glyph the batch changed before applying.
+ for (const [key, glyph] of Object.entries(updatedGlyphs)) {
+   if (project.glyphs[Number(key)] !== glyph) {
+     commitHistory?.(Number(key));
+   }
+ }
  updateProject((prev) => ({
  ...prev,
  glyphs: updatedGlyphs,
@@ -535,6 +559,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  type="button"
  onClick={() => {
+ commitKerningHistory();
  updateProject((prev) => ({ ...prev, kerning: {}, updatedAt: Date.now() }));
  setIsConfirmingClearAll(false);
  notify('登録済みのカーニングをすべて削除しました', 'info');

@@ -30,6 +30,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
   isLight,
   theme,
   onShowToast,
+  commitProjectHistory,
 }) => {
   const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
 
@@ -66,6 +67,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     isOpen,
     onClose,
     onShowToast,
+    commitProjectHistory,
   });
 
   if (!isOpen) return null;

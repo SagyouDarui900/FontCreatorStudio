@@ -12,6 +12,8 @@ export interface UseAppShortcutsOptions {
   selectedUnicode: number;
   currentGlyph: GlyphData;
   clipboardContours: PathContour[] | null;
+  /** True when the clipboard holds anything (contours or pixel data). */
+  hasClipboard?: boolean;
   handleSelectPrevGlyph: () => void;
   handleSelectNextGlyph: () => void;
   toggleZenMode: () => void;
@@ -38,6 +40,7 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
         selectedUnicode,
         currentGlyph,
         clipboardContours,
+        hasClipboard,
         handleSelectPrevGlyph,
         handleSelectNextGlyph,
         toggleZenMode,
@@ -97,7 +100,8 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
       }
 
       if (ctrlOrCmd && e.key.toLowerCase() === 'c') {
-        if (currentGlyph.contours && currentGlyph.contours.length > 0) {
+        const hasPixelData = currentGlyph.pixelData?.data?.some((d) => d !== 0);
+        if ((currentGlyph.contours && currentGlyph.contours.length > 0) || hasPixelData) {
           e.preventDefault();
           handleCopyGlyph(selectedUnicode);
         }
@@ -105,7 +109,8 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
       }
 
       if (ctrlOrCmd && e.key.toLowerCase() === 'v') {
-        if (clipboardContours && clipboardContours.length > 0) {
+        const hasAnyClipboard = hasClipboard ?? (clipboardContours && clipboardContours.length > 0);
+        if (hasAnyClipboard) {
           e.preventDefault();
           handlePasteGlyph(selectedUnicode);
         }

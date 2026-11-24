@@ -22,4 +22,6 @@ export interface MojikumiStudioModalProps {
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   onOpenOpenTypeModal?: () => void;
   onOpenTestPreview?: () => void;
+  /** Commit project-level config history before saving the mojikumi config. */
+  commitProjectHistory?: () => void;
 }

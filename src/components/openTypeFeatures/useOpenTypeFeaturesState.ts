@@ -18,6 +18,7 @@ interface UseOpenTypeFeaturesStateParams {
   isOpen: boolean;
   onClose: () => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  commitProjectHistory?: () => void;
 }
 
 export function useOpenTypeFeaturesState({
@@ -26,6 +27,7 @@ export function useOpenTypeFeaturesState({
   isOpen,
   onClose,
   onShowToast,
+  commitProjectHistory,
 }: UseOpenTypeFeaturesStateParams) {
   const [activeTab, setActiveTab] = useState<OpenTypeTab>('vert');
   const [opticalSideBearingPercent, setOpticalSideBearingPercent] = useState<number>(
@@ -89,13 +91,16 @@ export function useOpenTypeFeaturesState({
 
   const updateFeatures = useCallback(
     (newConfig: OpenTypeFeaturesConfig) => {
+      // OpenType config is project-level data: register it in the
+      // project history before applying so Ctrl+Z can restore it.
+      commitProjectHistory?.();
       setProject((prev) => ({
         ...prev,
         openTypeFeatures: newConfig,
         updatedAt: Date.now(),
       }));
     },
-    [setProject]
+    [setProject, commitProjectHistory]
   );
 
   const toggleFeaturesGlobal = useCallback(() => {

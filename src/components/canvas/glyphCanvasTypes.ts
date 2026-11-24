@@ -58,6 +58,8 @@ export interface GlyphCanvasProps {
   onSelectNextUncompletedGlyph?: () => void;
   isGlyphLocked?: boolean;
   onCommitHistory?: () => void;
+  /** Discard the history entry a cancelled transform drag committed. */
+  onDiscardLastHistory?: (initialContours: PathContour[]) => void;
   theme: ThemeMode;
   onCopyFromChar?: (char: string) => void;
   onGenerateDakutenTarget?: (char: string, isHandaku?: boolean) => void;

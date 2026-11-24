@@ -43,8 +43,13 @@ export interface ProjectContextType {
   handleUndo: () => void;
   handleRedo: () => void;
   commitHistory: (targetUnicode?: number) => void;
+  commitProjectHistory: () => void;
+  discardLastHistoryEntry: (expectedContours?: PathContour[], targetUnicode?: number) => boolean;
   clearHistory: () => void;
   clipboardContours: PathContour[] | null;
+  clipboardKind: 'glyph' | 'contours' | null;
+  /** True when the clipboard holds anything (contours or pixel data). */
+  hasClipboard: boolean;
   setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>>;
   handleQuickSaveCurrentGlyph: () => void;
 
@@ -125,6 +130,8 @@ export function ProjectProvider({
     redoStack,
     setUndoStack,
     commitHistory,
+    commitProjectHistory,
+    discardLastHistoryEntry,
     clearHistory,
     handleUndo,
     handleRedo,
@@ -357,6 +364,19 @@ export function ProjectProvider({
     handleUpdateContours,
   });
 
+  // A copy belongs to the project it was copied from. When the project
+  // is replaced (new / loaded / imported), drop the clipboard so a stale
+  // copy from the previous project cannot be pasted into the new one.
+  // The paste handlers also refuse a copy whose source project id
+  // differs from the current project.
+  const prevProjectIdForClipboardRef = useRef(project.id);
+  useEffect(() => {
+    if (prevProjectIdForClipboardRef.current !== project.id) {
+      prevProjectIdForClipboardRef.current = project.id;
+      glyphActions.setClipboardContours(null);
+    }
+  }, [project.id, glyphActions]);
+
   const value = useMemo<ProjectContextType>(
     () => ({
       project,
@@ -386,7 +406,11 @@ export function ProjectProvider({
       handleRedo,
       commitHistory,
       clearHistory,
+      commitProjectHistory,
+      discardLastHistoryEntry,
       clipboardContours: glyphActions.clipboardContours,
+      clipboardKind: glyphActions.clipboardKind,
+      hasClipboard: glyphActions.clipboard !== null,
       setClipboardContours: glyphActions.setClipboardContours,
       handleQuickSaveCurrentGlyph,
       handleSimplifyCurrentGlyph: glyphActions.handleSimplifyCurrentGlyph,
@@ -428,6 +452,8 @@ export function ProjectProvider({
       handleRedo,
       commitHistory,
       clearHistory,
+      commitProjectHistory,
+      discardLastHistoryEntry,
       handleQuickSaveCurrentGlyph,
       glyphActions,
     ]
