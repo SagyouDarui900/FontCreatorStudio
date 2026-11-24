@@ -5,6 +5,7 @@ import {
   StrokePoint,
   BrushStyle,
   PressureCurveConfig,
+  UserPenPreset,
 } from "../../../types";
 import { generateId } from "../id";
 import { evaluatePressureCurve } from "../pressure";
@@ -14,7 +15,21 @@ import {
 } from "../bounds";
 import { simplifyPointsRDP } from "./smoothing";
 import { createSharpAngularContour, createSharpRoundedContour } from "./sharpContours";
-import { SubdividedStrokeOptions } from "./outlineFast";
+
+export interface SubdividedStrokeOptions {
+  /** Target distance between fine sub-segments in font units (default: 1.25) */
+  subdivisionStep?: number;
+  /** Density level for sub-segmentation: 'ultra' (0.8px), 'high' (1.25px), 'normal' (1.8px) */
+  density?: 'ultra' | 'high' | 'normal';
+  /** Whether to use adaptive sub-segmentation that increases density where pressure changes fast */
+  adaptiveDensity?: boolean;
+  /** Width smoothing passes for pressure transitions */
+  widthSmoothingPasses?: number;
+  /** Custom Pen / Brush preset parameters (ibisPaint brush parameters) */
+  customPreset?: Partial<UserPenPreset>;
+  /** Disable automatic straightening for curved preview or delicate calligraphic strokes */
+  disableAutoStraight?: boolean;
+}
 
 /**
  * Convert freehand stroke points into a closed smoothed vector outline using

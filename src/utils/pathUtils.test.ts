@@ -8,11 +8,13 @@ import {
   flipContoursVertical,
   scaleContours,
   simplifyContour,
-  generateFastStrokeSvgPath,
   groupContoursForRendering,
   getSafeGlyphViewBox,
-} from './pathUtils';
-import { PathContour } from '../types';
+} from './pathUtils';import { PathContour } from '../types';
+import {
+  buildLiveBrushPreviewSvgPath,
+  type BrushStrokeConfig,
+} from '../hooks/useBrushDrawing';
 
 describe('pathUtils - Vector Path and Geometry Engine', () => {
   describe('generateId', () => {
@@ -151,16 +153,23 @@ describe('pathUtils - Vector Path and Geometry Engine', () => {
     });
   });
 
-  describe('generateFastStrokeSvgPath (Real-Time Preview Optimization)', () => {
+  describe('buildLiveBrushPreviewSvgPath (live preview uses the finalize outline)', () => {
+    const cfg: BrushStrokeConfig = {
+      brushWidth: 40,
+      brushStyle: 'brush',
+      pressureSensitivity: 'normal',
+      pressureCurve: null,
+      smoothingIntensity: 50,
+    };
+
     it('returns empty string for empty points array', () => {
-      expect(generateFastStrokeSvgPath([])).toBe('');
+      expect(buildLiveBrushPreviewSvgPath([], cfg)).toBe('');
     });
 
     it('generates valid closed SVG path string for single tap point', () => {
-      const d = generateFastStrokeSvgPath([{ x: 200, y: 300, pressure: 0.5 }]);
+      const d = buildLiveBrushPreviewSvgPath([{ x: 200, y: 300, pressure: 0.5 }], cfg);
       expect(d.startsWith('M ')).toBe(true);
       expect(d.endsWith('Z')).toBe(true);
-      expect(d).toContain('A ');
     });
 
     it('generates smooth closed ribbon SVG path string for stroke movement', () => {
@@ -170,10 +179,10 @@ describe('pathUtils - Vector Path and Geometry Engine', () => {
         { x: 300, y: 300, pressure: 0.8 },
         { x: 400, y: 500, pressure: 0.4 },
       ];
-      const d = generateFastStrokeSvgPath(pts, 40, 'brush');
+      const d = buildLiveBrushPreviewSvgPath(pts, cfg);
       expect(d.startsWith('M ')).toBe(true);
       expect(d.endsWith('Z')).toBe(true);
-      expect(d).toContain('Q '); // Uses quadratic bezier midpoints
+      expect(d).toContain('C '); // Bezier outline from the finalize path
     });
   });
 
