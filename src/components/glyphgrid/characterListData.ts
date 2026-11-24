@@ -1,6 +1,8 @@
 import { JOUYOU_KANJI_2136 } from '../../data/jisKanjiSets';
 import { JIS_LEVEL_1_KANJI } from '../../data/jisLevel1';
 import { JIS_LEVEL_2_KANJI } from '../../data/jisLevel2';
+import { JIS_LEVEL_3_KANJI } from '../../data/jisLevel3';
+import { JIS_LEVEL_4_KANJI } from '../../data/jisLevel4';
 import { KANGXI_214_RADICALS } from '../../data/kangxi214Radicals';
 import { getKangxiRadicalForKanji } from '../../data/kanjiKangxiRadicals';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../../data/unicodeTables';
@@ -27,7 +29,7 @@ export const CHARACTER_LIST_GROUPS: {
   { id: 'katakana', label: 'カタカナ', hint: '90字' },
   { id: 'alphabet', label: 'アルファベット', hint: 'A-Z a-z 0-9' },
   { id: 'joyo', label: '漢字（常用）', hint: '2,136字' },
-  { id: 'radical', label: '漢字（部首別）', hint: 'JIS第1・第2水準' },
+  { id: 'radical', label: '漢字（部首別）', hint: 'JIS第1〜第4水準' },
 ];
 
 function categoryChars(categoryId: string): CharacterListItem[] {
@@ -72,15 +74,16 @@ export interface RadicalSection {
 
 /**
  * Kanji grouped by Kangxi radical (214 sections, in radical-number order).
- * Every JIS X 0208 level 1 / level 2 kanji (6,355) appears in exactly one
- * section, assigned by its kRSUnicode primary radical from the Unicode
- * Unihan database (see src/data/kanjiKangxiRadicals.ts). Sections with no
- * JIS level 1 / 2 kanji are dropped. Within a section, kanji are in JIS
- * order (level 1, then level 2).
+ * Every JIS X 0208 level 1 / level 2 and JIS X 0213 level 3 / level 4
+ * kanji (10,050) appears in exactly one section, assigned by its
+ * kRSUnicode primary radical from the Unicode Unihan database (see
+ * src/data/kanjiKangxiRadicals.ts). Sections with no JIS kanji are
+ * dropped. Within a section, kanji are in JIS order (level 1, then
+ * level 2, then level 3, then level 4).
  */
 export function getRadicalSections(): RadicalSection[] {
   const byRadical = new Map<number, CharacterListItem[]>();
-  for (const char of [...JIS_LEVEL_1_KANJI, ...JIS_LEVEL_2_KANJI]) {
+  for (const char of [...JIS_LEVEL_1_KANJI, ...JIS_LEVEL_2_KANJI, ...JIS_LEVEL_3_KANJI, ...JIS_LEVEL_4_KANJI]) {
     const code = char.codePointAt(0);
     const radical = getKangxiRadicalForKanji(char);
     if (!code || radical === undefined) continue;

@@ -127,7 +127,7 @@ describe('characterListData', () => {
     expect(sections.length).toBeLessThanOrEqual(214);
     expect(sections.length).toBeGreaterThan(200);
     const all = sections.flatMap((s) => s.chars);
-    expect(all).toHaveLength(6355);
+    expect(all).toHaveLength(10050);
     const codes = all.map((c) => c.code);
     expect(new Set(codes).size).toBe(codes.length);
     for (const section of sections) {
@@ -205,7 +205,7 @@ describe('CharacterListTab', () => {
     try {
       clickButton(container, '漢字（部首別）');
       expect(container.textContent).toContain('にんべん');
-      expect(container.textContent).toContain('作成済み 0 / 6355字');
+      expect(container.textContent).toContain('作成済み 0 / 10050字');
       const indexButton = Array.from(container.querySelectorAll('button')).find(
         (b) => b.textContent?.trim() === '人'
       );
