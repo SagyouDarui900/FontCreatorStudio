@@ -1,0 +1,1 @@
+function h(c,s){const n=[],o=c.glyphs||{},t=s.glyphs||{};for(const[e,r]of Object.entries(t))o[Number(e)]!==r&&n.push(Number(e));for(const e of Object.keys(o))Number(e)in t||n.push(Number(e));return n.sort((e,r)=>e-r)}function p(c,s,n){const o=h(c,s);for(const t of o)n(t);return o}export{p as c};
