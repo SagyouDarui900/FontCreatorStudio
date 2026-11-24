@@ -17,6 +17,9 @@ export type CharacterListGroupId =
   | 'hiragana'
   | 'katakana'
   | 'alphabet'
+  | 'fullwidth_alnum'
+  | 'ascii_symbols'
+  | 'symbols'
   | 'joyo'
   | 'radical';
 
@@ -28,6 +31,9 @@ export const CHARACTER_LIST_GROUPS: {
   { id: 'hiragana', label: 'ひらがな', hint: '86字' },
   { id: 'katakana', label: 'カタカナ', hint: '90字' },
   { id: 'alphabet', label: 'アルファベット', hint: 'A-Z a-z 0-9' },
+  { id: 'fullwidth_alnum', label: '全角英数字', hint: '62字' },
+  { id: 'ascii_symbols', label: '半角記号', hint: '33字' },
+  { id: 'symbols', label: '和文約物', hint: '85字' },
   { id: 'joyo', label: '漢字（常用）', hint: '2,136字' },
   { id: 'radical', label: '漢字（部首別）', hint: 'JIS第1〜第4水準' },
 ];
@@ -53,6 +59,12 @@ export function getCharacterListChars(
       return categoryChars('katakana');
     case 'alphabet':
       return categoryChars('basic_latin_alnum');
+    case 'fullwidth_alnum':
+      return categoryChars('fullwidth_alnum');
+    case 'ascii_symbols':
+      return categoryChars('ascii_symbols');
+    case 'symbols':
+      return categoryChars('symbols');
     case 'joyo':
       return JOUYOU_KANJI_2136.map((char) => ({
         char,

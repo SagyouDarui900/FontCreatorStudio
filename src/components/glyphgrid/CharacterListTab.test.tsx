@@ -102,11 +102,14 @@ afterEach(() => {
 });
 
 describe('characterListData', () => {
-  it('has the five expected groups', () => {
+  it('has the eight expected groups', () => {
     expect(CHARACTER_LIST_GROUPS.map((g) => g.id)).toEqual([
       'hiragana',
       'katakana',
       'alphabet',
+      'fullwidth_alnum',
+      'ascii_symbols',
+      'symbols',
       'joyo',
       'radical',
     ]);
@@ -116,9 +119,14 @@ describe('characterListData', () => {
     expect(getCharacterListChars('hiragana')).toHaveLength(86);
     expect(getCharacterListChars('katakana')).toHaveLength(90);
     expect(getCharacterListChars('alphabet')).toHaveLength(62);
+    expect(getCharacterListChars('fullwidth_alnum')).toHaveLength(62);
+    expect(getCharacterListChars('ascii_symbols')).toHaveLength(33);
+    expect(getCharacterListChars('symbols')).toHaveLength(85);
     expect(getCharacterListChars('joyo')).toHaveLength(2136);
     expect(getCharacterListChars('hiragana')[0].char).toBe('ぁ');
     expect(getCharacterListChars('alphabet')[0].char).toBe('0');
+    expect(getCharacterListChars('fullwidth_alnum')[0].char).toBe('０');
+    expect(getCharacterListChars('symbols')[1].char).toBe('、');
     expect(getCharacterListChars('joyo')[0].char).toBe('亜');
   });
 
@@ -192,6 +200,18 @@ describe('CharacterListTab', () => {
       clickButton(container, '漢字（常用）');
       expect(container.textContent).toContain('作成済み 0 / 2136字');
       expect(container.querySelector('button[aria-label^="亜 "]')).not.toBeNull();
+    } finally {
+      unmount();
+    }
+  });
+
+  it('switches to the full-width alphanumeric group', () => {
+    const project = createProject();
+    const { container, unmount } = renderTab(project);
+    try {
+      clickButton(container, '全角英数字');
+      expect(container.textContent).toContain('作成済み 0 / 62字');
+      expect(container.querySelector('button[aria-label^="Ａ "]')).not.toBeNull();
     } finally {
       unmount();
     }
