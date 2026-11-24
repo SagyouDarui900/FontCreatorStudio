@@ -177,8 +177,11 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
               </div>
             )}
 
-            {/* Right Side Docked Glyph Adjuster Panel */}
-            {isSideAdjusterOpen && (
+            {/* Right Side Docked Glyph Adjuster Panel (desktop only).
+                On mobile the adjuster is shown in the left sidebar when
+                mobileTab === 'adjust'; rendering it here too drew the same
+                panel twice (M2). Top mode already guards this the same way. */}
+            {isSideAdjusterOpen && !isMobileScreen && (
               <CharAdjustPanel project={project} state={state} onSelectGlyphForEdit={onSelectGlyphForEdit} />
             )}
           </div>

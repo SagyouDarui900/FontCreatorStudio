@@ -18,6 +18,8 @@ export interface MojikumiPersistedState {
   sidebarTab: MojikumiSidebarTab;
   selectedWorkId: string;
   customText: string;
+  // M17: true when customText differs from the selected work's text.
+  isCustomText: boolean;
   isVertical: boolean;
   fontSource: MojikumiFontSource;
   zoom: number;
@@ -36,6 +38,7 @@ export function createDefaultMojikumiPersistedState(project: FontProject): Mojik
     sidebarTab: 'text',
     selectedWorkId: AOZORA_TEXTS[0].id,
     customText: AOZORA_TEXTS[0].text,
+    isCustomText: false,
     isVertical: true,
     fontSource: 'custom',
     zoom: 1.0,

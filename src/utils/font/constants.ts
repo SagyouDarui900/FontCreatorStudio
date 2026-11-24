@@ -124,6 +124,12 @@ export function isAsymmetricOrPunctuationGlyph(unicode: number, char?: string): 
   // Small Hiragana & Katakana
   if (SMALL_KANA_UNICODES.has(unicode)) return true;
 
+  // Halfwidth lowercase Latin letters (U+0061..U+007A): the "center all
+  // glyphs" UI states that lowercase letters are automatically protected
+  // from centering, so they are excluded here like other asymmetric
+  // glyphs. Uppercase letters are symmetric enough to center.
+  if (unicode >= 0x61 && unicode <= 0x7a) return true;
+
   // Standalone Dakuten & Handakuten (濁点 ゛, 半濁点 ゜, 結合濁点/半濁点)
   if (unicode >= 0x3099 && unicode <= 0x309c) return true;
 

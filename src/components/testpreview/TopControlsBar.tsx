@@ -37,6 +37,9 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
     setFontScaleMultiplier,
     isWaterfall,
     setIsWaterfall,
+    isPixelProject,
+    isShapedText,
+    setIsShapedText,
     isTopControlsCollapsed,
     setIsTopControlsCollapsed,
     isLight,
@@ -256,31 +259,49 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
             <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
+                disabled={isPixelProject}
                 onClick={() => setFontScaleMultiplier(fontScaleMultiplier === 1.35 ? 1.0 : 1.35)}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                  fontScaleMultiplier === 1.35
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                  isPixelProject
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'cursor-pointer'
+                } ${
+                  !isPixelProject && fontScaleMultiplier === 1.35
                     ? isLight
                       ? 'bg-emerald-800 text-white border-emerald-900'
                       : 'bg-emerald-500 text-stone-950 border-emerald-400'
                     : inactiveToggleCls
                 }`}
-                title="和文サイズ最適化 (135% / 100%)"
+                title={
+                  isPixelProject
+                    ? 'ピクセルプロジェクトではコンパイル時に100%に固定されます'
+                    : '和文サイズ最適化 (135% / 100%)'
+                }
               >
-                最適化 {fontScaleMultiplier === 1.35 ? '135%' : '100%'}
+                最適化 {isPixelProject ? '100%固定' : fontScaleMultiplier === 1.35 ? '135%' : '100%'}
               </button>
               <button
                 type="button"
+                disabled={isPixelProject}
                 onClick={() => setAutoBalanceMargins(!autoBalanceMargins)}
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
-                  autoBalanceMargins
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                  isPixelProject
+                    ? 'opacity-60 cursor-not-allowed'
+                    : 'cursor-pointer'
+                } ${
+                  !isPixelProject && autoBalanceMargins
                     ? 'bg-amber-600 text-white border-amber-700'
                     : isLight
                     ? 'bg-emerald-800 text-white border-emerald-900'
                     : 'bg-emerald-500 text-stone-950 border-emerald-400'
                 }`}
-                title="配置補正: 左右センタリング / ガイド位置優先"
+                title={
+                  isPixelProject
+                    ? 'ピクセルプロジェクトではコンパイル時に配置補正なし（ガイド位置優先）に固定されます'
+                    : '配置補正: 左右センタリング / ガイド位置優先'
+                }
               >
-                {autoBalanceMargins ? 'センタリング' : '位置優先'}
+                {isPixelProject ? '位置優先(固定)' : autoBalanceMargins ? 'センタリング' : '位置優先'}
               </button>
               <button
                 type="button"
@@ -361,6 +382,20 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
                 title="段階サイズ比較 (16px〜80px)"
               >
                 段階
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsShapedText(!isShapedText)}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer ${
+                  isShapedText
+                    ? isLight
+                      ? 'bg-emerald-800 text-white border-emerald-900'
+                      : 'bg-emerald-500 text-stone-950 border-emerald-400'
+                    : inactiveToggleCls
+                }`}
+                title="1行を1つのテキストとして表示し、カーニングと合字が反映されるか確認します。ONの間は文字のクリック選択とホバー表示はできません"
+              >
+                整形表示
               </button>
             </div>
           );

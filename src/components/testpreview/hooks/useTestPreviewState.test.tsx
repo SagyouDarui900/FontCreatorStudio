@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FontProject, GlyphData } from '../../../types';
 import {
   buildPreviewProject,
+  clampAdjustOffset,
+  clampAdjustScale,
   collectPreviewGlyphUnicodes,
   extractPreviewUnicodes,
   isEquivalentPreviewProject,
@@ -32,6 +34,17 @@ const mockCompileFont = vi.hoisted(() =>
 vi.mock('../../../utils/font', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../utils/font')>();
   return { ...actual, compileFont: mockCompileFont };
+});
+
+// Count real pixelGridToContours calls for the M13 cache test.
+const pixelGridToContoursSpy = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../utils/pixelFontUtils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../utils/pixelFontUtils')>();
+  pixelGridToContoursSpy.mockImplementation((...args: unknown[]) =>
+    (actual.pixelGridToContours as (...a: never[]) => unknown)(...(args as never[]))
+  );
+  return { ...actual, pixelGridToContours: pixelGridToContoursSpy };
 });
 
 function makeGlyph(unicode: number, char: string, x = 100): GlyphData {
@@ -379,5 +392,259 @@ describe('useTestPreviewState preview compilation', () => {
     advanceCompile();
     expect(mockCompileFont).toHaveBeenCalledTimes(4);
     expect(compiledGlyphs(3).sort((a, b) => a - b)).toEqual([0x3042, 0x3044]);
+  });
+});
+
+describe('clampAdjustOffset / clampAdjustScale (M6)', () => {
+  it('clamps offsets to -200..200 and scales to 40..200', () => {
+    expect(clampAdjustOffset(10000)).toBe(200);
+    expect(clampAdjustOffset(-10000)).toBe(-200);
+    expect(clampAdjustOffset(200)).toBe(200);
+    expect(clampAdjustOffset(-200)).toBe(-200);
+    expect(clampAdjustOffset(0)).toBe(0);
+    expect(clampAdjustOffset(Number.NaN)).toBe(0);
+    expect(clampAdjustScale(10000)).toBe(200);
+    expect(clampAdjustScale(0)).toBe(40);
+    expect(clampAdjustScale(39)).toBe(40);
+    expect(clampAdjustScale(100)).toBe(100);
+    expect(clampAdjustScale(Number.NaN)).toBe(100);
+  });
+});
+
+describe('adjust drafts, auto-center, glyph entries and metric cache (M3, M5, M10, M12, M13)', () => {
+  const roots: Root[] = [];
+  const containers: HTMLElement[] = [];
+  let originalFontFace: unknown;
+  let latestState: ReturnType<typeof useTestPreviewState> | null = null;
+  const toastFn = vi.fn();
+
+  function makeRectGlyph(
+    unicode: number,
+    char: string,
+    minX: number,
+    minY: number,
+    maxX: number,
+    maxY: number
+  ): GlyphData {
+    return {
+      unicode,
+      char,
+      name: `uni${unicode.toString(16).toUpperCase()}`,
+      advanceWidth: 1000,
+      lsb: minX,
+      contours: [
+        {
+          id: `c${unicode}`,
+          closed: true,
+          nodes: [
+            { id: 'n1', x: minX, y: minY, type: 'corner' },
+            { id: 'n2', x: maxX, y: minY, type: 'corner' },
+            { id: 'n3', x: maxX, y: maxY, type: 'corner' },
+            { id: 'n4', x: minX, y: maxY, type: 'corner' },
+          ],
+        },
+      ],
+    };
+  }
+
+  function makePixelGlyph(unicode: number, char: string): GlyphData {
+    return {
+      unicode,
+      char,
+      name: `uni${unicode.toString(16).toUpperCase()}`,
+      advanceWidth: 1000,
+      lsb: 0,
+      contours: [],
+      pixelData: {
+        width: 4,
+        height: 4,
+        data: [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      },
+    } as unknown as GlyphData;
+  }
+
+  function Harness({ project }: { project: FontProject }) {
+    latestState = useTestPreviewState({
+      isOpen: true,
+      onClose: () => {},
+      project,
+      setProject: () => {},
+      theme: 'light',
+      onShowToast: toastFn,
+    });
+    return null;
+  }
+
+  function renderHarness(project: FontProject) {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(<Harness project={project} />);
+    });
+    roots.push(root);
+    containers.push(container);
+    return {
+      rerender(nextProject: FontProject) {
+        act(() => {
+          root.render(<Harness project={nextProject} />);
+        });
+      },
+    };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockCompileFont.mockClear();
+    pixelGridToContoursSpy.mockClear();
+    toastFn.mockClear();
+    latestState = null;
+    originalFontFace = (globalThis as Record<string, unknown>).FontFace;
+    (globalThis as Record<string, unknown>).FontFace = undefined;
+  });
+
+  afterEach(() => {
+    while (roots.length > 0) {
+      const r = roots.pop()!;
+      act(() => r.unmount());
+    }
+    while (containers.length > 0) {
+      containers.pop()!.remove();
+    }
+    vi.useRealTimers();
+    (globalThis as Record<string, unknown>).FontFace = originalFontFace;
+  });
+
+  it('keeps an unsaved draft per character across switches (M3)', () => {
+    renderHarness(makeProject());
+    const state = () => latestState!;
+    act(() => {
+      state().selectCharForAdjust({ char: 'あ', unicode: 0x3042, lineIndex: 0, charIndex: 0 });
+    });
+    expect(state().selectedCharInfo?.unicode).toBe(0x3042);
+    act(() => {
+      state().setAdjustDx(50);
+      state().setAdjustDy(-30);
+      state().setAdjustScaleX(120);
+      state().setAdjustScaleY(90);
+    });
+    // Switch to another character: the new character starts from defaults.
+    act(() => {
+      state().selectCharForAdjust({ char: 'い', unicode: 0x3044, lineIndex: 0, charIndex: 1 });
+    });
+    expect(state().adjustDx).toBe(0);
+    expect(state().adjustDy).toBe(0);
+    expect(state().adjustScaleX).toBe(100);
+    expect(state().adjustScaleY).toBe(100);
+    // Change the second character, then switch back: the first draft returns.
+    act(() => {
+      state().setAdjustDx(10);
+    });
+    act(() => {
+      state().selectCharForAdjust({ char: 'あ', unicode: 0x3042, lineIndex: 0, charIndex: 0 });
+    });
+    expect(state().adjustDx).toBe(50);
+    expect(state().adjustDy).toBe(-30);
+    expect(state().adjustScaleX).toBe(120);
+    expect(state().adjustScaleY).toBe(90);
+  });
+
+  it('auto-center accounts for scale on both axes and says the result is unsaved (M10)', () => {
+    // え: x 200..600 (centre 400, dx 100 at 100%), y 200..800 (centre 500, dy 0).
+    // お: x 100..600 (centre 350, dx 150), y 100..500 (centre 300, dy -200 at 100%).
+    const project = makeProject([
+      makeRectGlyph(0x3048, 'え', 200, 200, 600, 800),
+      makeRectGlyph(0x304a, 'お', 100, 100, 600, 500),
+    ]);
+    renderHarness(project);
+    const state = () => latestState!;
+    act(() => {
+      state().selectCharForAdjust({ char: 'え', unicode: 0x3048, lineIndex: -1, charIndex: -1 });
+    });
+    act(() => {
+      state().handleAutoCenterGlyph();
+    });
+    expect(state().adjustDx).toBe(100);
+    expect(state().adjustDy).toBe(0);
+    expect(toastFn).toHaveBeenCalledWith(
+      expect.stringContaining('保存すると確定します'),
+      'info'
+    );
+
+    // At 150% width the horizontal offset grows with the scale.
+    act(() => {
+      state().setAdjustScaleX(150);
+    });
+    act(() => {
+      state().handleAutoCenterGlyph();
+    });
+    expect(state().adjustDx).toBe(150);
+
+    // At 50% height the vertical offset shrinks with the scale.
+    act(() => {
+      state().selectCharForAdjust({ char: 'お', unicode: 0x304a, lineIndex: -1, charIndex: -1 });
+      state().setAdjustScaleX(100);
+      state().setAdjustScaleY(50);
+    });
+    act(() => {
+      state().handleAutoCenterGlyph();
+    });
+    expect(state().adjustDx).toBe(150);
+    expect(state().adjustDy).toBe(-100);
+  });
+
+  it('auto-centers a dot-only glyph from its pixel contours and says it cannot be saved (M5)', () => {
+    const project = makeProject([makePixelGlyph(0x3048, 'え')]);
+    renderHarness(project);
+    const state = () => latestState!;
+    act(() => {
+      state().selectCharForAdjust({ char: 'え', unicode: 0x3048, lineIndex: -1, charIndex: -1 });
+    });
+    expect(state().isPixelOnlyActiveGlyph).toBe(true);
+    act(() => {
+      state().handleAutoCenterGlyph();
+    });
+    expect(toastFn).toHaveBeenCalledWith(
+      expect.stringContaining('ドット絵グリフのためここから保存できません'),
+      'info'
+    );
+    expect(state().adjustDx).not.toBe(0);
+  });
+
+  it('includes blank glyphs in the dropdown entries (M12)', () => {
+    const spaceGlyph = (unicode: number, char: string): GlyphData =>
+      ({
+        unicode,
+        char,
+        name: char,
+        advanceWidth: unicode === 0x20 ? 500 : 1000,
+        lsb: 0,
+        contours: [],
+      } as unknown as GlyphData);
+    const project = makeProject([spaceGlyph(0x20, ' '), spaceGlyph(0x3000, '　')]);
+    renderHarness(project);
+    const unicodes = latestState!.glyphEntries.map((e) => e.unicode);
+    expect(unicodes).toContain(0x20);
+    expect(unicodes).toContain(0x3000);
+  });
+
+  it('converts dot-only contours and computes metrics once per glyph (M13)', () => {
+    const project = makeProject([makePixelGlyph(0x3048, 'え')]);
+    const { rerender } = renderHarness(project);
+    const state = () => latestState!;
+    const m1 = state().getGlyphMetric('え');
+    const m2 = state().getGlyphMetric('え');
+    expect(m1).not.toBeNull();
+    expect(m2).toBe(m1);
+    expect(pixelGridToContoursSpy).toHaveBeenCalledTimes(1);
+
+    // Replacing the glyph object invalidates the cache.
+    const p2: FontProject = {
+      ...project,
+      glyphs: { ...project.glyphs, [0x3048]: makePixelGlyph(0x3048, 'え') },
+    };
+    rerender(p2);
+    state().getGlyphMetric('え');
+    expect(pixelGridToContoursSpy).toHaveBeenCalledTimes(2);
   });
 });

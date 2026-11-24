@@ -1,7 +1,28 @@
-import React, { useState } from 'react';
-import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
+import React, { useEffect, useState } from 'react';
+import { FormattedGlyph, FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { ChevronRight, ChevronLeft, BookOpen } from 'lucide-react';
+
+// M19: consecutive glyphs flagged tateChuYoko by the engine form one
+// horizontal unit inside a vertical column. (Duplicated in each mojikumi
+// view: the shared vertical helper file is outside this task's edit scope.)
+export interface TateChuYokoGroup {
+  glyphs: FormattedGlyph[];
+  tateChuYoko: boolean;
+}
+
+export function groupTateChuYoko(glyphs: FormattedGlyph[]): TateChuYokoGroup[] {
+  const groups: TateChuYokoGroup[] = [];
+  for (const g of glyphs) {
+    const last = groups[groups.length - 1];
+    if (g.tateChuYoko && last && last.tateChuYoko) {
+      last.glyphs.push(g);
+    } else {
+      groups.push({ glyphs: [g], tateChuYoko: Boolean(g.tateChuYoko) });
+    }
+  }
+  return groups;
+}
 
 interface BookSpreadViewProps {
   layout: FormattedLayoutResult;
@@ -12,9 +33,12 @@ interface BookSpreadViewProps {
   fontSizeQ: number;
   lineFeedH: number;
   charsPerLine: number;
+  lineCount: number;
   showGrid: boolean;
   isVertical: boolean;
   zoom: number;
+  /** M20: changes when the layout, work or text switches; resets the page position. */
+  pageResetKey?: string;
 }
 
 export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
@@ -26,20 +50,30 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
   fontSizeQ,
   lineFeedH,
   charsPerLine,
+  lineCount,
   showGrid,
   isVertical,
   zoom,
+  pageResetKey,
 }) => {
   // Mobile page mode: 'p1' (Page 1) | 'p2' (Page 2) | 'both' (Both pages stacked)
   const [mobilePageView, setMobilePageView] = useState<'p1' | 'p2' | 'both'>('p1');
   const [spreadIdx, setSpreadIdx] = useState(0);
 
+  // M20: switching the layout, work or text returns to the first spread.
+  useEffect(() => {
+    setSpreadIdx(0);
+    setMobilePageView('p1');
+  }, [pageResetKey]);
+
   // Approximate scale for screen rendering
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
-  // Paginate lines across spreads (12 lines per page = 24 lines per spread)
-  const linesPerPage = 12;
+  // M14: paginate lines across spreads using the 1-page line count
+  // (linesPerPage lines per page = 2 * linesPerPage lines per spread),
+  // instead of the previous fixed 12 lines per page.
+  const linesPerPage = Math.max(1, Math.min(24, Math.round(lineCount) || 12));
   const linesPerSpread = linesPerPage * 2;
   const totalSpreads = Math.max(1, Math.ceil(layout.lines.length / linesPerSpread));
   const safeSpreadIdx = Math.min(spreadIdx, totalSpreads - 1);
@@ -90,7 +124,52 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
                 }`}
                 style={{ minWidth: `${emPx}px`, minHeight: `${emPx}px` }}
               >
-                {line.glyphs.map((g, gIdx) => {
+                {groupTateChuYoko(line.glyphs).map((group, gIdx) => {
+                  // M19: a tate-chu-yoko run is drawn as one cell with its
+                  // characters side by side horizontally.
+                  if (group.tateChuYoko) {
+                    const first = group.glyphs[0];
+                    const last = group.glyphs[group.glyphs.length - 1];
+                    const text = group.glyphs.map((g) => g.char).join('');
+                    return (
+                      <span
+                        key={gIdx}
+                        className="inline-flex items-center justify-center relative"
+                        style={{
+                          paddingTop: `${first.spacingBeforeEm * emPx}px`,
+                          paddingBottom: `${last.spacingAfterEm * emPx}px`,
+                        }}
+                      >
+                        <span
+                          data-tate-chu-yoko="true"
+                          title={`縦中横「${text}」`}
+                          className={`inline-flex items-center justify-center relative ${
+                            group.glyphs.some((g) => g.isHanging)
+                              ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                              : ''
+                          }`}
+                          style={{
+                            width: `${emPx}px`,
+                            height: `${emPx}px`,
+                            fontSize: `${Math.max(6, Math.floor(emPx / group.glyphs.length))}px`,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {showGrid && (
+                            <span
+                              className={`absolute inset-0 pointer-events-none border ${gridBorder}`}
+                            />
+                          )}
+                          <span className="inline-flex items-center justify-center whitespace-nowrap">
+                            {group.glyphs.map((g, i) => (
+                              <span key={i}>{g.char}</span>
+                            ))}
+                          </span>
+                        </span>
+                      </span>
+                    );
+                  }
+                  const g = group.glyphs[0];
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
                   const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
                   const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
@@ -389,6 +468,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             <span>行送り: <strong>{lineFeedH}H</strong></span>
             <span>·</span>
             <span>字詰め: <strong>{charsPerLine}字</strong></span>
+            <span>·</span>
+            <span>1頁行数: <strong>{linesPerPage}行</strong></span>
           </div>
           <div className="hidden sm:block">JIS X 4051 文庫本フォーマット</div>
         </div>

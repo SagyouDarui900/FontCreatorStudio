@@ -54,6 +54,31 @@ export { createDefaultTestPreviewPersistedState, type TestPreviewPersistedState 
 // almost all glyphs (>= 80%), where subsetting saves nothing.
 // ---------------------------------------------------------------------------
 
+// Per-glyph adjust ranges, shared by the sliders, the number inputs, the
+// micro-adjust buttons and auto-centering (M6, M10). The sliders already
+// used these bounds; the other controls did not.
+export const ADJUST_OFFSET_MIN = -200;
+export const ADJUST_OFFSET_MAX = 200;
+export const ADJUST_SCALE_MIN = 40;
+export const ADJUST_SCALE_MAX = 200;
+
+export function clampAdjustOffset(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(ADJUST_OFFSET_MIN, Math.min(ADJUST_OFFSET_MAX, Math.round(value)));
+}
+
+export function clampAdjustScale(value: number): number {
+  if (!Number.isFinite(value)) return 100;
+  return Math.max(ADJUST_SCALE_MIN, Math.min(ADJUST_SCALE_MAX, Math.round(value)));
+}
+
+// Left/right margin balance threshold, shared by the footer inspector and
+// the char-box warning in PreviewCanvas (M11). Both read the same
+// getGlyphMetric diff; they used to disagree (20 in the footer, 25 on the
+// canvas). 20 is the footer's value and the stricter one, so the canvas
+// now warns whenever the footer reports an imbalance.
+export const GLYPH_MARGIN_BALANCE_THRESHOLD = 20;
+
 /** Vertical-form derivations, mirroring `verticalDerivations` in compilerCore.ts. */
 export const VERTICAL_DERIVATION_PAIRS: ReadonlyArray<{
   sourceUnicode: number;
@@ -427,6 +452,17 @@ const [testText, setTestText] = usePersistedField(
     'isWaterfall',
     persistedDefaults.isWaterfall
   );
+  // Shaped-text display mode (M30): one text node per line so kerning and
+  // ligatures shape across characters. Default off: per-character spans
+  // are needed for click selection and hover inspection. Kept in local
+  // state (not persisted) because TestPreviewPersistedState lives in
+  // persistedState.ts, which is outside this change.
+  const [isShapedText, setIsShapedText] = useState<boolean>(false);
+  // Pixel projects compile with scaleFactor fixed to 1.0 and
+  // balanceSideBearings fixed to false (see the compile effect below),
+  // so the two toggles must show that they are fixed instead of looking
+  // active (M1).
+  const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
   const [fontFamilyName, setFontFamilyName] = useState<string>('CustomTestFont');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -467,6 +503,46 @@ const [testText, setTestText] = usePersistedField(
     'isAspectLocked',
     persistedDefaults.isAspectLocked
   );
+
+  // Unsaved per-character adjust drafts (M3). Switching characters used
+  // to reset the offsets to zero with no warning, discarding unsaved
+  // work. The draft for each character is kept in this ref, so switching
+  // away and back restores it. The draft is dropped when the adjustment
+  // is saved to the glyph (handleApplyTransformToGlyph).
+  const adjustDraftsRef = useRef(
+    new Map<number, { dx: number; dy: number; scaleX: number; scaleY: number }>()
+  );
+
+  // Select a character for adjustment, preserving the current character's
+  // unsaved draft and restoring the new character's draft (or defaults
+  // when it has none). Passing null deselects and still keeps the draft.
+  const selectCharForAdjust = (
+    info: { char: string; unicode: number; lineIndex: number; charIndex: number } | null
+  ) => {
+    if (selectedCharInfo) {
+      adjustDraftsRef.current.set(selectedCharInfo.unicode, {
+        dx: adjustDx,
+        dy: adjustDy,
+        scaleX: adjustScaleX,
+        scaleY: adjustScaleY,
+      });
+    }
+    setSelectedCharInfo(info);
+    if (info) {
+      const draft = adjustDraftsRef.current.get(info.unicode);
+      if (draft) {
+        setAdjustDx(draft.dx);
+        setAdjustDy(draft.dy);
+        setAdjustScaleX(draft.scaleX);
+        setAdjustScaleY(draft.scaleY);
+      } else {
+        setAdjustDx(0);
+        setAdjustDy(0);
+        setAdjustScaleX(100);
+        setAdjustScaleY(100);
+      }
+    }
+  };
 
   // Handle mouse wheel scrolling horizontally in vertical writing mode
   const handleVerticalWheel = useCallback(
@@ -831,6 +907,17 @@ const [testText, setTestText] = usePersistedField(
     };
   }, [isOpen, previewProject, autoBalanceMargins, fontScaleMultiplier, cleanupActivePreviewFont]);
 
+  // Per-glyph cache for the pixel-grid -> contour conversion (M13).
+  // resolveGlyphPreviewContours used to rebuild the contours on every
+  // call, so a repeated character in the preview text paid the conversion
+  // once per occurrence per render. The entry is valid only while the
+  // glyph object and every conversion input (UPM, ascender, descender,
+  // advance width, dot shape, merge setting) are unchanged; a glyph edit
+  // replaces the glyph object, so the entry is dropped.
+  const previewContoursCacheRef = useRef(
+    new Map<number, { glyph: GlyphData; sig: string; contours: PathContour[] }>()
+  );
+
   // Derive effective contours including pixel-only glyphs for metrics & preview
   const resolveGlyphPreviewContours = useCallback(
     (g: GlyphData | undefined | null): PathContour[] => {
@@ -842,7 +929,21 @@ const [testText, setTestText] = usePersistedField(
           const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
           const advWidth =
             g.advanceWidth || (g.unicode > 255 ? upm : Math.round(upm / 2));
-          return pixelGridToContours(
+          const dotShape = g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square';
+          const mergeContours = project.pixelFontSettings?.mergeContours !== false;
+          const sig = [
+            upm,
+            project.metadata.ascender || DEFAULT_ASCENDER,
+            project.metadata.descender || DEFAULT_DESCENDER,
+            advWidth,
+            dotShape,
+            mergeContours,
+          ].join('|');
+          const cached = previewContoursCacheRef.current.get(g.unicode);
+          if (cached && cached.glyph === g && cached.sig === sig) {
+            return cached.contours;
+          }
+          const contours = pixelGridToContours(
             pGrid,
             g.pixelData.width,
             g.pixelData.height,
@@ -850,9 +951,11 @@ const [testText, setTestText] = usePersistedField(
             project.metadata.ascender || DEFAULT_ASCENDER,
             project.metadata.descender || DEFAULT_DESCENDER,
             advWidth,
-            g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
-            project.pixelFontSettings?.mergeContours !== false
+            dotShape,
+            mergeContours
           );
+          previewContoursCacheRef.current.set(g.unicode, { glyph: g, sig, contours });
+          return contours;
         }
       }
       return [];
@@ -877,21 +980,49 @@ const [testText, setTestText] = usePersistedField(
     }
   };
 
+  // Per-character cache for glyph metrics (M13). getGlyphMetric is called
+  // once per displayed character per render (PreviewCanvas renderedText),
+  // and each call recomputed the bounding box. The entry is valid only
+  // while the glyph object and the UPM are unchanged; null results (no
+  // glyph or no contours) are cached too.
+  const glyphMetricCacheRef = useRef(
+    new Map<
+      string,
+      {
+        glyph: GlyphData | undefined;
+        upm: number;
+        metric: { char: string; unicode: number; adv: number; lsb: number; rsb: number; diff: number } | null;
+      }
+    >()
+  );
+
   // Helper to get glyph metric info
   const getGlyphMetric = useCallback(
     (char: string) => {
       const code = char.codePointAt(0) ?? 0;
       const g = project.glyphs[code];
-      const contours = resolveGlyphPreviewContours(g);
-      if (!g || contours.length === 0) return null;
-      const bbox = getContoursBoundingBox(contours);
-      if (bbox.width <= 0) return null;
       const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+      const cached = glyphMetricCacheRef.current.get(char);
+      if (cached && cached.glyph === g && cached.upm === upm) {
+        return cached.metric;
+      }
+      const contours = resolveGlyphPreviewContours(g);
+      if (!g || contours.length === 0) {
+        glyphMetricCacheRef.current.set(char, { glyph: g, upm, metric: null });
+        return null;
+      }
+      const bbox = getContoursBoundingBox(contours);
+      if (bbox.width <= 0) {
+        glyphMetricCacheRef.current.set(char, { glyph: g, upm, metric: null });
+        return null;
+      }
       const adv = g.advanceWidth || (code > 255 ? upm : Math.round(upm / 2));
       const lsb = Math.round(bbox.minX);
       const rsb = Math.round(adv - bbox.maxX);
       const diff = lsb - rsb;
-      return { char, unicode: code, adv, lsb, rsb, diff };
+      const metric = { char, unicode: code, adv, lsb, rsb, diff };
+      glyphMetricCacheRef.current.set(char, { glyph: g, upm, metric });
+      return metric;
     },
     [project.glyphs, project.metadata.unitsPerEm, resolveGlyphPreviewContours]
   );
@@ -961,6 +1092,9 @@ const [testText, setTestText] = usePersistedField(
       );
     }
 
+    // The saved adjustment is now the glyph data; drop the draft so
+    // re-selecting the character starts from the saved state (M3).
+    adjustDraftsRef.current.delete(unicode);
     setAdjustDx(0);
     setAdjustDy(0);
     setAdjustScaleX(100);
@@ -976,27 +1110,52 @@ const [testText, setTestText] = usePersistedField(
     }
   };
 
-  // Center selected character in EM Box
+  // Center selected character in EM Box (M5, M10). The offset is a
+  // preview-only draft until saved with handleApplyTransformToGlyph; the
+  // toast says so. The bounding box comes from the effective contours,
+  // so dot-only glyphs (whose contours are derived from the pixel grid)
+  // can be centered too (M5). The offset accounts for the current scale:
+  // the canvas scales the token about the span centre, so the offset
+  // needed to centre the glyph grows with the scale (M10). The vertical
+  // offset centres the glyph on the EM box centre as well; both offsets
+  // are clamped to the slider range (M6).
   const handleAutoCenterGlyph = () => {
     if (!selectedCharInfo || !setProject) return;
     const unicode = selectedCharInfo.unicode;
     const g = project.glyphs[unicode];
-    if (!g || !g.contours || g.contours.length === 0) return;
+    if (!g) return;
     if (g.locked) {
       onShowToast?.(`「${selectedCharInfo.char}」はロックされているため変更できません`, 'error');
       return;
     }
-    const bbox = getContoursBoundingBox(g.contours);
-    if (bbox.width <= 0) return;
+    const contours = resolveGlyphPreviewContours(g);
+    if (contours.length === 0) {
+      onShowToast?.(`「${selectedCharInfo.char}」の輪郭データが見つかりません`, 'info');
+      return;
+    }
+    const bbox = getContoursBoundingBox(contours);
+    if (bbox.width <= 0 || bbox.height <= 0) return;
 
     const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
     const adv = g.advanceWidth || (unicode > 255 ? upm : Math.round(upm / 2));
-    const targetLsb = Math.round((adv - bbox.width) / 2);
-    const deltaX = Math.round(targetLsb - bbox.minX);
+    const targetLsb = (adv - bbox.width) / 2;
+    const deltaX = clampAdjustOffset(
+      Math.round((targetLsb - bbox.minX) * (adjustScaleX / 100))
+    );
+    const deltaY = clampAdjustOffset(
+      Math.round((bbox.centerY - upm / 2) * (adjustScaleY / 100))
+    );
 
     setAdjustDx(deltaX);
+    setAdjustDy(deltaY);
+    const isPixelOnly = !g.contours || g.contours.length === 0;
     if (onShowToast) {
-      onShowToast(`「${selectedCharInfo.char}」をEM枠中央に自動配置しました (X:${deltaX}px)`, 'info');
+      onShowToast(
+        isPixelOnly
+          ? `「${selectedCharInfo.char}」をEM枠中央に自動配置しました。プレビューに反映しましたが、ドット絵グリフのためここから保存できません。`
+          : `「${selectedCharInfo.char}」をEM枠中央に自動配置しました。プレビューに反映しました。保存すると確定します。`,
+        'info'
+      );
     }
   };
 
@@ -1025,7 +1184,9 @@ const [testText, setTestText] = usePersistedField(
     );
   }, [activeGlyphContours, adjustDx, adjustDy, adjustScaleX, adjustScaleY]);
 
-  // All available glyph entries in project for dropdown selection
+  // All available glyph entries in project for dropdown selection.
+  // Blank glyphs are included (M12): a space has no visible shape, but
+  // its advance width still needs adjusting, so it must be selectable.
   const glyphEntries = useMemo(() => {
     return Object.keys(project.glyphs)
       .map((codeStr) => {
@@ -1034,7 +1195,7 @@ const [testText, setTestText] = usePersistedField(
         const ch = g?.char || String.fromCodePoint(u);
         return { unicode: u, char: ch, name: g?.name || ch };
       })
-      .filter((item) => item.char && item.char.trim().length > 0);
+      .filter((item) => item.char && item.char.length > 0);
   }, [project.glyphs]);
 
   const [showLivePreviewBox, setShowLivePreviewBox] = useState<boolean>(false);
@@ -1068,10 +1229,14 @@ const [testText, setTestText] = usePersistedField(
     setFontScaleMultiplier,
     isWaterfall,
     setIsWaterfall,
+    isShapedText,
+    setIsShapedText,
+    isPixelProject,
     fontFamilyName,
     errorMsg,
     selectedCharInfo,
     setSelectedCharInfo,
+    selectCharForAdjust,
     adjustDx,
     setAdjustDx,
     adjustDy,

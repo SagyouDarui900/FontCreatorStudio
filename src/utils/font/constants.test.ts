@@ -3,9 +3,25 @@ import {
   DEFAULT_ASCENDER,
   DEFAULT_DESCENDER,
   SCREEN_BASELINE_Y,
+  isAsymmetricOrPunctuationGlyph,
   resolveBaselineY,
   resolveCanvasMetrics,
 } from './constants';
+
+describe('isAsymmetricOrPunctuationGlyph', () => {
+  it('treats halfwidth lowercase letters as protected from centering (M7)', () => {
+    expect(isAsymmetricOrPunctuationGlyph(0x61, 'a')).toBe(true);
+    expect(isAsymmetricOrPunctuationGlyph(0x7a, 'z')).toBe(true);
+    expect(isAsymmetricOrPunctuationGlyph(0x6d, 'm')).toBe(true);
+  });
+
+  it('still centers uppercase letters and keeps punctuation protected', () => {
+    expect(isAsymmetricOrPunctuationGlyph(0x41, 'A')).toBe(false);
+    expect(isAsymmetricOrPunctuationGlyph(0x5a, 'Z')).toBe(false);
+    expect(isAsymmetricOrPunctuationGlyph(0x3001, '、')).toBe(true);
+    expect(isAsymmetricOrPunctuationGlyph(0x3041, 'ぁ')).toBe(true);
+  });
+});
 
 describe('resolveBaselineY', () => {
   it('uses metadata.ascender when it is a finite positive number', () => {

@@ -2,9 +2,11 @@ import React from 'react';
 import { Bookmark, Check, Sparkles } from 'lucide-react';
 import {
   BurasagariMode,
+  KinsokuAdjustMode,
   KinsokuSetId,
   MojikumiConfig,
   MojikumiPresetId,
+  ParagraphIndentPresetId,
 } from '../../types';
 import { MOJIKUMI_PRESETS, TypesettingDimensions } from '../../utils/mojikumiEngine';
 import { ThemeClasses } from '../../utils/theme';
@@ -35,6 +37,12 @@ interface MojikumiSidebarProps {
   onSelectPreset: (presetId: MojikumiPresetId) => void;
   onChangeKinsoku: (kinsoku: KinsokuSetId) => void;
   onChangeBurasagari: (burasagari: BurasagariMode) => void;
+  // M18: paragraph indent and kinsoku adjust had no UI; the current value
+  // is shown here and changed here.
+  onChangeParagraphIndent: (indent: ParagraphIndentPresetId) => void;
+  onChangeKinsokuAdjust: (adjust: KinsokuAdjustMode) => void;
+  // M17: while the text is edited, no work card is highlighted.
+  isCustomText?: boolean;
   isManuscriptMode?: boolean;
 }
 
@@ -56,6 +64,18 @@ const BURASAGARI_OPTIONS: { id: BurasagariMode; name: string }[] = [
   { id: 'standard', name: 'あり (標準)' },
   { id: 'forced', name: '強制ぶら下がり' },
   { id: 'none', name: 'なし' },
+];
+
+const PARAGRAPH_INDENT_OPTIONS: { id: ParagraphIndentPresetId; name: string }[] = [
+  { id: 'visual_half', name: '見た目半角下がり（既定）' },
+  { id: 'visual_full', name: '見た目全角下がり' },
+  { id: 'visual_full_half', name: '見た目全角半下がり' },
+  { id: 'none', name: 'なし' },
+];
+
+const KINSOKU_ADJUST_OPTIONS: { id: KinsokuAdjustMode; name: string }[] = [
+  { id: 'push_out', name: '追い出し' },
+  { id: 'push_in', name: '追い込み' },
 ];
 
 export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
@@ -82,6 +102,9 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
   onSelectPreset,
   onChangeKinsoku,
   onChangeBurasagari,
+  onChangeParagraphIndent,
+  onChangeKinsokuAdjust,
+  isCustomText = false,
   isManuscriptMode = false,
 }) => {
   return (
@@ -130,7 +153,8 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
 
               <div className="space-y-1.5 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
                 {AOZORA_TEXTS.map((work) => {
-                  const isSelected = work.id === selectedWorkId;
+                  // M17: while the text is edited, no work is highlighted.
+                  const isSelected = work.id === selectedWorkId && !isCustomText;
                   return (
                     <div
                       key={work.id}
@@ -168,9 +192,15 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
               <label className={`font-bold flex items-center justify-between ${themeClasses.textPrimary}`}>
                 <span>組版テキストの編集</span>
                 <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
-                  {customText.length} 文字
+                  {isCustomText ? 'カスタム編集中 · ' : ''}{customText.length} 文字
                 </span>
               </label>
+              {/* M16: custom text is not saved to the project, so say so here. */}
+              {isCustomText && (
+                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                  ※ カスタムテキストはプロジェクトに保存されません。再読み込みで失われます。
+                </div>
+              )}
               <textarea
                 value={customText}
                 onChange={(e) => onChangeCustomText(e.target.value)}
@@ -263,16 +293,19 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span className="font-bold">1ページ行数</span>
-                <span className="font-mono font-bold">{lineCount} 行</span>
+                <span className="font-mono font-bold">
+                  {isManuscriptMode ? '20 行 (原稿用紙固定)' : `${lineCount} 行`}
+                </span>
               </div>
               <input
                 type="range"
                 min="4"
                 max="24"
                 step="1"
-                value={lineCount}
+                value={isManuscriptMode ? 20 : lineCount}
+                disabled={isManuscriptMode}
                 onChange={(e) => onChangeLineCount(Number(e.target.value))}
-                className="w-full accent-emerald-600"
+                className="w-full accent-emerald-600 disabled:opacity-50"
               />
             </div>
 
@@ -393,6 +426,70 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     {bg.name}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* M18: paragraph indent */}
+            <div className={`space-y-1.5 pt-2 border-t ${themeClasses.border}`}>
+              <label className={`font-bold ${themeClasses.textPrimary}`}>
+                段落字下げ
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PARAGRAPH_INDENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    aria-pressed={currentConfig.paragraphIndent === opt.id}
+                    onClick={() => onChangeParagraphIndent(opt.id)}
+                    className={`p-2 rounded-lg border text-left text-xs transition-colors duration-150 ${
+                      currentConfig.paragraphIndent === opt.id
+                        ? isLight
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold'
+                          : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-bold'
+                        : isLight
+                        ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
+                        : `${themeClasses.cardBg} hover:opacity-90`
+                    }`}
+                  >
+                    {opt.name}
+                  </button>
+                ))}
+              </div>
+              <div className={`text-[10px] ${themeClasses.textMuted}`}>
+                現在：{PARAGRAPH_INDENT_OPTIONS.find((o) => o.id === currentConfig.paragraphIndent)?.name}
+                。プリセット変更ではこの値は変わりません。
+              </div>
+            </div>
+
+            {/* M18: kinsoku adjust (push out / push in) */}
+            <div className={`space-y-1.5 pt-2 border-t ${themeClasses.border}`}>
+              <label className={`font-bold ${themeClasses.textPrimary}`}>
+                禁則の追い出し・追い込み
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {KINSOKU_ADJUST_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    aria-pressed={currentConfig.kinsokuAdjust === opt.id}
+                    onClick={() => onChangeKinsokuAdjust(opt.id)}
+                    className={`p-2 rounded-lg border text-center text-xs transition-colors duration-150 ${
+                      currentConfig.kinsokuAdjust === opt.id
+                        ? isLight
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold'
+                          : 'bg-emerald-950/60 border-emerald-500 text-emerald-200 font-bold'
+                        : isLight
+                        ? 'bg-white border-stone-200 hover:bg-stone-50 text-stone-700'
+                        : `${themeClasses.cardBg} hover:opacity-90`
+                    }`}
+                  >
+                    {opt.name}
+                  </button>
+                ))}
+              </div>
+              <div className={`text-[10px] ${themeClasses.textMuted}`}>
+                現在：{currentConfig.kinsokuAdjust === 'push_out' ? '追い出し' : '追い込み'}
+                。プリセット変更ではこの値は変わりません。
               </div>
             </div>
           </div>

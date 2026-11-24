@@ -1,7 +1,7 @@
 import React from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { FontProject } from '../../types';
-import { TestPreviewState } from './hooks/useTestPreviewState';
+import { TestPreviewState, GLYPH_MARGIN_BALANCE_THRESHOLD } from './hooks/useTestPreviewState';
 
 interface PreviewFooterProps {
   project: FontProject;
@@ -24,6 +24,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({
     isLight,
   } = state;
 
+  // Pixel projects compile with scaleFactor 1.0 and no margin balancing,
+  // so the footer must not report the toggle state as effective (M1).
+  const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
+
   return (
     <div
       className={`px-3 sm:px-4 py-1.5 sm:py-2 border-t flex items-center justify-between text-xs shrink-0 gap-2 ${
@@ -42,7 +46,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({
             <span className="hidden sm:inline">右: {hoveredGlyphInfo.rsb}px</span>
             <span
               className={`px-1.5 py-0.5 rounded text-[10.5px] font-bold border inline-flex items-center gap-1 ${
-                Math.abs(hoveredGlyphInfo.diff) <= 20
+                Math.abs(hoveredGlyphInfo.diff) <= GLYPH_MARGIN_BALANCE_THRESHOLD
                   ? isLight
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                     : 'bg-emerald-950 text-emerald-300 border-emerald-800'
@@ -51,14 +55,14 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({
                   : 'bg-amber-950 text-amber-300 border-amber-800'
               }`}
               title={
-                Math.abs(hoveredGlyphInfo.diff) <= 20
+                Math.abs(hoveredGlyphInfo.diff) <= GLYPH_MARGIN_BALANCE_THRESHOLD
                   ? '左右の余白バランスが均等に整っています'
                   : hoveredGlyphInfo.diff < 0
                   ? `左余白が狭く左側に偏っています (差: ${hoveredGlyphInfo.diff}px)`
                   : `右余白が狭く右側に偏っています (差: +${hoveredGlyphInfo.diff}px)`
               }
             >
-              {Math.abs(hoveredGlyphInfo.diff) <= 20 ? (
+              {Math.abs(hoveredGlyphInfo.diff) <= GLYPH_MARGIN_BALANCE_THRESHOLD ? (
                 <>
                   <span className="text-emerald-700 dark:text-emerald-400">✓</span>
                   <span>均等</span>
@@ -86,7 +90,11 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({
               {writingMode === 'vertical' ? '縦組' : '横組'} ({fontSize}px)
             </span>
             <span className={`hidden sm:inline text-[10px] ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}>
-              {autoBalanceMargins ? '左右センタリング' : '位置優先'}
+              {isPixelProject
+                ? 'ピクセルでは固定 (100%・位置優先)'
+                : autoBalanceMargins
+                  ? '左右センタリング'
+                  : '位置優先'}
             </span>
           </div>
         )}

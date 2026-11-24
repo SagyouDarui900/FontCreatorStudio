@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FontProject,
   MojikumiConfig,
@@ -12,6 +12,10 @@ import {
   calculateTypesettingDimensions,
   simulateTypesetting,
 } from '../../utils/mojikumiEngine';
+import {
+  buildPreviewProject,
+  isEquivalentPreviewProject,
+} from '../testpreview/hooks/useTestPreviewState';
 import { AOZORA_TEXTS, AozoraWork } from './aozoraTexts';
 import {
   EditorialLayoutMode,
@@ -28,6 +32,58 @@ import {
   type MojikumiPersistedState,
 } from './persistedState';
 export { createDefaultMojikumiPersistedState, type MojikumiPersistedState };
+
+// ---------------------------------------------------------------------------
+// M27: real advance widths / kerning for simulateTypesetting, in em units.
+// buildTypesettingAdvanceOptions converts project glyph advanceWidth and
+// project.kerning (font units) to em against project unitsPerEm. Characters
+// with no entry keep the engine's fixed advance. openTypeFeatures
+// customKerningPairs are intentionally not included.
+// ---------------------------------------------------------------------------
+
+export interface TypesettingAdvanceOptions {
+  advances: Record<string, number>;
+  kerningEm: Record<string, number>;
+}
+
+function parseKerningTokenToChar(token: string | undefined): string | null {
+  if (!token) return null;
+  if (token.startsWith('U+') || token.startsWith('0x')) {
+    const code = parseInt(token.replace(/^U\+|^0x/, ''), 16);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : null;
+  }
+  const code = token.codePointAt(0);
+  return code === undefined ? null : String.fromCodePoint(code);
+}
+
+export function buildTypesettingAdvanceOptions(project: FontProject): TypesettingAdvanceOptions {
+  const upm = project.metadata?.unitsPerEm || 1000;
+  const advances: Record<string, number> = {};
+  for (const glyph of Object.values(project.glyphs || {})) {
+    if (!glyph?.char || !(glyph.advanceWidth > 0)) continue;
+    advances[glyph.char] = glyph.advanceWidth / upm;
+  }
+  const kerningEm: Record<string, number> = {};
+  for (const [key, value] of Object.entries(project.kerning || {})) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    let left: string | null = null;
+    let right: string | null = null;
+    if (key.includes(',')) {
+      const parts = key.split(',');
+      left = parseKerningTokenToChar(parts[0]);
+      right = parseKerningTokenToChar(parts[1]);
+    } else {
+      const chars = [...key];
+      if (chars.length === 2) {
+        left = chars[0];
+        right = chars[1];
+      }
+    }
+    if (left === null || right === null) continue;
+    kerningEm[`${left},${right}`] = value / upm;
+  }
+  return { advances, kerningEm };
+}
 
 // A single field of the lifted state. When no lifted state is supplied the
 // field falls back to local useState, so the hook also works standalone.
@@ -117,6 +173,28 @@ export function useMojikumiStudioState({
     'customText',
     persistedDefaults.customText
   );
+  // M17: true once the text differs from the selected work's text, so the
+  // header and magazine headline/lead can show the custom state instead of
+  // the original work's information.
+  const [isCustomText, setIsCustomText] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'isCustomText',
+    persistedDefaults.isCustomText
+  );
+
+  // M17: while the text is edited, display the custom state instead of the
+  // selected work's title / author / headline / lead.
+  const displayWork = useMemo<AozoraWork>(() => {
+    if (!isCustomText) return currentWork;
+    return {
+      ...currentWork,
+      title: 'カスタムテキスト',
+      author: '—',
+      headline: 'カスタムテキスト',
+      lead: '編集中のカスタムテキストです。',
+    };
+  }, [isCustomText, currentWork]);
   const [isVertical, setIsVertical] = usePersistedField(
     persistedState,
     onPersistedStateChange,
@@ -207,11 +285,34 @@ export function useMojikumiStudioState({
     }
   }, []);
 
+  // Compile only the glyphs the preview text can show (M31), mirroring
+  // the test preview's buildPreviewProject / isEquivalentPreviewProject.
+  // The candidate is rebuilt on every render (cheap: a text scan plus
+  // glyph lookups), but the state below only adopts it when it is not
+  // equivalent to the previous one, so the compile effect does not re-run
+  // for edits to glyphs outside the preview text. The text used here is
+  // the deferred text (M21), so typing does not rebuild the candidate
+  // on every keystroke either.
+  const deferredCustomText = useDeferredValue(customText);
+  const [previewProjectState, setPreviewProjectState] = useState(() => ({
+    text: deferredCustomText,
+    preview: buildPreviewProject(project, deferredCustomText),
+  }));
+  const previewProjectCandidate = buildPreviewProject(project, deferredCustomText);
+  if (
+    previewProjectState.text !== deferredCustomText ||
+    !isEquivalentPreviewProject(previewProjectState.preview, previewProjectCandidate)
+  ) {
+    setPreviewProjectState({ text: deferredCustomText, preview: previewProjectCandidate });
+  }
+  const previewProject = previewProjectState.preview;
+
   // Compile project font for live editorial preview with leak-free FontFace/URL lifecycle.
   // Debounced by 250ms (same as ExportModal and TestPreview) so continuous
   // edits do not trigger a compile on every change. When the font source is
   // a system font (mincho or gothic), the project font is not used for the
   // preview, so no compile runs and no compile error is shown.
+  // The compiled project is the preview subset (M31), not the whole project.
   useEffect(() => {
     if (compileTimerRef.current) {
       clearTimeout(compileTimerRef.current);
@@ -230,13 +331,13 @@ export function useMojikumiStudioState({
     compileTimerRef.current = setTimeout(() => {
       compileTimerRef.current = null;
       try {
-        const isPixelProject = Boolean(project.pixelFontSettings?.isPixelFontProject);
-        const previewProject = stripInvalidPixelData(project).project;
-        const validation = validateFontProject(previewProject);
+        const isPixelProject = Boolean(previewProject.pixelFontSettings?.isPixelFontProject);
+        const previewProjectCleaned = stripInvalidPixelData(previewProject).project;
+        const validation = validateFontProject(previewProjectCleaned);
         if (!validation.valid) {
           throw new Error(`フォントの検証に失敗しました: ${validation.errors.join(' / ')}`);
         }
-        const { blobUrl } = compileFont(previewProject, {
+        const { blobUrl } = compileFont(previewProjectCleaned, {
           scaleFactor: isPixelProject ? 1.0 : 1.35,
           balanceSideBearings: !isPixelProject,
           mergeOverlaps: !isPixelProject,
@@ -293,7 +394,7 @@ export function useMojikumiStudioState({
         compileTimerRef.current = null;
       }
     };
-  }, [isOpen, project, fontSource, releaseCompiledFont]);
+  }, [isOpen, previewProject, fontSource, releaseCompiledFont]);
 
   useEffect(() => {
     return () => {
@@ -319,16 +420,39 @@ export function useMojikumiStudioState({
     ).length;
   }, [project.glyphs]);
 
+  // M17: editing the text marks it as custom; editing it back to the
+  // selected work's exact text clears the custom state again.
+  const handleChangeCustomText = useCallback(
+    (text: string) => {
+      setCustomText(text);
+      const workText =
+        AOZORA_TEXTS.find((w) => w.id === selectedWorkId)?.text ?? AOZORA_TEXTS[0].text;
+      setIsCustomText(text !== workText);
+    },
+    [selectedWorkId]
+  );
+
   const handleSelectWork = useCallback(
     (work: AozoraWork) => {
+      // M16: switching works discards edited custom text, so confirm first.
+      if (isCustomText && customText !== work.text) {
+        if (
+          !window.confirm(
+            '編集中のカスタムテキストがあります。別の作品を選択すると編集内容は失われます。切り替えますか？'
+          )
+        ) {
+          return;
+        }
+      }
       setSelectedWorkId(work.id);
       setCustomText(work.text);
+      setIsCustomText(false);
       setIsVertical(work.defaultDirection === 'vertical');
       setLayoutMode(work.recommendedMode);
       onShowToast(`青空文庫『${work.title}』（${work.author}）を読み込みました`, 'info');
       setMobileTab('preview');
     },
-    [onShowToast]
+    [onShowToast, isCustomText, customText]
   );
 
   const handleSelectPreset = useCallback(
@@ -350,13 +474,21 @@ export function useMojikumiStudioState({
     return calculateTypesettingDimensions(fontSizeQ, lineFeedH, effectiveCharsPerLine, lineCount, isVertical);
   }, [fontSizeQ, lineFeedH, effectiveCharsPerLine, lineCount, isVertical]);
 
+  // M21: the layouts use the deferred text, so typing only re-runs the
+  // synchronous simulateTypesetting (4 times in compare mode) after React
+  // settles instead of on every keystroke. The textarea itself stays
+  // controlled by the raw customText, so typing echo is not delayed.
+  // M27: real advance widths / kerning from the project, in em units.
+  const advanceOptions = useMemo(() => buildTypesettingAdvanceOptions(project), [project]);
+
   const currentLayout = useMemo(() => {
-    return simulateTypesetting(customText, effectiveCharsPerLine, currentConfig, {
+    return simulateTypesetting(deferredCustomText, effectiveCharsPerLine, currentConfig, {
       isVertical,
       usePalt: currentConfig.preset === 'tsume',
       trackingEm: 0,
+      ...advanceOptions,
     });
-  }, [customText, effectiveCharsPerLine, currentConfig, isVertical]);
+  }, [deferredCustomText, effectiveCharsPerLine, currentConfig, isVertical, advanceOptions]);
 
   const betaLayout = useMemo(() => {
     if (layoutMode !== 'compare3') return currentLayout;
@@ -365,12 +497,13 @@ export function useMojikumiStudioState({
       preset: 'beta',
       table: PRESET_BETA,
     };
-    return simulateTypesetting(customText, charsPerLine, betaConfig, {
+    return simulateTypesetting(deferredCustomText, charsPerLine, betaConfig, {
       isVertical,
       usePalt: false,
       trackingEm: 0,
+      ...advanceOptions,
     });
-  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, deferredCustomText, charsPerLine, currentConfig, isVertical, advanceOptions]);
 
   const tsumeLayout = useMemo(() => {
     if (layoutMode !== 'compare3') return currentLayout;
@@ -379,12 +512,13 @@ export function useMojikumiStudioState({
       preset: 'tsume',
       table: PRESET_TSUME,
     };
-    return simulateTypesetting(customText, charsPerLine, tsumeConfig, {
+    return simulateTypesetting(deferredCustomText, charsPerLine, tsumeConfig, {
       isVertical,
       usePalt: true,
       trackingEm: 0,
+      ...advanceOptions,
     });
-  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, deferredCustomText, charsPerLine, currentConfig, isVertical, advanceOptions]);
 
   const akeLayout = useMemo(() => {
     if (layoutMode !== 'compare3') return currentLayout;
@@ -393,12 +527,13 @@ export function useMojikumiStudioState({
       preset: 'beta',
       table: PRESET_BETA,
     };
-    return simulateTypesetting(customText, charsPerLine, akeConfig, {
+    return simulateTypesetting(deferredCustomText, charsPerLine, akeConfig, {
       isVertical,
       usePalt: false,
       trackingEm: 0.15,
+      ...advanceOptions,
     });
-  }, [layoutMode, currentLayout, customText, charsPerLine, currentConfig, isVertical]);
+  }, [layoutMode, currentLayout, deferredCustomText, charsPerLine, currentConfig, isVertical, advanceOptions]);
 
   const handleSaveToProject = useCallback(() => {
     // Mojikumi config is project-level data: register it in the project
@@ -409,7 +544,7 @@ export function useMojikumiStudioState({
       mojikumiSettings: currentConfig,
       updatedAt: Date.now(),
     }));
-    onShowToast('フォントプロジェクトに文字組み設定を保存しました', 'success');
+    onShowToast('文字組み設定（プリセット・禁則・ぶら下がり・段落字下げ）を保存しました。Q数・H数・字詰め・行数・カスタムテキスト・レイアウト種別・縦横は保存されません', 'success');
   }, [currentConfig, onShowToast, setProject, commitProjectHistory]);
 
   const handleExportJson = useCallback(() => {
@@ -433,8 +568,12 @@ export function useMojikumiStudioState({
     setSidebarTab,
     selectedWorkId,
     currentWork,
+    displayWork,
+    isCustomText,
     customText,
     setCustomText,
+    handleChangeCustomText,
+    previewProject,
     isVertical,
     setIsVertical,
     fontSource,

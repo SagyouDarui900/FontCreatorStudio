@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
+import { groupTateChuYoko } from './BookSpreadView';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface AkiryoCompareViewProps {
   betaLayout: FormattedLayoutResult;
@@ -9,11 +11,14 @@ interface AkiryoCompareViewProps {
   charsPerLine: number;
   fontSizeQ: number;
   lineFeedH: number;
+  lineCount: number;
   showGrid: boolean;
   isVertical: boolean;
   isLight: boolean;
   fontFamily: string;
   zoom: number;
+  /** M20: changes when the layout, work or text switches; resets the page position. */
+  pageResetKey?: string;
 }
 
 export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
@@ -23,16 +28,35 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
   charsPerLine,
   fontSizeQ,
   lineFeedH,
+  lineCount,
   showGrid,
   isVertical,
   isLight,
   fontFamily,
   zoom,
+  pageResetKey,
 }) => {
   const [mobileTab, setMobileTab] = useState<'all' | 'beta' | 'tsume' | 'ake'>('all');
+  const [pageIdx, setPageIdx] = useState(0);
 
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+
+  // M14: one page shows lineCount lines of each style; M20: switching the
+  // layout, work or text returns to the first page.
+  const linesPerPage = Math.max(1, Math.min(24, Math.round(lineCount) || 12));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(betaLayout.lines.length / linesPerPage),
+    Math.ceil(tsumeLayout.lines.length / linesPerPage),
+    Math.ceil(akeLayout.lines.length / linesPerPage)
+  );
+  useEffect(() => {
+    setPageIdx(0);
+  }, [pageResetKey]);
+  const safePageIdx = Math.min(pageIdx, totalPages - 1);
+  const pageLines = (layout: FormattedLayoutResult) =>
+    layout.lines.slice(safePageIdx * linesPerPage, safePageIdx * linesPerPage + linesPerPage);
 
   const renderLines = (layout: FormattedLayoutResult) => {
     if (isVertical) {
@@ -60,7 +84,50 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                 }`}
                 style={{ minWidth: `${emPx}px`, minHeight: `${emPx}px` }}
               >
-                {line.glyphs.map((g, gIdx) => {
+                {groupTateChuYoko(line.glyphs).map((group, gIdx) => {
+                  // M19: a tate-chu-yoko run is drawn as one cell with its
+                  // characters side by side horizontally.
+                  if (group.tateChuYoko) {
+                    const first = group.glyphs[0];
+                    const last = group.glyphs[group.glyphs.length - 1];
+                    const text = group.glyphs.map((g) => g.char).join('');
+                    return (
+                      <span
+                        key={gIdx}
+                        className="inline-flex items-center justify-center relative"
+                        style={{
+                          paddingTop: `${first.spacingBeforeEm * emPx}px`,
+                          paddingBottom: `${last.spacingAfterEm * emPx}px`,
+                        }}
+                        title={`縦中横「${text}」 前アキ:${Math.round(first.spacingBeforeEm * 100)}% 後アキ:${Math.round(last.spacingAfterEm * 100)}%`}
+                      >
+                        <span
+                          data-tate-chu-yoko="true"
+                          className={`inline-flex items-center justify-center relative ${
+                            group.glyphs.some((g) => g.isHanging)
+                              ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                              : ''
+                          }`}
+                          style={{
+                            width: `${emPx}px`,
+                            height: `${emPx}px`,
+                            fontSize: `${Math.max(6, Math.floor(emPx / group.glyphs.length))}px`,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {showGrid && (
+                            <span className="absolute inset-0 pointer-events-none border border-stone-200/60 dark:border-stone-800/60" />
+                          )}
+                          <span className="inline-flex items-center justify-center whitespace-nowrap">
+                            {group.glyphs.map((g, i) => (
+                              <span key={i}>{g.char}</span>
+                            ))}
+                          </span>
+                        </span>
+                      </span>
+                    );
+                  }
+                  const g = group.glyphs[0];
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
                   const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
                   const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
@@ -244,6 +311,35 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
       </div>
 
+      {/* M14: page navigation (lineCount lines per style per page) */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-1 pb-1 text-xs shrink-0">
+          <span className="font-mono text-[11px] text-stone-500">
+            {safePageIdx + 1} / {totalPages} 頁（各様式 {linesPerPage} 行）
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={safePageIdx === 0}
+              onClick={() => setPageIdx((v) => Math.max(0, v - 1))}
+              className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>前頁</span>
+            </button>
+            <button
+              type="button"
+              disabled={safePageIdx >= totalPages - 1}
+              onClick={() => setPageIdx((v) => Math.min(totalPages - 1, v + 1))}
+              className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+            >
+              <span>次頁</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3 Columns Grid */}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar">
         {columns.map((col) => {
@@ -281,7 +377,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                   isLight ? 'bg-stone-50/50' : 'bg-[#0f1712]'
                 }`}
               >
-                {renderLines(col.layout)}
+                {renderLines({ ...col.layout, lines: pageLines(col.layout) })}
               </div>
             </div>
           );

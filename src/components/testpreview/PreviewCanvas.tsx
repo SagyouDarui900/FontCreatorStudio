@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { FontProject } from '../../types';
 import { DEFAULT_UPM, resolveCanvasMetrics } from '../../utils/font/constants';
-import { TestPreviewState } from './hooks/useTestPreviewState';
+import { TestPreviewState, GLYPH_MARGIN_BALANCE_THRESHOLD } from './hooks/useTestPreviewState';
 
 interface PreviewCanvasProps {
   project: FontProject;
@@ -35,7 +35,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     fontFamilyName,
     errorMsg,
     selectedCharInfo,
-    setSelectedCharInfo,
+    selectCharForAdjust,
+    isShapedText,
     adjustDx,
     setAdjustDx,
     adjustDy,
@@ -66,13 +67,40 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     [project.metadata]
   );
 
-  // Highlight space tokens, character boxes, and interactive character tokens
-  const renderedText = useMemo(() => {
-    const lines = testText.split('\n');
+  // Highlight space tokens, character boxes, and interactive character tokens.
+  // renderText takes the display font size: the waterfall view reuses this
+  // for every size step, and the adjust offset must scale with the step's
+  // size instead of the settings font size (M9).
+  const renderText = useCallback(
+    (displayFontSize: number) => {
+      const lines = testText.split('\n');
 
-    return lines.map((line, lIdx) => {
-      const parts = [];
-      const chars: string[] = Array.from(line);
+      return lines.map((line, lIdx) => {
+        // Shaped-text mode (M30): one text node per line, so the browser
+        // shapes kerning and ligatures across characters. Per-character
+        // click selection and hover are unavailable in this mode.
+        if (isShapedText) {
+          return (
+            <div key={lIdx} className="relative">
+              {line.length > 0 ? line : <br />}
+            </div>
+          );
+        }
+        const parts = [];
+        const chars: string[] = Array.from(line);
+
+        // Select a space character for adjustment (M12). Space glyphs have
+        // no visible shape, but their advance width is still adjustable.
+        const handleSpaceClick = (ch: string, code: number, i: number) => (e: React.MouseEvent) => {
+          e.stopPropagation();
+          selectCharForAdjust({ char: ch, unicode: code, lineIndex: lIdx, charIndex: i });
+          setIsSideAdjusterOpen(true);
+          setMobileTab('adjust');
+        };
+        const handleSpaceHover = (ch: string) => () => {
+          const metric = getGlyphMetric(ch);
+          if (metric) setHoveredGlyphInfo(metric);
+        };
 
       for (let i = 0; i < chars.length; i++) {
         const ch = chars[i];
@@ -85,7 +113,10 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             parts.push(
               <span
                 key={`${lIdx}-${i}-fullspace`}
-                className={`inline-block relative ${
+                onClick={handleSpaceClick(ch, code, i)}
+                onMouseEnter={handleSpaceHover(ch)}
+                onMouseLeave={() => setHoveredGlyphInfo(null)}
+                className={`inline-block relative cursor-pointer ${
                   isLight ? 'bg-amber-100 text-amber-800' : 'bg-amber-950 text-amber-300'
                 } border border-dashed ${isLight ? 'border-amber-400' : 'border-amber-600'}`}
                 style={{ width: '1em', height: '1em', lineHeight: '1em', textAlign: 'center' }}
@@ -95,7 +126,17 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               </span>
             );
           } else {
-            parts.push(<span key={`${lIdx}-${i}-fullspace`}>　</span>);
+            parts.push(
+              <span
+                key={`${lIdx}-${i}-fullspace`}
+                onClick={handleSpaceClick(ch, code, i)}
+                onMouseEnter={handleSpaceHover(ch)}
+                onMouseLeave={() => setHoveredGlyphInfo(null)}
+                className="cursor-pointer"
+              >
+                {'　'}
+              </span>
+            );
           }
         } else if (ch === ' ') {
           // 半角空白 U+0020
@@ -103,7 +144,10 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             parts.push(
               <span
                 key={`${lIdx}-${i}-halfspace`}
-                className={`inline-block relative ${
+                onClick={handleSpaceClick(ch, code, i)}
+                onMouseEnter={handleSpaceHover(ch)}
+                onMouseLeave={() => setHoveredGlyphInfo(null)}
+                className={`inline-block relative cursor-pointer ${
                   isLight ? 'bg-sky-100 text-sky-800' : 'bg-sky-950 text-sky-300'
                 } border border-dashed ${isLight ? 'border-sky-400' : 'border-sky-600'}`}
                 style={{ width: '0.5em', height: '1em', lineHeight: '1em', textAlign: 'center' }}
@@ -113,7 +157,17 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               </span>
             );
           } else {
-            parts.push(<span key={`${lIdx}-${i}-halfspace`}> </span>);
+            parts.push(
+              <span
+                key={`${lIdx}-${i}-halfspace`}
+                onClick={handleSpaceClick(ch, code, i)}
+                onMouseEnter={handleSpaceHover(ch)}
+                onMouseLeave={() => setHoveredGlyphInfo(null)}
+                className="cursor-pointer"
+              >
+                {' '}
+              </span>
+            );
           }
         } else if (showCharBoxes) {
           // Character Box mode (仮想ボディ枠と中心線の表示 + インタラクティブ選択)
@@ -131,19 +185,17 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               key={`${lIdx}-${i}-charbox`}
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedCharInfo({
+                selectCharForAdjust({
                   char: ch,
                   unicode: code,
                   lineIndex: lIdx,
                   charIndex: i,
                 });
+                setIsSideAdjusterOpen(true);
                 setMobileTab('adjust');
-                setAdjustDx(0);
-                setAdjustDy(0);
-                setAdjustScaleX(100);
-                setAdjustScaleY(100);
               }}
               onMouseEnter={() => metric && setHoveredGlyphInfo(metric)}
+              onMouseLeave={() => setHoveredGlyphInfo(null)}
               className={`inline-flex items-center justify-center relative border border-dashed transition-colors cursor-pointer select-none ${
                 isSelected
                   ? 'ring-2 ring-emerald-500 bg-emerald-500/25 border-emerald-500 text-emerald-950 dark:text-emerald-100 z-10'
@@ -151,7 +203,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   ? isLight
                     ? 'border-stone-400/50 bg-stone-100/40 text-stone-500 hover:border-emerald-500/60 hover:bg-emerald-50/20'
                     : 'border-stone-600/50 bg-stone-900/40 text-stone-400 hover:border-emerald-400/60 hover:bg-emerald-950/20'
-                  : metric && Math.abs(metric.diff) > 25 && !autoBalanceMargins
+                  : metric && Math.abs(metric.diff) > GLYPH_MARGIN_BALANCE_THRESHOLD && !autoBalanceMargins
                   ? 'border-amber-500 bg-amber-500/10 hover:bg-amber-500/25'
                   : isLight
                   ? 'border-emerald-500/40 bg-emerald-50/25 hover:bg-emerald-100/60 hover:border-emerald-500'
@@ -166,7 +218,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 textAlign: 'center',
                 boxSizing: 'border-box',
                 transform: hasCustomTransform
-                  ? `translate(${adjustDx * (fontSize / upm)}px, ${-adjustDy * (fontSize / upm)}px) scale(${adjustScaleX / 100}, ${adjustScaleY / 100})`
+                  ? `translate(${adjustDx * (displayFontSize / upm)}px, ${-adjustDy * (displayFontSize / upm)}px) scale(${adjustScaleX / 100}, ${adjustScaleY / 100})`
                   : undefined,
                 transformOrigin: 'center center',
               }}
@@ -196,7 +248,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               key={`${lIdx}-${i}-${ch}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedCharInfo({
+                selectCharForAdjust({
                   char: ch,
                   unicode: code,
                   lineIndex: lIdx,
@@ -204,12 +256,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 });
                 setIsSideAdjusterOpen(true);
                 setMobileTab('adjust');
-                setAdjustDx(0);
-                setAdjustDy(0);
-                setAdjustScaleX(100);
-                setAdjustScaleY(100);
               }}
               onMouseEnter={() => metric && setHoveredGlyphInfo(metric)}
+              onMouseLeave={() => setHoveredGlyphInfo(null)}
               className={`${hasCustomTransform ? 'inline-block ' : 'inline '}relative transition-colors cursor-pointer select-none rounded ${
                 isSelected
                   ? 'ring-2 ring-emerald-500 bg-emerald-500/20 text-emerald-950 dark:text-emerald-100 z-10'
@@ -219,7 +268,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               }`}
               style={{
                 transform: hasCustomTransform
-                  ? `translate(${adjustDx * (fontSize / upm)}px, ${-adjustDy * (fontSize / upm)}px) scale(${adjustScaleX / 100}, ${adjustScaleY / 100})`
+                  ? `translate(${adjustDx * (displayFontSize / upm)}px, ${-adjustDy * (displayFontSize / upm)}px) scale(${adjustScaleX / 100}, ${adjustScaleY / 100})`
                   : undefined,
                 transformOrigin: 'center center',
               }}
@@ -243,31 +292,32 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         </div>
       );
     });
-  }, [
-    testText,
-    writingMode,
-    showSpaceMarkers,
-    showCharBoxes,
-    autoBalanceMargins,
-    isLight,
-    selectedCharInfo,
-    adjustDx,
-    adjustDy,
-    adjustScaleX,
-    adjustScaleY,
-    fontSize,
-    project.metadata.unitsPerEm,
-    project.glyphs,
-    getGlyphMetric,
-    setSelectedCharInfo,
-    setMobileTab,
-    setIsSideAdjusterOpen,
-    setAdjustDx,
-    setAdjustDy,
-    setAdjustScaleX,
-    setAdjustScaleY,
-    setHoveredGlyphInfo,
-  ]);
+  },
+  [
+      testText,
+      writingMode,
+      showSpaceMarkers,
+      showCharBoxes,
+      autoBalanceMargins,
+      isLight,
+      selectedCharInfo,
+      adjustDx,
+      adjustDy,
+      adjustScaleX,
+      adjustScaleY,
+      project.metadata.unitsPerEm,
+      project.glyphs,
+      getGlyphMetric,
+      selectCharForAdjust,
+      setMobileTab,
+      setIsSideAdjusterOpen,
+      setHoveredGlyphInfo,
+      isShapedText,
+    ]
+  );
+
+  // Single-size view: render at the settings font size.
+  const renderedText = useMemo(() => renderText(fontSize), [renderText, fontSize]);
 
   const patternId = `notebook-ruling-${writingMode === 'vertical' ? 'v' : 'h'}-${patternIdPrefix}`;
 
@@ -307,6 +357,12 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               : 'max-w-5xl space-y-8 py-4'
           }`}
         >
+          {isShapedText && (
+            <div className="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-900 dark:text-emerald-200 select-none">
+              <span className="font-bold">整形表示中: </span>
+              <span>1行を1つのテキストとして表示し、カーニングと合字を確認できます。文字のクリック選択とホバー表示はできません。</span>
+            </div>
+          )}
           {waterfallSizes.map((size) => (
             <div
               key={size}
@@ -333,7 +389,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                     }}
                     className={`whitespace-pre-wrap min-h-[200px] w-max min-w-full break-normal py-1 ${isLight ? 'text-stone-900' : 'text-emerald-100'}`}
                   >
-                    {renderedText}
+                    {renderText(size)}
                   </div>
                 </div>
               ) : (
@@ -349,7 +405,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   }}
                   className={`whitespace-pre-wrap break-words ${isLight ? 'text-stone-900' : 'text-emerald-100'}`}
                 >
-                  {renderedText}
+                  {renderText(size)}
                 </div>
               )}
             </div>
@@ -372,6 +428,15 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             }`}
           >
             {/* Empty Glyph Feedback Notice */}
+            {isShapedText && (
+              <div
+                dir="ltr"
+                className="mb-4 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-900 dark:text-emerald-200 flex items-center gap-2 select-none"
+              >
+                <span className="font-bold shrink-0">整形表示中:</span>
+                <span>1行を1つのテキストとして表示し、カーニングと合字を確認できます。文字のクリック選択とホバー表示はできません。</span>
+              </div>
+            )}
             {drawnGlyphsCount === 0 && (
               <div
                 dir="ltr"

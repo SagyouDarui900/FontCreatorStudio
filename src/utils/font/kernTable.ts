@@ -104,14 +104,23 @@ function buildKernTableBytes(pairs: KernPair[]): Uint8Array {
 }
 
 /**
- * Inject (or replace) a standard Windows/OpenType Format 0 `kern` table inside a
- * serialized SFNT (OTF/TTF) ArrayBuffer and update directory offsets and checksums.
+ * Inject (or replace) one or more tables inside a serialized SFNT
+ * (OTF/TTF) ArrayBuffer and update directory offsets and checksums.
+ * Tables with a tag already present in the font are replaced; all other
+ * tables are copied through unchanged. The `head` table's
+ * checkSumAdjustment is recomputed, so the result stays a valid SFNT
+ * container. This is the shared primitive behind injectKernTable and
+ * the GPOS / vmtx / vhea injection: opentype.js 2.0.0 never writes any
+ * of those tables, so they have to be added after serialization.
  */
-export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBuffer {
-  const kernBytes = buildKernTableBytes(pairs);
-  if (kernBytes.length <= 18) {
+export function injectSfntTables(
+  buffer: ArrayBuffer,
+  replacements: SfntTableEntry[]
+): ArrayBuffer {
+  if (replacements.length === 0) {
     return buffer;
   }
+  const replaceTags = new Set(replacements.map((t) => t.tag));
 
   const srcBytes = new Uint8Array(buffer);
   const srcView = new DataView(buffer);
@@ -139,7 +148,7 @@ export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBu
     if (offset + length > srcBytes.length) {
       throw new Error(`Invalid SFNT table "${tag}": exceeds buffer length`);
     }
-    if (tag === 'kern') continue;
+    if (replaceTags.has(tag)) continue;
 
     const copy = new Uint8Array(length);
     copy.set(srcBytes.subarray(offset, offset + length));
@@ -153,7 +162,9 @@ export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBu
     tables.push({ tag, data: copy });
   }
 
-  tables.push({ tag: 'kern', data: kernBytes });
+  for (const replacement of replacements) {
+    tables.push({ tag: replacement.tag, data: replacement.data });
+  }
   tables.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
 
   const nextNumTables = tables.length;
@@ -201,4 +212,16 @@ export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBu
   }
 
   return outBuf;
+}
+
+/**
+ * Inject (or replace) a standard Windows/OpenType Format 0 `kern` table inside a
+ * serialized SFNT (OTF/TTF) ArrayBuffer and update directory offsets and checksums.
+ */
+export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBuffer {
+  const kernBytes = buildKernTableBytes(pairs);
+  if (kernBytes.length <= 18) {
+    return buffer;
+  }
+  return injectSfntTables(buffer, [{ tag: 'kern', data: kernBytes }]);
 }

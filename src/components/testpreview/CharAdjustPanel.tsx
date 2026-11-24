@@ -18,7 +18,7 @@ import {
 import { FontProject } from '../../types';
 import { DEFAULT_UPM, resolveBaselineY } from '../../utils/font/constants';
 import { groupContoursForRendering } from '../../utils/path';
-import { TestPreviewState } from './hooks/useTestPreviewState';
+import { TestPreviewState, clampAdjustOffset, clampAdjustScale } from './hooks/useTestPreviewState';
 
 interface CharAdjustPanelProps {
   project: FontProject;
@@ -33,7 +33,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
 }) => {
   const {
     selectedCharInfo,
-    setSelectedCharInfo,
+    selectCharForAdjust,
     activeGlyph,
     activeGlyphContours,
     isPixelOnlyActiveGlyph,
@@ -122,11 +122,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                 const u = Number(e.target.value);
                 if (u && project.glyphs[u]) {
                   const ch = project.glyphs[u].char || String.fromCodePoint(u);
-                  setSelectedCharInfo({ char: ch, unicode: u, lineIndex: -1, charIndex: -1 });
-                  setAdjustDx(0);
-                  setAdjustDy(0);
-                  setAdjustScaleX(100);
-                  setAdjustScaleY(100);
+                  selectCharForAdjust({ char: ch, unicode: u, lineIndex: -1, charIndex: -1 });
                 }
               }}
               className={`flex-1 text-xs py-1.5 px-2 rounded-lg border font-bold truncate ${
@@ -138,7 +134,12 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               <option value="">-- 調整する文字を選択 --</option>
               {glyphEntries.map((item) => (
                 <option key={item.unicode} value={item.unicode}>
-                  「{item.char}」 (U+{item.unicode.toString(16).toUpperCase()})
+                  {item.char === ' '
+                    ? '半角空白'
+                    : item.char === '　'
+                    ? '全角空白'
+                    : `「${item.char}」`}{' '}
+                  (U+{item.unicode.toString(16).toUpperCase()})
                 </option>
               ))}
             </select>
@@ -157,7 +158,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
           {selectedCharInfo && (
             <button
               type="button"
-              onClick={() => setSelectedCharInfo(null)}
+              onClick={() => selectCharForAdjust(null)}
               className="p-1.5 rounded-md hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 transition-colors"
               title="調整パネルを閉じる (Esc)"
             >
@@ -388,7 +389,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                     <input
                       type="number"
                       value={adjustDx}
-                      onChange={(e) => setAdjustDx(Number(e.target.value) || 0)}
+                      onChange={(e) => setAdjustDx(clampAdjustOffset(Number(e.target.value) || 0))}
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className={`w-14 px-1 py-0.5 rounded border text-right font-mono font-bold text-xs shrink-0 ${
@@ -434,7 +435,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                     <input
                       type="number"
                       value={adjustDy}
-                      onChange={(e) => setAdjustDy(Number(e.target.value) || 0)}
+                      onChange={(e) => setAdjustDy(clampAdjustOffset(Number(e.target.value) || 0))}
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className={`w-14 px-1 py-0.5 rounded border text-right font-mono font-bold text-xs shrink-0 ${
@@ -453,7 +454,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                           <button
                             key={val}
                             type="button"
-                            onClick={() => setAdjustDx((prev) => prev + val)}
+                            onClick={() => setAdjustDx((prev) => clampAdjustOffset(prev + val))}
                             onPointerDown={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
                             className="h-6 px-2 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer text-[10.5px] whitespace-nowrap font-mono"
@@ -471,7 +472,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                           <button
                             key={val}
                             type="button"
-                            onClick={() => setAdjustDy((prev) => prev + val)}
+                            onClick={() => setAdjustDy((prev) => clampAdjustOffset(prev + val))}
                             onPointerDown={(e) => e.stopPropagation()}
                             onTouchStart={(e) => e.stopPropagation()}
                             className="h-6 px-2 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer text-[10.5px] whitespace-nowrap font-mono"
@@ -559,7 +560,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                     type="number"
                     value={adjustScaleX}
                     onChange={(e) => {
-                      const val = Number(e.target.value) || 100;
+                      const val = clampAdjustScale(Number(e.target.value) || 100);
                       setAdjustScaleX(val);
                       if (isAspectLocked) setAdjustScaleY(val);
                     }}
@@ -621,7 +622,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                     type="number"
                     value={adjustScaleY}
                     onChange={(e) => {
-                      const val = Number(e.target.value) || 100;
+                      const val = clampAdjustScale(Number(e.target.value) || 100);
                       setAdjustScaleY(val);
                       if (isAspectLocked) setAdjustScaleX(val);
                     }}

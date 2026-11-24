@@ -547,6 +547,338 @@ describe('Font Project Validation & Compilation', () => {
   });
 });
 
+describe('compileFont with palt / vpal (H1)', () => {
+  const rect = (id: string): PathContour => ({
+    id,
+    closed: true,
+    nodes: [
+      { id: `${id}n1`, x: 100, y: 100, type: 'corner' },
+      { id: `${id}n2`, x: 500, y: 100, type: 'corner' },
+      { id: `${id}n3`, x: 500, y: 600, type: 'corner' },
+      { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
+    ],
+  });
+
+  function readSfntTable(buffer: ArrayBuffer, tag: string): Uint8Array | null {
+    const bytes = new Uint8Array(buffer);
+    const view = new DataView(buffer);
+    const numTables = view.getUint16(4, false);
+    for (let i = 0; i < numTables; i++) {
+      const recOffset = 12 + i * 16;
+      const foundTag = String.fromCharCode(
+        bytes[recOffset],
+        bytes[recOffset + 1],
+        bytes[recOffset + 2],
+        bytes[recOffset + 3]
+      );
+      if (foundTag === tag) {
+        const offset = view.getUint32(recOffset + 8, false);
+        const length = view.getUint32(recOffset + 12, false);
+        return bytes.slice(offset, offset + length);
+      }
+    }
+    return null;
+  }
+
+  function paltProject(percent: number, withConfig = true): FontProject {
+    const base = createMockProject({
+      glyphs: {
+        12354: {
+          char: 'あ',
+          name: 'uni3042',
+          unicode: 12354,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rect('c1')],
+        },
+      },
+    });
+    if (!withConfig) return base;
+    return {
+      ...base,
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: { enabled: true, defaultVertAdvance: 1000, vertOriginY: 800, substitutions: [] },
+        ligatures: [],
+        customKerningPairs: [],
+        palt: {
+          enabled: true,
+          autoDerivePalt: true,
+          autoDeriveVpal: true,
+          opticalSideBearingPercent: percent,
+          paltList: [],
+          vpalList: [],
+        },
+      },
+    };
+  }
+
+  it('writes a GPOS palt/pkna table with the derived advance adjustment', () => {
+    // Glyph outline is 400 wide in a 1000 advance; 5% padding (50 each
+    // side) gives proportionalAdvance 500, so xAdvance is -500.
+    const compiled = compileFont(paltProject(5), { skipBlobUrl: true, scaleFactor: 1.0 });
+    expect(readSfntTable(compiled.buffer, 'GPOS')).not.toBeNull();
+    const reparsed = opentype.parse(compiled.buffer);
+    const gpos = (reparsed as any).tables.gpos;
+    expect(gpos).toBeDefined();
+    expect(gpos.features.map((f: any) => f.tag)).toEqual(
+      expect.arrayContaining(['palt', 'pkna'])
+    );
+    const paltLookup = gpos.lookups[0];
+    expect(paltLookup.lookupType).toBe(1);
+    expect(paltLookup.subtables[0].values.map((v: any) => v.xAdvance)).toEqual([-500]);
+  });
+
+  it('writes vmtx/vhea tables with the derived vertical advance', () => {
+    const compiled = compileFont(paltProject(5), { skipBlobUrl: true, scaleFactor: 1.0 });
+    const vmtx = readSfntTable(compiled.buffer, 'vmtx');
+    const vhea = readSfntTable(compiled.buffer, 'vhea');
+    expect(vmtx).not.toBeNull();
+    expect(vhea).not.toBeNull();
+    // Glyph order: .notdef, あ, space, fullwidth space.
+    expect(vmtx!.length).toBe(16);
+    const vmtxView = new DataView(vmtx!.buffer);
+    // あ: outline 500 high + 5% padding each side -> vertical advance 600;
+    // top side bearing is vertOriginY 800 minus the outline top (700).
+    expect(vmtxView.getUint16(4, false)).toBe(600);
+    expect(vmtxView.getInt16(6, false)).toBe(100);
+    const vheaView = new DataView(vhea!.buffer);
+    expect(vhea!.length).toBe(36);
+    expect(vheaView.getUint16(10, false)).toBe(1000);
+    expect(vheaView.getUint16(34, false)).toBe(4);
+  });
+
+  it('applies palt even when the project has no openTypeFeatures config', () => {
+    const compiled = compileFont(paltProject(5, false), { skipBlobUrl: true, scaleFactor: 1.0 });
+    const reparsed = opentype.parse(compiled.buffer);
+    expect((reparsed as any).tables.gpos).toBeDefined();
+    expect(readSfntTable(compiled.buffer, 'vmtx')).not.toBeNull();
+  });
+
+  it('keeps an explicit opticalSideBearingPercent of 0 instead of falling back to 5', () => {
+    // 0% padding: proportionalAdvance is the bare outline width 400.
+    const compiled = compileFont(paltProject(0), { skipBlobUrl: true, scaleFactor: 1.0 });
+    const reparsed = opentype.parse(compiled.buffer);
+    const gpos = (reparsed as any).tables.gpos;
+    expect(gpos.lookups[0].subtables[0].values.map((v: any) => v.xAdvance)).toEqual([-600]);
+  });
+});
+
+describe('compileFont vertical derivations with saved presets (H2)', () => {
+  it('keeps compiler derivations after the preset substitution list is saved', async () => {
+    const { DEFAULT_VERT_PRESETS } = await import(
+      '../../components/openTypeFeatures/openTypePresets'
+    );
+    const rect = (id: string): PathContour => ({
+      id,
+      closed: true,
+      nodes: [
+        { id: `${id}n1`, x: 100, y: 100, type: 'corner' },
+        { id: `${id}n2`, x: 500, y: 100, type: 'corner' },
+        { id: `${id}n3`, x: 500, y: 600, type: 'corner' },
+        { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
+      ],
+    });
+    const sources: [number, string][] = [
+      [0x3001, '、'],
+      [0xff08, '（'],
+      [0x301c, '〜'],
+      [0x2015, '―'],
+      [0x2026, '…'],
+      [0x007b, '｛'],
+    ];
+    const glyphs: Record<number, any> = {};
+    for (const [unicode, char] of sources) {
+      glyphs[unicode] = {
+        char,
+        name: `uni${unicode.toString(16).toUpperCase()}`,
+        unicode,
+        advanceWidth: 1000,
+        lsb: 50,
+        contours: [rect(`c${unicode}`)],
+      };
+    }
+    const project = createMockProject({
+      glyphs,
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: {
+          enabled: true,
+          defaultVertAdvance: 1000,
+          vertOriginY: 800,
+          substitutions: DEFAULT_VERT_PRESETS.map((p, idx) => ({
+            id: `vsub_${idx}`,
+            sourceUnicode: p.sourceUnicode,
+            vertUnicode: p.vertUnicode,
+            enabled: true,
+          })),
+        },
+        ligatures: [],
+        customKerningPairs: [],
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    // Every compiler derivation survives the saved preset list.
+    // (Checked by code point, not by literal: several vertical-form
+    // characters have look-alikes, e.g. U+FE34 vs U+FE4F.)
+    for (const vertUnicode of [0xfe11, 0xfe35, 0xfe4f, 0xfe33, 0xfe19, 0xfe37]) {
+      expect(compiled.font.hasChar(String.fromCodePoint(vertUnicode))).toBe(true);
+    }
+    // The old wrong preset target for 、 (U+FE10) is not generated.
+    expect(compiled.font.hasChar(String.fromCodePoint(0xfe10))).toBe(false);
+  });
+});
+
+describe('compileFont OS/2 average width (M28)', () => {
+  const rect = (id: string): PathContour => ({
+    id,
+    closed: true,
+    nodes: [
+      { id: `${id}n1`, x: 100, y: 100, type: 'corner' },
+      { id: `${id}n2`, x: 500, y: 100, type: 'corner' },
+      { id: `${id}n3`, x: 500, y: 600, type: 'corner' },
+      { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
+    ],
+  });
+
+  it('averages advance width over the same glyph set it sums', () => {
+    const glyphs: Record<number, any> = {};
+    for (const [unicode, char] of [
+      [0x3042, 'あ'],
+      [0x3044, 'い'],
+      [0x3046, 'う'],
+      [0x3048, 'え'],
+      [0x304a, 'お'],
+    ] as const) {
+      glyphs[unicode] = {
+        char,
+        name: `uni${unicode.toString(16)}`,
+        unicode,
+        advanceWidth: 1000,
+        lsb: 50,
+        contours: [rect(`c${unicode}`)],
+      };
+    }
+    const compiled = compileFont(createMockProject({ glyphs }), {
+      skipBlobUrl: true,
+      scaleFactor: 1.0,
+    });
+    // (5 x 1000 + 500 space + 1000 fullwidth space) / 7 glyphs = 929.
+    // .notdef (600) is in neither the sum nor the count.
+    expect(compiled.font.tables.os2.xAvgCharWidth).toBe(929);
+  });
+
+  it('includes vertical derivations in the average and in advanceWidthMax', () => {
+    const project = createMockProject({
+      glyphs: {
+        0x3042: {
+          char: 'あ',
+          name: 'uni3042',
+          unicode: 0x3042,
+          advanceWidth: 500,
+          lsb: 50,
+          contours: [rect('c1')],
+        },
+        0x3001: {
+          char: '、',
+          name: 'uni3001',
+          unicode: 0x3001,
+          advanceWidth: 500,
+          lsb: 50,
+          contours: [rect('c2')],
+        },
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    // (500 + 500 + 500 space + 1000 fullwidth space + 1000 vert FE11) / 5 = 700.
+    expect(compiled.font.tables.os2.xAvgCharWidth).toBe(700);
+    // The vertical derivation's 1000 advance is the maximum.
+    expect(compiled.font.tables.hhea.advanceWidthMax).toBe(1000);
+  });
+});
+
+describe('compileFont unitsPerEm scaling (M29)', () => {
+  it('scales .notdef, ascender/descender fallbacks and space widths with UPM', () => {
+    const project = createMockProject({
+      metadata: {
+        familyName: 'TestFont',
+        styleName: 'Regular',
+        designer: 'Tester',
+        copyright: 'Copyright 2026',
+        version: '1.0',
+        unitsPerEm: 2048,
+      } as any,
+      glyphs: {},
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.font.unitsPerEm).toBe(2048);
+    // Fallback ascender is 80% of UPM; fallback descender is ascender - UPM.
+    expect(compiled.font.ascender).toBe(1638);
+    expect(compiled.font.descender).toBe(-410);
+    expect(compiled.font.glyphs.get(0).advanceWidth).toBe(1229);
+    expect(compiled.font.glyphs.get(compiled.font.charToGlyphIndex(' ')).advanceWidth).toBe(1024);
+    expect(
+      compiled.font.glyphs.get(compiled.font.charToGlyphIndex('　')).advanceWidth
+    ).toBe(2048);
+  });
+
+  it('uses the clamped UPM, not the raw metadata value, for fallbacks', () => {
+    const project = createMockProject({
+      metadata: {
+        familyName: 'TestFont',
+        styleName: 'Regular',
+        designer: 'Tester',
+        copyright: 'Copyright 2026',
+        version: '1.0',
+        unitsPerEm: 20000,
+        ascender: 800,
+        descender: -200,
+      } as any,
+      glyphs: {},
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.font.unitsPerEm).toBe(16384);
+    expect(compiled.font.glyphs.get(compiled.font.charToGlyphIndex(' ')).advanceWidth).toBe(8192);
+    expect(
+      compiled.font.glyphs.get(compiled.font.charToGlyphIndex('　')).advanceWidth
+    ).toBe(16384);
+  });
+});
+
+describe('compileFont fsSelection REGULAR bit (M32)', () => {
+  it('does not set REGULAR for Medium / SemiBold weights', () => {
+    for (const styleName of ['Medium', 'SemiBold']) {
+      const project = createMockProject({
+        metadata: {
+          ...createMockProject().metadata,
+          styleName,
+          usWeightClass: undefined,
+        },
+      });
+      const compiled = compileFont(project, { skipBlobUrl: true });
+      expect(compiled.font.tables.os2.fsSelection & 0x0040).toBe(0);
+    }
+  });
+
+  it('sets REGULAR for a true Regular weight', () => {
+    const compiled = compileFont(createMockProject(), { skipBlobUrl: true });
+    expect(compiled.font.tables.os2.fsSelection & 0x0040).toBe(0x0040);
+  });
+
+  it('reconciles a Bold style name with a stored weight class of 400', () => {
+    const project = createMockProject({
+      metadata: {
+        ...createMockProject().metadata,
+        styleName: 'Bold',
+        usWeightClass: 400,
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.font.tables.os2.usWeightClass).toBe(700);
+    expect(compiled.font.tables.os2.fsSelection & 0x0020).toBe(0x0020);
+    expect(compiled.font.tables.os2.fsSelection & 0x0040).toBe(0);
+  });
+});
 describe('compileFont with kerning', () => {
   it('compiles a project with valid kerning pairs and writes a kern table', () => {
     const rectContour: PathContour = {

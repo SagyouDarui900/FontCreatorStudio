@@ -138,10 +138,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             <button
               type="button"
               onClick={state.handleSaveToProject}
+              title="文字組み設定（プリセット・禁則・ぶら下がり・段落字下げ）を保存。Q数・H数・字詰め・行数・カスタムテキスト・レイアウト種別・縦横は保存されません"
               className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors duration-150 cursor-pointer ${themeClasses.accentBtn}`}
             >
               <Save className="w-3.5 h-3.5" />
-              <span>保存</span>
+              <span>設定を保存</span>
             </button>
 
             <button
@@ -361,7 +362,8 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             selectedWorkId={state.selectedWorkId}
             onSelectWork={state.handleSelectWork}
             customText={state.customText}
-            onChangeCustomText={state.setCustomText}
+            onChangeCustomText={state.handleChangeCustomText}
+            isCustomText={state.isCustomText}
             fontSizeQ={state.fontSizeQ}
             onChangeFontSizeQ={state.setFontSizeQ}
             lineFeedH={state.lineFeedH}
@@ -378,6 +380,12 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             }
             onChangeBurasagari={(burasagari) =>
               state.setCurrentConfig((prev) => ({ ...prev, burasagari }))
+            }
+            onChangeParagraphIndent={(paragraphIndent) =>
+              state.setCurrentConfig((prev) => ({ ...prev, paragraphIndent }))
+            }
+            onChangeKinsokuAdjust={(kinsokuAdjust) =>
+              state.setCurrentConfig((prev) => ({ ...prev, kinsokuAdjust }))
             }
             isManuscriptMode={state.layoutMode === 'manuscript'}
           />
@@ -397,11 +405,11 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             >
               <div className="flex items-center space-x-2">
                 <span>
-                  作品: <strong>『{state.currentWork.title}』</strong>
+                  作品: <strong>『{state.displayWork.title}』</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  著者: <strong>{state.currentWork.author}</strong>
+                  著者: <strong>{state.displayWork.author}</strong>
                 </span>
               </div>
               <div className="flex items-center space-x-3 text-[11px]">
@@ -415,61 +423,71 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               {state.layoutMode === 'book_spread' && (
                 <BookSpreadView
                   layout={state.currentLayout}
-                  title={state.currentWork.title}
-                  author={state.currentWork.author}
+                  title={state.displayWork.title}
+                  author={state.displayWork.author}
                   isLight={isLight}
                   fontFamily={state.effectiveFontFamily}
                   fontSizeQ={state.fontSizeQ}
                   lineFeedH={state.lineFeedH}
                   charsPerLine={state.charsPerLine}
+                  lineCount={state.lineCount}
                   showGrid={state.showBodyGrid}
                   isVertical={state.isVertical}
                   zoom={state.zoom}
+                  pageResetKey={`${state.selectedWorkId}:${state.layoutMode}`}
                 />
               )}
 
               {state.layoutMode === 'manuscript' && (
                 <ManuscriptView
                   layout={state.currentLayout}
-                  title={state.currentWork.title}
-                  author={state.currentWork.author}
+                  title={state.displayWork.title}
+                  author={state.displayWork.author}
                   isLight={isLight}
                   fontFamily={state.effectiveFontFamily}
                   fontSizeQ={state.fontSizeQ}
                   zoom={state.zoom}
                   charsPerLine={state.charsPerLine}
+                  isVertical={state.isVertical}
+                  lineFeedH={state.lineFeedH}
+                  showGrid={state.showBodyGrid}
+                  pageResetKey={`${state.selectedWorkId}:${state.layoutMode}`}
                 />
               )}
 
               {state.layoutMode === 'magazine' && (
                 <MagazineLayoutView
                   layout={state.currentLayout}
-                  title={state.currentWork.title}
-                  author={state.currentWork.author}
-                  headline={state.currentWork.headline}
-                  lead={state.currentWork.lead}
+                  title={state.displayWork.title}
+                  author={state.displayWork.author}
+                  headline={state.displayWork.headline}
+                  lead={state.displayWork.lead}
                   isLight={isLight}
                   fontFamily={state.effectiveFontFamily}
                   fontSizeQ={state.fontSizeQ}
                   lineFeedH={state.lineFeedH}
+                  lineCount={state.lineCount}
                   isVertical={state.isVertical}
                   showGrid={state.showBodyGrid}
                   zoom={state.zoom}
+                  pageResetKey={`${state.selectedWorkId}:${state.layoutMode}`}
                 />
               )}
 
               {state.layoutMode === 'poetry' && (
                 <PoetryTanzakuView
                   layout={state.currentLayout}
-                  title={state.currentWork.title}
-                  author={state.currentWork.author}
+                  title={state.displayWork.title}
+                  author={state.displayWork.author}
                   isLight={isLight}
                   fontFamily={state.effectiveFontFamily}
                   fontSizeQ={state.fontSizeQ}
                   lineFeedH={state.lineFeedH}
+                  lineCount={state.lineCount}
                   zoom={state.zoom}
                   isVertical={state.isVertical}
                   showGrid={state.showBodyGrid}
+                  pageResetKey={`${state.selectedWorkId}:${state.layoutMode}`}
                 />
               )}
 
@@ -481,11 +499,13 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                   charsPerLine={state.charsPerLine}
                   fontSizeQ={state.fontSizeQ}
                   lineFeedH={state.lineFeedH}
+                  lineCount={state.lineCount}
                   showGrid={state.showBodyGrid}
                   isVertical={state.isVertical}
                   isLight={isLight}
                   fontFamily={state.effectiveFontFamily}
                   zoom={state.zoom}
+                  pageResetKey={`${state.selectedWorkId}:${state.layoutMode}`}
                 />
               )}
             </div>

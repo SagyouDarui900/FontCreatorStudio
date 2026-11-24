@@ -17,8 +17,17 @@ import {
 } from './constants';
 import { validateFontProject, stripInvalidPixelData } from './validation';
 import { contoursToOpenTypePath } from './paths';
-import { deriveProjectPaltMetrics } from './metrics';
-import { injectKernTable, type KernPair } from './kernTable';
+import { deriveProjectPaltMetrics, deriveProjectVpalMetrics } from './metrics';
+import { injectKernTable, injectSfntTables, type KernPair } from './kernTable';
+import {
+  buildGposTableBytes,
+  buildVheaTableBytes,
+  buildVmtxTableBytes,
+  type GposKernPair,
+  type GposSinglePosEntry,
+  type VmtxEntry,
+} from './gposTable';
+import type { PaltGlyphMetric, VpalGlyphMetric } from '../../types';
 
 export interface CompileFontOptions {
   /**
@@ -117,28 +126,40 @@ export function compileFont(
 
   const glyphsList: opentype.Glyph[] = [];
 
+  // Clamped unitsPerEm, resolved first: .notdef dimensions, advance-width
+  // fallbacks and the scale anchor below all derive from it, so the raw
+  // metadata value must never leak into a fallback.
+  const rawUpm = project.metadata?.unitsPerEm;
+  const upm =
+    typeof rawUpm === 'number' && Number.isFinite(rawUpm) && rawUpm > 0
+      ? Math.max(16, Math.min(16384, Math.round(rawUpm)))
+      : DEFAULT_UPM;
+
   // .notdef glyph is required as the first glyph (index 0)
   const notdefPath = new opentype.Path();
-  // Draw standard rectangular box with cross for .notdef
-  const boxWidth = 500;
-  const boxHeight = 700;
-  const margin = 50;
+  // Draw standard rectangular box with cross for .notdef. Dimensions are
+  // proportional to unitsPerEm (0.5 x 0.7 em, 0.05 em margin, 0.6 em
+  // advance) instead of fixed 1000-UPM values.
+  const boxWidth = Math.round(upm * 0.5);
+  const boxHeight = Math.round(upm * 0.7);
+  const margin = Math.round(upm * 0.05);
+  const notdefInset = Math.round(upm * 0.04);
   notdefPath.moveTo(margin, 0);
   notdefPath.lineTo(boxWidth - margin, 0);
   notdefPath.lineTo(boxWidth - margin, boxHeight);
   notdefPath.lineTo(margin, boxHeight);
   notdefPath.close();
   // inner cut
-  notdefPath.moveTo(margin + 40, 40);
-  notdefPath.lineTo(margin + 40, boxHeight - 40);
-  notdefPath.lineTo(boxWidth - margin - 40, boxHeight - 40);
-  notdefPath.lineTo(boxWidth - margin - 40, 40);
+  notdefPath.moveTo(margin + notdefInset, notdefInset);
+  notdefPath.lineTo(margin + notdefInset, boxHeight - notdefInset);
+  notdefPath.lineTo(boxWidth - margin - notdefInset, boxHeight - notdefInset);
+  notdefPath.lineTo(boxWidth - margin - notdefInset, notdefInset);
   notdefPath.close();
 
   const notdefGlyph = new opentype.Glyph({
     name: '.notdef',
     unicode: 0,
-    advanceWidth: 600,
+    advanceWidth: Math.round(upm * 0.6),
     path: notdefPath,
   });
   glyphsList.push(notdefGlyph);
@@ -147,28 +168,57 @@ export function compileFont(
   const addedUnicodes = new Set<number>();
   addedUnicodes.add(0);
 
-  // Track unicode bounds and advance widths
+  // Track unicode bounds and advance widths. totalAdvanceWidth and
+  // countedAdvanceGlyphs cover exactly the same glyph set (user glyphs,
+  // the two synthetic spaces and the vertical derivations); .notdef is
+  // a placeholder and is excluded from both, so xAvgCharWidth is the
+  // mean of the advances actually summed.
   let minUnicode = 0xffff;
   let maxUnicode = 0;
   let totalAdvanceWidth = 0;
+  let countedAdvanceGlyphs = 0;
   let maxAdvanceWidth = 0;
 
-  const rawUpm = project.metadata?.unitsPerEm;
-  const upm =
-    typeof rawUpm === 'number' && Number.isFinite(rawUpm) && rawUpm > 0
-      ? Math.max(16, Math.min(16384, Math.round(rawUpm)))
-      : DEFAULT_UPM;
   const rawAscender = project.metadata?.ascender;
   const baselineY = resolveBaselineY(rawAscender, upm);
   const featureConfig = project.openTypeFeatures;
   const openTypeFeaturesEnabled = featureConfig?.enabled !== false;
   const verticalWritingEnabled = openTypeFeaturesEnabled && featureConfig?.verticalWriting?.enabled !== false;
-  const enabledVerticalSubstitutions = new Set(
-    (featureConfig?.verticalWriting?.substitutions || [])
-      .filter((sub) => sub.enabled)
-      .map((sub) => `${sub.sourceUnicode}:${sub.vertUnicode}`)
-  );
   const configuredKerning: Record<string, number> = { ...(project.kerning || {}) };
+
+  // Proportional metrics (palt / vpal). The modal's default is palt
+  // enabled, so a project without an openTypeFeatures config (or without
+  // a palt section) behaves the same as one saved from the modal:
+  // palt is enabled unless it was explicitly turned off. The percent
+  // uses ?? so that an explicit 0 (no optical padding) stays 0 instead
+  // of falling back to 5.
+  const paltConfig = featureConfig?.palt;
+  const paltEnabled = openTypeFeaturesEnabled && (paltConfig?.enabled ?? true);
+  const opticalSideBearingPercent =
+    typeof paltConfig?.opticalSideBearingPercent === 'number' &&
+    Number.isFinite(paltConfig.opticalSideBearingPercent)
+      ? paltConfig.opticalSideBearingPercent
+      : 5;
+  let paltItems: PaltGlyphMetric[] = [];
+  if (paltEnabled) {
+    paltItems =
+      paltConfig?.paltList && paltConfig.paltList.length > 0
+        ? paltConfig.paltList
+        : deriveProjectPaltMetrics(project, opticalSideBearingPercent);
+  }
+  // vpal items feed the vmtx table (built after the glyph list is final).
+  // They are only used when palt is enabled and either a list was saved
+  // or automatic derivation was not turned off.
+  let vpalItems: VpalGlyphMetric[] = [];
+  const vpalEnabled =
+    paltEnabled &&
+    ((paltConfig?.vpalList?.length ?? 0) > 0 || (paltConfig?.autoDeriveVpal ?? true));
+  if (vpalEnabled) {
+    vpalItems =
+      paltConfig?.vpalList && paltConfig.vpalList.length > 0
+        ? paltConfig.vpalList
+        : deriveProjectVpalMetrics(project, opticalSideBearingPercent);
+  }
 
   if (openTypeFeaturesEnabled) {
     for (const pair of featureConfig?.customKerningPairs || []) {
@@ -181,29 +231,11 @@ export function compileFont(
       const key = `${firstChar},${secondChar}`;
       configuredKerning[key] = pair.amount;
     }
-
-    // Embed Proportional Metrics (palt) adjustments into kerning / GPOS if enabled
-    if (featureConfig?.palt?.enabled) {
-      const paltItems =
-        featureConfig.palt.paltList && featureConfig.palt.paltList.length > 0
-          ? featureConfig.palt.paltList
-          : deriveProjectPaltMetrics(project, featureConfig.palt.opticalSideBearingPercent || 5);
-
-      for (const p of paltItems) {
-        if (!p.enabled) continue;
-        // Punctuation and bracket pairs kerning adjustment
-        if (p.char === '」' || p.char === '）' || p.char === '、' || p.char === '。') {
-          // Add tighter kern pair with following non-yakumono
-          const followCandidates = ['「', '（', 'あ', 'い', 'う', 'え', 'お', '日', '本', '語'];
-          for (const fc of followCandidates) {
-            const pairKey = `${p.char},${fc}`;
-            if (!configuredKerning[pairKey]) {
-              configuredKerning[pairKey] = Math.round(p.deltaAdvance / 2);
-            }
-          }
-        }
-      }
-    }
+    // NOTE: palt is no longer simulated with kern pairs for a few
+    // punctuation marks. The per-glyph advance adjustments are written
+    // as a real GPOS `palt` / `pkna` table after serialization (see
+    // below); the old kern pairs would have applied on top of GPOS and
+    // double-counted the tightening.
   }
 
   // Add all user defined glyphs
@@ -217,7 +249,7 @@ export function compileFont(
     const advWidth = Math.round(
       Number.isFinite(g.advanceWidth) && (g.advanceWidth ?? 0) > 0
         ? (g.advanceWidth ?? 1000)
-        : (g.unicode > 255 ? (project.metadata.unitsPerEm || DEFAULT_UPM) : Math.round((project.metadata.unitsPerEm || DEFAULT_UPM) / 2))
+        : (g.unicode > 255 ? upm : Math.round(upm / 2))
     );
 
     // Fallback: If contours are empty but pixelData exists with filled pixels, generate contours automatically
@@ -255,21 +287,26 @@ export function compileFont(
         if (Math.abs(scaleFactor - 1.0) > 0.001) {
           const isAsymmetric = isAsymmetricOrPunctuationGlyph(g.unicode, g.char);
           const anchorX = (shouldBalance && !isAsymmetric) ? origBbox.centerX : advWidth / 2;
-          // In screen coords (0..1000), Japanese 仮想ボディ (100..800) center is 450
-          const anchorY = 450;
+          // Scale around the center of the Japanese virtual body, as a
+          // fraction of unitsPerEm: the body spans 0.10..0.80 em, so its
+          // center is 0.45 em. The clamps keep the expanded outline
+          // inside a 0.02..0.98 em band.
+          const anchorY = Math.round(upm * 0.45);
+          const clampTop = Math.round(upm * 0.02);
+          const clampBottom = Math.round(upm * 0.98);
 
-          // Safety boundary clamping: prevent expanding beyond em-box boundaries (0..1000)
+          // Safety boundary clamping: prevent expanding beyond em-box boundaries
           // which would cause vertical clipping or line collision in Word / web renderers
           let safeScale = scaleFactor;
           if (scaleFactor > 1.0) {
             const distTop = anchorY - origBbox.minY;
             const distBottom = origBbox.maxY - anchorY;
             if (distTop > 0) {
-              const maxScaleTop = (anchorY - 20) / distTop;
+              const maxScaleTop = (anchorY - clampTop) / distTop;
               safeScale = Math.min(safeScale, maxScaleTop);
             }
             if (distBottom > 0) {
-              const maxScaleBottom = (980 - anchorY) / distBottom;
+              const maxScaleBottom = (clampBottom - anchorY) / distBottom;
               safeScale = Math.min(safeScale, maxScaleBottom);
             }
             safeScale = Math.max(1.0, safeScale);
@@ -329,12 +366,13 @@ export function compileFont(
     if (g.unicode < minUnicode) minUnicode = g.unicode;
     if (g.unicode > maxUnicode) maxUnicode = g.unicode;
     totalAdvanceWidth += advWidth;
+    countedAdvanceGlyphs += 1;
     if (advWidth > maxAdvanceWidth) maxAdvanceWidth = advWidth;
   }
 
   // Ensure ASCII Space (U+0020 / 32) exists with valid width
   if (!addedUnicodes.has(32)) {
-    const spaceWidth = Math.round((project.metadata.unitsPerEm || DEFAULT_UPM) / 2);
+    const spaceWidth = Math.round(upm / 2);
     const spaceGlyph = new opentype.Glyph({
       name: 'space',
       unicode: 32,
@@ -346,11 +384,12 @@ export function compileFont(
     minUnicode = Math.min(minUnicode, 32);
     maxUnicode = Math.max(maxUnicode, 32);
     totalAdvanceWidth += spaceWidth;
+    countedAdvanceGlyphs += 1;
   }
 
   // Ensure Fullwidth Space (U+3000 / 12288 / 全角空白) exists with full em width
   if (!addedUnicodes.has(12288)) {
-    const fullSpaceWidth = project.metadata.unitsPerEm || DEFAULT_UPM;
+    const fullSpaceWidth = upm;
     const fullSpaceGlyph = new opentype.Glyph({
       name: 'space.fullwidth',
       unicode: 12288,
@@ -362,6 +401,7 @@ export function compileFont(
     minUnicode = Math.min(minUnicode, 12288);
     maxUnicode = Math.max(maxUnicode, 12288);
     totalAdvanceWidth += fullSpaceWidth;
+    countedAdvanceGlyphs += 1;
   }
 
   // Automatic Vertical Writing Alternates (OpenType vert / Unicode Vertical Forms)
@@ -387,17 +427,31 @@ export function compileFont(
     { targetUnicode: 0xfe12, sourceUnicode: 0x3002, action: 'shiftTopRight' }, // 句点 。 -> ︒
     { targetUnicode: 0xfe19, sourceUnicode: 0x2026, action: 'rotate90' }, // 三点リーダー … -> ︙
     { targetUnicode: 0xfe4f, sourceUnicode: 0x301c, action: 'rotate90' }, // 波ダッシュ 〜 -> ︴
+    { targetUnicode: 0xfe37, sourceUnicode: 0x007b, action: 'rotate90' }, // 波括弧 ｛ -> ︷
+    { targetUnicode: 0xfe38, sourceUnicode: 0x007d, action: 'rotate90' }, // 波括弧 ｝ -> ︸
+    { targetUnicode: 0xfe37, sourceUnicode: 0xff5b, action: 'rotate90' }, // 全角波括弧 ｛ -> ︷
+    { targetUnicode: 0xfe38, sourceUnicode: 0xff5d, action: 'rotate90' }, // 全角波括弧 ｝ -> ︸
+    { targetUnicode: 0xfe30, sourceUnicode: 0x2025, action: 'rotate90' }, // 二点リーダー ‥ -> ︰
   ];
 
   // List of vertical substitution pairs: { srcUnicode, targetUnicode, srcIndex?, vertIndex? }
   const vertSubstPairs: { srcUnicode: number; targetUnicode: number; srcIndex?: number; vertIndex?: number }[] = [];
 
+  // A derivation stays enabled unless the user explicitly turned that
+  // exact source:vert pair off in the OpenType settings. The previous
+  // condition (any saved substitution list disables every derivation
+  // not in the list) dropped derivations whenever the modal was saved,
+  // because the preset list and this list disagreed on several pairs.
+  const disabledVerticalSubstitutions = new Set(
+    (featureConfig?.verticalWriting?.substitutions || [])
+      .filter((sub) => !sub.enabled)
+      .map((sub) => `${sub.sourceUnicode}:${sub.vertUnicode}`)
+  );
+
   for (const deriv of verticalDerivations) {
     const substitutionKey = `${deriv.sourceUnicode}:${deriv.targetUnicode}`;
-    const explicitlyConfigured = (featureConfig?.verticalWriting?.substitutions?.length ?? 0) > 0;
     const substitutionEnabled =
-      verticalWritingEnabled &&
-      (!explicitlyConfigured || enabledVerticalSubstitutions.has(substitutionKey));
+      verticalWritingEnabled && !disabledVerticalSubstitutions.has(substitutionKey);
 
     if (project.glyphs[deriv.sourceUnicode] && substitutionEnabled) {
       vertSubstPairs.push({ srcUnicode: deriv.sourceUnicode, targetUnicode: deriv.targetUnicode });
@@ -410,7 +464,6 @@ export function compileFont(
     ) {
       const srcGlyph = project.glyphs[deriv.sourceUnicode];
       if (srcGlyph.contours && srcGlyph.contours.length > 0) {
-        const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
         const emCenter = upm / 2;
         let derivedContours: PathContour[] = [];
         if (deriv.action === 'rotate90') {
@@ -440,12 +493,15 @@ export function compileFont(
         const vertGlyph = new opentype.Glyph({
           name: `vert_${deriv.targetUnicode.toString(16).toUpperCase()}`,
           unicode: deriv.targetUnicode,
-          advanceWidth: project.metadata.unitsPerEm || DEFAULT_UPM,
+          advanceWidth: upm,
           path: path,
         });
         glyphsList.push(vertGlyph);
         addedUnicodes.add(deriv.targetUnicode);
         maxUnicode = Math.max(maxUnicode, deriv.targetUnicode);
+        totalAdvanceWidth += upm;
+        countedAdvanceGlyphs += 1;
+        if (upm > maxAdvanceWidth) maxAdvanceWidth = upm;
       }
     }
   }
@@ -459,7 +515,7 @@ export function compileFont(
 
   const rawWeight = project.metadata.usWeightClass;
   const inferredWeightClass = inferWeightClassFromStyleName(rawStyle);
-  const safeWeightClass =
+  let safeWeightClass =
     typeof rawWeight === 'number' && Number.isFinite(rawWeight)
       ? Math.max(1, Math.min(1000, Math.round(rawWeight)))
       : inferredWeightClass;
@@ -476,18 +532,33 @@ export function compileFont(
   const isBold =
     safeWeightClass >= 700 ||
     (/\bbold\b/i.test(rawStyle) && !/(semi|demi|extra|ultra)/i.test(rawStyle));
-  const isRegularSelection = !isBold && !isItalic;
+  // The style name and the weight class must agree: a style named Bold
+  // with usWeightClass still at 400 would set the BOLD bit while
+  // reporting weight 400. Raise the weight to 700 in that case.
+  if (isBold && safeWeightClass < 700) {
+    safeWeightClass = 700;
+  }
+  // REGULAR (0x0040) is only set for a true regular weight (400) that is
+  // neither bold nor italic. Medium (500) and SemiBold (600) must not
+  // carry it, or they would be reported as both Regular and weight 500/600.
+  const isRegularSelection = safeWeightClass === 400 && !isBold && !isItalic;
 
-  const avgWidth = glyphsList.length > 0 ? Math.round(totalAdvanceWidth / glyphsList.length) : 500;
+  const avgWidth =
+    countedAdvanceGlyphs > 0 ? Math.round(totalAdvanceWidth / countedAdvanceGlyphs) : 500;
 
+  // Ascender/descender fallbacks scale with unitsPerEm: the fallback
+  // ascender is the baseline position (80% of UPM, same as
+  // resolveBaselineY) and the fallback descender is baseline minus UPM,
+  // so they agree with the baseline for any UPM instead of the fixed
+  // 800 / -200 of a 1000-UPM font.
   const safeAscender =
     typeof project.metadata.ascender === 'number' && Number.isFinite(project.metadata.ascender)
       ? Math.round(project.metadata.ascender)
-      : DEFAULT_ASCENDER;
+      : resolveBaselineY(project.metadata.ascender, upm);
   const safeDescender =
     typeof project.metadata.descender === 'number' && Number.isFinite(project.metadata.descender)
       ? Math.round(project.metadata.descender)
-      : DEFAULT_DESCENDER;
+      : safeAscender - upm;
 
   const safeItalicAngle =
     typeof project.metadata.italicAngle === 'number' && Number.isFinite(project.metadata.italicAngle)
@@ -944,6 +1015,154 @@ export function compileFont(
       // the in-memory kerningPairs fallback does not reach the file.
       throw new Error(
         `カーニングテーブルの生成に失敗しました: ${kernErr instanceof Error ? kernErr.message : '不明なエラー'}`
+      );
+    }
+  }
+
+  // -------------------------------------------------------------
+  // GPOS (palt / pkna) and vertical metrics (vmtx / vhea)
+  // -------------------------------------------------------------
+  // opentype.js never writes these tables, so they are built as raw
+  // bytes (gposTable.ts) and injected into the serialized font with the
+  // same SFNT mechanism as the kern table. The injection happens before
+  // the self-validation parse below, so the parse covers these bytes too.
+  const glyphIndexByUnicode = new Map<number, number>();
+  const glyphUnicodeByIndex = new Map<number, number>();
+  for (let i = 0; i < font.glyphs.length; i++) {
+    const g = font.glyphs.get(i);
+    if (typeof g.unicode === 'number' && g.unicode > 0) {
+      glyphIndexByUnicode.set(g.unicode, i);
+      glyphUnicodeByIndex.set(i, g.unicode);
+    }
+  }
+
+  const extraTables: { tag: string; data: Uint8Array }[] = [];
+  const gposEntries: GposSinglePosEntry[] = [];
+  if (paltEnabled && paltItems.length > 0) {
+    for (const p of paltItems) {
+      if (!p.enabled) continue;
+      const glyphIndex = glyphIndexByUnicode.get(p.unicode);
+      if (typeof glyphIndex !== 'number') continue;
+      const glyph = font.glyphs.get(glyphIndex);
+      const compiledAdvance =
+        typeof glyph.advanceWidth === 'number' && Number.isFinite(glyph.advanceWidth)
+          ? Math.round(glyph.advanceWidth)
+          : p.originalAdvance;
+      // The advance change is measured against the compiled glyph's own
+      // advance width (hmtx), not the stored originalAdvance, so a
+      // palt list saved from different metadata still lands correctly.
+      const deltaAdvance = Math.round(p.proportionalAdvance) - compiledAdvance;
+      if (deltaAdvance !== 0) {
+        gposEntries.push({ glyphIndex, xAdvance: deltaAdvance });
+      }
+    }
+  }
+  // Kerning pairs are also written as a GPOS `kern` PairPos lookup (in
+  // addition to the legacy kern table): once any GPOS table exists,
+  // opentype.js reads kerning from GPOS only, so a palt-only GPOS would
+  // otherwise make getKerningValue return 0 for every pair.
+  const gposKernPairs: GposKernPair[] = validKerningPairs.map((pair) => ({
+    leftGlyph: pair.leftIndex,
+    rightGlyph: pair.rightIndex,
+    value: pair.value,
+  }));
+  if (gposEntries.length > 0 || gposKernPairs.length > 0) {
+    const gposBytes = buildGposTableBytes(gposEntries, glyphUnicodeByIndex, gposKernPairs);
+    if (gposBytes !== null) {
+      extraTables.push({ tag: 'GPOS', data: gposBytes });
+    }
+  }
+
+  if (verticalWritingEnabled) {
+    const configuredVertAdvance = featureConfig?.verticalWriting?.defaultVertAdvance;
+    const defaultVertAdvance =
+      typeof configuredVertAdvance === 'number' &&
+      Number.isFinite(configuredVertAdvance) &&
+      configuredVertAdvance > 0
+        ? Math.round(configuredVertAdvance)
+        : upm;
+    const configuredVertOriginY = featureConfig?.verticalWriting?.vertOriginY;
+    const vertOriginY =
+      typeof configuredVertOriginY === 'number' && Number.isFinite(configuredVertOriginY)
+        ? Math.round(configuredVertOriginY)
+        : safeAscender;
+    const vpalByUnicode = new Map<number, VpalGlyphMetric>();
+    if (vpalEnabled) {
+      for (const v of vpalItems) {
+        if (v.enabled) vpalByUnicode.set(v.unicode, v);
+      }
+    }
+    const numGlyphs = font.glyphs.length;
+    const vmtxEntries: VmtxEntry[] = [];
+    let advanceHeightMax = 0;
+    let minTopSideBearing = Number.POSITIVE_INFINITY;
+    let minBottomSideBearing = Number.POSITIVE_INFINITY;
+    let xMaxExtent = 0;
+    for (let i = 0; i < numGlyphs; i++) {
+      const glyph = font.glyphs.get(i);
+      const vpal = typeof glyph.unicode === 'number' ? vpalByUnicode.get(glyph.unicode) : undefined;
+      const advanceHeight = vpal
+        ? Math.max(1, Math.round(vpal.proportionalAdvance))
+        : defaultVertAdvance;
+      let topSideBearing = 0;
+      let glyphHeight = 0;
+      let glyphWidth = 0;
+      if (glyph.path && glyph.path.commands && glyph.path.commands.length > 0) {
+        try {
+          const bbox = glyph.getBoundingBox();
+          if (
+            Number.isFinite(bbox.y1) &&
+            Number.isFinite(bbox.y2) &&
+            Number.isFinite(bbox.x1) &&
+            Number.isFinite(bbox.x2)
+          ) {
+            // Font Y grows upward from the baseline; the vertical origin
+            // sits vertOriginY above the baseline, so the top side
+            // bearing is the origin minus the outline's top.
+            topSideBearing = vertOriginY - Math.round(bbox.y2);
+            glyphHeight = Math.round(bbox.y2 - bbox.y1);
+            glyphWidth = Math.round(bbox.x2 - bbox.x1);
+          }
+        } catch {
+          // A glyph whose bounding box cannot be read keeps tsb 0.
+        }
+      }
+      vmtxEntries.push({ glyphIndex: i, advanceHeight, topSideBearing });
+      if (advanceHeight > advanceHeightMax) advanceHeightMax = advanceHeight;
+      if (topSideBearing < minTopSideBearing) minTopSideBearing = topSideBearing;
+      const bottomSideBearing = advanceHeight - topSideBearing - glyphHeight;
+      if (bottomSideBearing < minBottomSideBearing) minBottomSideBearing = bottomSideBearing;
+      if (glyphWidth > xMaxExtent) xMaxExtent = glyphWidth;
+    }
+    extraTables.push({
+      tag: 'vmtx',
+      data: buildVmtxTableBytes(vmtxEntries, numGlyphs, defaultVertAdvance),
+    });
+    extraTables.push({
+      tag: 'vhea',
+      data: buildVheaTableBytes({
+        ascender: safeAscender,
+        descender: safeDescender,
+        lineGap,
+        advanceHeightMax,
+        minTopSideBearing:
+          minTopSideBearing === Number.POSITIVE_INFINITY ? 0 : minTopSideBearing,
+        minBottomSideBearing:
+          minBottomSideBearing === Number.POSITIVE_INFINITY ? 0 : minBottomSideBearing,
+        xMaxExtent,
+        numberOfVMetrics: numGlyphs,
+      }),
+    });
+  }
+
+  if (extraTables.length > 0) {
+    try {
+      buffer = injectSfntTables(buffer, extraTables);
+    } catch (tableErr) {
+      // A missing GPOS / vmtx / vhea table must not be treated as
+      // success: the in-memory metrics do not reach the file.
+      throw new Error(
+        `GPOS / 垂直メトリクステーブルの生成に失敗しました: ${tableErr instanceof Error ? tableErr.message : '不明なエラー'}`
       );
     }
   }

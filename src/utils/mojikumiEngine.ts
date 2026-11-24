@@ -450,6 +450,93 @@ export interface FormattedLayoutResult {
 }
 
 /**
+ * 2文字間のアキ量の許容範囲 (em単位)。M23: 従来は optimal だけを使っていたが、
+ * min / max / priority も返す。min は追い込み (H3) の圧縮下限、max は
+ * 行長揃え (M23) の拡大上限、priority はその処理順に使う。
+ */
+export interface PairSpacingRange {
+  minEm: number;
+  optimalEm: number;
+  maxEm: number;
+  priority: number;
+  ruleKey: keyof MojikumiTable | null;
+}
+
+const ZERO_SPACING_RANGE: PairSpacingRange = {
+  minEm: 0,
+  optimalEm: 0,
+  maxEm: 0,
+  priority: 0,
+  ruleKey: null,
+};
+
+function toSpacingRange(rule: MojikumiRuleItem, ruleKey: keyof MojikumiTable): PairSpacingRange {
+  return {
+    minEm: rule.min / 100,
+    optimalEm: rule.optimal / 100,
+    maxEm: rule.max / 100,
+    priority: rule.priority,
+    ruleKey,
+  };
+}
+
+export function getPairSpacingRange(
+  leftKind: CharKind,
+  rightKind: CharKind,
+  table: MojikumiTable,
+  isLineStart: boolean,
+  isParagraphStart: boolean
+): PairSpacingRange {
+  // 行頭処理
+  if (isLineStart) {
+    if (rightKind === 'start_bracket') {
+      return toSpacingRange(
+        isParagraphStart ? table.paraStart_to_startBracket : table.lineStart_to_startBracket,
+        isParagraphStart ? 'paraStart_to_startBracket' : 'lineStart_to_startBracket'
+      );
+    }
+    if (isParagraphStart) {
+      // M26: 段落先頭の字下げは非約物だけでなく、半角英数字・半角スペース・
+      // 句読点など段落先頭に来るすべての文字種に付ける
+      return toSpacingRange(table.paraStart_to_nonYakumono, 'paraStart_to_nonYakumono');
+    }
+    return ZERO_SPACING_RANGE;
+  }
+
+  // 行中処理 (leftKind と rightKind の「間」のアキ)
+  if (leftKind === 'non_yakumono' && rightKind === 'start_bracket') {
+    return toSpacingRange(table.nonYakumono_to_startBracket, 'nonYakumono_to_startBracket');
+  } else if (leftKind === 'end_bracket' && rightKind === 'non_yakumono') {
+    return toSpacingRange(table.endBracket_to_nonYakumono, 'endBracket_to_nonYakumono');
+  } else if (leftKind === 'end_bracket' && rightKind === 'start_bracket') {
+    // 終わり括弧と始め括弧の連続
+    return toSpacingRange(table.endBracket_to_startBracket, 'endBracket_to_startBracket');
+  } else if (leftKind === 'touten' && rightKind === 'start_bracket') {
+    return toSpacingRange(table.touten_to_startBracket, 'touten_to_startBracket');
+  } else if (leftKind === 'touten' && rightKind === 'non_yakumono') {
+    return toSpacingRange(table.touten_to_nonYakumono, 'touten_to_nonYakumono');
+  } else if (leftKind === 'kuten' && rightKind === 'start_bracket') {
+    return toSpacingRange(table.kuten_to_startBracket, 'kuten_to_startBracket');
+  } else if (leftKind === 'kuten' && rightKind === 'non_yakumono') {
+    return toSpacingRange(table.kuten_to_nonYakumono, 'kuten_to_nonYakumono');
+  } else if (leftKind === 'middle_dot' || rightKind === 'middle_dot') {
+    return toSpacingRange(table.middleDot_around, 'middleDot_around');
+  } else if (
+    (leftKind === 'half_latin' && rightKind === 'non_yakumono') ||
+    (leftKind === 'non_yakumono' && rightKind === 'half_latin')
+  ) {
+    return toSpacingRange(table.halfLatin_around_nonYakumono, 'halfLatin_around_nonYakumono');
+  } else if (
+    (leftKind === 'half_digit' && rightKind === 'non_yakumono') ||
+    (leftKind === 'non_yakumono' && rightKind === 'half_digit')
+  ) {
+    return toSpacingRange(table.halfDigit_around_nonYakumono, 'halfDigit_around_nonYakumono');
+  }
+
+  return ZERO_SPACING_RANGE;
+}
+
+/**
  * 2文字間の最適アキ量（em単位）を取得
  */
 export function getPairOptimalSpacing(
@@ -459,51 +546,304 @@ export function getPairOptimalSpacing(
   isLineStart: boolean,
   isParagraphStart: boolean
 ): { beforeEm: number; afterEm: number } {
-  let beforeEm = 0;
-  let afterEm = 0;
+  return {
+    beforeEm: getPairSpacingRange(leftKind, rightKind, table, isLineStart, isParagraphStart).optimalEm,
+    afterEm: 0,
+  };
+}
 
-  // 行頭処理
-  if (isLineStart) {
-    if (rightKind === 'start_bracket') {
-      const rule = isParagraphStart ? table.paraStart_to_startBracket : table.lineStart_to_startBracket;
-      beforeEm += rule.optimal / 100;
-    } else if (rightKind === 'non_yakumono' && isParagraphStart) {
-      beforeEm += table.paraStart_to_nonYakumono.optimal / 100;
+/**
+ * 行末字の種類に対応する行末ルール (M23)。該当するルールがなければ null。
+ */
+function getLineEndRule(
+  kind: CharKind,
+  table: MojikumiTable
+): { rule: MojikumiRuleItem; key: keyof MojikumiTable } | null {
+  switch (kind) {
+    case 'end_bracket':
+      return { rule: table.endBracket_to_lineEnd, key: 'endBracket_to_lineEnd' };
+    case 'touten':
+      return { rule: table.touten_to_lineEnd, key: 'touten_to_lineEnd' };
+    case 'kuten':
+      return { rule: table.kuten_to_lineEnd, key: 'kuten_to_lineEnd' };
+    case 'middle_dot':
+      return { rule: table.middleDot_to_lineEnd, key: 'middleDot_to_lineEnd' };
+    default:
+      return null;
+  }
+}
+
+/**
+ * ぶら下がり対象文字 (H4)。句読点に加え、閉じ括弧も対象にする。
+ * BURASAGARI_CHARS は ManuscriptView でも使うため変更せず、エンジンの判定は
+ * この関数に集約する。
+ */
+export function isBurasagariChar(ch: string): boolean {
+  return BURASAGARI_CHARS.has(ch) || KINSOKU_CHARS.endBrackets.includes(ch);
+}
+
+/** 送り幅の下限 (em)。advances に極端に小さい値が指定されても行分割が破綻しないようにする (M27)。 */
+export const MIN_ADVANCE_EM = 0.25;
+/** 縦中横 1 単位あたりの最大文字数 (M19)。これを超える連続は複数単位に分ける。 */
+export const MAX_TATE_CHU_YOKO_RUN = 4;
+/** 縦中横 1 単位の送り幅 (em)。単位内の文字数によらず 1em の升に入る。 */
+export const TATE_CHU_YOKO_ADVANCE_EM = 1.0;
+
+/**
+ * 行分割の単位。縦書き時の縦中横 (M19) は半角英数字の連続を 1 単位として扱う。
+ * それ以外は 1 文字が 1 単位。
+ */
+interface TextUnit {
+  chars: string[];
+  charIndex: number; // 段落内での文字位置
+  kind: CharKind; // 対向アキ量の判定に使う種類
+  tateChuYoko: boolean;
+}
+
+function isTateChuYokoChar(ch: string, advances?: Record<string, number>): boolean {
+  if (!/^[0-9A-Za-z]$/.test(ch)) return false;
+  // advances で全角相当 (0.75em 以上) の送り幅が指定された字は縦中横にしない
+  const adv = advances?.[ch];
+  if (typeof adv === 'number' && Number.isFinite(adv) && adv >= 0.75) return false;
+  return true;
+}
+
+function splitIntoUnits(chars: string[], isVertical: boolean, advances?: Record<string, number>): TextUnit[] {
+  const units: TextUnit[] = [];
+  let i = 0;
+  while (i < chars.length) {
+    const ch = chars[i];
+    if (isVertical && isTateChuYokoChar(ch, advances)) {
+      let j = i;
+      while (j < chars.length && isTateChuYokoChar(chars[j], advances)) j++;
+      const run = chars.slice(i, j);
+      if (run.length === 1) {
+        // 1 字だけの半角英数字は縦中横にしない (縦書きで回転して組む字)
+        units.push({ chars: [ch], charIndex: i, kind: getCharKind(ch), tateChuYoko: false });
+      } else {
+        for (let k = 0; k < run.length; k += MAX_TATE_CHU_YOKO_RUN) {
+          const chunk = run.slice(k, k + MAX_TATE_CHU_YOKO_RUN);
+          const hasLatin = chunk.some((c) => /^[A-Za-z]$/.test(c));
+          units.push({
+            chars: chunk,
+            charIndex: i + k,
+            kind: hasLatin ? 'half_latin' : 'half_digit',
+            tateChuYoko: true,
+          });
+        }
+      }
+      i = j;
+    } else {
+      units.push({ chars: [ch], charIndex: i, kind: getCharKind(ch), tateChuYoko: false });
+      i++;
     }
-    return { beforeEm, afterEm };
   }
+  return units;
+}
 
-  // 行中処理 (leftKind と rightKind の「間」のアキを rightKind の前 = beforeEm に付与する)
-  if (leftKind === 'non_yakumono' && rightKind === 'start_bracket') {
-    beforeEm += table.nonYakumono_to_startBracket.optimal / 100;
-  } else if (leftKind === 'end_bracket' && rightKind === 'non_yakumono') {
-    beforeEm += table.endBracket_to_nonYakumono.optimal / 100;
-  } else if (leftKind === 'end_bracket' && rightKind === 'start_bracket') {
-    // 終わり括弧と始め括弧の連続
-    beforeEm += table.endBracket_to_startBracket.optimal / 100;
-  } else if (leftKind === 'touten' && rightKind === 'start_bracket') {
-    beforeEm += table.touten_to_startBracket.optimal / 100;
-  } else if (leftKind === 'touten' && rightKind === 'non_yakumono') {
-    beforeEm += table.touten_to_nonYakumono.optimal / 100;
-  } else if (leftKind === 'kuten' && rightKind === 'start_bracket') {
-    beforeEm += table.kuten_to_startBracket.optimal / 100;
-  } else if (leftKind === 'kuten' && rightKind === 'non_yakumono') {
-    beforeEm += table.kuten_to_nonYakumono.optimal / 100;
-  } else if (leftKind === 'middle_dot' || rightKind === 'middle_dot') {
-    beforeEm += table.middleDot_around.optimal / 100;
-  } else if (
-    (leftKind === 'half_latin' && rightKind === 'non_yakumono') ||
-    (leftKind === 'non_yakumono' && rightKind === 'half_latin')
-  ) {
-    beforeEm += table.halfLatin_around_nonYakumono.optimal / 100;
-  } else if (
-    (leftKind === 'half_digit' && rightKind === 'non_yakumono') ||
-    (leftKind === 'non_yakumono' && rightKind === 'half_digit')
-  ) {
-    beforeEm += table.halfDigit_around_nonYakumono.optimal / 100;
+/**
+ * 1 単位の送り幅 (M27)。options.advances で指定された文字はその値を
+ * (下限 MIN_ADVANCE_EM でクランプして) 使い、指定がない文字は従来の固定値を使う。
+ * 縦中横の単位は文字数によらず 1em。
+ */
+function resolveBaseAdvance(unit: TextUnit, usePalt: boolean, advances?: Record<string, number>): number {
+  if (unit.tateChuYoko) return TATE_CHU_YOKO_ADVANCE_EM;
+  const ch = unit.chars[0];
+  const custom = advances?.[ch];
+  if (typeof custom === 'number' && Number.isFinite(custom)) {
+    return Math.max(MIN_ADVANCE_EM, custom);
   }
+  const kind = unit.kind;
+  if (usePalt) {
+    if (kind === 'touten' || kind === 'kuten' || kind === 'start_bracket' || kind === 'end_bracket') {
+      return 0.5; // 約物は半角
+    } else if (kind === 'middle_dot') {
+      return 0.5;
+    } else if (kind === 'half_latin' || kind === 'half_digit' || kind === 'half_space') {
+      return 0.5;
+    } else if (KINSOKU_CHARS.smallKana.includes(ch)) {
+      return 0.8;
+    } else {
+      return 0.95; // 和文もわずかにツメ
+    }
+  } else if (kind === 'half_latin' || kind === 'half_digit' || kind === 'half_space') {
+    return 0.5;
+  }
+  return 1.0;
+}
 
-  return { beforeEm, afterEm };
+/** ペアのカーニング (em単位)。キーは "左文字,右文字"。指定がないペアは 0 (M27)。 */
+export function getKerningEm(
+  kerningEm: Record<string, number> | undefined,
+  leftChar: string | undefined,
+  rightChar: string
+): number {
+  if (!kerningEm || leftChar === undefined) return 0;
+  const v = kerningEm[`${leftChar},${rightChar}`];
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+}
+
+interface UnitAdvance {
+  baseEm: number;
+  beforeEm: number; // ルールの optimal (カーニングを除く)
+  kerningEm: number;
+  trackingEm: number;
+  totalEm: number;
+  range: PairSpacingRange;
+}
+
+interface AdvanceContext {
+  table: MojikumiTable;
+  trackingEm: number;
+  usePalt: boolean;
+  advances?: Record<string, number>;
+  kerningEm?: Record<string, number>;
+}
+
+function computeUnitAdvance(
+  unit: TextUnit,
+  prevUnit: TextUnit | null,
+  isLineStart: boolean,
+  isParagraphStart: boolean,
+  ctx: AdvanceContext
+): UnitAdvance {
+  const baseEm = resolveBaseAdvance(unit, ctx.usePalt, ctx.advances);
+  const range = prevUnit
+    ? getPairSpacingRange(prevUnit.kind, unit.kind, ctx.table, false, false)
+    : getPairSpacingRange('non_yakumono', unit.kind, ctx.table, isLineStart, isParagraphStart);
+  const beforeEm = range.optimalEm;
+  const kerningEm = prevUnit
+    ? getKerningEm(ctx.kerningEm, prevUnit.chars[prevUnit.chars.length - 1], unit.chars[0])
+    : 0;
+  const trackingEm = ctx.trackingEm;
+  return {
+    baseEm,
+    beforeEm,
+    kerningEm,
+    trackingEm,
+    totalEm: baseEm + beforeEm + kerningEm + trackingEm,
+    range,
+  };
+}
+
+interface CompressibleGap {
+  currentEm: number;
+  minEm: number;
+  priority: number;
+  order: number;
+  apply: (valueEm: number) => void;
+}
+
+/**
+ * 行内のアキを指定量だけ圧縮する (H3 追い込み)。
+ * priority の降順 (9→1、0 は最後) に各アキを min まで縮める。
+ * 必要量を満たせない場合は何も変更せず false を返す。
+ */
+function tryCompressGaps(gaps: CompressibleGap[], amountEm: number): boolean {
+  const sorted = [...gaps].sort((a, b) => {
+    const pa = a.priority === 0 ? -1 : a.priority;
+    const pb = b.priority === 0 ? -1 : b.priority;
+    if (pb !== pa) return pb - pa;
+    return a.order - b.order;
+  });
+  let remaining = amountEm;
+  const plan: { gap: CompressibleGap; valueEm: number }[] = [];
+  for (const gap of sorted) {
+    if (remaining <= 1e-9) break;
+    const compressible = Math.max(0, gap.currentEm - gap.minEm);
+    const take = Math.min(compressible, remaining);
+    if (take > 1e-9) {
+      plan.push({ gap, valueEm: gap.currentEm - take });
+      remaining -= take;
+    }
+  }
+  if (remaining > 1e-9) return false;
+  for (const { gap, valueEm } of plan) gap.apply(valueEm);
+  return true;
+}
+
+interface ExpandableGap {
+  currentEm: number; // ルール分のみ (カーニング・トラッキングを除く)
+  maxEm: number;
+  priority: number;
+  order: number;
+  apply: (valueEm: number) => void;
+}
+
+/**
+ * 行長揃え (M23)。段落の最終行以外の行について、行末の空きをアキ量の
+ * 許容範囲 [optimal, max] 内で広げて埋める。priority の昇順 (1→9、0 は最後)
+ * に処理し、行末ルール (*_to_lineEnd) も行末字の後のアキとして参加する。
+ * 空きが拡大可能なアキの合計を超える行はそのまま短く残る。
+ * 戻り値は揃え後の行送り幅。
+ */
+function justifyLine(
+  lineGlyphs: FormattedGlyph[],
+  table: MojikumiTable,
+  trackingEm: number,
+  kerningEm: Record<string, number> | undefined,
+  lineAdvanceEm: number,
+  safeCharsPerLine: number
+): number {
+  let slack = safeCharsPerLine - lineAdvanceEm;
+  if (lineGlyphs.length === 0 || slack <= 1e-9) return lineAdvanceEm;
+  const gaps: ExpandableGap[] = [];
+  for (let i = 1; i < lineGlyphs.length; i++) {
+    const g = lineGlyphs[i];
+    if (g.isHanging) continue;
+    const prev = lineGlyphs[i - 1];
+    if (prev.isHanging) continue;
+    const range = getPairSpacingRange(prev.kind, g.kind, table, false, false);
+    if (range.maxEm - range.optimalEm <= 1e-9) continue;
+    const kern = getKerningEm(kerningEm, prev.char, g.char);
+    const ruleNow = g.spacingBeforeEm - kern;
+    gaps.push({
+      currentEm: ruleNow,
+      maxEm: range.maxEm,
+      priority: range.priority,
+      order: i,
+      apply: (valueEm) => {
+        g.spacingBeforeEm += valueEm - ruleNow;
+      },
+    });
+  }
+  // 行末ルール: 行末字 (ぶら下がり字を除く) の後のアキ。現在は 0。
+  let lastIdx = lineGlyphs.length - 1;
+  while (lastIdx >= 0 && lineGlyphs[lastIdx].isHanging) lastIdx--;
+  if (lastIdx >= 0) {
+    const last = lineGlyphs[lastIdx];
+    const lineEnd = getLineEndRule(last.kind, table);
+    if (lineEnd && lineEnd.rule.max > 0) {
+      const afterNow = last.spacingAfterEm - trackingEm;
+      gaps.push({
+        currentEm: afterNow,
+        maxEm: lineEnd.rule.max / 100,
+        priority: lineEnd.rule.priority,
+        order: lineGlyphs.length,
+        apply: (valueEm) => {
+          last.spacingAfterEm += valueEm - afterNow;
+        },
+      });
+    }
+  }
+  gaps.sort((a, b) => {
+    const pa = a.priority === 0 ? Number.POSITIVE_INFINITY : a.priority;
+    const pb = b.priority === 0 ? Number.POSITIVE_INFINITY : b.priority;
+    if (pa !== pb) return pa - pb;
+    return a.order - b.order;
+  });
+  let expanded = 0;
+  for (const gap of gaps) {
+    if (slack <= 1e-9) break;
+    const headroom = Math.max(0, gap.maxEm - gap.currentEm);
+    const take = Math.min(headroom, slack);
+    if (take > 1e-9) {
+      gap.apply(gap.currentEm + take);
+      slack -= take;
+      expanded += take;
+    }
+  }
+  return lineAdvanceEm + expanded;
 }
 
 /**
@@ -516,7 +856,9 @@ export function simulateTypesetting(
   options?: {
     isVertical?: boolean;
     trackingEm?: number; // トラッキング (アケ組み用: +0.1em 〜 +0.25em)
-    usePalt?: boolean;   // プロポーショナルメトリクス (ツメ組み用)
+    usePalt?: boolean; // プロポーショナルメトリクス (ツメ組み用)
+    advances?: Record<string, number>; // M27: 文字ごとの送り幅 (em単位)。指定がない文字は従来の固定値を使う
+    kerningEm?: Record<string, number>; // M27: ペアのカーニング (em単位)。キーは "左文字,右文字"。指定がないペアは 0
   }
 ): FormattedLayoutResult {
   const table = applyParagraphIndentPreset(config.table, config.paragraphIndent);
@@ -525,8 +867,16 @@ export function simulateTypesetting(
   const burasagariMode = config.burasagari;
   const trackingEm = options?.trackingEm ?? 0;
   const usePalt = options?.usePalt ?? false;
+  const isVertical = options?.isVertical ?? false;
   // Safety guard against <= 0 or NaN charsPerLine to prevent infinite loops
   const safeCharsPerLine = Math.max(1, Math.floor(charsPerLine || 1));
+  const ctx: AdvanceContext = {
+    table,
+    trackingEm,
+    usePalt,
+    advances: options?.advances,
+    kerningEm: options?.kerningEm,
+  };
 
   const paragraphs = text.split('\n');
   const lines: FormattedLine[] = [];
@@ -549,147 +899,262 @@ export function simulateTypesetting(
       continue;
     }
 
-    let charCursor = 0;
+    const units = splitIntoUnits(chars, isVertical, options?.advances);
+    let unitCursor = 0;
     let isParaStart = true;
 
-    while (charCursor < chars.length) {
+    while (unitCursor < units.length) {
       const currentLineGlyphs: FormattedGlyph[] = [];
+      // 行内の各単位のグリフ数。追い出しは単位単位で行う。
+      const currentLineUnitLens: number[] = [];
       let currentAdvanceEm = 0;
       let lineBurasagari = 0;
+      // 行内で最後に配置した、ぶら下がりでない単位。次の単位の前アキと
+      // カーニングの左側に使う。ぶら下がり字は版面外のため左側にしない。
+      let prevUnitInLine: TextUnit | null = null;
 
-      while (charCursor < chars.length) {
-        const ch = chars[charCursor];
-        const kind = getCharKind(ch);
-
-        // 幅（ベタ組みは1.0em、ツメ組み/palt時は約物やカナを適度に圧縮）
-        let baseAdvance = 1.0;
-        if (usePalt) {
-          if (kind === 'touten' || kind === 'kuten' || kind === 'start_bracket' || kind === 'end_bracket') {
-            baseAdvance = 0.5; // 約物は半角
-          } else if (kind === 'middle_dot') {
-            baseAdvance = 0.5;
-          } else if (kind === 'half_latin' || kind === 'half_digit' || kind === 'half_space') {
-            baseAdvance = 0.5;
-          } else if (KINSOKU_CHARS.smallKana.includes(ch)) {
-            baseAdvance = 0.8;
-          } else {
-            baseAdvance = 0.95; // 和文もわずかにツメ
-          }
-        } else if (kind === 'half_latin' || kind === 'half_digit' || kind === 'half_space') {
-          baseAdvance = 0.5;
-        }
-
-        // アキ量
-        const prevGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
-        const { beforeEm, afterEm } = prevGlyph
-          ? getPairOptimalSpacing(prevGlyph.kind, kind, table, false, false)
-          : getPairOptimalSpacing('non_yakumono', kind, table, true, isParaStart);
-
-        const glyphTotalAdvance = baseAdvance + beforeEm + afterEm + trackingEm;
-
-        // If the line is empty, we MUST place at least one glyph to guarantee forward progress
-        if (currentLineGlyphs.length === 0) {
+      // 行内に 1 単位を配置する。ぶら下がり字は送り幅に加算しない。
+      // 縦中横の単位は先頭グリフが 1em の送り幅を持ち、残りのグリフは 0 とする。
+      const placeUnit = (unit: TextUnit, adv: UnitAdvance, isHanging: boolean) => {
+        unit.chars.forEach((ch, idx) => {
           currentLineGlyphs.push({
             char: ch,
-            charIndex: totalCharCount + charCursor,
-            kind,
-            baseAdvanceEm: baseAdvance,
-            spacingBeforeEm: beforeEm,
-            spacingAfterEm: afterEm + trackingEm,
-            isHanging: false,
+            charIndex: totalCharCount + unit.charIndex + idx,
+            kind: unit.kind,
+            baseAdvanceEm: idx === 0 ? adv.baseEm : 0,
+            spacingBeforeEm: idx === 0 ? adv.beforeEm + adv.kerningEm : 0,
+            spacingAfterEm: idx === unit.chars.length - 1 ? (isHanging ? 0 : adv.trackingEm) : 0,
+            isHanging,
+            tateChuYoko: unit.tateChuYoko ? true : undefined,
           });
-          currentAdvanceEm += glyphTotalAdvance;
-          charCursor++;
+        });
+        currentLineUnitLens.push(unit.chars.length);
+        if (!isHanging) currentAdvanceEm += adv.totalEm;
+      };
+
+      // 行内の圧縮可能なアキ (H3 追い込み用)。先頭字の字下げと
+      // ぶら下がり字の前アキは圧縮対象にしない。
+      const collectLineGaps = (): CompressibleGap[] => {
+        const gaps: CompressibleGap[] = [];
+        for (let i = 1; i < currentLineGlyphs.length; i++) {
+          const g = currentLineGlyphs[i];
+          if (g.isHanging) continue;
+          const prev = currentLineGlyphs[i - 1];
+          if (prev.isHanging) continue;
+          const range = getPairSpacingRange(prev.kind, g.kind, table, false, false);
+          const kern = getKerningEm(ctx.kerningEm, prev.char, g.char);
+          gaps.push({
+            currentEm: g.spacingBeforeEm,
+            minEm: range.minEm + kern,
+            priority: range.priority,
+            order: i,
+            apply: (valueEm) => {
+              const delta = g.spacingBeforeEm - valueEm;
+              g.spacingBeforeEm = valueEm;
+              currentAdvanceEm -= delta;
+            },
+          });
+        }
+        return gaps;
+      };
+
+      // 追い込み (H3): 行内のアキを圧縮して、現在の単位と次の単位を行内に収める。
+      // 圧縮量の上限は各ルールの min。収まらなければ false を返し、呼び出し側は
+      // 追い出しにフォールバックする。失敗時はアキを変更しない。
+      const attemptPushIn = (adv: UnitAdvance, nextTotalEm: number): boolean => {
+        const deficit = currentAdvanceEm + adv.totalEm + nextTotalEm - (safeCharsPerLine + 0.05);
+        if (deficit <= 1e-9) return true;
+        const gaps = collectLineGaps();
+        gaps.push({
+          currentEm: adv.beforeEm + adv.kerningEm,
+          minEm: adv.range.minEm + adv.kerningEm,
+          priority: adv.range.priority,
+          order: currentLineGlyphs.length,
+          apply: (valueEm) => {
+            const delta = adv.beforeEm + adv.kerningEm - valueEm;
+            adv.beforeEm -= delta;
+            adv.totalEm -= delta;
+          },
+        });
+        return tryCompressGaps(gaps, deficit);
+      };
+
+      // 行末の 1 単位を追い出す。縦中横の単位はまとめて出す。
+      // ぶら下がり字は送り幅に加算されていないため currentAdvanceEm から引かない。
+      const popLastUnit = (): void => {
+        const len = currentLineUnitLens.pop();
+        if (len === undefined) return;
+        for (let n = 0; n < len; n++) {
+          const g = currentLineGlyphs.pop();
+          if (!g) break;
+          if (g.isHanging) {
+            lineBurasagari--;
+            totalBurasagari--;
+          } else {
+            currentAdvanceEm = Math.max(
+              0,
+              currentAdvanceEm - ((g.baseAdvanceEm ?? 0) + (g.spacingBeforeEm || 0) + (g.spacingAfterEm || 0))
+            );
+          }
+        }
+        unitCursor--;
+      };
+
+      while (unitCursor < units.length) {
+        const unit = units[unitCursor];
+        const isLineEmpty = currentLineGlyphs.length === 0;
+        const adv = computeUnitAdvance(unit, prevUnitInLine, isLineEmpty, isParaStart, ctx);
+        const isSingleCharUnit = !unit.tateChuYoko && unit.chars.length === 1;
+
+        // If the line is empty, we MUST place at least one unit to guarantee forward progress
+        if (isLineEmpty) {
+          placeUnit(unit, adv, false);
+          unitCursor++;
+          prevUnitInLine = unit;
           continue;
         }
 
-        // 行長判定 (2文字目以降で判定)
-        const wouldExceed = currentAdvanceEm + glyphTotalAdvance > safeCharsPerLine + 0.05;
+        // 行長判定 (2単位目以降で判定)
+        const wouldExceed = currentAdvanceEm + adv.totalEm > safeCharsPerLine + 0.05;
 
         if (wouldExceed) {
-          // ぶら下がり判定（半角混在やツメ組みでも正確になるよう送り幅で判定）
+          // ぶら下がり判定 (H4, M25 standard)。半角混在やツメ組みでも正確に
+          // なるよう送り幅で判定する。ぶら下がった後は行を終えず次の単位を
+          // 処理し、連続するぶら下がり対象 (例: 。」) もまとめてぶら下げる。
           if (
             burasagariMode !== 'none' &&
-            BURASAGARI_CHARS.has(ch) &&
-            lineBurasagari === 0 &&
-            currentAdvanceEm >= safeCharsPerLine - 1.5
+            isSingleCharUnit &&
+            isBurasagariChar(unit.chars[0])
           ) {
-            // ぶら下がり適用！版面外（マージン）に1字追加
-            currentLineGlyphs.push({
-              char: ch,
-              charIndex: totalCharCount + charCursor,
-              kind,
-              baseAdvanceEm: baseAdvance,
-              spacingBeforeEm: beforeEm,
-              spacingAfterEm: 0,
-              isHanging: true,
-            });
-            charCursor++;
-            lineBurasagari++;
-            totalBurasagari++;
-            break;
-          }
-
-          // 禁則処理: 連続する行頭禁則文字（例: 。」）や追い出し後の末尾行末禁則（例: 「）も連鎖的に追い出す
-          if (config.kinsoku !== 'none') {
-            while (currentLineGlyphs.length > 1) {
-              const nextHead = chars[charCursor];
-              const tailGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
-              const shouldPushStart = Boolean(nextHead && startProhibited.has(nextHead));
-              const shouldPushEnd =
-                config.kinsokuAdjust === 'push_out' &&
-                Boolean(tailGlyph && endProhibited.has(tailGlyph.char));
-              if (!shouldPushStart && !shouldPushEnd) break;
-
-              const last = currentLineGlyphs.pop()!;
-              charCursor--;
-              const lastAdvance =
-                (last.spacingBeforeEm || 0) +
-                (last.spacingAfterEm || 0) +
-                (last.baseAdvanceEm ?? 1.0);
-              currentAdvanceEm = Math.max(0, currentAdvanceEm - lastAdvance);
+            const ch = unit.chars[0];
+            const isEndBracket = KINSOKU_CHARS.endBrackets.includes(ch);
+            const prevGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
+            // 先頭のぶら下がり: standard は行がほぼ満杯のときだけ、forced は
+            // 満杯でなくてもぶら下げる。連続分は直前がぶら下がり字で
+            // 現在が閉じ括弧のときにぶら下げる (1 行 1 字の制限を連続処理に置き換えた)。
+            const firstHang =
+              lineBurasagari === 0 &&
+              (burasagariMode === 'forced' || currentAdvanceEm >= safeCharsPerLine - 1.5);
+            const runHang =
+              lineBurasagari > 0 && prevGlyph?.isHanging === true && isEndBracket;
+            if (firstHang || runHang) {
+              placeUnit(unit, adv, true);
+              unitCursor++;
+              lineBurasagari++;
+              totalBurasagari++;
+              continue;
             }
           }
 
-          break; // 次の行へ
+          // 禁則処理: 追い込みを試み、だめなら追い出す
+          let pushInSucceeded = false;
+          const isEndProhibitedUnit = isSingleCharUnit && endProhibited.has(unit.chars[0]);
+          if (config.kinsoku !== 'none' && config.kinsokuAdjust === 'push_in' && isEndProhibitedUnit) {
+            const nextUnit = units[unitCursor + 1];
+            if (nextUnit) {
+              const nextAdv = computeUnitAdvance(nextUnit, unit, false, false, ctx);
+              pushInSucceeded = attemptPushIn(adv, nextAdv.totalEm);
+            }
+          }
+          if (!pushInSucceeded) {
+            // 禁則処理: 連続する行頭禁則文字 (例: 。」) や追い出し後の末尾行末禁則 (例: 「) も連鎖的に追い出す。
+            // 追い込みで収まらなかった場合のフォールバックもここで行う。
+            if (config.kinsoku !== 'none') {
+              while (currentLineUnitLens.length > 1) {
+                const nextHead = units[unitCursor].chars[0];
+                const tailGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
+                const shouldPushStart = startProhibited.has(nextHead);
+                const shouldPushEnd = Boolean(tailGlyph && endProhibited.has(tailGlyph.char));
+                if (!shouldPushStart && !shouldPushEnd) break;
+                popLastUnit();
+              }
+            }
+            break; // 次の行へ
+          }
+          // 追い込み成功: そのまま配置へ進む
         }
 
-        // 行末禁則チェック (現文字が行末禁則で、かつ続く文字が行内に収まらず行末に残る場合)
+        // 行末禁則チェック (M24: 次単位の実際の送り幅で判定。H3: push_in なら追い込む)
+        // 現単位が行末禁則で、かつ続く単位が行内に収まらず現単位が行末に残る場合
         if (
           config.kinsoku !== 'none' &&
-          endProhibited.has(ch) &&
-          charCursor < chars.length - 1 &&
-          currentAdvanceEm + glyphTotalAdvance + Math.max(0.5, baseAdvance) > safeCharsPerLine + 0.05
+          isSingleCharUnit &&
+          endProhibited.has(unit.chars[0]) &&
+          unitCursor < units.length - 1
         ) {
-          if (config.kinsokuAdjust === 'push_out') {
-            // 追い出し優先: 行末禁則文字を丸ごと次行へ回す
-            break;
+          const nextUnit = units[unitCursor + 1];
+          const nextAdv = computeUnitAdvance(nextUnit, unit, false, false, ctx);
+          if (currentAdvanceEm + adv.totalEm + nextAdv.totalEm > safeCharsPerLine + 0.05) {
+            let pushInOk = false;
+            if (config.kinsokuAdjust === 'push_in') {
+              // 追い込み優先: 行内のアキを圧縮して現単位と次単位を収める。
+              // 収まらなければ追い出しと同じく現単位を次行へ回す。
+              pushInOk = attemptPushIn(adv, nextAdv.totalEm);
+            }
+            if (!pushInOk) {
+              // 追い出し: 現単位を次行へ回す。行末に始め括弧が残らないよう、
+              // 末尾の行末禁則文字 (例: 既に置かれた「) も連鎖的に追い出す。
+              // (追い込まずに改行するだけだと、行末が「で終わる違反が残る。)
+              while (currentLineUnitLens.length > 1) {
+                const tailGlyph = currentLineGlyphs[currentLineGlyphs.length - 1];
+                if (!tailGlyph || !endProhibited.has(tailGlyph.char)) break;
+                popLastUnit();
+              }
+              break;
+            }
           }
         }
 
-        currentLineGlyphs.push({
-          char: ch,
-          charIndex: totalCharCount + charCursor,
-          kind,
-          baseAdvanceEm: baseAdvance,
-          spacingBeforeEm: beforeEm,
-          spacingAfterEm: afterEm + trackingEm,
-          isHanging: false,
-        });
+        // M25 forced: 行末に来るぶら下がり字は、収まる場合でもぶら下げる。
+        // (standard はあふれた場合だけぶら下げる。上記の wouldExceed 分岐で処理済み。)
+        if (
+          burasagariMode === 'forced' &&
+          isSingleCharUnit &&
+          isBurasagariChar(unit.chars[0])
+        ) {
+          const nextUnit = units[unitCursor + 1];
+          let endsLine: boolean;
+          if (!nextUnit) {
+            endsLine = true; // 段落末尾: 行末に来る
+          } else {
+            const nextAdv = computeUnitAdvance(nextUnit, unit, false, false, ctx);
+            endsLine = currentAdvanceEm + adv.totalEm + nextAdv.totalEm > safeCharsPerLine + 0.05;
+          }
+          if (endsLine) {
+            placeUnit(unit, adv, true);
+            unitCursor++;
+            lineBurasagari++;
+            totalBurasagari++;
+            continue;
+          }
+        }
 
-        currentAdvanceEm += glyphTotalAdvance;
-        charCursor++;
+        placeUnit(unit, adv, false);
+        unitCursor++;
+        prevUnitInLine = unit;
       }
 
-      const isParaEnd = charCursor >= chars.length;
+      const isParaEnd = unitCursor >= units.length;
+      let lineAdvanceEm = currentAdvanceEm;
+      if (!isParaEnd && currentLineGlyphs.length > 0) {
+        // M23: 段落の最終行以外は行長揃えで空きを埋める
+        lineAdvanceEm = justifyLine(
+          currentLineGlyphs,
+          table,
+          trackingEm,
+          ctx.kerningEm,
+          currentAdvanceEm,
+          safeCharsPerLine
+        );
+      }
       lines.push({
         lineIndex: lines.length,
         glyphs: currentLineGlyphs,
         text: currentLineGlyphs.map((g) => g.char).join(''),
         isParagraphStart: isParaStart,
         isParagraphEnd: isParaEnd,
-        totalAdvanceEm: currentAdvanceEm,
-        isOverflown: currentAdvanceEm > safeCharsPerLine + 0.05 && lineBurasagari === 0,
+        totalAdvanceEm: lineAdvanceEm,
+        isOverflown: lineAdvanceEm > safeCharsPerLine + 0.05 && lineBurasagari === 0,
         burasagariCount: lineBurasagari,
       });
 

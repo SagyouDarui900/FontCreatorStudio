@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
-import { BookOpen, Feather, Columns } from 'lucide-react';
+import { groupTateChuYoko } from './BookSpreadView';
+import { BookOpen, Feather, Columns, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MagazineLayoutViewProps {
   layout: FormattedLayoutResult;
@@ -13,9 +14,12 @@ interface MagazineLayoutViewProps {
   fontFamily: string;
   fontSizeQ: number;
   lineFeedH: number;
+  lineCount: number;
   isVertical: boolean;
   showGrid: boolean;
   zoom: number;
+  /** M20: changes when the layout, work or text switches; resets the page position. */
+  pageResetKey?: string;
 }
 
 export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
@@ -28,11 +32,20 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   fontFamily,
   fontSizeQ,
   lineFeedH,
+  lineCount,
   isVertical,
   showGrid,
   zoom,
+  pageResetKey,
 }) => {
   const [mobileColView, setMobileColView] = useState<'col1' | 'col2' | 'both'>('col1');
+  const [pageIdx, setPageIdx] = useState(0);
+
+  // M20: switching the layout, work or text returns to the first page.
+  useEffect(() => {
+    setPageIdx(0);
+    setMobileColView('col1');
+  }, [pageResetKey]);
 
   const paperBg = isLight ? 'bg-white' : 'bg-[#141d16]';
   const paperBorder = isLight ? 'border-stone-200 shadow-md' : 'border-[#25382b] shadow-md';
@@ -42,10 +55,20 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
 
-  // Split lines into two columns for magazine spread
-  const half = Math.ceil(layout.lines.length / 2);
-  const firstHalf = layout.lines.slice(0, half);
-  const secondHalf = layout.lines.slice(half);
+  // M14: one page holds lineCount lines per column (two columns per page).
+  const linesPerColumn = Math.max(1, Math.min(24, Math.round(lineCount) || 12));
+  const linesPerPage = linesPerColumn * 2;
+  const totalPages = Math.max(1, Math.ceil(layout.lines.length / linesPerPage));
+  const safePageIdx = Math.min(pageIdx, totalPages - 1);
+  const pageLines = layout.lines.slice(
+    safePageIdx * linesPerPage,
+    safePageIdx * linesPerPage + linesPerPage
+  );
+
+  // Split the current page's lines into two columns for magazine spread
+  const half = Math.ceil(pageLines.length / 2);
+  const firstHalf = pageLines.slice(0, half);
+  const secondHalf = pageLines.slice(half);
 
   // Column 1 is always the beginning of the article
   // Column 2 is always the continuation
@@ -84,7 +107,50 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
                 }`}
                 style={{ minWidth: `${emPx}px`, minHeight: `${emPx}px` }}
               >
-                {line.glyphs.map((g, gIdx) => {
+                {groupTateChuYoko(line.glyphs).map((group, gIdx) => {
+                  // M19: a tate-chu-yoko run is drawn as one cell with its
+                  // characters side by side horizontally.
+                  if (group.tateChuYoko) {
+                    const first = group.glyphs[0];
+                    const last = group.glyphs[group.glyphs.length - 1];
+                    const text = group.glyphs.map((g) => g.char).join('');
+                    return (
+                      <span
+                        key={gIdx}
+                        className="inline-flex items-center justify-center relative"
+                        style={{
+                          paddingTop: `${first.spacingBeforeEm * emPx}px`,
+                          paddingBottom: `${last.spacingAfterEm * emPx}px`,
+                        }}
+                      >
+                        <span
+                          data-tate-chu-yoko="true"
+                          title={`縦中横「${text}」`}
+                          className={`inline-flex items-center justify-center relative ${
+                            group.glyphs.some((g) => g.isHanging)
+                              ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                              : ''
+                          }`}
+                          style={{
+                            width: `${emPx}px`,
+                            height: `${emPx}px`,
+                            fontSize: `${Math.max(6, Math.floor(emPx / group.glyphs.length))}px`,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {showGrid && (
+                            <span className="absolute inset-0 pointer-events-none border border-stone-200/50 dark:border-stone-800/60" />
+                          )}
+                          <span className="inline-flex items-center justify-center whitespace-nowrap">
+                            {group.glyphs.map((g, i) => (
+                              <span key={i}>{g.char}</span>
+                            ))}
+                          </span>
+                        </span>
+                      </span>
+                    );
+                  }
+                  const g = group.glyphs[0];
                   const vertStyle = getVerticalGlyphStyle(g.char, true);
                   const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
                   const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
@@ -282,6 +348,35 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* M14: page navigation (lineCount lines per column, two columns per page) */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between py-2 text-xs">
+            <span className="font-mono text-[11px] text-stone-500">
+              {safePageIdx + 1} / {totalPages} 頁（1段組 {linesPerColumn} 行）
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safePageIdx === 0}
+                onClick={() => setPageIdx((p) => Math.max(0, p - 1))}
+                className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>前頁</span>
+              </button>
+              <button
+                type="button"
+                disabled={safePageIdx >= totalPages - 1}
+                onClick={() => setPageIdx((p) => Math.min(totalPages - 1, p + 1))}
+                className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              >
+                <span>次頁</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 2-Column Body Layout
             - On Desktop (md:grid-cols-2):

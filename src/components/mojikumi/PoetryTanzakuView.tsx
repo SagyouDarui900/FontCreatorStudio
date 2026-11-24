@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
+import { groupTateChuYoko } from './BookSpreadView';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PoetryTanzakuViewProps {
   layout: FormattedLayoutResult;
@@ -10,9 +12,12 @@ interface PoetryTanzakuViewProps {
   fontFamily: string;
   fontSizeQ: number;
   lineFeedH: number;
+  lineCount: number;
   zoom: number;
   isVertical?: boolean;
   showGrid?: boolean;
+  /** M20: changes when the layout, work or text switches; resets the slip position. */
+  pageResetKey?: string;
 }
 
 export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
@@ -23,13 +28,31 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
   fontFamily,
   fontSizeQ,
   lineFeedH,
+  lineCount,
   zoom,
   isVertical = true,
   showGrid = false,
+  pageResetKey,
 }) => {
   const emPx = Math.max(15, Math.round(fontSizeQ * 1.4 * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.8 * zoom));
   const lineGapH = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 10) / 10);
+
+  // M14: one slip shows lineCount lines; longer texts continue on more slips.
+  const linesPerSlip = Math.max(1, Math.min(24, Math.round(lineCount) || 12));
+  const totalSlips = Math.max(1, Math.ceil(layout.lines.length / linesPerSlip));
+  const [slipIdx, setSlipIdx] = useState(0);
+
+  // M20: switching the layout, work or text returns to the first slip.
+  useEffect(() => {
+    setSlipIdx(0);
+  }, [pageResetKey]);
+
+  const safeSlipIdx = Math.min(slipIdx, totalSlips - 1);
+  const slipLines = layout.lines.slice(
+    safeSlipIdx * linesPerSlip,
+    safeSlipIdx * linesPerSlip + linesPerSlip
+  );
 
   const paperBg = isLight ? 'bg-[#fcfbf7]' : 'bg-[#18201a]';
   const paperBorder = isLight ? 'border-amber-900/20 shadow-xl' : 'border-emerald-950/60 shadow-xl';
@@ -54,6 +77,35 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
           </div>
         </div>
 
+        {/* M14: slip navigation (lineCount lines per slip) */}
+        {totalSlips > 1 && (
+          <div className="w-full flex items-center justify-between py-1 text-xs shrink-0">
+            <span className="font-mono text-[11px] opacity-60">
+              短冊 {safeSlipIdx + 1} / {totalSlips}（1枚 {linesPerSlip} 行）
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safeSlipIdx === 0}
+                onClick={() => setSlipIdx((v) => Math.max(0, v - 1))}
+                className="px-2 py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>前枚</span>
+              </button>
+              <button
+                type="button"
+                disabled={safeSlipIdx >= totalSlips - 1}
+                onClick={() => setSlipIdx((v) => Math.min(totalSlips - 1, v + 1))}
+                className="px-2 py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              >
+                <span>次枚</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Poetry Center Stage: Safely contained & scrollable so lines never overflow the slip */}
         <div className="flex-1 w-full flex items-center justify-center py-4 sm:py-6 min-h-0">
           {isVertical ? (
@@ -71,7 +123,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                   fontFeatureSettings: '"vert" 0, "vrt2" 0',
                 }}
               >
-                {layout.lines.map((line, lIdx) => (
+                {slipLines.map((line, lIdx) => (
                   <div
                     key={lIdx}
                     className={`flex flex-col items-center relative shrink-0 ${
@@ -79,7 +131,52 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                     }`}
                     style={{ minWidth: `${emPx}px`, minHeight: `${emPx}px` }}
                   >
-                    {line.glyphs.map((g, gIdx) => {
+                    {groupTateChuYoko(line.glyphs).map((group, gIdx) => {
+                      // M19: a tate-chu-yoko run is drawn as one cell with its
+                      // characters side by side horizontally.
+                      if (group.tateChuYoko) {
+                        const first = group.glyphs[0];
+                        const last = group.glyphs[group.glyphs.length - 1];
+                        const text = group.glyphs.map((g) => g.char).join('');
+                        return (
+                          <span
+                            key={gIdx}
+                            className="inline-flex items-center justify-center relative"
+                            style={{
+                              paddingTop: `${first.spacingBeforeEm * emPx}px`,
+                              paddingBottom: `${last.spacingAfterEm * emPx}px`,
+                            }}
+                          >
+                            <span
+                              data-tate-chu-yoko="true"
+                              title={`縦中横「${text}」`}
+                              className={`inline-flex items-center justify-center relative ${
+                                group.glyphs.some((g) => g.isHanging)
+                                  ? 'text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 rounded-xs'
+                                  : ''
+                              }`}
+                              style={{
+                                width: `${emPx}px`,
+                                height: `${emPx}px`,
+                                fontSize: `${Math.max(6, Math.floor(emPx / group.glyphs.length))}px`,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {showGrid && (
+                                <span
+                                  className={`absolute inset-0 pointer-events-none border ${gridBorder}`}
+                                />
+                              )}
+                              <span className="inline-flex items-center justify-center whitespace-nowrap">
+                                {group.glyphs.map((g, i) => (
+                                  <span key={i}>{g.char}</span>
+                                ))}
+                              </span>
+                            </span>
+                          </span>
+                        );
+                      }
+                      const g = group.glyphs[0];
                       const vertStyle = getVerticalGlyphStyle(g.char, true);
                       const boxHeightPx = (g.baseAdvanceEm ?? 1.0) * emPx;
                       const alignClass = getMojikumiBoxAlignClass(g.kind, g.baseAdvanceEm, true);
@@ -132,7 +229,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                   fontFeatureSettings: '"vert" 0, "vrt2" 0',
                 }}
               >
-                {layout.lines.map((line, lIdx) => (
+                {slipLines.map((line, lIdx) => (
                   <div
                     key={lIdx}
                     className={`flex flex-row items-center relative shrink-0 ${

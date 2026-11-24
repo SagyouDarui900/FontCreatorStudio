@@ -45,6 +45,9 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
     setFontScaleMultiplier,
     isWaterfall,
     setIsWaterfall,
+    isPixelProject,
+    isShapedText,
+    setIsShapedText,
     isLight,
   } = state;
 
@@ -384,42 +387,60 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           {/* 和文拡大 135% */}
           <button
             type="button"
+            disabled={isPixelProject}
             onClick={() => setFontScaleMultiplier(fontScaleMultiplier === 1.35 ? 1.0 : 1.35)}
-            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
-              fontScaleMultiplier === 1.35
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between ${
+              isPixelProject
                 ? isLight
-                  ? 'bg-emerald-100/90 text-emerald-950 border-emerald-400 font-bold'
-                  : 'bg-emerald-950 text-emerald-200 border-emerald-600 font-bold'
+                  ? 'bg-white border-[#d8e6df] text-stone-400 opacity-60 cursor-not-allowed'
+                  : 'bg-[#18231c] border-[#25362b] text-stone-500 opacity-60 cursor-not-allowed'
+                : fontScaleMultiplier === 1.35
+                ? isLight
+                  ? 'bg-emerald-100/90 text-emerald-950 border-emerald-400 font-bold cursor-pointer'
+                  : 'bg-emerald-950 text-emerald-200 border-emerald-600 font-bold cursor-pointer'
                 : isLight
-                ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
-                : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
+                ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50 cursor-pointer'
+                : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24] cursor-pointer'
             }`}
-            title="和文（漢字・仮名）を標準的な135%に拡大表示、または100%原寸キャンバス比率で表示"
+            title={
+              isPixelProject
+                ? 'ピクセルプロジェクトではコンパイル時に100%に固定されます'
+                : '和文（漢字・仮名）を標準的な135%に拡大表示、または100%原寸キャンバス比率で表示'
+            }
           >
             <span className="text-[11px] truncate">和文サイズ最適化</span>
             <span className="text-[10px] font-mono mt-0.5 opacity-80">
-              {fontScaleMultiplier === 1.35 ? '135% 拡大中' : '100% 原寸'}
+              {isPixelProject ? '100% 固定' : fontScaleMultiplier === 1.35 ? '135% 拡大中' : '100% 原寸'}
             </span>
           </button>
 
           {/* 配置モード (センタリング / ガイド優先) */}
           <button
             type="button"
+            disabled={isPixelProject}
             onClick={() => setAutoBalanceMargins(!autoBalanceMargins)}
-            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
-              autoBalanceMargins
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between ${
+              isPixelProject
                 ? isLight
-                  ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold'
-                  : 'bg-amber-950 text-amber-200 border-amber-600 font-bold'
+                  ? 'bg-white border-[#d8e6df] text-stone-400 opacity-60 cursor-not-allowed'
+                  : 'bg-[#18231c] border-[#25362b] text-stone-500 opacity-60 cursor-not-allowed'
+                : autoBalanceMargins
+                ? isLight
+                  ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold cursor-pointer'
+                  : 'bg-amber-950 text-amber-200 border-amber-600 font-bold cursor-pointer'
                 : isLight
-                ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-medium'
-                : 'bg-emerald-950/70 text-emerald-300 border-emerald-800 font-medium'
+                ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-medium cursor-pointer'
+                : 'bg-emerald-950/70 text-emerald-300 border-emerald-800 font-medium cursor-pointer'
             }`}
-            title="配置補正: ガイド位置優先（手書きした通りの自然な位置）または左右センタリング補正"
+            title={
+              isPixelProject
+                ? 'ピクセルプロジェクトではコンパイル時に配置補正なし（ガイド位置優先）に固定されます'
+                : '配置補正: ガイド位置優先（手書きした通りの自然な位置）または左右センタリング補正'
+            }
           >
             <span className="text-[11px] truncate">配置補正</span>
             <span className="text-[10px] truncate mt-0.5 opacity-80">
-              {autoBalanceMargins ? '左右センタリング' : 'ガイド位置優先'}
+              {isPixelProject ? '位置優先で固定' : autoBalanceMargins ? '左右センタリング' : 'ガイド位置優先'}
             </span>
           </button>
 
@@ -535,6 +556,25 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
           >
             <span className="text-[11px] truncate">段階サイズ</span>
             <span className="text-[10px] font-mono mt-0.5 opacity-80">{isWaterfall ? 'ON (段別表示)' : 'OFF'}</span>
+          </button>
+
+          {/* 整形表示 (1行を1つのテキストノードで表示) */}
+          <button
+            type="button"
+            onClick={() => setIsShapedText(!isShapedText)}
+            className={`p-2 h-14 rounded-lg border text-left transition-colors flex flex-col justify-between cursor-pointer ${
+              isShapedText
+                ? isLight
+                  ? 'bg-emerald-800 text-white border-emerald-900 font-bold'
+                  : 'bg-emerald-500 text-stone-950 font-bold border-emerald-400'
+                : isLight
+                ? 'bg-white border-[#d8e6df] text-stone-600 hover:bg-emerald-50'
+                : 'bg-[#18231c] border-[#25362b] text-emerald-400 hover:bg-[#202d24]'
+            }`}
+            title="1行を1つのテキストとして表示し、カーニングと合字が反映されるか確認します。ONの間は文字のクリック選択とホバー表示はできません"
+          >
+            <span className="text-[11px] truncate">整形表示</span>
+            <span className="text-[10px] font-mono mt-0.5 opacity-80">{isShapedText ? 'ON (行単位)' : 'OFF (文字単位)'}</span>
           </button>
         </div>
       </div>

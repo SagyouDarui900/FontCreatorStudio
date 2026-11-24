@@ -11,7 +11,8 @@ export function deriveProjectPaltMetrics(
   sideBearingPercent: number = 5
 ): PaltGlyphMetric[] {
   const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
-  const padding = Math.round(upm * (Math.max(1, Math.min(25, sideBearingPercent)) / 100));
+  // 0 is a valid value (no optical padding); only clamp the upper bound.
+  const padding = Math.round(upm * (Math.max(0, Math.min(25, sideBearingPercent)) / 100));
   const list: PaltGlyphMetric[] = [];
 
   for (const g of Object.values(project.glyphs || {})) {
@@ -50,7 +51,8 @@ export function deriveProjectVpalMetrics(
   sideBearingPercent: number = 5
 ): VpalGlyphMetric[] {
   const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
-  const padding = Math.round(upm * (Math.max(1, Math.min(25, sideBearingPercent)) / 100));
+  // 0 is a valid value (no optical padding); only clamp the upper bound.
+  const padding = Math.round(upm * (Math.max(0, Math.min(25, sideBearingPercent)) / 100));
   const list: VpalGlyphMetric[] = [];
 
   for (const g of Object.values(project.glyphs || {})) {
@@ -60,7 +62,11 @@ export function deriveProjectVpalMetrics(
     const bbox = getContoursBoundingBox(g.contours);
     if (bbox.height <= 0) continue;
 
-    const origAdv = project.openTypeFeatures?.verticalWriting?.defaultVertAdvance || upm;
+    const configuredAdvance = project.openTypeFeatures?.verticalWriting?.defaultVertAdvance;
+    const origAdv =
+      typeof configuredAdvance === 'number' && Number.isFinite(configuredAdvance) && configuredAdvance > 0
+        ? configuredAdvance
+        : upm;
     const propAdv = Math.max(100, Math.min(origAdv, Math.round(bbox.height + padding * 2)));
     const yPlacement = Math.round(padding - bbox.minY);
     const deltaAdv = propAdv - origAdv;
