@@ -4,7 +4,6 @@ import { useLiveViewportZoom } from './viewportStore';
 
 interface CustomGuidelinesLayerProps {
   customGuidelines: CustomGuideline[];
-  zoom: number;
   locked?: boolean;
   interactive?: boolean;
   unitsPerEm?: number;
@@ -17,7 +16,6 @@ interface CustomGuidelinesLayerProps {
 export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React.memo(
   ({
     customGuidelines,
-    zoom: propZoom,
     locked = true,
     interactive = false,
     unitsPerEm = 1000,
@@ -27,7 +25,7 @@ export const CustomGuidelinesLayer: React.FC<CustomGuidelinesLayerProps> = React
     onDeleteGuide,
   }) => {
     const [hoveredGuideId, setHoveredGuideId] = useState<string | null>(null);
-    const liveZoom = useLiveViewportZoom(propZoom);
+    const liveZoom = useLiveViewportZoom();
     const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
 
     if (customGuidelines.length === 0) return null;

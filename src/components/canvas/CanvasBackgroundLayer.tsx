@@ -10,14 +10,13 @@ interface CanvasBackgroundLayerProps {
   gridSize: number;
   gridOpacity?: number;
   unitsPerEm?: number;
-  zoom?: number;
 }
 
 export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React.memo(
-  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = DEFAULT_GRID_OPACITY, unitsPerEm = 1000, zoom = 1 }) => {
+  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = DEFAULT_GRID_OPACITY, unitsPerEm = 1000 }) => {
     // L4/M6: use the live pinch zoom so the minor-line fade tracks the
     // gesture instead of snapping when the pointer is released.
-    const liveZoom = useLiveViewportZoom(zoom);
+    const liveZoom = useLiveViewportZoom();
     const z = liveZoom && liveZoom > 0 ? liveZoom : 1;
     const size = Math.max(5, gridSize || DEFAULT_GRID_SIZE);
     const upm = unitsPerEm || 1000;

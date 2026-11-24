@@ -4,13 +4,12 @@ import { useLiveViewportZoom } from './viewportStore';
 
 export interface SmartSnapGuidesLayerProps {
   activeSnapGuides: SnapGuideLine[];
-  zoom: number;
   selectionColor: string;
 }
 
 export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.memo(
-  ({ activeSnapGuides, zoom: propZoom, selectionColor }) => {
-    const liveZoom = useLiveViewportZoom(propZoom);
+  ({ activeSnapGuides, selectionColor }) => {
+    const liveZoom = useLiveViewportZoom();
     const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
     if (!activeSnapGuides || activeSnapGuides.length === 0) return null;
 

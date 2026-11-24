@@ -417,7 +417,6 @@ export interface BezierNodeControlsLayerProps {
   selectedNodeIds?: string[];
   nodeStyle: 'clean' | 'full' | 'selected_only';
   gridSettings: GridSettings;
-  zoom: number;
   isLight: boolean;
   startNodeOrHandleDrag: StartNodeOrHandleDrag;
   handleToggleNodeType: HandleToggleNodeType;
@@ -437,7 +436,6 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     selectedNodeIds,
     nodeStyle,
     gridSettings,
-    zoom: propZoom,
     isLight,
     startNodeOrHandleDrag,
     handleToggleNodeType,
@@ -449,7 +447,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
       isEraserNodeActive ? getHoverCanvasPos : NULL_POS
     );
     // M6: keep node handles a constant screen size during pinch zoom.
-    const zoom = useLiveViewportZoom(propZoom);
+    const zoom = useLiveViewportZoom();
     const safeZoom = zoom && zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
     const invZoom = quantizeInverseZoom(safeZoom);
     // Callbacks are passed to memoized node children through refs so their

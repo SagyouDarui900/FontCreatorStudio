@@ -14,7 +14,6 @@ interface JapaneseGuidesLayerProps {
   activeChar?: string;
   gridOpacity?: number;
   unitsPerEm?: number;
-  zoom?: number;
 }
 
 export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.memo(
@@ -27,9 +26,8 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     theme = 'light',
     gridOpacity = DEFAULT_GRID_OPACITY,
     unitsPerEm = 1000,
-    zoom = 1,
   }) => {
-    const liveZoom = useLiveViewportZoom(zoom);
+    const liveZoom = useLiveViewportZoom();
 
     const upm = unitsPerEm || 1000;
     const z = liveZoom && liveZoom > 0 ? liveZoom : 1;

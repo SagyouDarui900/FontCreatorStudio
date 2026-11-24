@@ -26,7 +26,6 @@ export interface TransformBoundingBoxLayerProps {
   toolMode: string;
   selectedContourIds: string[];
   selContoursBBox: SelContoursBBox | null;
-  zoom: number;
   selectionColor: string;
   selectedContoursSvgPath: string | null;
   rotateDisplayAngle: number | null;
@@ -47,7 +46,6 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
   toolMode,
   selectedContourIds,
   selContoursBBox,
-  zoom: propZoom,
   selectionColor,
   selectedContoursSvgPath,
   rotateDisplayAngle,
@@ -55,7 +53,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
   isGlyphLocked = false,
 }) => {
   // M6: keep the selection frame handles a constant screen size during pinch zoom.
-  const zoom = useLiveViewportZoom(propZoom);
+  const zoom = useLiveViewportZoom();
   if (toolMode !== 'select' || selectedContourIds.length === 0 || !selContoursBBox) {
     return null;
   }

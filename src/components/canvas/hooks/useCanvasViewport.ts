@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Point } from '../../../types';
 import { clampPanToViewport, MIN_CANVAS_ZOOM, MAX_CANVAS_ZOOM } from './viewportMath';
-import { setLiveViewport, clearLiveViewport } from '../viewportStore';
+import { setLiveViewport, clearLiveViewport, getLiveViewport } from '../viewportStore';
 
 interface UseCanvasViewportOptions {
   upm: number;
@@ -32,6 +32,16 @@ export function useCanvasViewport({ upm, showRulers = true }: UseCanvasViewportO
   useEffect(() => {
     setLiveViewport(zoom, pan);
   }, [zoom, pan]);
+
+  // Initialize the live viewport store synchronously on first render so
+  // subscribed layers read the correct zoom/pan before the first paint and
+  // never need a zoom/pan prop fallback. Idempotent: only writes while the
+  // store is empty (fresh mount); the values are the current React state,
+  // so a discarded concurrent render leaves exactly what the next render
+  // would produce. Later renders are synced by the [zoom, pan] effect above.
+  if (getLiveViewport() === null) {
+    setLiveViewport(zoom, pan);
+  }
 
   useEffect(() => {
     return () => {

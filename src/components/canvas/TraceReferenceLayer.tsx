@@ -23,7 +23,6 @@ interface TraceReferenceLayerProps {
   onDoubleClickReset?: () => void;
   isResizing?: boolean;
   onTraceImageError?: () => void;
-  zoom?: number;
 }
 
 export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.memo(
@@ -40,10 +39,9 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     onPointerDownResize,
     onDoubleClickReset,
     onTraceImageError,
-    zoom = 1,
   }) => {
     // L4: use the live pinch zoom so the adjust-handle sizes track the gesture.
-    const liveZoom = useLiveViewportZoom(zoom);
+    const liveZoom = useLiveViewportZoom();
     const z = liveZoom && liveZoom > 0 ? liveZoom : 1;
     const upm = unitsPerEm || 1000;
     const half = upm / 2;

@@ -17,7 +17,6 @@ interface MetricsGuidesLayerProps {
   descender?: number;
   capHeight?: number;
   xHeight?: number;
-  zoom?: number;
 }
 
 export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
@@ -35,9 +34,8 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     descender,
     capHeight,
     xHeight,
-    zoom = 1,
   }) => {
-    const liveZoom = useLiveViewportZoom(zoom);
+    const liveZoom = useLiveViewportZoom();
     if (!showMetrics) return null;
 
     const z = liveZoom && liveZoom > 0 ? liveZoom : 1;

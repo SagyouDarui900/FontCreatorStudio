@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Point } from '../../types';
 import { getHoverCanvasPos, subscribeHoverCanvasPos } from './hoverStore';
 import { useLiveViewport } from './viewportStore';
 
@@ -7,9 +6,6 @@ interface CanvasRulersLayerProps {
   showRulers: boolean;
   isLight: boolean;
   unitsPerEm?: number;
-  /** Pan and zoom of the canvas, in screen coordinates. */
-  pan: Point;
-  zoom: number;
   /** Viewport size in screen pixels. */
   width: number;
   height: number;
@@ -17,6 +13,46 @@ interface CanvasRulersLayerProps {
 
 const RULER_SIZE = 28;
 const STEP_CANDIDATES = [10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
+export interface RulerTick {
+  value: number;
+  minor: number;
+}
+
+/**
+ * Build the major/minor tick lines of one ruler axis as two path strings,
+ * so a ruler re-render only reconciles two <path> elements (plus one <text>
+ * per tick label) instead of one <g> per tick. Positions are identical to
+ * the previous per-tick <line> rendering: major ticks run from
+ * RULER_SIZE-10 to RULER_SIZE, minor ticks from RULER_SIZE-5 to
+ * RULER_SIZE. Minor ticks outside the visible range are omitted, as before.
+ */
+export function buildRulerTickPaths(
+  ticks: RulerTick[],
+  pan: number,
+  zoom: number,
+  vertical: boolean,
+  limit: number
+): { major: string; minor: string } {
+  const majorSegs: string[] = [];
+  const minorSegs: string[] = [];
+  for (const { value, minor } of ticks) {
+    const s = pan + value * zoom;
+    const ms = pan + minor * zoom;
+    if (vertical) {
+      majorSegs.push(`M${RULER_SIZE - 10} ${s}H${RULER_SIZE}`);
+      if (ms >= RULER_SIZE && ms <= limit) {
+        minorSegs.push(`M${RULER_SIZE - 5} ${ms}H${RULER_SIZE}`);
+      }
+    } else {
+      majorSegs.push(`M${s} ${RULER_SIZE - 10}V${RULER_SIZE}`);
+      if (ms >= RULER_SIZE && ms <= limit) {
+        minorSegs.push(`M${ms} ${RULER_SIZE - 5}V${RULER_SIZE}`);
+      }
+    }
+  }
+  return { major: majorSegs.join(''), minor: minorSegs.join('') };
+}
 
 /**
  * Top and left ruler scales, drawn in screen space.
@@ -26,8 +62,8 @@ const STEP_CANDIDATES = [10, 20, 25, 50, 100, 200, 250, 500, 1000];
  * triggers React re-renders.
  */
 export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
-  ({ showRulers, isLight, unitsPerEm = 1000, pan: propPan, zoom: propZoom, width, height }) => {
-    const { zoom, pan } = useLiveViewport(propZoom, propPan);
+  ({ showRulers, isLight, unitsPerEm = 1000, width, height }) => {
+    const { zoom, pan } = useLiveViewport();
     const upm = unitsPerEm || 1000;
     const safeZoom = zoom && zoom > 0 ? zoom : 1;
 
@@ -104,6 +140,17 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
       return ticks;
     }, [showRulers, height, pan.y, safeZoom, step, upm]);
 
+    // Tick lines as two path strings per axis (major/minor) so a ruler
+    // re-render reconciles 2 <path> elements instead of one <g> per tick.
+    const xTickPaths = useMemo(
+      () => buildRulerTickPaths(xTicks, pan.x, safeZoom, false, width),
+      [xTicks, pan.x, safeZoom, width]
+    );
+    const yTickPaths = useMemo(
+      () => buildRulerTickPaths(yTicks, pan.y, safeZoom, true, height),
+      [yTicks, pan.y, safeZoom, height]
+    );
+
     if (!showRulers) return null;
 
     const strokePrimary = isLight ? '#64748b' : '#94a3b8';
@@ -130,26 +177,14 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
 
         {/* Top Ruler Ticks & Numbers */}
         <g clipPath="url(#topRulerClip)">
-          {xTicks.map(({ value: x, minor }) => {
+          <path d={xTickPaths.major} fill="none" stroke={strokePrimary} strokeWidth={1} />
+          <path d={xTickPaths.minor} fill="none" stroke={strokeMinor} strokeWidth={1} />
+          {xTicks.map(({ value: x }) => {
             const sx = pan.x + x * safeZoom;
-            const minorSx = pan.x + minor * safeZoom;
             return (
-              <g key={`top-tick-${x}`}>
-                <line x1={sx} y1={RULER_SIZE - 10} x2={sx} y2={RULER_SIZE} stroke={strokePrimary} strokeWidth={1} />
-                <text x={sx + 3} y={12} fill={fillText} fontSize={9}>
-                  {x}
-                </text>
-                {minorSx >= RULER_SIZE && minorSx <= width && (
-                  <line
-                    x1={minorSx}
-                    y1={RULER_SIZE - 5}
-                    x2={minorSx}
-                    y2={RULER_SIZE}
-                    stroke={strokeMinor}
-                    strokeWidth={1}
-                  />
-                )}
-              </g>
+              <text key={`top-num-${x}`} x={sx + 3} y={12} fill={fillText} fontSize={9}>
+                {x}
+              </text>
             );
           })}
           <line
@@ -166,26 +201,14 @@ export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
 
         {/* Left Ruler Ticks & Numbers */}
         <g clipPath="url(#leftRulerClip)">
-          {yTicks.map(({ value: y, minor }) => {
+          <path d={yTickPaths.major} fill="none" stroke={strokePrimary} strokeWidth={1} />
+          <path d={yTickPaths.minor} fill="none" stroke={strokeMinor} strokeWidth={1} />
+          {yTicks.map(({ value: y }) => {
             const sy = pan.y + y * safeZoom;
-            const minorSy = pan.y + minor * safeZoom;
             return (
-              <g key={`left-tick-${y}`}>
-                <line x1={RULER_SIZE - 10} y1={sy} x2={RULER_SIZE} y2={sy} stroke={strokePrimary} strokeWidth={1} />
-                <text x={3} y={sy - 3} fill={fillText} fontSize={8.5}>
-                  {y}
-                </text>
-                {minorSy >= RULER_SIZE && minorSy <= height && (
-                  <line
-                    x1={RULER_SIZE - 5}
-                    y1={minorSy}
-                    x2={RULER_SIZE}
-                    y2={minorSy}
-                    stroke={strokeMinor}
-                    strokeWidth={1}
-                  />
-                )}
-              </g>
+              <text key={`left-num-${y}`} x={3} y={sy - 3} fill={fillText} fontSize={8.5}>
+                {y}
+              </text>
             );
           })}
           <line

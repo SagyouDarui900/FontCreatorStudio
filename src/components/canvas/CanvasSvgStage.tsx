@@ -334,7 +334,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           gridSize={gridSettings.gridSize || DEFAULT_GRID_SIZE}
           gridOpacity={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
           unitsPerEm={upm}
-          zoom={zoom}
         />
 
         {/* 2. Japanese Calligraphy / Layout Guides */}
@@ -348,7 +347,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           activeChar={activeChar}
           gridOpacity={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
           unitsPerEm={upm}
-          zoom={zoom}
         />
 
         {/* 3. Adjacent Character Context Boxes */}
@@ -385,7 +383,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             onDoubleClickReset={handleResetTracePosition}
             isResizing={isResizingTrace}
             onTraceImageError={onTraceImageError}
-            zoom={zoom}
           />
         )}
 
@@ -409,13 +406,11 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           descender={project?.metadata?.descender}
           capHeight={project?.metadata?.capHeight}
           xHeight={project?.metadata?.xHeight}
-          zoom={zoom}
         />
 
         {/* 7. User Custom Guidelines */}
         <CustomGuidelinesLayer
           customGuidelines={customGuidelines}
-          zoom={zoom}
           unitsPerEm={upm}
           locked={
             (!isGuideEraserActive && lockGuidelines) ||
@@ -435,7 +430,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         {toolMode === 'ruler' && gridSettings.showRulers !== false && Boolean(rulerMeasurement) && (
           <RulerMeasurementLayer
             rulerMeasurement={rulerMeasurement!}
-            zoom={zoom}
             onDrawLine={handleDrawRulerAsStroke}
             onConvertToGuide={handleConvertRulerToGuideline}
             onClear={handleClearRulerMeasurement}
@@ -457,7 +451,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           selectedContourIds={selectedContourIds}
           contourSvgMap={contourSvgMap}
           selectionColor={selectionColor}
-          zoom={zoom}
           toolMode={toolMode}
           screenToCanvas={screenToCanvas}
           onChangeContours={onChangeContours}
@@ -533,7 +526,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           toolMode={toolMode}
           selectedContourIds={selectedContourIds}
           selContoursBBox={selContoursBBox}
-          zoom={zoom}
           selectionColor={selectionColor}
           selectedContoursSvgPath={selectedContoursSvgPath}
           rotateDisplayAngle={rotateDisplayAngle}
@@ -562,7 +554,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           selectedNodeIds={selectedNodeIds}
           contourSvgMap={contourSvgMap}
           nodeStyle={nodeStyle}
-          zoom={zoom}
           isLight={isLight}
           eraserSize={eraserSize}
           startNodeOrHandleDrag={startNodeOrHandleDrag}
@@ -586,7 +577,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         <CursorReticleOverlay
           gridSettings={gridSettings}
           toolMode={toolMode}
-          zoom={zoom}
           selectionColor={selectionColor}
           generalCrosshairRef={generalCrosshairRef}
           drawingReticleRef={drawingReticleRef}
@@ -600,7 +590,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         <SmartSnapGuidesLayer
           activeSnapGuides={activeSnapGuides}
           selectionColor={selectionColor}
-          zoom={zoom}
         />
       </g>
 
@@ -611,8 +600,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         showRulers={gridSettings.showRulers !== false}
         isLight={isLight}
         unitsPerEm={upm}
-        pan={panRef?.current ?? pan}
-        zoom={zoomRef?.current ?? zoom}
         width={viewportSize.width}
         height={viewportSize.height}
       />

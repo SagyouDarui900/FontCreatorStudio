@@ -18,7 +18,15 @@ export interface LiveViewportState {
  * zoom commit that follows a gesture) reads the exact latest zoom. This
  * keeps slow zooms from re-rendering every layer on every frame while the
  * visible error stays below ~0.2% (under 0.03 screen px for a 14px handle).
+ *
+ * Before the store is first synced, the hooks fall back to the canvas's
+ * initial React state (INITIAL_LIVE_ZOOM / INITIAL_LIVE_PAN). Layers must
+ * not receive zoom/pan as props for this: the prop would change on every
+ * zoom commit and defeat their React.memo, re-rendering them a second time
+ * right after the live subscription already updated them.
  */
+export const INITIAL_LIVE_ZOOM = 0.55;
+export const INITIAL_LIVE_PAN: Point = { x: 0, y: 0 };
 let liveViewport: LiveViewportState | null = null;
 const viewportListeners = new Set<() => void>();
 const zoomListeners = new Set<() => void>();
@@ -80,12 +88,12 @@ function subscribeZoom(listener: () => void): () => void {
   };
 }
 
-export function useLiveViewport(fallbackZoom: number, fallbackPan: Point): LiveViewportState {
+export function useLiveViewport(): LiveViewportState {
   const storeValue = useSyncExternalStore(subscribeViewport, getLiveViewport);
-  return storeValue ?? { zoom: fallbackZoom, pan: fallbackPan };
+  return storeValue ?? { zoom: INITIAL_LIVE_ZOOM, pan: { ...INITIAL_LIVE_PAN } };
 }
 
-export function useLiveViewportZoom(fallbackZoom: number): number {
+export function useLiveViewportZoom(): number {
   const storeZoom = useSyncExternalStore(subscribeZoom, getLiveZoomOnly);
-  return storeZoom ?? fallbackZoom;
+  return storeZoom ?? INITIAL_LIVE_ZOOM;
 }

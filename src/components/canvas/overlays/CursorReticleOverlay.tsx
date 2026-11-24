@@ -5,7 +5,6 @@ import { useLiveViewportZoom } from '../viewportStore';
 export interface CursorReticleOverlayProps {
   gridSettings: GridSettings;
   toolMode: ToolMode;
-  zoom: number;
   selectionColor: string;
   generalCrosshairRef?: React.RefObject<SVGGElement | null>;
   drawingReticleRef: React.RefObject<SVGGElement | null>;
@@ -18,7 +17,6 @@ export interface CursorReticleOverlayProps {
 export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.memo(({
   gridSettings,
   toolMode,
-  zoom: propZoom,
   selectionColor,
   generalCrosshairRef,
   drawingReticleRef,
@@ -28,7 +26,7 @@ export const CursorReticleOverlay: React.FC<CursorReticleOverlayProps> = React.m
   eraserSize,
 }) => {
   // M6: keep the reticle ring and ticks a constant screen size during pinch zoom.
-  const zoom = useLiveViewportZoom(propZoom);
+  const zoom = useLiveViewportZoom();
   return (
     <>
       {/* ---------------- HARDWARE-ACCELERATED GENERAL CURSOR CROSSHAIR (0ms DIRECT GPU DOM TRACKING) ---------------- */}

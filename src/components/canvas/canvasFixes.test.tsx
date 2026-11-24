@@ -280,6 +280,8 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
   });
 
   it('renders diagonal snap guide lines, marker, and badge in SmartSnapGuidesLayer', () => {
+    clearLiveViewport();
+    setLiveViewport(1, { x: 0, y: 0 });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -288,7 +290,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       root.render(
         <svg>
           <SmartSnapGuidesLayer
-            zoom={1}
             selectionColor="#0284c7"
             activeSnapGuides={[
               {
@@ -1155,6 +1156,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
 
   it('CanvasBackgroundLayer draws center-aligned minor/major vector grid lines without <pattern> or crispEdges and fades minor lines at low zoom', () => {
     clearLiveViewport();
+    setLiveViewport(1, { x: 0, y: 0 });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -1162,7 +1164,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     act(() => {
       root.render(
         <svg>
-          <CanvasBackgroundLayer isLight={true} showGrid={true} gridSize={128} unitsPerEm={1000} zoom={1} />
+          <CanvasBackgroundLayer isLight={true} showGrid={true} gridSize={128} unitsPerEm={1000} />
         </svg>
       );
     });
@@ -1191,9 +1193,12 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
 
     // When gridSize=10 and zoom drops to 0.2 (2px screen cells), minor grid fades out cleanly while major stays
     act(() => {
+      setLiveViewport(0.2, { x: 0, y: 0 });
+    });
+    act(() => {
       root.render(
         <svg>
-          <CanvasBackgroundLayer isLight={true} showGrid={true} gridSize={10} unitsPerEm={1000} zoom={0.2} />
+          <CanvasBackgroundLayer isLight={true} showGrid={true} gridSize={10} unitsPerEm={1000} />
         </svg>
       );
     });
@@ -1211,6 +1216,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
 
   it('MetricsGuidesLayer and JapaneseGuidesLayer use sharp frame corners, fixed canvas anchors, and ignore pan-only updates', () => {
     clearLiveViewport();
+    setLiveViewport(0.5, { x: 0, y: 0 });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -1218,7 +1224,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     let zoomRenderCount = 0;
     const ZoomRenderCounter = () => {
       zoomRenderCount++;
-      useLiveViewportZoom(0.5);
+      useLiveViewportZoom();
       return null;
     };
 
@@ -1226,7 +1232,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       root.render(
         <svg>
           <ZoomRenderCounter />
-          <MetricsGuidesLayer showMetrics={true} lsb={50} advanceWidth={1000} unitsPerEm={1000} zoom={0.5} />
+          <MetricsGuidesLayer showMetrics={true} lsb={50} advanceWidth={1000} unitsPerEm={1000} />
           <JapaneseGuidesLayer
             guideType="cross"
             verticalGuide="center"
@@ -1234,7 +1240,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
             showKanaFrame={true}
             isLight={true}
             unitsPerEm={1000}
-            zoom={0.5}
           />
         </svg>
       );
@@ -1288,6 +1293,9 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
 
     // Japanese character hides Latin text clutter and suppressCenterLine deduplicates Center (500)
     act(() => {
+      setLiveViewport(2, { x: 0, y: 0 });
+    });
+    act(() => {
       root.render(
         <svg>
           <MetricsGuidesLayer
@@ -1297,7 +1305,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
             lsb={50}
             advanceWidth={1000}
             unitsPerEm={1000}
-            zoom={2}
           />
         </svg>
       );
@@ -1317,6 +1324,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
   it('CanvasRulersLayer adapts tick spacing, tracks liveViewport, and updates hover markers via DOM without re-rendering', () => {
     clearLiveViewport();
     setHoverCanvasPos(null);
+    setLiveViewport(0.5, { x: 40, y: 40 });
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -1328,8 +1336,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
             showRulers={true}
             isLight={true}
             unitsPerEm={1000}
-            pan={{ x: 40, y: 40 }}
-            zoom={0.5}
             width={800}
             height={600}
           />

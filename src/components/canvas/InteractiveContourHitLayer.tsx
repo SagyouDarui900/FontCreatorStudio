@@ -1,6 +1,7 @@
 import React from 'react';
 import { PathContour, Point, ToolMode } from '../../types';
 import { contoursToSvgPath, insertNodeOnContourAtPoint } from '../../utils/path';
+import { useLiveViewportZoom } from './viewportStore';
 
 export interface InteractiveContourHitLayerProps {
   contours: PathContour[];
@@ -8,7 +9,6 @@ export interface InteractiveContourHitLayerProps {
   selectedContourIds: string[];
   contourSvgMap: Map<string, string>;
   selectionColor: string;
-  zoom: number;
   toolMode: ToolMode;
   screenToCanvas: (clientX: number, clientY: number) => Point;
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
@@ -31,7 +31,6 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
   selectedContourIds,
   contourSvgMap,
   selectionColor,
-  zoom,
   toolMode,
   screenToCanvas,
   onChangeContours,
@@ -47,6 +46,11 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
   onSetToolMode,
   isGlyphLocked = false,
 }) => {
+  // Keep the hit stroke width a constant screen size during pinch/wheel
+  // zoom, like the other layers. Reading zoom from the store also means a
+  // zoom commit no longer re-renders this layer via a changed prop.
+  const liveZoom = useLiveViewportZoom();
+  const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
   return (
     <>
       {contours.map((contour) => {

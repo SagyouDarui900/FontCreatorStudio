@@ -9,6 +9,8 @@ import {
   setLiveViewport,
   useLiveViewport,
   useLiveViewportZoom,
+  INITIAL_LIVE_ZOOM,
+  INITIAL_LIVE_PAN,
 } from './viewportStore';
 import { quantizeInverseZoom } from './BezierNodeControlsLayer';
 
@@ -18,12 +20,12 @@ function renderZoomCounters(container: HTMLDivElement) {
   let fullRenderCount = 0;
   const ZoomCounter = () => {
     zoomRenderCount++;
-    useLiveViewportZoom(0.5);
+    useLiveViewportZoom();
     return null;
   };
   const FullCounter = () => {
     fullRenderCount++;
-    useLiveViewport(0.5, { x: 0, y: 0 });
+    useLiveViewport();
     return null;
   };
   act(() => {
@@ -169,6 +171,47 @@ describe('viewportStore zoom notification throttling', () => {
       setLiveViewport(1.001, { x: 0, y: 0 });
     });
     expect(getZoomRenders()).toBeGreaterThan(baseline);
+
+    act(() => {
+      root.unmount();
+    });
+    clearLiveViewport();
+    container.remove();
+  });
+});
+
+describe('viewportStore initial fallback', () => {
+  it('falls back to the initial canvas zoom/pan while the store is empty', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let seenZoom = -1;
+    let seenViewport: { zoom: number; pan: { x: number; y: number } } | null = null;
+    const Reader = () => {
+      seenZoom = useLiveViewportZoom();
+      seenViewport = useLiveViewport();
+      return null;
+    };
+    act(() => {
+      root.render(
+        <svg>
+          <Reader />
+        </svg>
+      );
+    });
+    // The fallback is the canvas's initial React state, so the first paint
+    // shows the same zoom/pan as before the zoom prop was removed.
+    expect(seenZoom).toBe(INITIAL_LIVE_ZOOM);
+    expect(seenViewport).toEqual({ zoom: INITIAL_LIVE_ZOOM, pan: INITIAL_LIVE_PAN });
+
+    // Once the store is synced (e.g. by the initial fit), the hooks read
+    // the store value instead of the fallback.
+    act(() => {
+      setLiveViewport(0.8, { x: 120, y: 90 });
+    });
+    expect(seenZoom).toBe(0.8);
+    expect(seenViewport).toEqual({ zoom: 0.8, pan: { x: 120, y: 90 } });
 
     act(() => {
       root.unmount();
