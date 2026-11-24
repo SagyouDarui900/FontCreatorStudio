@@ -20,6 +20,9 @@ export interface SubdividedStrokeOptions {
   customPreset?: Partial<UserPenPreset>;
   /** Disable automatic straightening for curved preview or delicate calligraphic strokes */
   disableAutoStraight?: boolean;
+  /** Cap on the smoothing passes (live preview only): fewer passes keep
+   * per-frame cost bounded. The finalize path never sets this. */
+  maxSmoothingPasses?: number;
 }
 
 /**
@@ -126,14 +129,23 @@ export function generateFastStrokeSvgPath(
   const intensityNorm = Math.max(0, Math.min(100, smoothingIntensity)) / 100;
   const smoothingPasses =
     intensityNorm <= 0.05 ? 0 : Math.max(1, Math.round(1 + 2 * intensityNorm));
-  const smX = Float64Array.from(ptsX);
-  const smY = Float64Array.from(ptsY);
-  const smP = Float64Array.from(ptsP);
-  if (smoothingPasses > 0) {
+  // Live preview caps the passes at 2: the third pass only widens the
+  // fixed 0.25/0.5/0.25 kernel slightly, so the visible difference from
+  // finalize is small while per-frame cost stays bounded.
+  const cappedPasses =
+    options?.maxSmoothingPasses != null
+      ? Math.min(smoothingPasses, Math.max(0, options.maxSmoothingPasses))
+      : smoothingPasses;
+  // With no smoothing passes the working arrays are only read, so they can
+  // alias the input arrays instead of copying them.
+  const smX = cappedPasses === 0 ? ptsX : Float64Array.from(ptsX);
+  const smY = cappedPasses === 0 ? ptsY : Float64Array.from(ptsY);
+  const smP = cappedPasses === 0 ? ptsP : Float64Array.from(ptsP);
+  if (cappedPasses > 0) {
     const tmpX = new Float64Array(n);
     const tmpY = new Float64Array(n);
     const tmpP = new Float64Array(n);
-    for (let pass = 0; pass < smoothingPasses; pass++) {
+    for (let pass = 0; pass < cappedPasses; pass++) {
       tmpX[0] = smX[0];
       tmpY[0] = smY[0];
       tmpP[0] = smP[0];

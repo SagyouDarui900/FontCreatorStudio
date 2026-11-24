@@ -214,6 +214,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
       // H7: the preview must use the same parameters as finalize. In
       // particular auto-straight must not be disabled here while finalize
       // applies it, or a near-straight preview snaps straight on commit.
+      // maxSmoothingPasses bounds the per-frame cost for long strokes.
       return generateFastStrokeSvgPath(
         previewPts,
         cfg.brushWidth,
@@ -222,7 +223,7 @@ export function useBrushDrawing(options: UseBrushDrawingOptions): UseBrushDrawin
         cfg.pressureSensitivity,
         cfg.pressureCurve,
         effectiveSmoothing,
-        { customPreset: cfg.activePenPreset || undefined }
+        { customPreset: cfg.activePenPreset || undefined, maxSmoothingPasses: 2 }
       );
     },
     [

@@ -50,6 +50,73 @@ describe('generateFastStrokeSvgPath (H7: preview must match finalize)', () => {
   });
 });
 
+describe('generateFastStrokeSvgPath (live preview pass cap)', () => {
+  // A single spike keeps diffusing on every smoothing pass, so 2 passes
+  // and 3 passes give different outputs (unlike a periodic zigzag, which
+  // converges after one pass).
+  const spike: StrokePoint[] = [
+    { x: 100, y: 100, pressure: 0.5 },
+    { x: 110, y: 100, pressure: 0.5 },
+    { x: 120, y: 100, pressure: 0.5 },
+    { x: 130, y: 130, pressure: 0.5 },
+    { x: 140, y: 100, pressure: 0.5 },
+    { x: 150, y: 100, pressure: 0.5 },
+    { x: 160, y: 100, pressure: 0.5 },
+  ];
+
+  it('maxSmoothingPasses: 2 is a no-op at intensity 50 (already 2 passes)', () => {
+    const capped = generateFastStrokeSvgPath(spike, 40, 'brush', true, 'off', null, 50, {
+      maxSmoothingPasses: 2,
+    });
+    const plain = generateFastStrokeSvgPath(spike, 40, 'brush', true, 'off', null, 50);
+    expect(capped).toBe(plain);
+    expect(capped.length).toBeGreaterThan(0);
+  });
+
+  it('maxSmoothingPasses: 2 at intensity 100 equals the 2-pass result', () => {
+    const capped = generateFastStrokeSvgPath(spike, 40, 'brush', true, 'off', null, 100, {
+      maxSmoothingPasses: 2,
+    });
+    const twoPass = generateFastStrokeSvgPath(spike, 40, 'brush', true, 'off', null, 50);
+    expect(capped).toBe(twoPass);
+    const uncapped = generateFastStrokeSvgPath(spike, 40, 'brush', true, 'off', null, 100);
+    expect(capped).not.toBe(uncapped);
+    expect(capped.length).toBeGreaterThan(0);
+  });
+
+  it('auto-straight still applies with the pass cap', () => {
+    const wobbly: StrokePoint[] = [
+      { x: 100, y: 100, pressure: 0.5 },
+      { x: 140, y: 101, pressure: 0.5 },
+      { x: 180, y: 99, pressure: 0.5 },
+      { x: 220, y: 100.5, pressure: 0.5 },
+      { x: 260, y: 100, pressure: 0.5 },
+    ];
+    const capped = generateFastStrokeSvgPath(wobbly, 40, 'brush', true, 'off', null, 100, {
+      maxSmoothingPasses: 2,
+    });
+    const withoutStraight = generateFastStrokeSvgPath(wobbly, 40, 'brush', true, 'off', null, 100, {
+      disableAutoStraight: true,
+      maxSmoothingPasses: 2,
+    });
+    expect(capped).not.toBe(withoutStraight);
+  });
+
+  it('long stroke preview output is non-empty', () => {
+    const long: StrokePoint[] = Array.from({ length: 1000 }, (_, i) => ({
+      x: i,
+      y: 100 + Math.sin(i / 20) * 10,
+      pressure: 0.5,
+    }));
+    const d = generateFastStrokeSvgPath(long, 40, 'brush', true, 'normal', null, 100, {
+      maxSmoothingPasses: 2,
+    });
+    expect(d.length).toBeGreaterThan(0);
+    expect(d.startsWith('M ')).toBe(true);
+    expect(d.endsWith(' Z')).toBe(true);
+  });
+});
+
 describe('autoStraightenStrokePoints (H7)', () => {
   it('snaps a near-straight wobbly line onto its chord', () => {
     const wobbly: StrokePoint[] = [

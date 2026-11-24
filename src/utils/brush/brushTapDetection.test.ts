@@ -11,6 +11,7 @@ import {
 import {
   calculateEffectiveSmoothing,
   getDecimatedPointsForLivePreview,
+  MAX_LIVE_PREVIEW_POINTS,
 } from './brushOutlinePreview';
 import { StrokePoint } from '../../types';
 
@@ -123,5 +124,21 @@ describe('brushOutlinePreview', () => {
     const decimated = getDecimatedPointsForLivePreview(large);
     expect(decimated.length).toBe(4); // index 0, 2, 4, 5
     expect(decimated[decimated.length - 1]).toEqual({ x: 5, y: 5 });
+  });
+
+  it('caps long strokes at about MAX_LIVE_PREVIEW_POINTS and keeps the last point', () => {
+    const long: StrokePoint[] = Array.from({ length: 1000 }, (_, i) => ({ x: i, y: i }));
+    const decimated = getDecimatedPointsForLivePreview(long);
+    expect(decimated.length).toBeLessThanOrEqual(MAX_LIVE_PREVIEW_POINTS + 1);
+    expect(decimated[0]).toEqual({ x: 0, y: 0 });
+    expect(decimated[decimated.length - 1]).toEqual({ x: 999, y: 999 });
+  });
+
+  it('keeps the previous sampling for strokes up to 320 points', () => {
+    const pts: StrokePoint[] = Array.from({ length: 320 }, (_, i) => ({ x: i, y: i }));
+    const decimated = getDecimatedPointsForLivePreview(pts);
+    expect(decimated.length).toBe(161); // every other point plus the last
+    expect(decimated[0]).toEqual({ x: 0, y: 0 });
+    expect(decimated[decimated.length - 1]).toEqual({ x: 319, y: 319 });
   });
 });

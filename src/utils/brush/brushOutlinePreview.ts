@@ -1,11 +1,23 @@
 import { StrokePoint } from '../../types';
 
+/** Maximum number of points fed to the live preview path generator. */
+export const MAX_LIVE_PREVIEW_POINTS = 160;
+
 /**
  * Decimate points for fast live stroke rendering during rapid pointermove events.
+ * Keeps the existing every-other-point sampling for ordinary strokes, and
+ * widens the stride only once the halved count would exceed
+ * MAX_LIVE_PREVIEW_POINTS, so short strokes render exactly as before.
+ * The last point is always kept so the stroke tip tracks the pointer.
  */
 export const getDecimatedPointsForLivePreview = (pts: StrokePoint[]): StrokePoint[] => {
   if (pts.length <= 4) return pts;
-  return pts.filter((_, idx) => idx % 2 === 0 || idx === pts.length - 1);
+  const stride = Math.max(2, Math.ceil(pts.length / MAX_LIVE_PREVIEW_POINTS));
+  const out: StrokePoint[] = [];
+  for (let i = 0; i < pts.length; i += stride) out.push(pts[i]);
+  const last = pts[pts.length - 1];
+  if (out[out.length - 1] !== last) out.push(last);
+  return out;
 };
 
 /**
