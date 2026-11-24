@@ -18,6 +18,7 @@ import {
 import { validateFontProject, stripInvalidPixelData } from './validation';
 import { contoursToOpenTypePath } from './paths';
 import { deriveProjectPaltMetrics } from './metrics';
+import { injectKernTable, type KernPair } from './kernTable';
 
 export interface CompileFontOptions {
   /**
@@ -722,12 +723,15 @@ export function compileFont(
   // -------------------------------------------------------------
   // Kerning Pairs Processing (TrueType / OpenType kern table)
   // -------------------------------------------------------------
+  // Hoisted: the binary kern table is injected after serialization (see
+  // below), because opentype.js 2.0.0 never writes one.
+  let validKerningPairs: KernPair[] = [];
   if (Object.keys(configuredKerning).length > 0) {
     if (!font.kerningPairs) {
       font.kerningPairs = {};
     }
 
-    const validKerningPairs: { leftIndex: number; rightIndex: number; value: number }[] = [];
+    validKerningPairs = [];
 
     for (const [pairKey, val] of Object.entries(configuredKerning)) {
       if (typeof val !== 'number' || Math.abs(val) < 0.1) continue;
@@ -789,62 +793,12 @@ export function compileFont(
       }
     }
 
-    // Build standard OpenType kern table if pairs exist
-    if (validKerningPairs.length > 0) {
-      try {
-        validKerningPairs.sort((a, b) =>
-          a.leftIndex === b.leftIndex ? a.rightIndex - b.rightIndex : a.leftIndex - b.leftIndex
-        );
-
-        const nPairs = validKerningPairs.length;
-        let entrySelector = 0;
-        let searchRange = 1;
-        while (searchRange * 2 <= nPairs) {
-          searchRange *= 2;
-          entrySelector++;
-        }
-        searchRange *= 6;
-        const rangeShift = nPairs * 6 - searchRange;
-        const subtableLength = 14 + nPairs * 6;
-
-        const subtableFields: any[] = [
-          { name: 'version', type: 'USHORT', value: 0 },
-          { name: 'length', type: 'USHORT', value: subtableLength },
-          { name: 'coverage', type: 'USHORT', value: 1 }, // Format 0 horizontal kerning
-          { name: 'nPairs', type: 'USHORT', value: nPairs },
-          { name: 'searchRange', type: 'USHORT', value: searchRange },
-          { name: 'entrySelector', type: 'USHORT', value: entrySelector },
-          { name: 'rangeShift', type: 'USHORT', value: rangeShift },
-        ];
-
-        for (let i = 0; i < nPairs; i++) {
-          const pair = validKerningPairs[i];
-          subtableFields.push({ name: `left_${i}`, type: 'USHORT', value: pair.leftIndex });
-          subtableFields.push({ name: `right_${i}`, type: 'USHORT', value: pair.rightIndex });
-          subtableFields.push({ name: `value_${i}`, type: 'SHORT', value: pair.value });
-        }
-
-        const opentypeRuntime = opentype as unknown as {
-          ['Table']?: new (name: string, fields: unknown[]) => unknown;
-        };
-        const OpentypeTable = opentypeRuntime['Table'];
-        if (!OpentypeTable) {
-          throw new Error('opentype.js Table API is unavailable; retaining kerningPairs fallback');
-        }
-        const subtable = new OpentypeTable('kernSubtable', subtableFields);
-        (font as any).tables.kern = new OpentypeTable('kern', [
-          { name: 'version', type: 'USHORT', value: 0 },
-          { name: 'nTables', type: 'USHORT', value: 1 },
-          { name: 'subtable_0', type: 'TABLE', value: subtable },
-        ]);
-      } catch (kernErr) {
-        // A missing binary kern table must not be treated as success:
-        // the in-memory kerningPairs fallback does not reach the file.
-        throw new Error(
-          `カーニングテーブルの生成に失敗しました: ${kernErr instanceof Error ? kernErr.message : '不明なエラー'}`
-        );
-      }
-    }
+    // The binary kern table is injected into the serialized font below
+    // (injectKernTable): opentype.js 2.0.0 only parses kern tables and
+    // never writes one, so building it here through its Table API was
+    // impossible even before that API stopped being exported. The
+    // in-memory font.kerningPairs map above is kept for in-browser
+    // rendering and metrics.
   }
 
   // OpenType GSUB Layout Tables: consolidated vertical writing ('vert', 'vrt2') and ligature features
@@ -977,7 +931,22 @@ export function compileFont(
     }
   }
 
-  const buffer = font.toArrayBuffer();
+  let buffer = font.toArrayBuffer();
+
+  // Insert the binary kern table into the serialized font. opentype.js
+  // never writes a kern table, so it has to be injected here; the
+  // self-validation parse below then covers the injected bytes too.
+  if (validKerningPairs.length > 0) {
+    try {
+      buffer = injectKernTable(buffer, validKerningPairs);
+    } catch (kernErr) {
+      // A missing binary kern table must not be treated as success:
+      // the in-memory kerningPairs fallback does not reach the file.
+      throw new Error(
+        `カーニングテーブルの生成に失敗しました: ${kernErr instanceof Error ? kernErr.message : '不明なエラー'}`
+      );
+    }
+  }
 
   // Self-Validation: Verify binary OpenType (CFF outlines, sfnt version
   // OTTO) can be parsed cleanly by OpenType parser. opentype.js has no

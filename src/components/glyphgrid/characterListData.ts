@@ -95,13 +95,20 @@ export interface RadicalSection {
  */
 export function getRadicalSections(): RadicalSection[] {
   const byRadical = new Map<number, CharacterListItem[]>();
+  // One Set for the whole pass: each kanji belongs to exactly one radical
+  // section, so a global seen-set keeps first-seen (JIS) order. The
+  // previous per-section Array.some scan was O(n^2) over 10,050 kanji and
+  // took seconds on every switch to the radical view.
+  const seenCodes = new Set<number>();
   for (const char of [...JIS_LEVEL_1_KANJI, ...JIS_LEVEL_2_KANJI, ...JIS_LEVEL_3_KANJI, ...JIS_LEVEL_4_KANJI]) {
     const code = char.codePointAt(0);
     const radical = getKangxiRadicalForKanji(char);
     if (!code || radical === undefined) continue;
+    if (seenCodes.has(code)) continue;
+    seenCodes.add(code);
     const list = byRadical.get(radical);
     if (list) {
-      if (!list.some((item) => item.code === code)) list.push({ char, code });
+      list.push({ char, code });
     } else {
       byRadical.set(radical, [{ char, code }]);
     }

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import * as opentype from 'opentype.js';
 import { compileFont, inferWeightClassFromStyleName } from './compilerCore';
 import {
   validateFontProject,
@@ -543,5 +544,60 @@ describe('Font Project Validation & Compilation', () => {
     expect(boldItalicCompiled.font.tables.os2.usWeightClass).toBe(700);
     expect(boldItalicCompiled.font.tables.os2.fsSelection & 0x0020).toBe(0x0020);
     expect(boldItalicCompiled.font.tables.os2.fsSelection & 0x0001).toBe(0x0001);
+  });
+});
+
+describe('compileFont with kerning', () => {
+  it('compiles a project with valid kerning pairs and writes a kern table', () => {
+    const rectContour: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 500, y: 100, type: 'corner' },
+        { id: 'n3', x: 500, y: 600, type: 'corner' },
+        { id: 'n4', x: 100, y: 600, type: 'corner' },
+      ],
+    };
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rectContour],
+        },
+        86: {
+          char: 'V',
+          name: 'V',
+          unicode: 86,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rectContour],
+        },
+      },
+      kerning: { 'A,V': -80 },
+    });
+
+    // Regression: this used to throw "カーニングテーブルの生成に失敗しました"
+    // because opentype.js 2.0.0 does not export Table and never writes a
+    // kern table.
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.buffer.byteLength).toBeGreaterThan(512);
+
+    const reparsed = opentype.parse(compiled.buffer);
+    const leftIndex = reparsed.charToGlyphIndex('A');
+    const rightIndex = reparsed.charToGlyphIndex('V');
+    expect(leftIndex).toBeGreaterThan(0);
+    expect(rightIndex).toBeGreaterThan(0);
+    expect(reparsed.kerningPairs[`${leftIndex},${rightIndex}`]).toBe(-80);
+    expect(
+      reparsed.getKerningValue(
+        reparsed.glyphs.get(leftIndex),
+        reparsed.glyphs.get(rightIndex)
+      )
+    ).toBe(-80);
   });
 });
