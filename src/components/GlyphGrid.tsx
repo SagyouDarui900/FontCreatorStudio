@@ -16,6 +16,7 @@ import {
   GlyphGridPagination,
   useGlyphGridFilter,
 } from './glyphgrid/index';
+import { CharacterListTab } from './glyphgrid/CharacterListTab';
 
 export type { GlyphGridProps };
 
@@ -49,6 +50,10 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   // close the drawer (C5). The timestamp expires so a later unrelated
   // backdrop click still closes the drawer.
   const backdropMenuCloseAtRef = useRef(0);
+
+  // Panel tab: the creation grid (boxes with editing actions) or the
+  // plain character list (specimen view, unwritten glyphs as faint text).
+  const [panelTab, setPanelTab] = useState<'create' | 'list'>('create');
 
   // Close context menu on outside pointerdown / touch, on Escape, and on
   // scroll or resize (the menu position is not updated, so it closes).
@@ -264,8 +269,44 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           </div>
         )}
 
-        {/* Toolbar & Filter Component */}
-        <GlyphGridToolbar
+        {/* Panel Tabs: creation grid / plain character list */}
+        <div
+          className={`flex gap-1 px-2 pt-2 pb-1 shrink-0 border-b ${themeClasses.border}`}
+          role="tablist"
+          aria-label="文字パネルの表示切り替え"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={panelTab === 'create'}
+            onClick={() => setPanelTab('create')}
+            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors ${
+              panelTab === 'create'
+                ? themeClasses.activeTool
+                : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+            }`}
+          >
+            作成
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={panelTab === 'list'}
+            onClick={() => setPanelTab('list')}
+            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors ${
+              panelTab === 'list'
+                ? themeClasses.activeTool
+                : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+            }`}
+          >
+            一覧
+          </button>
+        </div>
+
+        {panelTab === 'create' ? (
+          <>
+            {/* Toolbar & Filter Component */}
+            <GlyphGridToolbar
           themeClasses={themeClasses}
           charListLength={charList.length}
           validPage={validPage}
@@ -349,6 +390,15 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             ))
           )}
         </div>
+          </>
+        ) : (
+          <CharacterListTab
+            project={project}
+            selectedUnicode={selectedUnicode}
+            onSelectGlyph={handleCardSelect}
+            theme={theme}
+          />
+        )}
 
         {/* Selected Glyph Quick Action Dock */}
         {selectedUnicode > 0 && (
@@ -424,8 +474,8 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           </div>
         )}
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
+        {/* Pagination Footer (creation grid only) */}
+        {panelTab === 'create' && totalPages > 1 && (
           <div
             className={`p-2 border-t flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom),10px)] ${themeClasses.toolbarBg} ${themeClasses.border}`}
           >
