@@ -260,7 +260,12 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
               />
               <div className="text-[10px] text-stone-400 flex justify-between">
                 <span>
-                  行間: {dimensions.lineGapH}H ({(dimensions.lineGapH * 0.25).toFixed(2)}mm)
+                  {/* L23: clamp the displayed line gap at 0, like
+                      PoetryTanzakuView does, so a line feed below the
+                      font size never shows a negative gap. The warning
+                      below is kept. */}
+                  行間: {Math.max(0, dimensions.lineGapH)}H (
+                  {(Math.max(0, dimensions.lineGapH) * 0.25).toFixed(2)}mm)
                 </span>
                 <span>行送り比率: {Math.round((lineFeedH / fontSizeQ) * 100)}%</span>
               </div>

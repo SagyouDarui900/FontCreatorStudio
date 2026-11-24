@@ -10,13 +10,24 @@ export function deriveProjectPaltMetrics(
   project: FontProject,
   sideBearingPercent: number = 5
 ): PaltGlyphMetric[] {
-  const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+  const upm = project.metadata?.unitsPerEm || DEFAULT_UPM;
   // 0 is a valid value (no optical padding); only clamp the upper bound.
   const padding = Math.round(upm * (Math.max(0, Math.min(25, sideBearingPercent)) / 100));
   const list: PaltGlyphMetric[] = [];
 
   for (const g of Object.values(project.glyphs || {})) {
-    if (!g || typeof g.unicode !== 'number' || g.unicode <= 32) continue;
+    if (
+      !g ||
+      typeof g.unicode !== 'number' ||
+      !Number.isInteger(g.unicode) ||
+      g.unicode <= 32 ||
+      g.unicode > 0x10ffff
+    ) {
+      // An out-of-range Unicode would make String.fromCodePoint throw
+      // a RangeError below; such a glyph cannot be compiled anyway, so
+      // skip it instead of aborting the whole derivation.
+      continue;
+    }
     if (!g.contours || g.contours.length === 0) continue;
 
     const bbox = getContoursBoundingBox(g.contours);
@@ -50,13 +61,22 @@ export function deriveProjectVpalMetrics(
   project: FontProject,
   sideBearingPercent: number = 5
 ): VpalGlyphMetric[] {
-  const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
+  const upm = project.metadata?.unitsPerEm || DEFAULT_UPM;
   // 0 is a valid value (no optical padding); only clamp the upper bound.
   const padding = Math.round(upm * (Math.max(0, Math.min(25, sideBearingPercent)) / 100));
   const list: VpalGlyphMetric[] = [];
 
   for (const g of Object.values(project.glyphs || {})) {
-    if (!g || typeof g.unicode !== 'number' || g.unicode <= 32) continue;
+    if (
+      !g ||
+      typeof g.unicode !== 'number' ||
+      !Number.isInteger(g.unicode) ||
+      g.unicode <= 32 ||
+      g.unicode > 0x10ffff
+    ) {
+      // See deriveProjectPaltMetrics: skip instead of throwing RangeError.
+      continue;
+    }
     if (!g.contours || g.contours.length === 0) continue;
 
     const bbox = getContoursBoundingBox(g.contours);

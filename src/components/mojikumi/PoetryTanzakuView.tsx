@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { groupTateChuYoko } from './BookSpreadView';
+import { MOJIKUMI_Q_TO_PX } from './mojikumiScale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PoetryTanzakuViewProps {
@@ -34,7 +35,10 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
   showGrid = false,
   pageResetKey,
 }) => {
-  const emPx = Math.max(15, Math.round(fontSizeQ * 1.4 * zoom));
+  // L15: Q-to-px factor is the shared MOJIKUMI_Q_TO_PX. The line-gap
+  // factor stays 1.8 (wider than the other views' 1.35): the poetry slip
+  // intentionally uses wider line spacing than prose views.
+  const emPx = Math.max(15, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.8 * zoom));
   const lineGapH = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 10) / 10);
 
@@ -291,6 +295,11 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
 
           <div className="text-[11px] font-mono text-stone-400">
             行送り: {lineFeedH}H（行間 {lineGapH}H） · 平均密度: {layout.averageDensityPercent}%
+            {/* L16: legend for the pale-red overflown lines. */}
+            <span className="inline-flex items-center gap-1 ml-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-xs bg-rose-500/30 border border-rose-500/40" aria-hidden="true" />
+              <span>薄赤の行は行長を超えたはみ出し行</span>
+            </span>
           </div>
         </div>
       </div>

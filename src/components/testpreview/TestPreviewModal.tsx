@@ -233,7 +233,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
                 <TopControlsBar state={state} />
 
                 {/* Main Proofing Stage and Docked Side Panel Container */}
-                <div className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
+                <div ref={mainContainerRef} className="flex-1 min-h-0 flex flex-row overflow-hidden relative">
                   <PreviewCanvas
                     project={project}
                     state={state}

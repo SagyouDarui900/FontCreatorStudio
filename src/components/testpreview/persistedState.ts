@@ -28,6 +28,13 @@ export interface TestPreviewPersistedState {
   adjustScaleX: number;
   adjustScaleY: number;
   isAspectLocked: boolean;
+  // Vector-outline live preview box (L8): open by default.
+  showLivePreviewBox: boolean;
+  // Unicodes that have existed in the project while the preview was open
+  // (L10). Lets the panel tell a deleted glyph apart from one that was
+  // never created. Only grows with unicodes actually seen in the
+  // project; reset when a different project is opened.
+  knownGlyphUnicodes: number[];
 }
 
 export function createDefaultTestPreviewPersistedState(): TestPreviewPersistedState {
@@ -53,5 +60,7 @@ export function createDefaultTestPreviewPersistedState(): TestPreviewPersistedSt
     adjustScaleX: 100,
     adjustScaleY: 100,
     isAspectLocked: true,
+    showLivePreviewBox: true,
+    knownGlyphUnicodes: [],
   };
 }

@@ -54,6 +54,18 @@ export interface VheaMetrics {
   numberOfVMetrics: number;
 }
 
+/** Horizontal metrics for the `hhea` table, in font units. */
+export interface HheaMetrics {
+  ascender: number;
+  descender: number;
+  lineGap: number;
+  advanceWidthMax: number;
+  minLeftSideBearing: number;
+  minRightSideBearing: number;
+  xMaxExtent: number;
+  numberOfHMetrics: number;
+}
+
 /** Hiragana, katakana and halfwidth katakana (the `pkna` glyph set). */
 export function isKanaUnicode(unicode: number): boolean {
   return (
@@ -409,5 +421,31 @@ export function buildVheaTableBytes(metrics: VheaMetrics): Uint8Array {
   // reserved1..4 (24..31) stay 0
   view.setInt16(32, 0, false); // metricDataFormat
   view.setUint16(34, metrics.numberOfVMetrics, false);
+  return out;
+}
+
+/**
+ * Build a 36-byte `hhea` table. opentype.js recomputes hhea from glyph
+ * metrics when serializing and ignores `font.tables.hhea`, so a
+ * corrected hhea has to be injected as raw bytes (like GPOS / vmtx /
+ * vhea) to reach the written font.
+ */
+export function buildHheaTableBytes(metrics: HheaMetrics): Uint8Array {
+  const out = new Uint8Array(36);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, 0x00010000, false); // version 1.0
+  view.setInt16(4, metrics.ascender, false);
+  view.setInt16(6, metrics.descender, false);
+  view.setInt16(8, metrics.lineGap, false);
+  view.setUint16(10, metrics.advanceWidthMax, false);
+  view.setInt16(12, metrics.minLeftSideBearing, false);
+  view.setInt16(14, metrics.minRightSideBearing, false);
+  view.setInt16(16, metrics.xMaxExtent, false);
+  view.setInt16(18, 1, false); // caretSlopeRise
+  view.setInt16(20, 0, false); // caretSlopeRun
+  view.setInt16(22, 0, false); // caretOffset
+  // reserved1..4 (24..31) stay 0
+  view.setInt16(32, 0, false); // metricDataFormat
+  view.setUint16(34, metrics.numberOfHMetrics, false);
   return out;
 }

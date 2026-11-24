@@ -25,7 +25,9 @@ export const VERTICAL_ROTATE_CHARS = new Set([
   '━', // U+2501 BOX DRAWINGS HEAVY HORIZONTAL
   '…', // U+2026 HORIZONTAL ELLIPSIS
   '‥', // U+2025 TWO DOT LEADER
-  '⋮', // U+22EE VERTICAL ELLIPSIS
+  // L30: '⋮' (U+22EE VERTICAL ELLIPSIS) は縦書きで既に縦向きのため回転
+  // 対象から除く。回転すると横向きの三点リーダーになってしまう。
+  // '⋯' (U+22EF) は横向きのため回転を残す。
   '⋯', // U+22EF MIDLINE HORIZONTAL ELLIPSIS
   '＝', // U+FF1D FULLWIDTH EQUALS SIGN
   '=', // U+003D EQUALS SIGN

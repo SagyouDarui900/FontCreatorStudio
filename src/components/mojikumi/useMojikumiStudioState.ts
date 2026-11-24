@@ -279,6 +279,11 @@ export function useMojikumiStudioState({
       document.fonts.delete(activeFontFaceRef.current);
       activeFontFaceRef.current = null;
     }
+    // L42: also remove the @font-face style tag injected when FontFace
+    // is unavailable, so a stale face does not outlive the font.
+    if (typeof document !== 'undefined') {
+      document.getElementById('dynamic-mojikumi-font-face')?.remove();
+    }
     if (compiledBlobUrlRef.current) {
       URL.revokeObjectURL(compiledBlobUrlRef.current);
       compiledBlobUrlRef.current = null;
@@ -346,8 +351,8 @@ export function useMojikumiStudioState({
         pendingBlobUrl = blobUrl;
         setCompileError(null);
 
+        const newFontName = `CustomMojikumiFont_v${compileVersion}_${Date.now()}`;
         if (typeof FontFace !== 'undefined') {
-          const newFontName = `CustomMojikumiFont_v${compileVersion}_${Date.now()}`;
           const ff = new FontFace(newFontName, `url('${blobUrl}')`);
           ff.load()
             .then((loaded) => {
@@ -368,7 +373,35 @@ export function useMojikumiStudioState({
               }
             });
         } else {
-          URL.revokeObjectURL(blobUrl);
+          // L42: FontFace が使えない環境では、試し打ちと同じ @font-face
+          // の style 注入でフォールバックする。生成バイナリは OTF
+          // (OTTO) のため format は opentype とする。注入せずに blob
+          // URL を破棄するだけだと、フォント未設定のままシステムフォン
+          // トで表示され、エラー表示も出ない。
+          if (cancelled || compileVersion !== compileVersionRef.current) {
+            URL.revokeObjectURL(blobUrl);
+          } else {
+            releaseCompiledFont();
+            compiledBlobUrlRef.current = blobUrl;
+            setCompiledFontName(newFontName);
+            if (typeof document !== 'undefined') {
+              const styleId = 'dynamic-mojikumi-font-face';
+              let styleTag = document.getElementById(styleId) as HTMLStyleElement | null;
+              if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = styleId;
+                document.head.appendChild(styleTag);
+              }
+              styleTag.textContent = `
+            @font-face {
+              font-family: '${newFontName}';
+              src: url('${blobUrl}') format('opentype');
+              font-weight: normal;
+              font-style: normal;
+            }
+          `;
+            }
+          }
         }
       } catch (err) {
         if (pendingBlobUrl) {
@@ -452,7 +485,19 @@ export function useMojikumiStudioState({
       onShowToast(`青空文庫『${work.title}』（${work.author}）を読み込みました`, 'info');
       setMobileTab('preview');
     },
-    [onShowToast, isCustomText, customText]
+    // L20: include every setter used inside, so a usePersistedField
+    // setter whose identity changes is not captured stale.
+    [
+      onShowToast,
+      isCustomText,
+      customText,
+      setSelectedWorkId,
+      setCustomText,
+      setIsCustomText,
+      setIsVertical,
+      setLayoutMode,
+      setMobileTab,
+    ]
   );
 
   const handleSelectPreset = useCallback(
@@ -465,7 +510,8 @@ export function useMojikumiStudioState({
       }));
       onShowToast(`文字組みアキ量「${MOJIKUMI_PRESETS[presetId].name}」を適用しました`, 'info');
     },
-    [onShowToast]
+    // L20: include the setter used inside (see handleSelectWork).
+    [onShowToast, setCurrentConfig]
   );
 
   const effectiveCharsPerLine = layoutMode === 'manuscript' ? 20 : charsPerLine;

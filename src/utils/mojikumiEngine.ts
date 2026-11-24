@@ -196,7 +196,11 @@ export const MOJIKUMI_PRESETS: Record<MojikumiPresetId, { name: string; descript
   custom: {
     name: 'カスタムアキ量',
     description: 'ユーザーが最小・最適・最大・優先順位を自由にカスタマイズした設定。',
-    table: PRESET_BETA,
+    // L34: PRESET_BETA と同一オブジェクトを参照しないよう、各ルールまで複製する。
+    // シャローコピーではルールオブジェクトが共有され、custom の編集がベタ組みを汚染する。
+    table: Object.fromEntries(
+      Object.entries(PRESET_BETA).map(([key, rule]) => [key, { ...rule }])
+    ) as MojikumiTable,
   },
 };
 
@@ -204,43 +208,57 @@ export const MOJIKUMI_PRESETS: Record<MojikumiPresetId, { name: string; descript
 // 2. 段落行頭1字下げプリセット（手引き第48〜52ページ準拠）
 // ============================================================================
 
+/**
+ * L31: 段落字下げプリセットは、呼び出し側のテーブルに個別の設定がある
+ * ルールは上書きしない。個別設定かどうかは値で判断する。3 値 (min /
+ * optimal / max) がすべて 0 のルールは未設定とみなし、プリセット値を
+ * 適用する。非 0 のルールは呼び出し側が個別に設定したものとして残す。
+ * 'none' は何も指定しないため、個別設定を 0 にリセットしない。
+ * なお、プリセットの既定テーブル (PRESET_BETA など) では行頭 3 ルールは
+ * すべて 0 のため、従来どおりプリセット値が適用される。
+ */
 export function applyParagraphIndentPreset(
   baseTable: MojikumiTable,
   indentPreset: ParagraphIndentPresetId
 ): MojikumiTable {
   const table = { ...baseTable };
 
+  // 'none' は字下げを指定しない。個別設定を 0 にリセットしないため何もしない。
+  if (indentPreset === 'none') return table;
+
+  const applyIfUnset = (key: keyof MojikumiTable, rule: MojikumiRuleItem): void => {
+    const current = table[key];
+    if (current.min === 0 && current.optimal === 0 && current.max === 0) {
+      table[key] = rule;
+    }
+  };
+
   switch (indentPreset) {
     case 'visual_half':
       // 見た目半角下がり（折り返し後アキなし）
       // 段落先頭の括弧類: 50%固定, 非約物: 100%固定, 折り返し後の始め括弧: 0% (天付き)
-      table.paraStart_to_startBracket = RULE(50, 50, 50, 0);
-      table.paraStart_to_nonYakumono = RULE(100, 100, 100, 0);
-      table.lineStart_to_startBracket = RULE(0, 0, 0, 0);
+      applyIfUnset('paraStart_to_startBracket', RULE(50, 50, 50, 0));
+      applyIfUnset('paraStart_to_nonYakumono', RULE(100, 100, 100, 0));
+      applyIfUnset('lineStart_to_startBracket', RULE(0, 0, 0, 0));
       break;
 
     case 'visual_full':
       // 見た目全角下がり（折り返し後アキなし）
       // 段落先頭の括弧類: 100%固定, 非約物: 100%固定, 折り返し後の始め括弧: 0% (天付き)
-      table.paraStart_to_startBracket = RULE(100, 100, 100, 0);
-      table.paraStart_to_nonYakumono = RULE(100, 100, 100, 0);
-      table.lineStart_to_startBracket = RULE(0, 0, 0, 0);
+      applyIfUnset('paraStart_to_startBracket', RULE(100, 100, 100, 0));
+      applyIfUnset('paraStart_to_nonYakumono', RULE(100, 100, 100, 0));
+      applyIfUnset('lineStart_to_startBracket', RULE(0, 0, 0, 0));
       break;
 
     case 'visual_full_half':
       // 見た目全角半下がり（折り返し後半角下がり）
       // 段落先頭の括弧類: 150%固定, 非約物: 100%固定, 折り返し後の始め括弧: 50% (半角下がり)
-      table.paraStart_to_startBracket = RULE(150, 150, 150, 0);
-      table.paraStart_to_nonYakumono = RULE(100, 100, 100, 0);
-      table.lineStart_to_startBracket = RULE(50, 50, 50, 0);
+      applyIfUnset('paraStart_to_startBracket', RULE(150, 150, 150, 0));
+      applyIfUnset('paraStart_to_nonYakumono', RULE(100, 100, 100, 0));
+      applyIfUnset('lineStart_to_startBracket', RULE(50, 50, 50, 0));
       break;
 
-    case 'none':
     default:
-      // 通常の行頭（字下げなし）
-      table.paraStart_to_startBracket = RULE(0, 0, 0, 0);
-      table.paraStart_to_nonYakumono = RULE(0, 0, 0, 0);
-      table.lineStart_to_startBracket = RULE(0, 0, 0, 0);
       break;
   }
 
@@ -279,6 +297,12 @@ export function getLineStartProhibitedChars(setId: KinsokuSetId): Set<string> {
 
   // 句読点・終わり括弧は全セットで共通
   for (const c of KINSOKU_CHARS.kuten + KINSOKU_CHARS.touten + KINSOKU_CHARS.endBrackets) {
+    set.add(c);
+  }
+
+  // L33: 「？」「！」は JIS X 4051 の区切り約物であり、行頭禁則文字である。
+  // 半角の '?' '!' も同じ区切り約物 (JIS X 4051 の (5) 区切り約物) のため含める。
+  for (const c of '？！?!') {
     set.add(c);
   }
 
@@ -356,6 +380,12 @@ export function getCharKind(ch: string): CharKind {
   if (ch === ' ' || ch === '\t') return 'half_space';
   if (/^[a-zA-Z]$/.test(ch)) return 'half_latin';
   if (/^[0-9]$/.test(ch)) return 'half_digit';
+  // L29: アクセント付きラテン文字 (U+00C0〜U+00FF の文字、×÷を除く、
+  // および U+0100〜U+017F) は半角として扱う。
+  if (/^[\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF\u0100-\u017F]$/.test(ch)) return 'half_latin';
+  // L29: 半角カタカナ (U+FF61〜U+FF9F) は半角として扱う。種類名は
+  // 送り幅と和欧文間のアキ量の扱いを半角に合わせるため half_latin とする。
+  if (/^[\uFF61-\uFF9F]$/.test(ch)) return 'half_latin';
   return 'non_yakumono';
 }
 
@@ -374,8 +404,9 @@ export interface TypesettingDimensions {
   lineCount: number;       // 行数
   widthMm: number;         // テキストエリア幅 (mm)
   heightMm: number;        // テキストエリア高さ (mm)
-  formulaWidth: string;    // 計算式
-  formulaHeight: string;   // 計算式
+  // L19: formulaWidth / formulaHeight は計算されていたが UI のどこからも
+  // 表示されず、他からの参照もなかったため削除した。表示が必要になれば
+  // ここに計算式の文字列を戻すこと。
 }
 
 export function calculateTypesettingDimensions(
@@ -388,30 +419,34 @@ export function calculateTypesettingDimensions(
   const mmPerUnit = 0.25;
   const ptPerUnit = 0.25 / 0.352778; // 1pt ≈ 0.3528mm -> 1Q ≈ 0.7087pt
 
-  const charAdvanceMm = fontSizeQ * charsPerLine * mmPerUnit;
-  const lineStackMm = (lineFeedH * Math.max(1, lineCount - 1) + fontSizeQ) * mmPerUnit;
-  const lineGapH = lineFeedH - fontSizeQ;
+  // L26: 入力検証。非有限値や 0 未満の値は安全な値に置き換え、行数に
+  // 起因する負の高さや NaN が返らないようにする。行数は 1 未満に
+  // ならない (0 行では高さが 1 行分になる従来の Math.max(1, lineCount - 1)
+  // と同じ結果になる)。なお lineGapH は行送りが文字サイズ未満の場合に
+  // 負になるが、それは行送り不足の状態そのものであり、ここでは変えない。
+  const safeFontSizeQ = Number.isFinite(fontSizeQ) ? Math.max(0, fontSizeQ) : 0;
+  const safeLineFeedH = Number.isFinite(lineFeedH) ? Math.max(0, lineFeedH) : 0;
+  const safeCharsPerLine = Number.isFinite(charsPerLine) ? Math.max(1, Math.floor(charsPerLine)) : 1;
+  const safeLineCount = Number.isFinite(lineCount) ? Math.max(1, Math.floor(lineCount)) : 1;
+
+  const charAdvanceMm = safeFontSizeQ * safeCharsPerLine * mmPerUnit;
+  const lineStackMm = (safeLineFeedH * (safeLineCount - 1) + safeFontSizeQ) * mmPerUnit;
+  const lineGapH = safeLineFeedH - safeFontSizeQ;
 
   const widthMm = isVertical ? lineStackMm : charAdvanceMm;
   const heightMm = isVertical ? charAdvanceMm : lineStackMm;
 
   return {
-    fontSizeQ,
-    fontSizePt: Math.round(fontSizeQ * ptPerUnit * 10) / 10,
-    lineFeedH,
-    lineFeedPt: Math.round(lineFeedH * ptPerUnit * 10) / 10,
+    fontSizeQ: safeFontSizeQ,
+    fontSizePt: Math.round(safeFontSizeQ * ptPerUnit * 10) / 10,
+    lineFeedH: safeLineFeedH,
+    lineFeedPt: Math.round(safeLineFeedH * ptPerUnit * 10) / 10,
     lineGapH,
     lineGapMm: Math.round(lineGapH * mmPerUnit * 10) / 10,
-    charsPerLine,
-    lineCount,
+    charsPerLine: safeCharsPerLine,
+    lineCount: safeLineCount,
     widthMm: Math.round(widthMm * 10) / 10,
     heightMm: Math.round(heightMm * 10) / 10,
-    formulaWidth: isVertical
-      ? `${lineFeedH}H × (${lineCount}行 - 1) + ${fontSizeQ}Q = ${widthMm.toFixed(1)}mm`
-      : `${fontSizeQ}Q × ${charsPerLine}字 = ${widthMm.toFixed(1)}mm`,
-    formulaHeight: isVertical
-      ? `${fontSizeQ}Q × ${charsPerLine}字 = ${heightMm.toFixed(1)}mm`
-      : `${lineFeedH}H × (${lineCount}行 - 1) + ${fontSizeQ}Q = ${heightMm.toFixed(1)}mm`,
   };
 }
 
@@ -654,6 +689,10 @@ function resolveBaseAdvance(unit: TextUnit, usePalt: boolean, advances?: Record<
     return Math.max(MIN_ADVANCE_EM, custom);
   }
   const kind = unit.kind;
+  // L28: 半角ピリオド・カンマは KINSOKU_CHARS の kuten / touten に
+  // 含まれるため種類は句読点のままだが、送り幅は半角 (0.5em) とする。
+  // 全角の '．' '，' はここに該当せず 1.0em のままである。
+  if (ch === '.' || ch === ',') return 0.5;
   if (usePalt) {
     if (kind === 'touten' || kind === 'kuten' || kind === 'start_bracket' || kind === 'end_bracket') {
       return 0.5; // 約物は半角
@@ -663,6 +702,9 @@ function resolveBaseAdvance(unit: TextUnit, usePalt: boolean, advances?: Record<
       return 0.5;
     } else if (KINSOKU_CHARS.smallKana.includes(ch)) {
       return 0.8;
+    } else if (kind === 'full_space') {
+      // L27: 全角スペースは palt でも 1.0em のままにする。
+      return 1.0;
     } else {
       return 0.95; // 和文もわずかにツメ
     }
@@ -715,7 +757,10 @@ function computeUnitAdvance(
   const kerningEm = prevUnit
     ? getKerningEm(ctx.kerningEm, prevUnit.chars[prevUnit.chars.length - 1], unit.chars[0])
     : 0;
-  const trackingEm = ctx.trackingEm;
+  // L25: トラッキングは字と字の間にだけ入る。行頭の単位には付かない。
+  // 行末の字の送り幅にトラッキングが含まれないよう、totalEm に入るのは
+  // 直前の字との間の分だけである。
+  const trackingEm = prevUnit ? ctx.trackingEm : 0;
   return {
     baseEm,
     beforeEm,
@@ -780,7 +825,6 @@ interface ExpandableGap {
 function justifyLine(
   lineGlyphs: FormattedGlyph[],
   table: MojikumiTable,
-  trackingEm: number,
   kerningEm: Record<string, number> | undefined,
   lineAdvanceEm: number,
   safeCharsPerLine: number
@@ -814,7 +858,9 @@ function justifyLine(
     const last = lineGlyphs[lastIdx];
     const lineEnd = getLineEndRule(last.kind, table);
     if (lineEnd && lineEnd.rule.max > 0) {
-      const afterNow = last.spacingAfterEm - trackingEm;
+      // L25: 行末の字の spacingAfterEm にトラッキングは含まれないため、
+      // 行末ルールの現在値はそのまま使う。
+      const afterNow = last.spacingAfterEm;
       gaps.push({
         currentEm: afterNow,
         maxEm: lineEnd.rule.max / 100,
@@ -878,7 +924,10 @@ export function simulateTypesetting(
     kerningEm: options?.kerningEm,
   };
 
-  const paragraphs = text.split('\n');
+  // L24: 改行で分割する前に \r を除去する。CRLF (\r\n) と LF (\n) の
+  // 両方に対応し、単独の \r も改行として扱う。\r を残すと 1em の
+  // 不可視グリフになり、改行位置がずれる。
+  const paragraphs = text.split(/\r\n|\r|\n/);
   const lines: FormattedLine[] = [];
   let totalBurasagari = 0;
   let totalCharCount = 0;
@@ -915,7 +964,19 @@ export function simulateTypesetting(
 
       // 行内に 1 単位を配置する。ぶら下がり字は送り幅に加算しない。
       // 縦中横の単位は先頭グリフが 1em の送り幅を持ち、残りのグリフは 0 とする。
+      // L25: トラッキングは字と字の間にだけ入るため、配置する単位の
+      // spacingAfterEm には付けず、直前のぶら下がりでない字の
+      // spacingAfterEm に付ける。行末の字の spacingAfterEm は 0 のままになる。
       const placeUnit = (unit: TextUnit, adv: UnitAdvance, isHanging: boolean) => {
+        if (!isHanging && adv.trackingEm !== 0) {
+          for (let i = currentLineGlyphs.length - 1; i >= 0; i--) {
+            const prev = currentLineGlyphs[i];
+            if (!prev.isHanging) {
+              prev.spacingAfterEm = adv.trackingEm;
+              break;
+            }
+          }
+        }
         unit.chars.forEach((ch, idx) => {
           currentLineGlyphs.push({
             char: ch,
@@ -923,7 +984,7 @@ export function simulateTypesetting(
             kind: unit.kind,
             baseAdvanceEm: idx === 0 ? adv.baseEm : 0,
             spacingBeforeEm: idx === 0 ? adv.beforeEm + adv.kerningEm : 0,
-            spacingAfterEm: idx === unit.chars.length - 1 ? (isHanging ? 0 : adv.trackingEm) : 0,
+            spacingAfterEm: 0,
             isHanging,
             tateChuYoko: unit.tateChuYoko ? true : undefined,
           });
@@ -981,6 +1042,8 @@ export function simulateTypesetting(
 
       // 行末の 1 単位を追い出す。縦中横の単位はまとめて出す。
       // ぶら下がり字は送り幅に加算されていないため currentAdvanceEm から引かない。
+      // L25: 追い出した単位の配置時に直前の字に付けたトラッキングも戻す。
+      // 新しい行末の字にトラッキングは残らない。
       const popLastUnit = (): void => {
         const len = currentLineUnitLens.pop();
         if (len === undefined) return;
@@ -995,6 +1058,16 @@ export function simulateTypesetting(
               0,
               currentAdvanceEm - ((g.baseAdvanceEm ?? 0) + (g.spacingBeforeEm || 0) + (g.spacingAfterEm || 0))
             );
+          }
+        }
+        for (let i = currentLineGlyphs.length - 1; i >= 0; i--) {
+          const g = currentLineGlyphs[i];
+          if (!g.isHanging) {
+            if (g.spacingAfterEm !== 0) {
+              currentAdvanceEm = Math.max(0, currentAdvanceEm - g.spacingAfterEm);
+              g.spacingAfterEm = 0;
+            }
+            break;
           }
         }
         unitCursor--;
@@ -1141,7 +1214,6 @@ export function simulateTypesetting(
         lineAdvanceEm = justifyLine(
           currentLineGlyphs,
           table,
-          trackingEm,
           ctx.kerningEm,
           currentAdvanceEm,
           safeCharsPerLine
@@ -1164,9 +1236,20 @@ export function simulateTypesetting(
     totalCharCount += chars.length;
   }
 
+  // L22: 平均密度は字数ベースではなく送り幅ベースで計算する。各行の
+  // totalAdvanceEm (ぶら下がり字を除く実際の送り幅の合計) を行長で
+  // 割る。半角文字は 0.5em のため、字数で割ると密度が過小になった。
+  // 空段落による空行は組まれた行ではないため分母に入れない。あふれた行で
+  // 100% を超えないよう上限を 100% とする。
+  const nonEmptyLines = lines.filter((l) => l.glyphs.length > 0);
   const averageDensity =
-    lines.length > 0
-      ? (lines.reduce((acc, l) => acc + l.glyphs.length, 0) / (lines.length * safeCharsPerLine)) * 100
+    nonEmptyLines.length > 0
+      ? Math.min(
+          100,
+          (nonEmptyLines.reduce((acc, l) => acc + l.totalAdvanceEm, 0) /
+            (nonEmptyLines.length * safeCharsPerLine)) *
+            100
+        )
       : 0;
 
   return {

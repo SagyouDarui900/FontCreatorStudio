@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { groupTateChuYoko } from './BookSpreadView';
+import { MOJIKUMI_Q_TO_PX } from './mojikumiScale';
 import { BookOpen, Feather, Columns, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MagazineLayoutViewProps {
@@ -52,8 +53,8 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   const textColor = isLight ? 'text-stone-900' : 'text-stone-100';
   const accentBorder = isLight ? 'border-emerald-600' : 'border-emerald-500';
 
-  const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  const emPx = Math.max(13, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * MOJIKUMI_Q_TO_PX * zoom));
 
   // M14: one page holds lineCount lines per column (two columns per page).
   const linesPerColumn = Math.max(1, Math.min(24, Math.round(lineCount) || 12));
@@ -422,6 +423,12 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             </div>
             {renderColumn(isVertical ? colFirst.lines : colSecond.lines)}
           </div>
+        </div>
+
+        {/* L16: legend for the pale-red overflown lines. */}
+        <div className="pt-3 mt-2 border-t border-stone-200 dark:border-stone-800 text-[11px] font-mono text-stone-500 flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-xs bg-rose-500/30 border border-rose-500/40" aria-hidden="true" />
+          <span>薄赤の行は行長を超えたはみ出し行</span>
         </div>
       </div>
     </div>

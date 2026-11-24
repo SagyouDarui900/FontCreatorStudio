@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   PRESET_BETA,
   PRESET_TSUME,
+  MOJIKUMI_PRESETS,
+  applyParagraphIndentPreset,
+  calculateTypesettingDimensions,
+  getCharKind,
+  getLineStartProhibitedChars,
   getPairOptimalSpacing,
   simulateTypesetting,
 } from './mojikumiEngine';
@@ -60,12 +65,16 @@ describe('mojikumiEngine', () => {
     expect(Number.isFinite(res.averageDensityPercent)).toBe(true);
   });
 
-  it('propagates trackingEm onto spacingAfterEm of non-hanging glyphs for visual ake rendering', () => {
+  it('L25: trackingEm applies only between glyphs, not after the last glyph of a line', () => {
     const res = simulateTypesetting('日本語', 10, baseConfig, { trackingEm: 0.15 });
     expect(res.lines).toHaveLength(1);
-    for (const g of res.lines[0].glyphs) {
-      expect(g.spacingAfterEm).toBeCloseTo(0.15, 5);
-    }
+    const glyphs = res.lines[0].glyphs;
+    // tracking sits between glyphs: the first two glyphs carry it, the last does not
+    expect(glyphs[0].spacingAfterEm).toBeCloseTo(0.15, 5);
+    expect(glyphs[1].spacingAfterEm).toBeCloseTo(0.15, 5);
+    expect(glyphs[2].spacingAfterEm).toBe(0);
+    // the line total is 3 x 1.0em + 2 gaps x 0.15em, not 3 x 1.15em
+    expect(res.lines[0].totalAdvanceEm).toBeCloseTo(3.3, 5);
   });
 
   it('chains kinsoku push-out across consecutive start-prohibited characters and exposed end-prohibited brackets', () => {
@@ -93,11 +102,13 @@ describe('mojikumiEngine', () => {
     // Reverse: halfwidth=0.5em so advance < length! With usePalt or when burasagari needs advance >= charsPerLine - 1.5:
     // Actually 9 'あ' (9.0em) on 10em line: 9 >= 8.5 hangs '。'. For halfwidth: 19 'a' = 9.5em on 10em line + '。' (1.0em) -> 10.5em > 10.05 -> hangs!
     // What about 9.0em where charsPerLine=10? Try charsPerLine=6: 10 'a' = 5.0em + 1 'a'? Wait: 10 'a' + '。' = 5.0 + 0.125? ('half_latin' to 'kuten' = 0 beforeEm) -> 5.0 + 1.0 = 6.0 (fits).
-    // With trackingEm=0.25 and charsPerLine=6: each 'a' = 0.75em -> 7 'a' = 5.25em (length=7), next '。' = 5.25 + 1.25 = 6.5 > 6.05 -> hangs!
-    const halfRes = simulateTypesetting('aaaaaaa。次', 6, baseConfig, { trackingEm: 0.25 });
-    // Even if line only had 4 chars with large spacing (e.g. 'あいうえ' + tracking=0.25 -> 4 * 1.25 = 5.0em on 6em line):
-    // length=4 < (6 - 1 = 5), so old length-based check FAILED to hang, whereas advance=5.0 >= 4.5 PASSES!
-    const spacedRes = simulateTypesetting('あいうえ。次', 6, baseConfig, { trackingEm: 0.25 });
+    // L25: the line width excludes trailing tracking, so tracking 0.3
+    // (instead of 0.25) is needed here to make '。' overflow the 6em line:
+    // 4 glyphs = 4.0 + 3 x 0.3 = 4.9em, '。' adds 1.3em -> 6.2 > 6.05.
+    const halfRes = simulateTypesetting('aaaaaaa。次', 6, baseConfig, { trackingEm: 0.3 });
+    // Even if line only had 4 chars with large spacing (e.g. 'あいうえ' + tracking=0.3 -> 4 * 1.3 = 5.2em on 6em line):
+    // length=4 < (6 - 1 = 5), so old length-based check FAILED to hang, whereas advance=4.9 >= 4.5 PASSES!
+    const spacedRes = simulateTypesetting('あいうえ。次', 6, baseConfig, { trackingEm: 0.3 });
     expect(spacedRes.lines[0].burasagariCount).toBe(1);
     expect(spacedRes.lines[0].text).toBe('あいうえ。');
     expect(halfRes.lines[0].burasagariCount).toBe(1);
@@ -134,7 +145,10 @@ describe('mojikumiEngine push-in / burasagari runs / tate-chu-yoko / justificati
   });
 
   it('H4: consecutive hanging targets hang together so the next line does not start with a closing bracket', () => {
-    const res = simulateTypesetting('あいうえ。」か', 6, baseConfig, { trackingEm: 0.25 });
+    // L25: with inter-glyph tracking, '。' fits on a 6em line (5 glyphs =
+    // 5.0em + 4 x 0.25em = 6.0 <= 6.05), so a 5em line is used here to
+    // make '。' overflow: 4 glyphs = 4.75em, '。' adds 1.25em -> 6.0 > 5.05.
+    const res = simulateTypesetting('あいうえ。」か', 5, baseConfig, { trackingEm: 0.25 });
     expect(res.lines.map((l) => l.text)).toEqual(['あいうえ。」', 'か']);
     expect(res.lines[0].burasagariCount).toBe(2);
     expect(res.lines[0].glyphs.filter((g) => g.isHanging).map((g) => g.char)).toEqual(['。', '」']);
@@ -275,5 +289,116 @@ describe('mojikumiEngine push-in / burasagari runs / tate-chu-yoko / justificati
     expect(wide.lines.map((l) => l.text)).toEqual(['あいうえ', 'お']);
     const narrow = simulateTypesetting('あいうえお', 5, baseConfig, { advances: { あ: 0.5 } });
     expect(narrow.lines.map((l) => l.text)).toEqual(['あいうえお']);
+  });
+});
+
+describe('mojikumiEngine low-priority review fixes (L19, L22, L24-L29, L31, L33, L34)', () => {
+  it('L19: calculateTypesettingDimensions no longer returns unused formula strings', () => {
+    const dims = calculateTypesettingDimensions(12, 20, 10, 5);
+    expect('formulaWidth' in dims).toBe(false);
+    expect('formulaHeight' in dims).toBe(false);
+    expect(dims.widthMm).toBe(30);
+    expect(dims.heightMm).toBe(23);
+  });
+
+  it('L22: average density is advance-based, excludes empty lines, and never exceeds 100%', () => {
+    // 10 halfwidth chars = 5.0em on a 10em line: 50%, not 100% by glyph count
+    const half = simulateTypesetting('aaaaaaaaaa', 10, baseConfig);
+    expect(half.averageDensityPercent).toBeCloseTo(50, 5);
+    // empty paragraphs do not dilute the density: two 1em lines on 10em lines
+    const withEmpty = simulateTypesetting('あ\n\nあ', 10, baseConfig);
+    expect(withEmpty.averageDensityPercent).toBeCloseTo(10, 5);
+    // an overflowing line (1.5em glyph forced onto a 1em line) is capped at 100%
+    const overflown = simulateTypesetting('あ', 1, baseConfig, { advances: { あ: 1.5 } });
+    expect(overflown.averageDensityPercent).toBe(100);
+  });
+
+  it('L24: CRLF and lone CR do not leave a 1em CR glyph', () => {
+    const crlf = simulateTypesetting('あいう\r\nえお', 10, baseConfig);
+    expect(crlf.lines.map((l) => l.text)).toEqual(['あいう', 'えお']);
+    expect(crlf.lines.flatMap((l) => l.glyphs).some((g) => g.char === '\r')).toBe(false);
+    const cr = simulateTypesetting('あいう\reお', 10, baseConfig);
+    expect(cr.lines.map((l) => l.text)).toEqual(['あいう', 'eお']);
+  });
+
+  it('L26: calculateTypesettingDimensions clamps zero, negative and NaN line counts', () => {
+    for (const lineCount of [0, -3, Number.NaN]) {
+      const dims = calculateTypesettingDimensions(12, 20, 10, lineCount);
+      expect(dims.lineCount).toBe(1);
+      expect(Number.isFinite(dims.widthMm)).toBe(true);
+      expect(Number.isFinite(dims.heightMm)).toBe(true);
+      expect(Number.isFinite(dims.lineGapH)).toBe(true);
+      expect(dims.heightMm).toBe(3); // one line: 12Q x 0.25mm
+    }
+    expect(calculateTypesettingDimensions(12, 20, 10, 2.7).lineCount).toBe(2);
+  });
+
+  it('L27: a fullwidth space keeps 1.0em advance in palt mode', () => {
+    const res = simulateTypesetting('あ　い', 10, baseConfig, { usePalt: true });
+    const glyphs = res.lines[0].glyphs;
+    expect(glyphs.map((g) => g.char)).toEqual(['あ', '　', 'い']);
+    expect(glyphs[1].baseAdvanceEm).toBe(1.0);
+    expect(glyphs[0].baseAdvanceEm).toBe(0.95);
+  });
+
+  it('L28: halfwidth period and comma are 0.5em; fullwidth ones stay 1.0em', () => {
+    const res = simulateTypesetting('a.b,c', 10, baseConfig);
+    const glyphs = res.lines[0].glyphs;
+    expect(glyphs[1].baseAdvanceEm).toBe(0.5);
+    expect(glyphs[3].baseAdvanceEm).toBe(0.5);
+    const full = simulateTypesetting('あ．い，う', 10, baseConfig);
+    expect(full.lines[0].glyphs[1].baseAdvanceEm).toBe(1.0);
+    expect(full.lines[0].glyphs[3].baseAdvanceEm).toBe(1.0);
+  });
+
+  it('L29: halfwidth katakana and accented Latin are 0.5em', () => {
+    expect(getCharKind('ｱ')).toBe('half_latin');
+    expect(getCharKind('ｶ')).toBe('half_latin');
+    expect(getCharKind('é')).toBe('half_latin');
+    expect(getCharKind('ü')).toBe('half_latin');
+    expect(getCharKind('Ł')).toBe('half_latin');
+    const res = simulateTypesetting('ｱéあ', 10, baseConfig);
+    expect(res.lines[0].glyphs[0].baseAdvanceEm).toBe(0.5);
+    expect(res.lines[0].glyphs[1].baseAdvanceEm).toBe(0.5);
+    expect(res.lines[0].glyphs[2].baseAdvanceEm).toBe(1.0);
+  });
+
+  it('L31: paragraph indent presets keep caller-set line-start rules, and none resets nothing', () => {
+    const customTable = {
+      ...PRESET_BETA,
+      paraStart_to_nonYakumono: { min: 50, optimal: 50, max: 50, priority: 0 },
+      lineStart_to_startBracket: { min: 25, optimal: 25, max: 25, priority: 0 },
+    };
+    const indented = applyParagraphIndentPreset(customTable, 'visual_half');
+    expect(indented.paraStart_to_nonYakumono.optimal).toBe(50);
+    expect(indented.lineStart_to_startBracket.optimal).toBe(25);
+    // the preset still fills the unset rule
+    expect(indented.paraStart_to_startBracket.optimal).toBe(50);
+    const none = applyParagraphIndentPreset(customTable, 'none');
+    expect(none.paraStart_to_nonYakumono.optimal).toBe(50);
+    expect(none.lineStart_to_startBracket.optimal).toBe(25);
+    // the default beta table has no custom rules, so the preset applies as before
+    const beta = applyParagraphIndentPreset(PRESET_BETA, 'visual_half');
+    expect(beta.paraStart_to_nonYakumono.optimal).toBe(100);
+    expect(beta.paraStart_to_startBracket.optimal).toBe(50);
+  });
+
+  it('L33: fullwidth and halfwidth ? and ! are line-start prohibited (JIS X 4051)', () => {
+    const set = getLineStartProhibitedChars('weak_v2');
+    expect(set.has('？')).toBe(true);
+    expect(set.has('！')).toBe(true);
+    expect(set.has('?')).toBe(true);
+    expect(set.has('!')).toBe(true);
+    const res = simulateTypesetting('あいうえお？か', 5, { ...baseConfig, burasagari: 'none' });
+    expect(res.lines.map((l) => l.text)).toEqual(['あいうえ', 'お？か']);
+    expect(res.lines[1].text.startsWith('？')).toBe(false);
+  });
+
+  it('L34: the custom preset table is a deep copy of PRESET_BETA, not the same object', () => {
+    expect(MOJIKUMI_PRESETS.custom.table).not.toBe(PRESET_BETA);
+    for (const key of Object.keys(PRESET_BETA) as (keyof typeof PRESET_BETA)[]) {
+      expect(MOJIKUMI_PRESETS.custom.table[key]).not.toBe(PRESET_BETA[key]);
+      expect(MOJIKUMI_PRESETS.custom.table[key]).toEqual(PRESET_BETA[key]);
+    }
   });
 });

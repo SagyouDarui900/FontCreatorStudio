@@ -31,6 +31,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     showCharBoxes,
     showNotebookGuides,
     autoBalanceMargins,
+    fontScaleMultiplier,
+    isPixelProject,
     isWaterfall,
     fontFamilyName,
     errorMsg,
@@ -73,7 +75,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   // size instead of the settings font size (M9).
   const renderText = useCallback(
     (displayFontSize: number) => {
-      const lines = testText.split('\n');
+      // Split on any line ending (L7): pasted CRLF text left the '\r' as
+      // a trailing character of each line.
+      const lines = testText.split(/\r\n|\n|\r/);
 
       return lines.map((line, lIdx) => {
         // Shaped-text mode (M30): one text node per line, so the browser
@@ -169,6 +173,28 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               </span>
             );
           }
+        } else if (ch === '\t') {
+          // Tab (L7): never a plain character span. Shown as a 1em-wide
+          // marker box (with a faint arrow when space markers or char
+          // boxes are on); it has no glyph to select or adjust.
+          parts.push(
+            <span
+              key={`${lIdx}-${i}-tab`}
+              className={`inline-block relative ${
+                showSpaceMarkers || showCharBoxes
+                  ? isLight
+                    ? 'bg-sky-100 text-sky-800 border border-dashed border-sky-400'
+                    : 'bg-sky-950 text-sky-300 border border-dashed border-sky-600'
+                  : ''
+              }`}
+              style={{ width: '1em', height: '1em', lineHeight: '1em', textAlign: 'center' }}
+              title="タブ (U+0009)"
+            >
+              {showSpaceMarkers || showCharBoxes ? (
+                <span className="opacity-40 text-[0.6em] select-none">→</span>
+              ) : null}
+            </span>
+          );
         } else if (showCharBoxes) {
           // Character Box mode (仮想ボディ枠と中心線の表示 + インタラクティブ選択)
           const metric = getGlyphMetric(ch);
@@ -179,6 +205,13 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           const hasCustomTransform =
             isSelected &&
             (adjustDx !== 0 || adjustDy !== 0 || adjustScaleX !== 100 || adjustScaleY !== 100);
+          // L39(3): the metric numbers come from the pre-scale,
+          // pre-centering outlines. Say so when the compiled preview
+          // actually scales (1.35x) or balances the margins.
+          const metricNote =
+            !isPixelProject && (fontScaleMultiplier !== 1 || autoBalanceMargins)
+              ? '（拡大・中央揃え前の値）'
+              : '';
 
           parts.push(
             <span
@@ -225,7 +258,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               title={
                 !metric
                   ? `「${ch}」 (未作成・システムフォールバック / クリックで作字エディタへジャンプ)`
-                  : `「${ch}」 (自作グリフ / 送り幅:${metric.adv} 左余白:${metric.lsb} 右余白:${metric.rsb} 差:${metric.diff > 0 ? '+' : ''}${metric.diff})`
+                  : metric.zeroWidth
+                  ? `「${ch}」 (縦線のみのグリフ・幅0 / 送り幅:${metric.adv} 左余白:${metric.lsb} 右余白:${metric.rsb} 差:${metric.diff > 0 ? '+' : ''}${metric.diff}${metricNote})`
+                  : `「${ch}」 (自作グリフ / 送り幅:${metric.adv} 左余白:${metric.lsb} 右余白:${metric.rsb} 差:${metric.diff > 0 ? '+' : ''}${metric.diff}${metricNote})`
               }
             >
               {/* Center vertical crosshair */}
@@ -275,6 +310,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               title={
                 !metric
                   ? `「${ch}」 (未作成・システムフォールバック / クリックで作字へジャンプ)`
+                  : metric.zeroWidth
+                  ? `「${ch}」 (縦線のみのグリフ・幅0 / クリックで位置・変形ツール表示)`
                   : `「${ch}」 (自作グリフ / クリックで位置・変形ツール表示)`
               }
             >
@@ -299,6 +336,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       showSpaceMarkers,
       showCharBoxes,
       autoBalanceMargins,
+      fontScaleMultiplier,
+      isPixelProject,
       isLight,
       selectedCharInfo,
       adjustDx,
@@ -476,16 +515,20 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                 ) : (
                   <>
                     <span className="flex items-center space-x-1">
+                      <span className="w-3.5 h-0.5 bg-indigo-500 rounded-full"></span>
+                      <span>ベースライン (実線)</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
                       <span className="w-3.5 h-0.5 border-b-2 border-dashed border-emerald-500"></span>
                       <span>縦中心軸線 (破線)</span>
                     </span>
                     <span className="flex items-center space-x-1">
                       <span className="w-3.5 h-0.5 border-b-2 border-dotted border-sky-400"></span>
-                      <span>右境界線 (点線)</span>
+                      <span>キャップ高 (点線)</span>
                     </span>
                     <span className="flex items-center space-x-1">
                       <span className="w-3.5 h-0.5 border-b-2 border-dashed border-rose-500"></span>
-                      <span>左境界線 (一点鎖線)</span>
+                      <span>下限線 (一点鎖線)</span>
                     </span>
                   </>
                 )}
@@ -579,11 +622,17 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                         height="100%"
                         patternUnits="userSpaceOnUse"
                       >
-                        {/* Left Boundary */}
+                        {/* Vertical guides from the same metrics as the
+                            horizontal guides (L3). Pattern-local x grows
+                            rightward, and in vertical-rl the glyph top
+                            (cap) is on the right, so a horizontal ratio r
+                            (0 = EM top, 1 = EM bottom) maps to
+                            topLead + fontSize * (1 - r). */}
+                        {/* Descender Line (left edge of the EM box) */}
                         <line
-                          x1={topLead + fontSize * 0.05}
+                          x1={topLead + fontSize * (1 - descenderRatio)}
                           y1="0"
-                          x2={topLead + fontSize * 0.05}
+                          x2={topLead + fontSize * (1 - descenderRatio)}
                           y2="100%"
                           stroke={isLight ? '#e11d48' : '#fb7185'}
                           strokeDasharray="8 3 2 3"
@@ -601,11 +650,21 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                           strokeWidth="1"
                           strokeOpacity="0.8"
                         />
-                        {/* Right Boundary */}
+                        {/* Baseline */}
                         <line
-                          x1={topLead + fontSize * 0.95}
+                          x1={topLead + fontSize * (1 - baselineRatio)}
                           y1="0"
-                          x2={topLead + fontSize * 0.95}
+                          x2={topLead + fontSize * (1 - baselineRatio)}
+                          y2="100%"
+                          stroke={isLight ? '#4f46e5' : '#818cf8'}
+                          strokeWidth="1.5"
+                          strokeOpacity="0.85"
+                        />
+                        {/* Cap Height Line (right edge of the EM box) */}
+                        <line
+                          x1={topLead + fontSize * (1 - capRatio)}
+                          y1="0"
+                          x2={topLead + fontSize * (1 - capRatio)}
                           y2="100%"
                           stroke={isLight ? '#0284c7' : '#38bdf8'}
                           strokeDasharray="3 3"

@@ -15,7 +15,15 @@ import { BookSpreadView } from './BookSpreadView';
 import { MagazineLayoutView } from './MagazineLayoutView';
 import { ManuscriptView } from './ManuscriptView';
 import { PoetryTanzakuView } from './PoetryTanzakuView';
+import { AkiryoCompareView } from './AkiryoCompareView';
+import { MojikumiSidebar } from './MojikumiSidebar';
+import { AOZORA_TEXTS } from './aozoraTexts';
+import { getThemeClasses } from '../../utils/theme';
 import { MojikumiStudioModal } from '../MojikumiStudioModal';
+import {
+  calculateTypesettingDimensions,
+  PRESET_BETA,
+} from '../../utils/mojikumiEngine';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -217,7 +225,6 @@ describe('ManuscriptView (M15 / M19 / M20)', () => {
     fontFamily: 'serif',
     fontSizeQ: 14,
     zoom: 1,
-    charsPerLine: 20,
     lineFeedH: 24,
     showGrid: true,
   };
@@ -405,5 +412,220 @@ describe('MojikumiStudioModal (M16 / M17 / M18)', () => {
     );
     expect(saveBtn).toBeDefined();
     expect(saveBtn!.getAttribute('title')).toContain('プリセット・禁則・ぶら下がり・段落字下げ');
+  });
+
+  it('says the collected work is an excerpt of its opening part (L12)', () => {
+    const { container } = renderModal();
+    expect(container.textContent).toContain('冒頭部分の抜粋');
+  });
+});
+
+describe('Low findings L13 / L14 / L15 / L16 / L18 / L21 / L23', () => {
+  const bookProps = {
+    title: '吾輩は猫である',
+    author: '夏目漱石',
+    isLight: true,
+    fontFamily: 'serif',
+    fontSizeQ: 14,
+    lineFeedH: 24,
+    charsPerLine: 20,
+    showGrid: false,
+    isVertical: true,
+    zoom: 1,
+  };
+
+  it('drops the ruby note from みだれ髪 instead of typesetting it as body text (L13)', () => {
+    const work = AOZORA_TEXTS.find((w) => w.id === 'midaregami');
+    expect(work).toBeDefined();
+    expect(work!.text).not.toContain('（はたち）');
+    expect(work!.text).toContain('その子二十櫛にながるる黒髪の');
+  });
+
+  it('numbers the first spread 1-2 (L14)', () => {
+    const layout = makeLayout([['あ'], ['い']]);
+    const { container } = renderIntoDom(
+      <BookSpreadView layout={layout} {...bookProps} lineCount={14} />
+    );
+    expect(container.textContent).toContain('- 1 -');
+    expect(container.textContent).toContain('- 2 -');
+    expect(container.textContent).not.toContain('- 12 -');
+    expect(container.textContent).not.toContain('- 13 -');
+  });
+
+  it('uses the same Q-to-px size in the poetry view as in the book view (L15)', () => {
+    const layout = makeLayout([['あ']]);
+    const { container } = renderIntoDom(
+      <PoetryTanzakuView
+        layout={layout}
+        title="月に吠える"
+        author="萩原朔太郎"
+        isLight={true}
+        fontFamily="serif"
+        fontSizeQ={14}
+        lineFeedH={24}
+        lineCount={14}
+        zoom={1}
+        isVertical={true}
+        showGrid={false}
+      />
+    );
+    // 14Q at the shared 1.35 factor is 19px (the old 1.4 factor gave 20px).
+    const sizes = Array.from(container.querySelectorAll('span')).map((s) => s.style.fontSize);
+    expect(sizes).toContain('19px');
+    expect(sizes).not.toContain('20px');
+  });
+
+  it('explains the pale-red overflown lines in every view that uses them (L16)', () => {
+    const overflown = makeLayout([['あ']]);
+    overflown.lines[0].isOverflown = true;
+    const book = renderIntoDom(
+      <BookSpreadView layout={overflown} {...bookProps} lineCount={14} />
+    );
+    expect(book.container.textContent).toContain('薄赤の行は行長を超えたはみ出し行');
+    const magazine = renderIntoDom(
+      <MagazineLayoutView
+        layout={overflown}
+        title="吾輩は猫である"
+        author="夏目漱石"
+        headline="見出し"
+        lead="リード"
+        isLight={true}
+        fontFamily="serif"
+        fontSizeQ={14}
+        lineFeedH={24}
+        lineCount={14}
+        isVertical={true}
+        showGrid={false}
+        zoom={1}
+      />
+    );
+    expect(magazine.container.textContent).toContain('薄赤の行は行長を超えたはみ出し行');
+    const poetry = renderIntoDom(
+      <PoetryTanzakuView
+        layout={overflown}
+        title="月に吠える"
+        author="萩原朔太郎"
+        isLight={true}
+        fontFamily="serif"
+        fontSizeQ={14}
+        lineFeedH={24}
+        lineCount={14}
+        zoom={1}
+        isVertical={true}
+        showGrid={false}
+      />
+    );
+    expect(poetry.container.textContent).toContain('薄赤の行は行長を超えたはみ出し行');
+    const compare = renderIntoDom(
+      <AkiryoCompareView
+        betaLayout={overflown}
+        tsumeLayout={overflown}
+        akeLayout={overflown}
+        charsPerLine={20}
+        fontSizeQ={14}
+        lineFeedH={24}
+        lineCount={14}
+        showGrid={false}
+        isVertical={true}
+        isLight={true}
+        fontFamily="serif"
+        zoom={1}
+      />
+    );
+    expect(compare.container.textContent).toContain('薄赤の行は行長を超えたはみ出し行');
+  });
+
+  it('shows the aki-amount tooltip in the horizontal compare branch too (L18)', () => {
+    const layout = makeLayout([['あ', '、']]);
+    const { container } = renderIntoDom(
+      <AkiryoCompareView
+        betaLayout={layout}
+        tsumeLayout={layout}
+        akeLayout={layout}
+        charsPerLine={20}
+        fontSizeQ={14}
+        lineFeedH={24}
+        lineCount={14}
+        showGrid={false}
+        isVertical={false}
+        isLight={true}
+        fontFamily="serif"
+        zoom={1}
+      />
+    );
+    const titled = Array.from(container.querySelectorAll('[title*="前アキ"]'));
+    expect(titled.length).toBeGreaterThan(0);
+    expect(titled[0].getAttribute('title')).toContain('後アキ');
+  });
+
+  it('does not put an engine hanging mark in a normal manuscript cell (L21)', () => {
+    const layout = makeLayout([['あ', 'い', '。']]);
+    layout.lines[0].glyphs[2].isHanging = true;
+    const viewProps = {
+      title: '銀河鉄道の夜',
+      author: '宮沢賢治',
+      isLight: true,
+      fontFamily: 'serif',
+      fontSizeQ: 14,
+      zoom: 1,
+      lineFeedH: 24,
+      showGrid: true,
+    };
+    const vertical = renderIntoDom(
+      <ManuscriptView layout={layout} {...viewProps} isVertical={true} />
+    );
+    expect(
+      vertical.container.querySelector('[title="ぶら下がり約物「。」"]')
+    ).not.toBeNull();
+    const horizontal = renderIntoDom(
+      <ManuscriptView layout={layout} {...viewProps} isVertical={false} />
+    );
+    expect(
+      horizontal.container.querySelector('[title="ぶら下がり約物「。」"]')
+    ).not.toBeNull();
+  });
+
+  it('clamps a negative line gap to 0 in the sidebar but keeps the warning (L23)', () => {
+    const dimensions = calculateTypesettingDimensions(14, 10, 20, 14, true);
+    expect(dimensions.lineGapH).toBe(-4);
+    const { container } = renderIntoDom(
+      <MojikumiSidebar
+        isLight={true}
+        themeClasses={getThemeClasses('light')}
+        mobileTab="preview"
+        onChangeMobileTab={vi.fn()}
+        sidebarTab="dimensions"
+        onChangeSidebarTab={vi.fn()}
+        selectedWorkId="wagahai"
+        onSelectWork={vi.fn()}
+        customText="あ"
+        onChangeCustomText={vi.fn()}
+        fontSizeQ={14}
+        onChangeFontSizeQ={vi.fn()}
+        lineFeedH={10}
+        onChangeLineFeedH={vi.fn()}
+        charsPerLine={20}
+        onChangeCharsPerLine={vi.fn()}
+        lineCount={14}
+        onChangeLineCount={vi.fn()}
+        dimensions={dimensions}
+        currentConfig={{
+          preset: 'beta',
+          table: PRESET_BETA,
+          kinsoku: 'weak_v2',
+          kinsokuAdjust: 'push_out',
+          burasagari: 'standard',
+          paragraphIndent: 'visual_half',
+        }}
+        onSelectPreset={vi.fn()}
+        onChangeKinsoku={vi.fn()}
+        onChangeBurasagari={vi.fn()}
+        onChangeParagraphIndent={vi.fn()}
+        onChangeKinsokuAdjust={vi.fn()}
+      />
+    );
+    expect(container.textContent).toContain('行間: 0H');
+    expect(container.textContent).not.toContain('行間: -4H');
+    expect(container.textContent).toContain('行送りが文字サイズ未満です');
   });
 });

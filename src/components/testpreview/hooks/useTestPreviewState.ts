@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FontProject, GlyphData, PathContour } from '../../../types';
-import { compileFont, balanceProjectGlyphMargins, validateFontProject, stripInvalidPixelData } from '../../../utils/font';
+import { compileFont, balanceProjectGlyphMargins, validateFontProject, stripInvalidPixelData, parseKerningPairKey } from '../../../utils/font';
 import { DEFAULT_ASCENDER, DEFAULT_DESCENDER, DEFAULT_UPM } from '../../../utils/font/constants';
 import { pixelGridToContours, normalizePixelGrid } from '../../../utils/pixelFontUtils';
 import { getContoursBoundingBox } from '../../../utils/path';
@@ -79,6 +79,27 @@ export function clampAdjustScale(value: number): number {
 // now warns whenever the footer reports an imbalance.
 export const GLYPH_MARGIN_BALANCE_THRESHOLD = 20;
 
+/**
+ * Advance width the compiler would use for a glyph (L39): a missing,
+ * non-finite or non-positive advanceWidth falls back to the default
+ * (full width above U+00FF, half width otherwise). `g.advanceWidth || ...`
+ * used to pass a negative advance through unchanged.
+ */
+export function resolvePreviewAdvanceWidth(
+  glyph: GlyphData | undefined | null,
+  upm: number
+): number {
+  const code = glyph?.unicode ?? 0;
+  if (
+    glyph &&
+    Number.isFinite(glyph.advanceWidth) &&
+    (glyph.advanceWidth ?? 0) > 0
+  ) {
+    return Math.round(glyph.advanceWidth as number);
+  }
+  return code > 255 ? upm : Math.round(upm / 2);
+}
+
 /** Vertical-form derivations, mirroring `verticalDerivations` in compilerCore.ts. */
 export const VERTICAL_DERIVATION_PAIRS: ReadonlyArray<{
   sourceUnicode: number;
@@ -149,34 +170,16 @@ export function collectPreviewGlyphUnicodes(
 }
 
 /**
- * Parse one side of a `project.kerning` key. Mirrors `parseKerningPairKey`
- * in `src/utils/font/validation.ts`: `U+XXXX` / `0xXXXX` hex, otherwise the
- * first code point of the token. Returns null when unparseable; such keys
- * are kept as-is (compileFont skips pairs whose glyphs are absent).
+ * Parse a `project.kerning` key for the preview-project filter. Delegates to
+ * the shared `parseKerningPairKey` in `src/utils/font/validation.ts` so the
+ * preview selection matches the compiler (decimal code points, comma keys,
+ * and duplicate handling included).
  */
-function parseKerningPairSide(token: string | undefined): number | null {
-  if (!token) return null;
-  if (token.startsWith('U+') || token.startsWith('0x')) {
-    const code = parseInt(token.replace(/^U\+|^0x/, ''), 16);
-    return Number.isFinite(code) ? code : null;
-  }
-  const code = token.codePointAt(0);
-  return code === undefined ? null : code;
-}
-
 function parseKerningPairKeyForPreview(pairKey: string): {
   left: number | null;
   right: number | null;
 } {
-  if (pairKey.includes(',')) {
-    const parts = pairKey.split(',');
-    return { left: parseKerningPairSide(parts[0]), right: parseKerningPairSide(parts[1]) };
-  }
-  const chars = [...pairKey];
-  if (chars.length === 2) {
-    return { left: parseKerningPairSide(chars[0]), right: parseKerningPairSide(chars[1]) };
-  }
-  return { left: null, right: null };
+  return parseKerningPairKey(pairKey);
 }
 
 function isSameKerning(
@@ -544,6 +547,42 @@ const [testText, setTestText] = usePersistedField(
     }
   };
 
+  // Unicodes that have existed in the project while this hook was
+  // mounted (L10). The modal unmounts when it closes, so a ref alone
+  // would forget them; the list is also kept in the persisted state,
+  // which survives closing and reopening the modal. It only grows with
+  // unicodes actually seen in project.glyphs, and AppModalsHost resets
+  // the persisted state when a different project is opened.
+  const seenGlyphUnicodesRef = useRef(new Set<number>());
+  useEffect(() => {
+    const current = Object.keys(project.glyphs || {}).map(Number);
+    for (const u of current) seenGlyphUnicodesRef.current.add(u);
+    if (onPersistedStateChange) {
+      onPersistedStateChange((prev) => {
+        const known = prev.knownGlyphUnicodes ?? [];
+        const next = [...known];
+        let added = false;
+        for (const u of current) {
+          if (!next.includes(u)) {
+            next.push(u);
+            added = true;
+          }
+        }
+        return added ? { ...prev, knownGlyphUnicodes: next } : prev;
+      });
+    }
+  }, [project.glyphs, onPersistedStateChange]);
+
+  // True when the selected character used to exist in the project but
+  // its glyph is gone now (L10). A character that never had a glyph is
+  // not in the seen set, so it still shows as an uncreated glyph.
+  const isSelectedGlyphDeleted = Boolean(
+    selectedCharInfo &&
+      !project.glyphs[selectedCharInfo.unicode] &&
+      ((persistedState?.knownGlyphUnicodes ?? []).includes(selectedCharInfo.unicode) ||
+        seenGlyphUnicodesRef.current.has(selectedCharInfo.unicode))
+  );
+
   // Handle mouse wheel scrolling horizontally in vertical writing mode
   const handleVerticalWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
@@ -566,9 +605,16 @@ const [testText, setTestText] = usePersistedField(
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const [isResizingLeft, setIsResizingLeft] = useState<boolean>(false);
   const [isResizingRight, setIsResizingRight] = useState<boolean>(false);
+  // The move handlers must not depend on the state flags (L6): setState
+  // is async, so a pointermove arriving before the re-render would read
+  // the stale `false` and be dropped. The refs are set synchronously in
+  // the pointerdown handlers; the state flags only drive rendering.
+  const isResizingLeftRef = useRef<boolean>(false);
+  const isResizingRightRef = useRef<boolean>(false);
 
   const handleLeftResizePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
+    isResizingLeftRef.current = true;
     setIsResizingLeft(true);
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -576,23 +622,25 @@ const [testText, setTestText] = usePersistedField(
   };
 
   const handleLeftResizePointerMove = (e: React.PointerEvent) => {
-    if (!isResizingLeft || !mainContainerRef.current) return;
+    if (!isResizingLeftRef.current || !mainContainerRef.current) return;
     const rect = mainContainerRef.current.getBoundingClientRect();
     const newWidth = Math.max(180, Math.min(480, e.clientX - rect.left));
     setLeftSidebarWidth(newWidth);
   };
 
   const handleLeftResizePointerUp = (e: React.PointerEvent) => {
-    if (isResizingLeft) {
+    if (isResizingLeftRef.current) {
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch {}
+      isResizingLeftRef.current = false;
       setIsResizingLeft(false);
     }
   };
 
   const handleRightResizePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
+    isResizingRightRef.current = true;
     setIsResizingRight(true);
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -600,17 +648,18 @@ const [testText, setTestText] = usePersistedField(
   };
 
   const handleRightResizePointerMove = (e: React.PointerEvent) => {
-    if (!isResizingRight || !mainContainerRef.current) return;
+    if (!isResizingRightRef.current || !mainContainerRef.current) return;
     const rect = mainContainerRef.current.getBoundingClientRect();
     const newWidth = Math.max(200, Math.min(520, rect.right - e.clientX));
     setRightAdjusterWidth(newWidth);
   };
 
   const handleRightResizePointerUp = (e: React.PointerEvent) => {
-    if (isResizingRight) {
+    if (isResizingRightRef.current) {
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch {}
+      isResizingRightRef.current = false;
       setIsResizingRight(false);
     }
   };
@@ -619,11 +668,39 @@ const [testText, setTestText] = usePersistedField(
   const [isDocked, setIsDocked] = useState<boolean>(true);
   const [floatingPos, setFloatingPos] = useState<{ x: number; y: number }>({ x: 720, y: 60 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initialPosX: number; initialPosY: number } | null>(null);
   const activeBlobUrlRef = useRef<string | null>(null);
   const activeFontFaceRef = useRef<FontFace | null>(null);
   const fontVersionRef = useRef<number>(0);
   const compileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clamp a floating-panel position into the main container (L5). The
+  // panel is absolutely positioned inside the container, so its
+  // coordinates are container-relative, not viewport-relative: clamping
+  // against window.innerWidth / innerHeight put it outside the visible
+  // area on narrow or centred modals.
+  const clampFloatingPos = useCallback(
+    (pos: { x: number; y: number }): { x: number; y: number } => {
+      const container = mainContainerRef.current;
+      const width = container?.clientWidth ?? window.innerWidth;
+      const height = container?.clientHeight ?? window.innerHeight;
+      const maxX = Math.max(8, width - rightAdjusterWidth - 8);
+      const maxY = Math.max(8, height - 200);
+      const x = Math.max(8, Math.min(maxX, pos.x));
+      const y = Math.max(8, Math.min(maxY, pos.y));
+      return x === pos.x && y === pos.y ? pos : { x, y };
+    },
+    [rightAdjusterWidth]
+  );
+
+  // When the panel is undocked, pull the initial position into the
+  // container as well: the default { x: 720, y: 60 } can lie outside a
+  // narrower container.
+  useEffect(() => {
+    if (isDocked) return;
+    setFloatingPos((prev) => clampFloatingPos(prev));
+  }, [isDocked, clampFloatingPos]);
 
   const handleDragStart = (e: React.PointerEvent) => {
     if (isDocked) return;
@@ -631,6 +708,7 @@ const [testText, setTestText] = usePersistedField(
     try {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     } catch {}
+    isDraggingRef.current = true;
     setIsDragging(true);
     dragStartRef.current = {
       startX: e.clientX,
@@ -641,21 +719,23 @@ const [testText, setTestText] = usePersistedField(
   };
 
   const handleDragMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragStartRef.current || isDocked) return;
+    if (!isDraggingRef.current || !dragStartRef.current || isDocked) return;
     const dx = e.clientX - dragStartRef.current.startX;
     const dy = e.clientY - dragStartRef.current.startY;
-
-    const nextX = Math.max(8, Math.min(window.innerWidth - 330, dragStartRef.current.initialPosX + dx));
-    const nextY = Math.max(8, Math.min(window.innerHeight - 200, dragStartRef.current.initialPosY + dy));
-
-    setFloatingPos({ x: nextX, y: nextY });
+    setFloatingPos(
+      clampFloatingPos({
+        x: dragStartRef.current.initialPosX + dx,
+        y: dragStartRef.current.initialPosY + dy,
+      })
+    );
   };
 
   const handleDragEnd = (e: React.PointerEvent) => {
-    if (isDragging) {
+    if (isDraggingRef.current) {
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch {}
+      isDraggingRef.current = false;
       setIsDragging(false);
       dragStartRef.current = null;
     }
@@ -669,6 +749,7 @@ const [testText, setTestText] = usePersistedField(
     lsb: number;
     rsb: number;
     diff: number;
+    zeroWidth: boolean;
   } | null>(null);
   // Layout mode: 'split' (side-by-side with full-height paper, recommended) or 'top' (classic stacked)
   const [layoutMode, setLayoutMode] = useState<'split' | 'top'>('split');
@@ -697,12 +778,21 @@ const [testText, setTestText] = usePersistedField(
     if (!isOpen || !isTopModal) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If typing in input or textarea, don't trigger shortcut
+      // Shortcuts must not fire while a form control has focus (L4):
+      // typing in a select would otherwise toggle fullscreen / panels
+      // with f / z, and Escape would close the modal while editing.
+      // When a control is focused, Escape is left to the control itself
+      // (e.g. closing the select dropdown).
       const activeEl = document.activeElement;
-      const isInputFocused =
-        activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+      const isFormControlFocused =
+        activeEl instanceof HTMLElement &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable);
 
       if (e.key === 'Escape') {
+        if (isFormControlFocused) return;
         if (isFullscreen) {
           e.preventDefault();
           setIsFullscreen(false);
@@ -710,10 +800,10 @@ const [testText, setTestText] = usePersistedField(
           e.preventDefault();
           onClose();
         }
-      } else if ((e.key === 'f' || e.key === 'F') && !isInputFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if ((e.key === 'f' || e.key === 'F') && !isFormControlFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setIsFullscreen((prev) => !prev);
-      } else if ((e.key === 'z' || e.key === 'Z') && !isInputFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if ((e.key === 'z' || e.key === 'Z') && !isFormControlFocused && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         if (layoutMode === 'split') {
           setIsSidebarOpen((prev) => !prev);
@@ -752,10 +842,15 @@ const [testText, setTestText] = usePersistedField(
     }
   }, []);
 
-  // Cleanup font resources when modal closes
+  // Cleanup font resources when modal closes. The compile error and the
+  // family name of the removed preview font are reset too (L2), so a
+  // stale error from the previous session is not shown until the next
+  // compile (250ms debounce) succeeds.
   useEffect(() => {
     if (!isOpen) {
       cleanupActivePreviewFont();
+      setErrorMsg(null);
+      setFontFamilyName('CustomTestFont');
     }
   }, [isOpen, cleanupActivePreviewFont]);
 
@@ -767,16 +862,21 @@ const [testText, setTestText] = usePersistedField(
   }, [cleanupActivePreviewFont]);
 
   // Compile only the glyphs the preview text can show. The candidate is
-  // rebuilt on every render (cheap: a text scan plus glyph lookups), but
-  // the state below only adopts it when it is not equivalent to the
-  // previous one, so the compile effect does not re-run for edits to
-  // glyphs outside the preview text. (Adjusting state during render is
-  // the documented React pattern for deriving state from props.)
+  // rebuilt only when the project or the text changes (L11): it used to
+  // be rebuilt on every render, so every slider drag re-scanned the text
+  // and the kerning table. The state below still only adopts it when it
+  // is not equivalent to the previous one, so the compile effect does
+  // not re-run for edits to glyphs outside the preview text. (Adjusting
+  // state during render is the documented React pattern for deriving
+  // state from props.)
   const [previewProjectState, setPreviewProjectState] = useState(() => ({
     testText,
     preview: buildPreviewProject(project, testText),
   }));
-  const previewProjectCandidate = buildPreviewProject(project, testText);
+  const previewProjectCandidate = useMemo(
+    () => buildPreviewProject(project, testText),
+    [project, testText]
+  );
   if (
     previewProjectState.testText !== testText ||
     !isEquivalentPreviewProject(previewProjectState.preview, previewProjectCandidate)
@@ -878,7 +978,7 @@ const [testText, setTestText] = usePersistedField(
           styleTag.textContent = `
             @font-face {
               font-family: '${newFontName}';
-              src: url('${blobUrl}') format('truetype');
+              src: url('${blobUrl}') format('opentype');
               font-weight: normal;
               font-style: normal;
             }
@@ -927,8 +1027,7 @@ const [testText, setTestText] = usePersistedField(
         const pGrid = normalizePixelGrid(g.pixelData.data);
         if (pGrid.some((v) => v === 1)) {
           const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
-          const advWidth =
-            g.advanceWidth || (g.unicode > 255 ? upm : Math.round(upm / 2));
+          const advWidth = resolvePreviewAdvanceWidth(g, upm);
           const dotShape = g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square';
           const mergeContours = project.pixelFontSettings?.mergeContours !== false;
           const sig = [
@@ -991,12 +1090,21 @@ const [testText, setTestText] = usePersistedField(
       {
         glyph: GlyphData | undefined;
         upm: number;
-        metric: { char: string; unicode: number; adv: number; lsb: number; rsb: number; diff: number } | null;
+        metric: { char: string; unicode: number; adv: number; lsb: number; rsb: number; diff: number; zeroWidth: boolean } | null;
       }
     >()
   );
 
-  // Helper to get glyph metric info
+  // Helper to get glyph metric info (L39).
+  // (1) A negative advanceWidth falls back to the default, matching the
+  // compiler. (2) A glyph with contours but a zero-width bounding box
+  // (e.g. a vertical line only) still returns a metric instead of null,
+  // so it is not shown as uncreated; `zeroWidth` keeps it visually
+  // distinct in PreviewCanvas. (3) The values are computed from the
+  // pre-scale, pre-centering outlines: the compiler scales (default
+  // 1.35x, clamped per glyph) and optionally balances the margins, which
+  // this preview cannot reproduce exactly, so PreviewCanvas labels the
+  // numbers as pre-scale values when a transform is active.
   const getGlyphMetric = useCallback(
     (char: string) => {
       const code = char.codePointAt(0) ?? 0;
@@ -1012,15 +1120,11 @@ const [testText, setTestText] = usePersistedField(
         return null;
       }
       const bbox = getContoursBoundingBox(contours);
-      if (bbox.width <= 0) {
-        glyphMetricCacheRef.current.set(char, { glyph: g, upm, metric: null });
-        return null;
-      }
-      const adv = g.advanceWidth || (code > 255 ? upm : Math.round(upm / 2));
+      const adv = resolvePreviewAdvanceWidth(g, upm);
       const lsb = Math.round(bbox.minX);
       const rsb = Math.round(adv - bbox.maxX);
       const diff = lsb - rsb;
-      const metric = { char, unicode: code, adv, lsb, rsb, diff };
+      const metric = { char, unicode: code, adv, lsb, rsb, diff, zeroWidth: bbox.width <= 0 };
       glyphMetricCacheRef.current.set(char, { glyph: g, upm, metric });
       return metric;
     },
@@ -1137,7 +1241,7 @@ const [testText, setTestText] = usePersistedField(
     if (bbox.width <= 0 || bbox.height <= 0) return;
 
     const upm = project.metadata.unitsPerEm || DEFAULT_UPM;
-    const adv = g.advanceWidth || (unicode > 255 ? upm : Math.round(upm / 2));
+    const adv = resolvePreviewAdvanceWidth(g, upm);
     const targetLsb = (adv - bbox.width) / 2;
     const deltaX = clampAdjustOffset(
       Math.round((targetLsb - bbox.minX) * (adjustScaleX / 100))
@@ -1198,7 +1302,15 @@ const [testText, setTestText] = usePersistedField(
       .filter((item) => item.char && item.char.length > 0);
   }, [project.glyphs]);
 
-  const [showLivePreviewBox, setShowLivePreviewBox] = useState<boolean>(false);
+  // Open by default (L8) so the outline is visible without an extra
+  // click. Persisted through usePersistedField: a saved setting wins
+  // over this default.
+  const [showLivePreviewBox, setShowLivePreviewBox] = usePersistedField(
+    persistedState,
+    onPersistedStateChange,
+    'showLivePreviewBox',
+    persistedDefaults.showLivePreviewBox
+  );
 
   return {
     testText,
@@ -1235,6 +1347,7 @@ const [testText, setTestText] = usePersistedField(
     fontFamilyName,
     errorMsg,
     selectedCharInfo,
+    isSelectedGlyphDeleted,
     setSelectedCharInfo,
     selectCharForAdjust,
     adjustDx,

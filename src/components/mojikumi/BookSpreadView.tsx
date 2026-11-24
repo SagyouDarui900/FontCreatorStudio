@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormattedGlyph, FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { ChevronRight, ChevronLeft, BookOpen } from 'lucide-react';
+import { MOJIKUMI_Q_TO_PX } from './mojikumiScale';
 
 // M19: consecutive glyphs flagged tateChuYoko by the engine form one
 // horizontal unit inside a vertical column. (Duplicated in each mojikumi
@@ -66,9 +67,9 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     setMobilePageView('p1');
   }, [pageResetKey]);
 
-  // Approximate scale for screen rendering
-  const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  // Approximate scale for screen rendering (L15: shared Q-to-px factor).
+  const emPx = Math.max(13, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * MOJIKUMI_Q_TO_PX * zoom));
 
   // M14: paginate lines across spreads using the 1-page line count
   // (linesPerPage lines per page = 2 * linesPerPage lines per spread),
@@ -80,7 +81,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
   const spreadStart = safeSpreadIdx * linesPerSpread;
   const firstPageLines = layout.lines.slice(spreadStart, spreadStart + linesPerPage);
   const secondPageLines = layout.lines.slice(spreadStart + linesPerPage, spreadStart + linesPerSpread);
-  const pageNum1 = 12 + safeSpreadIdx * 2;
+  // L14: the first spread is pages 1-2 (previously fixed to start at 12).
+  const pageNum1 = 1 + safeSpreadIdx * 2;
   const pageNum2 = pageNum1 + 1;
 
   // Background and paper colors (static colors, no heavy transitions)
@@ -414,17 +416,17 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
 
         {/* Spread Two-Page Container
             - On Desktop (md:grid-cols-2):
-                If isVertical: Page 2 (P.13) on Left, Page 1 (P.12) on Right (Right-to-Left vertical book reading)
-                If horizontal: Page 1 (P.12) on Left, Page 2 (P.13) on Right
+                If isVertical: Page 2 on Left, Page 1 on Right (Right-to-Left vertical book reading)
+                If horizontal: Page 1 on Left, Page 2 on Right
             - On Mobile:
-                Natural top-to-bottom reading: Page 1 (P.12) ALWAYS appears first, Page 2 (P.13) second!
+                Natural top-to-bottom reading: Page 1 ALWAYS appears first, Page 2 second!
         */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 relative min-h-[380px] sm:min-h-[520px]">
           {/* Central Book Gutter & Spine Fold Shadow (ノドの影, Desktop only) */}
           <div className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-10 bg-gradient-to-r from-black/5 via-black/15 to-black/5 dark:from-black/20 dark:via-black/50 dark:to-black/20 border-x border-amber-950/10 dark:border-black/40" />
 
           {/* Desktop Left Slot / Mobile Slot */}
-          {/* In vertical: Desktop Left Slot is Page 2 (P.13). On mobile, it's hidden if mobilePageView === 'p1'.
+          {/* In vertical: Desktop Left Slot is Page 2. On mobile, it's hidden if mobilePageView === 'p1'.
               Order on mobile is 2 (so Page 1 is always read first on mobile). */}
           <div
             className={`min-w-0 md:border-r border-amber-900/10 dark:border-emerald-950/30 ${
@@ -470,6 +472,12 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             <span>字詰め: <strong>{charsPerLine}字</strong></span>
             <span>·</span>
             <span>1頁行数: <strong>{linesPerPage}行</strong></span>
+            <span>·</span>
+            {/* L16: legend for the pale-red overflown lines. */}
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2.5 h-2.5 rounded-xs bg-rose-500/30 border border-rose-500/40" aria-hidden="true" />
+              <span>薄赤の行は行長を超えたはみ出し行</span>
+            </span>
           </div>
           <div className="hidden sm:block">JIS X 4051 文庫本フォーマット</div>
         </div>

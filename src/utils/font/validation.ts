@@ -49,19 +49,39 @@ function isValidUnicode(value: unknown): value is number {
   );
 }
 
-/** カーニングペアのキーから左右の Unicode 値を取り出す。 */
-function parseKerningPairKey(pairKey: string): { left: number | null; right: number | null } {
+/**
+ * カーニングペアのキーから左右の Unicode 値を取り出す。キーの形式は
+ * `"char1,char2"`（1文字ずつ）、`"U+XXXX,0xXXXX"`（16進数）、
+ * `"44,65"`（10進数コードポイント）のいずれか。カンマ区切りでない
+ * 場合は2文字の並びとして読む。
+ *
+ * 10進数形式の判定：区切りで分けた各辺が1文字でなければならないため、
+ * 2文字以上の数字だけのトークンは1文字にはならず、10進数コードポイント
+ * として読む。1桁の数字（例："4"）は文字 `4` として読む。
+ * 左字・右字が `,` 自体の場合（キー `,,X` や `A,,`）は、区切りと文字の
+ * カンマを区別できないため無効とし、null を返す。呼び出し側は警告を
+ * 出してそのペアを除外する。
+ */
+export function parseKerningPairKey(pairKey: string): { left: number | null; right: number | null } {
   const parseToken = (token: string | undefined): number | null => {
     if (!token) return null;
     if (token.startsWith('U+') || token.startsWith('0x')) {
       const code = parseInt(token.replace(/^U\+|^0x/, ''), 16);
-      return Number.isFinite(code) ? code : null;
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? code : null;
+    }
+    if (/^\d+$/.test(token) && token.length > 1) {
+      const code = parseInt(token, 10);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? code : null;
     }
     const code = token.codePointAt(0);
     return code === undefined ? null : code;
   };
   if (pairKey.includes(',')) {
     const parts = pairKey.split(',');
+    // Exactly one separator comma: `,,X` or `A,,` split into 3 parts,
+    // so the comma character itself cannot be told apart from the
+    // separator and the key is rejected as invalid.
+    if (parts.length !== 2) return { left: null, right: null };
     return { left: parseToken(parts[0]), right: parseToken(parts[1]) };
   }
   const chars = [...pairKey];
@@ -180,6 +200,20 @@ export function validateFontProject(project: FontProject): FontValidationResult 
     warnings.push('作成されたグリフがまだありません。空白フォントとして出力されます。');
   }
 
+  // Metadata is read without `?.` throughout compilation, so a project
+  // without it would fail later with a TypeError. Stop here with a
+  // clear error instead.
+  if (!project.metadata || typeof project.metadata !== 'object') {
+    errors.push('メタデータがありません。フォント情報（フォント名・UPMなど）を設定してください。');
+    return {
+      valid: false,
+      glyphCount,
+      warnings,
+      errors,
+      removed,
+    };
+  }
+
   checkMetadata(project.metadata, warnings);
 
   const seenUnicodes = new Set<number>();
@@ -277,7 +311,15 @@ export function validateFontProject(project: FontProject): FontValidationResult 
           errors.push(`文字「${label}」に頂点が1つだけの孤立輪郭があります。`);
           removed.contours++;
         } else if (c.nodes.length === 2) {
-          warnings.push(`文字「${label}」に頂点が2つだけの輪郭があります。線として書き出されます。`);
+          // A 2-node contour has no enclosed area: an open one is a
+          // degenerate path (fill area 0) and is not drawn, and a closed
+          // one made of straight lines is the same. It is not a visible
+          // line, because font outlines have no stroke.
+          if (c.closed === true) {
+            warnings.push(`文字「${label}」に頂点が2つだけの閉じた輪郭があります。直線だけでは囲む面積がなく、表示されません。`);
+          } else {
+            warnings.push(`文字「${label}」に頂点が2つだけの開いた輪郭があります。線としてではなく塗りつぶしの輪郭として書き出されるため面積がなく、表示されません。`);
+          }
         }
         if (c.nodes.length >= 2 && c.nodes.every((n) => n.x === c.nodes[0].x && n.y === c.nodes[0].y)) {
           warnings.push(`文字「${label}」に全頂点が同一座標の輪郭があります。表示されないグリフとして書き出されます。`);

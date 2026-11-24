@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateStoredFontProjectWithReport } from './validation';
+import { validateStoredFontProjectWithReport, validateFontProject, parseKerningPairKey } from './validation';
 import { createDefaultProject } from './projectDefaults';
 
 function makeStoredProject(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -95,5 +95,70 @@ describe('validateStoredFontProjectWithReport (review H16)', () => {
     expect(report!.removedGlyphLabels).toContain('U+1869F');
     expect(report!.project.glyphs[12358]).toBeDefined();
     expect(report!.project.glyphs[12356]).toBeUndefined();
+  });
+});
+
+describe('parseKerningPairKey (L37)', () => {
+  it('reads decimal code point keys', () => {
+    expect(parseKerningPairKey('44,65')).toEqual({ left: 44, right: 65 });
+    expect(parseKerningPairKey('12354,65')).toEqual({ left: 12354, right: 65 });
+  });
+
+  it('still reads a single digit as the character itself', () => {
+    expect(parseKerningPairKey('4,5')).toEqual({ left: 52, right: 53 });
+  });
+
+  it('rejects keys whose side is the comma character itself', () => {
+    expect(parseKerningPairKey(',,X')).toEqual({ left: null, right: null });
+    expect(parseKerningPairKey('A,,')).toEqual({ left: null, right: null });
+  });
+
+  it('reads character, U+ hex and 0x hex keys', () => {
+    expect(parseKerningPairKey('A,V')).toEqual({ left: 65, right: 86 });
+    expect(parseKerningPairKey('U+0041,U+0056')).toEqual({ left: 65, right: 86 });
+    expect(parseKerningPairKey('0x41,0x56')).toEqual({ left: 65, right: 86 });
+    expect(parseKerningPairKey('AV')).toEqual({ left: 65, right: 86 });
+  });
+
+  it('warns about an ambiguous comma key instead of silently dropping it', () => {
+    const project = makeStoredProject({ kerning: { ',,V': -80 } }) as any;
+    const result = validateFontProject(project);
+    expect(result.warnings.some((w) => w.includes(',,V'))).toBe(true);
+  });
+});
+
+describe('validateFontProject two-node contours and metadata (L44, L45)', () => {
+  const twoNodeGlyph = (closed: boolean) => ({
+    unicode: 65,
+    char: 'A',
+    name: 'A',
+    advanceWidth: 1000,
+    lsb: 50,
+    contours: [
+      {
+        id: 'c1',
+        closed,
+        nodes: [
+          { id: 'n1', x: 100, y: 100, type: 'corner' },
+          { id: 'n2', x: 200, y: 100, type: 'corner' },
+        ],
+      },
+    ],
+  });
+
+  it('does not claim a two-node open contour is exported as a line', () => {
+    const result = validateFontProject(makeStoredProject({ glyphs: { 65: twoNodeGlyph(false) } }) as any);
+    const warning = result.warnings.find((w) => w.includes('頂点が2つだけ'));
+    expect(warning).toBeDefined();
+    expect(warning).not.toContain('線として書き出されます');
+    expect(warning).toContain('表示されません');
+  });
+
+  it('errors on a missing metadata object instead of leaving it for compilation to crash on', () => {
+    const project = makeStoredProject({}) as any;
+    delete project.metadata;
+    const result = validateFontProject(project);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('メタデータ'))).toBe(true);
   });
 });

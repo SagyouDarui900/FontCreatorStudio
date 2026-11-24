@@ -41,6 +41,17 @@ describe('mojikumiVertical', () => {
     expect(isVerticalCornerPunctuation('字')).toBe(false);
   });
 
+  it('L30: vertical ellipsis is not rotated, midline horizontal ellipsis still is', () => {
+    // '⋮' (U+22EE) already runs vertically; rotating it would make it horizontal
+    expect(isVerticalRotatedChar('⋮')).toBe(false);
+    expect(getVerticalGlyphStyle('⋮', true).transform).toBeUndefined();
+    // '⋯' (U+22EF) runs horizontally and still needs the 90deg rotation
+    expect(isVerticalRotatedChar('⋯')).toBe(true);
+    expect(getVerticalGlyphStyle('⋯', true).transform).toContain('rotate(90deg)');
+    expect(VERTICAL_ROTATE_CHARS.has('⋮')).toBe(false);
+    expect(VERTICAL_ROTATE_CHARS.has('⋯')).toBe(true);
+  });
+
   it('generates appropriate styles for vertical vs horizontal mode', () => {
     // Horizontal mode: no transform
     const horizStyle = getVerticalGlyphStyle('ー', false);

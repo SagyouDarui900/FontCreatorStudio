@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import React, { act } from 'react';
+import React, { act, useState } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FontProject, GlyphData } from '../../../types';
@@ -10,8 +10,11 @@ import {
   collectPreviewGlyphUnicodes,
   extractPreviewUnicodes,
   isEquivalentPreviewProject,
+  resolvePreviewAdvanceWidth,
   useTestPreviewState,
 } from './useTestPreviewState';
+import { CharAdjustPanel } from '../CharAdjustPanel';
+import { PreviewCanvas } from '../PreviewCanvas';
 import {
   createDefaultTestPreviewPersistedState,
   TestPreviewPersistedState,
@@ -646,5 +649,370 @@ describe('adjust drafts, auto-center, glyph entries and metric cache (M3, M5, M1
     rerender(p2);
     state().getGlyphMetric('え');
     expect(pixelGridToContoursSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('low review items (L2, L4, L7, L8, L9, L10, L11, L39, L42)', () => {
+  const roots: Root[] = [];
+  const containers: HTMLElement[] = [];
+  let originalFontFace: unknown;
+  let latestState: ReturnType<typeof useTestPreviewState> | null = null;
+
+  function Harness({
+    project,
+    isOpen = true,
+    onClose = () => {},
+    persistedState,
+    onPersistedStateChange,
+  }: {
+    project: FontProject;
+    isOpen?: boolean;
+    onClose?: () => void;
+    persistedState?: TestPreviewPersistedState;
+    onPersistedStateChange?: React.Dispatch<React.SetStateAction<TestPreviewPersistedState>>;
+  }) {
+    latestState = useTestPreviewState({
+      isOpen,
+      onClose,
+      project,
+      setProject: () => {},
+      theme: 'light',
+      ...(persistedState && onPersistedStateChange
+        ? { persistedState, onPersistedStateChange }
+        : {}),
+    });
+    return null;
+  }
+
+  // Harness with a real persisted store, so persisted fields (testText,
+  // knownGlyphUnicodes, showLivePreviewBox) survive across rerenders.
+  function StoredHarness({
+    project,
+    testText = 'あ',
+  }: {
+    project: FontProject;
+    testText?: string;
+  }) {
+    const [persisted, setPersisted] = useState(() => ({
+      ...createDefaultTestPreviewPersistedState(),
+      testText,
+    }));
+    latestState = useTestPreviewState({
+      isOpen: true,
+      onClose: () => {},
+      project,
+      setProject: () => {},
+      theme: 'light',
+      persistedState: persisted,
+      onPersistedStateChange: setPersisted,
+    });
+    return null;
+  }
+
+  function mount(node: React.ReactNode) {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(node);
+    });
+    roots.push(root);
+    containers.push(container);
+    return {
+      container,
+      rerender(nextNode: React.ReactNode) {
+        act(() => {
+          root.render(nextNode);
+        });
+      },
+    };
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockCompileFont.mockClear();
+    latestState = null;
+    originalFontFace = (globalThis as Record<string, unknown>).FontFace;
+    (globalThis as Record<string, unknown>).FontFace = undefined;
+  });
+
+  afterEach(() => {
+    while (roots.length > 0) {
+      const r = roots.pop()!;
+      act(() => r.unmount());
+    }
+    while (containers.length > 0) {
+      containers.pop()!.remove();
+    }
+    document.querySelectorAll('body > select, body > input').forEach((el) => el.remove());
+    vi.useRealTimers();
+    (globalThis as Record<string, unknown>).FontFace = originalFontFace;
+  });
+
+  function advanceCompile() {
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+  }
+
+  it('resets the compile error and font family name when the modal closes (L2)', () => {
+    const onClose = vi.fn();
+    const persisted = createDefaultTestPreviewPersistedState();
+    const { rerender } = mount(
+      <Harness
+        project={makeProject()}
+        isOpen
+        onClose={onClose}
+        persistedState={persisted}
+        onPersistedStateChange={() => {}}
+      />
+    );
+    advanceCompile();
+    expect(latestState!.errorMsg).toBeNull();
+    expect(latestState!.fontFamilyName).toMatch(/^CustomTestFont_v\d+_/);
+
+    // A failed compile sets an error; closing clears it.
+    mockCompileFont.mockImplementationOnce(() => {
+      throw new Error('compile boom');
+    });
+    rerender(
+      <Harness
+        project={{ ...makeProject(), updatedAt: 2 }}
+        isOpen
+        onClose={onClose}
+        persistedState={persisted}
+        onPersistedStateChange={() => {}}
+      />
+    );
+    advanceCompile();
+    expect(latestState!.errorMsg).toContain('compile boom');
+
+    rerender(
+      <Harness
+        project={makeProject()}
+        isOpen={false}
+        onClose={onClose}
+        persistedState={persisted}
+        onPersistedStateChange={() => {}}
+      />
+    );
+    expect(latestState!.errorMsg).toBeNull();
+    expect(latestState!.fontFamilyName).toBe('CustomTestFont');
+  });
+
+  it('ignores f / z / Escape while a select or input has focus (L4)', () => {
+    const onClose = vi.fn();
+    mount(<Harness project={makeProject()} isOpen onClose={onClose} />);
+
+    const select = document.createElement('select');
+    document.body.appendChild(select);
+    act(() => {
+      select.focus();
+    });
+    expect(document.activeElement).toBe(select);
+    act(() => {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'f' }));
+    });
+    expect(latestState!.isFullscreen).toBe(false);
+    act(() => {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'z' }));
+    });
+    expect(latestState!.isSidebarOpen).toBe(true);
+    act(() => {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    act(() => {
+      input.focus();
+    });
+    act(() => {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      input.blur();
+    });
+    act(() => {
+      window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops CR characters and renders tabs as marker spans, not character spans (L7)', () => {
+    const project = makeProject([
+      makeGlyph(0x61, 'a'),
+      makeGlyph(0x62, 'b'),
+      makeGlyph(0x63, 'c'),
+    ]);
+    const persisted = {
+      ...createDefaultTestPreviewPersistedState(),
+      testText: 'a\r\nb\tc',
+      showSpaceMarkers: true,
+    };
+    mount(
+      <Harness
+        project={project}
+        persistedState={persisted}
+        onPersistedStateChange={() => {}}
+      />
+    );
+    const { container } = mount(<PreviewCanvas project={project} state={latestState!} />);
+    expect(container.textContent).not.toContain('\r');
+    expect(container.textContent).toContain('a');
+    expect(container.textContent).toContain('b');
+    expect(container.textContent).toContain('c');
+    // The tab is a dedicated marker span, not a shaped character.
+    expect(container.textContent).toContain('→');
+  });
+
+  it('opens the vector outline preview by default, unless a persisted setting says otherwise (L8)', () => {
+    mount(<Harness project={makeProject()} />);
+    expect(latestState!.showLivePreviewBox).toBe(true);
+
+    const persisted = {
+      ...createDefaultTestPreviewPersistedState(),
+      showLivePreviewBox: false,
+    };
+    mount(
+      <Harness
+        project={makeProject()}
+        persistedState={persisted}
+        onPersistedStateChange={() => {}}
+      />
+    );
+    expect(latestState!.showLivePreviewBox).toBe(false);
+  });
+
+  it('gives the floating adjust panel a width resize handle (L9)', () => {
+    mount(<Harness project={makeProject()} />);
+    const { container } = mount(
+      <CharAdjustPanel
+        project={makeProject()}
+        state={{ ...latestState!, isDocked: false, floatingPos: { x: 10, y: 10 } }}
+      />
+    );
+    expect(container.querySelector('[title*="小窓の幅を調整"]')).not.toBeNull();
+  });
+
+  it('tells a deleted glyph apart from one that was never created (L10)', () => {
+    const p1 = makeProject();
+    const { rerender } = mount(<StoredHarness project={p1} />);
+    const state = () => latestState!;
+    act(() => {
+      state().selectCharForAdjust({ char: 'あ', unicode: 0x3042, lineIndex: 0, charIndex: 0 });
+    });
+    expect(state().isSelectedGlyphDeleted).toBe(false);
+
+    // Delete あ from the project and reopen the selection.
+    const { [0x3042]: _removed, ...restGlyphs } = p1.glyphs;
+    const p2: FontProject = { ...p1, glyphs: restGlyphs };
+    rerender(<StoredHarness project={p2} />);
+    expect(state().isSelectedGlyphDeleted).toBe(true);
+    const { container } = mount(<CharAdjustPanel project={p2} state={state()} />);
+    expect(container.textContent).toContain('削除されたグリフ');
+    expect(container.textContent).not.toContain('未作成グリフ');
+
+    // A character that never had a glyph is still "uncreated", not deleted.
+    act(() => {
+      state().selectCharForAdjust({ char: 'え', unicode: 0x3048, lineIndex: -1, charIndex: -1 });
+    });
+    expect(state().isSelectedGlyphDeleted).toBe(false);
+  });
+
+  it('does not rebuild the preview project on adjust-only rerenders (L11)', () => {
+    let glyphOwnKeysReads = 0;
+    const glyphs = new Proxy(
+      {
+        0x3042: makeGlyph(0x3042, 'あ'),
+        0x3044: makeGlyph(0x3044, 'い'),
+        0x3046: makeGlyph(0x3046, 'う'),
+        // Extra glyphs keep the preview subset below the 80%
+        // full-compile fallback, so buildPreviewProject builds a new
+        // plain object instead of returning the project itself.
+        0x3048: makeGlyph(0x3048, 'え'),
+        0x304a: makeGlyph(0x304a, 'お'),
+      } as Record<number, GlyphData>,
+      {
+        ownKeys(target) {
+          glyphOwnKeysReads++;
+          return Reflect.ownKeys(target);
+        },
+      }
+    );
+    const project = {
+      ...makeProject(),
+      glyphs,
+    } as unknown as FontProject;
+    mount(<StoredHarness project={project} testText="あ" />);
+    advanceCompile();
+    const readsAfterMount = glyphOwnKeysReads;
+    act(() => {
+      latestState!.setAdjustDx(10);
+    });
+    act(() => {
+      latestState!.setAdjustDy(-5);
+    });
+    act(() => {
+      latestState!.setAdjustScaleX(120);
+    });
+    expect(glyphOwnKeysReads).toBe(readsAfterMount);
+  });
+
+  it('falls back for a negative advance and reports zero-width glyphs instead of null (L39)', () => {
+    expect(resolvePreviewAdvanceWidth({ unicode: 0x3042, advanceWidth: -100 } as GlyphData, 1000)).toBe(1000);
+    expect(resolvePreviewAdvanceWidth({ unicode: 0x41, advanceWidth: -100 } as GlyphData, 1000)).toBe(500);
+    expect(resolvePreviewAdvanceWidth({ unicode: 0x3042, advanceWidth: 0 } as GlyphData, 1000)).toBe(1000);
+    expect(resolvePreviewAdvanceWidth({ unicode: 0x3042, advanceWidth: 700 } as GlyphData, 1000)).toBe(700);
+
+    const negativeAdvGlyph: GlyphData = {
+      ...makeGlyph(0x3042, 'あ'),
+      advanceWidth: -100,
+    };
+    const verticalLineGlyph: GlyphData = {
+      unicode: 0x3044,
+      char: 'い',
+      name: 'uni3044',
+      advanceWidth: 1000,
+      lsb: 300,
+      contours: [
+        {
+          id: 'c3044',
+          closed: true,
+          nodes: [
+            { id: 'n1', x: 300, y: 200, type: 'corner' },
+            { id: 'n2', x: 300, y: 800, type: 'corner' },
+          ],
+        },
+      ],
+    };
+    const project = makeProject([negativeAdvGlyph, verticalLineGlyph]);
+    // makeProject already contains あ/い; replace them with the variants.
+    project.glyphs[0x3042] = negativeAdvGlyph;
+    project.glyphs[0x3044] = verticalLineGlyph;
+    mount(<Harness project={project} />);
+    const state = () => latestState!;
+    const negMetric = state().getGlyphMetric('あ');
+    expect(negMetric).not.toBeNull();
+    expect(negMetric!.adv).toBe(1000);
+    expect(negMetric!.lsb).toBe(100);
+    expect(negMetric!.rsb).toBe(400);
+    const lineMetric = state().getGlyphMetric('い');
+    expect(lineMetric).not.toBeNull();
+    expect(lineMetric!.zeroWidth).toBe(true);
+    expect(lineMetric!.lsb).toBe(300);
+    expect(lineMetric!.rsb).toBe(700);
+  });
+
+  it('uses the opentype format in the no-FontFace @font-face fallback (L42)', () => {
+    mount(<Harness project={makeProject()} />);
+    advanceCompile();
+    const styleTag = document.getElementById('dynamic-preview-font-face');
+    expect(styleTag).not.toBeNull();
+    expect(styleTag!.textContent).toContain("format('opentype')");
+    expect(styleTag!.textContent).not.toContain("format('truetype')");
   });
 });

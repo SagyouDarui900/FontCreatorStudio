@@ -35,7 +35,12 @@ export function contoursToOpenTypePath(
     for (let i = 0; i < nodes.length; i++) {
       const current = nodes[i];
       const isLast = i === nodes.length - 1;
-      const next = isLast ? (contour.closed ? nodes[0] : null) : nodes[i + 1];
+      // `closed` is typed as a required boolean, but a hand-edited JSON
+      // file may omit it. An omitted value is treated as an open contour
+      // here, the same as `contoursToSvgPath` (`if (contour.closed)`):
+      // the closing segment back to the first node is not drawn, and
+      // the path is not closed.
+      const next = isLast ? (contour.closed === true ? nodes[0] : null) : nodes[i + 1];
 
       if (!next) break;
 
@@ -59,7 +64,12 @@ export function contoursToOpenTypePath(
       }
     }
 
-    if (contour.closed !== false) {
+    // Only a contour explicitly marked closed is closed. With `closed`
+    // omitted, the path stays open (see the segment loop above), matching
+    // `contoursToSvgPath`. Previously `closed !== false` closed the path
+    // while the loop above skipped the closing segment, producing a
+    // straight-line close instead of the final curve.
+    if (contour.closed === true) {
       path.close();
     }
   }

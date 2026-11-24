@@ -108,7 +108,7 @@ export interface FontProject {
   name: string;
   metadata: FontMetadata;
   glyphs: Record<number, GlyphData>;
-  kerning?: Record<string, number>; // Pair string "char1,char2" or "unicode1,unicode2" -> offset in font units
+  kerning?: Record<string, number>; // Pair string "char1,char2", "U+XXXX,U+XXXX", "0xXXXX,0xXXXX" or "decimal1,decimal2" -> offset in font units
   openTypeFeatures?: OpenTypeFeaturesConfig;
   pixelFontSettings?: PixelFontProjectSettings;
   /** Trace underdrawing settings, without image data (see StoredTraceSettings). */

@@ -933,3 +933,242 @@ describe('compileFont with kerning', () => {
     ).toBe(-80);
   });
 });
+
+describe('compileFont hhea metrics (L35)', () => {
+  const rect = (x0: number, y0: number, x1: number, y1: number): PathContour => ({
+    id: 'c1',
+    closed: true,
+    nodes: [
+      { id: 'n1', x: x0, y: y0, type: 'corner' },
+      { id: 'n2', x: x1, y: y0, type: 'corner' },
+      { id: 'n3', x: x1, y: y1, type: 'corner' },
+      { id: 'n4', x: x0, y: y1, type: 'corner' },
+    ],
+  });
+
+  it('computes hhea side bearings and extent from the actual outlines, in memory and in the binary', () => {
+    // A: outline 100..400, advance 500 (LSB 100, RSB 100, extent 400).
+    // あ: outline -50..600, advance 500 (LSB -50, RSB -100, extent 600).
+    const project = createMockProject({
+      glyphs: {
+        65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 500, lsb: 100, contours: [rect(100, 100, 400, 600)] },
+        0x3042: { char: 'あ', name: 'a', unicode: 0x3042, advanceWidth: 500, lsb: -50, contours: [rect(-50, 100, 600, 600)] },
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0, balanceSideBearings: false });
+    const expected = {
+      advanceWidthMax: 1000, // synthetic fullwidth space
+      minLeftSideBearing: -50,
+      minRightSideBearing: -100,
+      xMaxExtent: 600,
+    };
+    expect(compiled.font.tables.hhea.advanceWidthMax).toBe(expected.advanceWidthMax);
+    expect(compiled.font.tables.hhea.minLeftSideBearing).toBe(expected.minLeftSideBearing);
+    expect(compiled.font.tables.hhea.minRightSideBearing).toBe(expected.minRightSideBearing);
+    expect(compiled.font.tables.hhea.xMaxExtent).toBe(expected.xMaxExtent);
+    const reparsed: any = opentype.parse(compiled.buffer);
+    expect(reparsed.tables.hhea.advanceWidthMax).toBe(expected.advanceWidthMax);
+    expect(reparsed.tables.hhea.minLeftSideBearing).toBe(expected.minLeftSideBearing);
+    expect(reparsed.tables.hhea.minRightSideBearing).toBe(expected.minRightSideBearing);
+    expect(reparsed.tables.hhea.xMaxExtent).toBe(expected.xMaxExtent);
+    // The hmtx side bearings are no longer all zero either: a parsed
+    // glyph carries the hmtx left side bearing.
+    const aIndex = reparsed.charToGlyphIndex('A');
+    expect(reparsed.glyphs.get(aIndex).leftSideBearing).toBe(100);
+  });
+});
+
+describe('compileFont OS/2 unicode and code page ranges (L36)', () => {
+  const rect: PathContour = {
+    id: 'c1',
+    closed: true,
+    nodes: [
+      { id: 'n1', x: 100, y: 100, type: 'corner' },
+      { id: 'n2', x: 500, y: 100, type: 'corner' },
+      { id: 'n3', x: 500, y: 600, type: 'corner' },
+      { id: 'n4', x: 100, y: 600, type: 'corner' },
+    ],
+  };
+  const glyph = (unicode: number, char: string) => ({
+    char,
+    name: `uni${unicode.toString(16)}`,
+    unicode,
+    advanceWidth: 1000,
+    lsb: 50,
+    contours: [rect],
+  });
+
+  it('does not claim Japanese ranges or Shift-JIS for a Latin-only font', () => {
+    const compiled = compileFont(
+      createMockProject({ glyphs: { 65: glyph(65, 'A'), 66: glyph(66, 'B') } }),
+      { skipBlobUrl: true, scaleFactor: 1.0 }
+    );
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const os2 = reparsed.tables.os2;
+    expect(os2.ulUnicodeRange1 & 1).toBe(1); // Basic Latin (space exists)
+    expect(os2.ulUnicodeRange2 & 0x00060000).toBe(0); // no Hiragana / Katakana
+    expect(os2.ulUnicodeRange2 & 0x08000000).toBe(0); // no CJK Unified Ideographs
+    expect(os2.ulCodePageRange1 & (1 << 17)).toBe(0); // no Shift-JIS (932)
+    expect(os2.ulCodePageRange1 & 1).toBe(1); // 1252 Latin 1
+  });
+
+  it('sets General Punctuation, Cyrillic, Greek, Hiragana and Shift-JIS only when those glyphs exist', () => {
+    const compiled = compileFont(
+      createMockProject({
+        glyphs: {
+          0x2014: glyph(0x2014, '—'),
+          0x0416: glyph(0x0416, 'Ж'),
+          0x03b1: glyph(0x03b1, 'α'),
+          0x3042: glyph(0x3042, 'あ'),
+        },
+      }),
+      { skipBlobUrl: true, scaleFactor: 1.0 }
+    );
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const os2 = reparsed.tables.os2;
+    expect(os2.ulUnicodeRange1 & (1 << 31)).toBe(1 << 31); // bit 31: General Punctuation
+    expect(os2.ulUnicodeRange1 & (1 << 9)).toBe(1 << 9); // bit 9: Cyrillic
+    expect(os2.ulUnicodeRange1 & (1 << 7)).toBe(1 << 7); // bit 7: Greek and Coptic
+    expect(os2.ulUnicodeRange2 & 0x00020000).toBe(0x00020000); // bit 49: Hiragana
+    expect(os2.ulCodePageRange1 & (1 << 17)).toBe(1 << 17); // 932 Shift-JIS
+    expect(os2.ulCodePageRange1 & (1 << 2)).toBe(1 << 2); // 1251 Cyrillic
+    expect(os2.ulCodePageRange1 & (1 << 3)).toBe(1 << 3); // 1253 Greek
+  });
+});
+
+describe('compileFont kerning keys (L37)', () => {
+  const rect: PathContour = {
+    id: 'c1',
+    closed: true,
+    nodes: [
+      { id: 'n1', x: 100, y: 100, type: 'corner' },
+      { id: 'n2', x: 500, y: 100, type: 'corner' },
+      { id: 'n3', x: 500, y: 600, type: 'corner' },
+      { id: 'n4', x: 100, y: 600, type: 'corner' },
+    ],
+  };
+  const glyphs = {
+    65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect] },
+    86: { char: 'V', name: 'V', unicode: 86, advanceWidth: 1000, lsb: 50, contours: [rect] },
+    44: { char: ',', name: 'comma', unicode: 44, advanceWidth: 500, lsb: 50, contours: [rect] },
+  };
+
+  it('reads decimal code point keys instead of misreading them as characters', () => {
+    // "65,86" is decimal for A,V — not the characters '6','5' / '8','6'.
+    const compiled = compileFont(createMockProject({ glyphs, kerning: { '65,86': -80 } }), {
+      skipBlobUrl: true,
+      scaleFactor: 1.0,
+    });
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const leftIndex = reparsed.charToGlyphIndex('A');
+    const rightIndex = reparsed.charToGlyphIndex('V');
+    expect(reparsed.kerningPairs[`${leftIndex},${rightIndex}`]).toBe(-80);
+  });
+
+  it('deduplicates the same pair given as characters and as U+ code points', () => {
+    const compiled = compileFont(
+      createMockProject({ glyphs, kerning: { 'A,V': -80, 'U+0041,U+0056': -50 } }),
+      { skipBlobUrl: true, scaleFactor: 1.0 }
+    );
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const leftIndex = reparsed.charToGlyphIndex('A');
+    const rightIndex = reparsed.charToGlyphIndex('V');
+    // One entry: the last value wins, and the kern table holds one pair.
+    expect(reparsed.kerningPairs[`${leftIndex},${rightIndex}`]).toBe(-50);
+    expect(Object.keys(reparsed.kerningPairs).length).toBe(1);
+  });
+
+  it('ignores a key whose side is the comma character itself instead of applying it to the wrong pair', () => {
+    const compiled = compileFont(createMockProject({ glyphs, kerning: { ',,V': -80 } }), {
+      skipBlobUrl: true,
+      scaleFactor: 1.0,
+    });
+    const reparsed: any = opentype.parse(compiled.buffer);
+    expect(Object.keys(reparsed.kerningPairs).length).toBe(0);
+  });
+});
+
+describe('compileFont deterministic uniqueID (L38)', () => {
+  it('produces the same uniqueID for the same project and follows the project version', () => {
+    const project = createMockProject({
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [
+            {
+              id: 'c1',
+              closed: true,
+              nodes: [
+                { id: 'n1', x: 100, y: 100, type: 'corner' },
+                { id: 'n2', x: 500, y: 100, type: 'corner' },
+                { id: 'n3', x: 500, y: 600, type: 'corner' },
+                { id: 'n4', x: 100, y: 600, type: 'corner' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const first = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    const second = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    const firstId = (opentype.parse(first.buffer) as any).names.windows.uniqueID.en;
+    const secondId = (opentype.parse(second.buffer) as any).names.windows.uniqueID.en;
+    expect(firstId).toBe(secondId);
+    expect(firstId).toMatch(/^1\.0;/);
+    expect(firstId).not.toMatch(/\d{13}/); // no Date.now() timestamp
+    const bumped = compileFont(
+      createMockProject({
+        ...project,
+        metadata: { ...project.metadata, version: 'Version 2.000' },
+      }),
+      { skipBlobUrl: true, scaleFactor: 1.0 }
+    );
+    const bumpedId = (opentype.parse(bumped.buffer) as any).names.windows.uniqueID.en;
+    expect(bumpedId).toMatch(/^2\.000;/);
+    expect(bumpedId).not.toBe(firstId);
+  });
+});
+
+describe('compileFont GSUB ligatures with vertical pairs (L40)', () => {
+  const rect: PathContour = {
+    id: 'c1',
+    closed: true,
+    nodes: [
+      { id: 'n1', x: 100, y: 100, type: 'corner' },
+      { id: 'n2', x: 500, y: 100, type: 'corner' },
+      { id: 'n3', x: 500, y: 600, type: 'corner' },
+      { id: 'n4', x: 100, y: 600, type: 'corner' },
+    ],
+  };
+
+  it('keeps ligatures when vertical substitutions exist (alphabetical feature order)', () => {
+    const project = createMockProject({
+      glyphs: {
+        0x300c: { char: '「', name: 'kagi', unicode: 0x300c, advanceWidth: 1000, lsb: 0, contours: [rect] },
+        102: { char: 'f', name: 'f', unicode: 102, advanceWidth: 500, lsb: 0, contours: [rect] },
+        105: { char: 'i', name: 'i', unicode: 105, advanceWidth: 500, lsb: 0, contours: [rect] },
+        0xfb01: { char: 'ﬁ', name: 'fi', unicode: 0xfb01, advanceWidth: 800, lsb: 0, contours: [rect] },
+      },
+      openTypeFeatures: {
+        enabled: true,
+        ligatures: [{ type: 'liga', inputChars: ['f', 'i'], substituteUnicode: 0xfb01, enabled: true }],
+      } as any,
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0, balanceSideBearings: false });
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const tags = (reparsed.tables.gsub?.features || []).map((f: any) => f.tag);
+    expect(tags).toContain('liga');
+    expect(tags).toContain('vert');
+    expect(tags).toContain('vrt2');
+    const fIndex = reparsed.charToGlyphIndex('f');
+    const iIndex = reparsed.charToGlyphIndex('i');
+    const fiIndex = reparsed.charToGlyphIndex('ﬁ');
+    expect(reparsed.substitution.getLigatures('liga', 'DFLT')).toEqual([
+      { sub: [fIndex, iIndex], by: fiIndex },
+    ]);
+  });
+});

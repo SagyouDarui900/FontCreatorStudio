@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle, getMojikumiBoxAlignClass } from '../../utils/mojikumiVertical';
 import { groupTateChuYoko } from './BookSpreadView';
+import { MOJIKUMI_Q_TO_PX } from './mojikumiScale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface AkiryoCompareViewProps {
@@ -39,8 +40,8 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
   const [mobileTab, setMobileTab] = useState<'all' | 'beta' | 'tsume' | 'ake'>('all');
   const [pageIdx, setPageIdx] = useState(0);
 
-  const emPx = Math.max(13, Math.round(fontSizeQ * 1.35 * zoom));
-  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.35 * zoom));
+  const emPx = Math.max(13, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * MOJIKUMI_Q_TO_PX * zoom));
 
   // M14: one page shows lineCount lines of each style; M20: switching the
   // layout, work or text returns to the first page.
@@ -204,6 +205,8 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
                       paddingLeft: `${g.spacingBeforeEm * emPx}px`,
                       paddingRight: `${g.spacingAfterEm * emPx}px`,
                     }}
+                    // L18: same aki-amount tooltip as the vertical branch.
+                    title={`「${g.char}」 前アキ:${Math.round(g.spacingBeforeEm * 100)}% 後アキ:${Math.round(g.spacingAfterEm * 100)}%`}
                   >
                     <span
                       className={`inline-flex ${alignClass} relative text-center ${
@@ -339,6 +342,12 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* L16: legend for the pale-red overflown lines. */}
+      <div className="flex items-center gap-1.5 px-1 pb-1 text-[11px] font-mono text-stone-500 shrink-0">
+        <span className="inline-block w-2.5 h-2.5 rounded-xs bg-rose-500/30 border border-rose-500/40" aria-hidden="true" />
+        <span>薄赤の行は行長を超えたはみ出し行</span>
+      </div>
 
       {/* 3 Columns Grid */}
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar">

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { BURASAGARI_CHARS, FormattedLayoutResult } from '../../utils/mojikumiEngine';
 import { getVerticalGlyphStyle } from '../../utils/mojikumiVertical';
+import { MOJIKUMI_Q_TO_PX } from './mojikumiScale';
 
 interface ManuscriptViewProps {
   layout: FormattedLayoutResult;
@@ -11,7 +12,8 @@ interface ManuscriptViewProps {
   fontFamily: string;
   fontSizeQ: number;
   zoom: number;
-  charsPerLine: number;
+  // L19: charsPerLine was declared here but never used (the manuscript
+  // sheet is always 20x20); removed from the props.
   // M15: previously not passed, so the view was always vertical 20x20
   // with no line-feed effect. Horizontal mode and line feed are now
   // reflected; showGrid toggles the cell ruling like the other views.
@@ -41,6 +43,9 @@ function createEmptySheet(): ManuscriptCell[][] {
 interface ManuscriptUnit {
   text: string;
   tateChuYoko: boolean;
+  // L21: set from the engine glyph's isHanging, so a hanging punctuation
+  // mark is attached to the previous cell instead of taking a cell.
+  isHanging?: boolean;
 }
 
 // Group one layout line into placeable units. In vertical mode a run of
@@ -55,7 +60,11 @@ function lineUnits(
     if (isVertical && g.tateChuYoko && last && last.tateChuYoko) {
       last.text += g.char;
     } else {
-      units.push({ text: g.char, tateChuYoko: Boolean(isVertical && g.tateChuYoko) });
+      units.push({
+        text: g.char,
+        tateChuYoko: Boolean(isVertical && g.tateChuYoko),
+        isHanging: g.isHanging || undefined,
+      });
     }
   }
   return units;
@@ -82,6 +91,13 @@ function buildManuscriptSheets(
       let currentRow = Array.from({ length: COLS }, () => ({ char: '' } as ManuscriptCell));
       let col = 0;
       for (const unit of units) {
+        // L21: a glyph the engine marked as hanging does not take a cell;
+        // it hangs from the previous cell in the row instead.
+        if (unit.isHanging && unit.text.length === 1 && col > 0) {
+          const target = currentRow[col - 1];
+          target.hangingChar = `${target.hangingChar ?? ''}${unit.text}`;
+          continue;
+        }
         if (col >= COLS) {
           rows.push(currentRow);
           currentRow = Array.from({ length: COLS }, () => ({ char: '' } as ManuscriptCell));
@@ -120,14 +136,22 @@ function buildManuscriptSheets(
     let row = 0;
 
     for (const unit of units) {
+      // L21: a glyph the engine marked as hanging does not take a cell;
+      // it hangs from the previous cell in the column instead, even when
+      // the column is not yet full. Consecutive hanging marks append to
+      // the same cell (e.g. 。」).
+      if (unit.isHanging && unit.text.length === 1 && row > 0) {
+        const target = currentCol[Math.min(row - 1, ROWS - 1)];
+        target.hangingChar = `${target.hangingChar ?? ''}${unit.text}`;
+        continue;
+      }
       if (row >= ROWS) {
         // Hanging punctuation fits at the bottom margin of the 20th cell
         if (
           unit.text.length === 1 &&
-          BURASAGARI_CHARS.has(unit.text) &&
-          !currentCol[ROWS - 1].hangingChar
+          BURASAGARI_CHARS.has(unit.text)
         ) {
-          currentCol[ROWS - 1].hangingChar = unit.text;
+          currentCol[ROWS - 1].hangingChar = `${currentCol[ROWS - 1].hangingChar ?? ''}${unit.text}`;
           continue;
         }
         columns.push(currentCol);
@@ -179,11 +203,11 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
   const safeSheetIdx = Math.min(sheetIdx, Math.max(0, sheets.length - 1));
   const gridCells = sheets[safeSheetIdx];
 
-  // Visual sizing
-  const cellSizePx = Math.max(16, Math.min(30, Math.round(fontSizeQ * 1.45 * zoom)));
+  // Visual sizing (L15: shared Q-to-px factor).
+  const cellSizePx = Math.max(16, Math.min(30, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom)));
   // M15: line feed sets the pitch between lines (columns in vertical mode,
   // rows in horizontal mode); the gap is the pitch minus one cell.
-  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * 1.45 * zoom));
+  const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * MOJIKUMI_Q_TO_PX * zoom));
 
   // Classic manuscript ruled colors
   const paperBg = isLight ? 'bg-[#faf7ee]' : 'bg-[#152017]';
@@ -230,7 +254,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
     );
   };
 
-  const renderCell = (cell: ManuscriptCell, key: number | string, rowIdx?: number) => {
+  const renderCell = (cell: ManuscriptCell, key: number | string) => {
     const hangingVertStyle = cell.hangingChar
       ? getVerticalGlyphStyle(cell.hangingChar, isVertical)
       : undefined;
@@ -246,8 +270,9 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
       >
         {renderCellContent(cell)}
 
-        {/* Hanging punctuation rendered below 20th cell */}
-        {cell.hangingChar && rowIdx === ROWS - 1 && (
+        {/* Hanging punctuation rendered below the cell it hangs from
+            (L21: not only below the 20th cell) */}
+        {cell.hangingChar && (
           <span
             className="absolute -bottom-3 right-0 leading-none text-amber-600 dark:text-amber-400 font-bold pointer-events-none"
             style={{ fontSize: `${Math.max(10, cellSizePx * 0.55)}px` }}
@@ -271,7 +296,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
         const lineNum = startColNum + colIdx;
         return (
           <div key={colIdx} className="flex flex-col">
-            {col.map((cell, rowIdx) => renderCell(cell, rowIdx, rowIdx))}
+            {col.map((cell, rowIdx) => renderCell(cell, rowIdx))}
             {/* Column index indicator at bottom */}
             <div className="h-4 text-[9px] font-mono text-center text-stone-400 pt-0.5">
               {lineNum % 5 === 0 ? lineNum : ''}

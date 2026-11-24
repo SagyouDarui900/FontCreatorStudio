@@ -15,12 +15,13 @@ import {
   isAsymmetricOrPunctuationGlyph,
   resolveBaselineY,
 } from './constants';
-import { validateFontProject, stripInvalidPixelData } from './validation';
+import { validateFontProject, stripInvalidPixelData, parseKerningPairKey } from './validation';
 import { contoursToOpenTypePath } from './paths';
 import { deriveProjectPaltMetrics, deriveProjectVpalMetrics } from './metrics';
 import { injectKernTable, injectSfntTables, type KernPair } from './kernTable';
 import {
   buildGposTableBytes,
+  buildHheaTableBytes,
   buildVheaTableBytes,
   buildVmtxTableBytes,
   type GposKernPair,
@@ -75,6 +76,44 @@ function safeFromCodePoint(code: number): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * FNV-1a 32-bit hash, rendered as 8 lowercase hex digits. Used for the
+ * deterministic `uniqueID`: same project content always yields the same
+ * value, and no clock or random input is involved.
+ */
+function fnv1aHex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+/**
+ * Horizontal extent of an opentype.js path: the minimum and maximum x
+ * over all command points, including bezier control points (the same
+ * convention opentype.js `Glyph.getMetrics` uses, so the hmtx side
+ * bearing and the hhea values derived from it agree). Returns null for
+ * an empty path.
+ */
+function getOpenTypePathXBounds(path: opentype.Path): { xMin: number; xMax: number } | null {
+  let xMin = Number.POSITIVE_INFINITY;
+  let xMax = Number.NEGATIVE_INFINITY;
+  for (const cmd of path.commands || []) {
+    // PathCommand is a union (Z has no coordinates, M/L lack control
+    // points); read through an optional view instead.
+    const coords = cmd as { x?: number; x1?: number; x2?: number };
+    for (const x of [coords.x, coords.x1, coords.x2]) {
+      if (typeof x === 'number' && Number.isFinite(x)) {
+        if (x < xMin) xMin = x;
+        if (x > xMax) xMax = x;
+      }
+    }
+  }
+  return xMin === Number.POSITIVE_INFINITY ? null : { xMin, xMax };
 }
 
 /**
@@ -177,7 +216,6 @@ export function compileFont(
   let maxUnicode = 0;
   let totalAdvanceWidth = 0;
   let countedAdvanceGlyphs = 0;
-  let maxAdvanceWidth = 0;
 
   const rawAscender = project.metadata?.ascender;
   const baselineY = resolveBaselineY(rawAscender, upm);
@@ -367,7 +405,6 @@ export function compileFont(
     if (g.unicode > maxUnicode) maxUnicode = g.unicode;
     totalAdvanceWidth += advWidth;
     countedAdvanceGlyphs += 1;
-    if (advWidth > maxAdvanceWidth) maxAdvanceWidth = advWidth;
   }
 
   // Ensure ASCII Space (U+0020 / 32) exists with valid width
@@ -501,10 +538,44 @@ export function compileFont(
         maxUnicode = Math.max(maxUnicode, deriv.targetUnicode);
         totalAdvanceWidth += upm;
         countedAdvanceGlyphs += 1;
-        if (upm > maxAdvanceWidth) maxAdvanceWidth = upm;
       }
     }
   }
+
+  // Horizontal metrics from the actual outlines (OpenType spec: the
+  // minLeftSideBearing / minRightSideBearing / xMaxExtent values are
+  // computed using only glyphs that have contours).
+  // - advanceWidthMax: maximum advance width over all glyphs.
+  // - minLeftSideBearing: minimum hmtx left side bearing (outline xMin).
+  // - minRightSideBearing: Min(aw - lsb - (xMax - xMin)).
+  // - xMaxExtent: Max(lsb + (xMax - xMin)).
+  // Each glyph's `leftSideBearing` is set here as well: opentype.js
+  // leaves it undefined for constructed glyphs, which made its own
+  // hmtx / hhea computation produce NaN (written as 0) for every
+  // side bearing. Setting it also fixes the hmtx side bearings.
+  let hheaAdvanceWidthMax = 0;
+  let hheaMinLeftSideBearing = Number.POSITIVE_INFINITY;
+  let hheaMinRightSideBearing = Number.POSITIVE_INFINITY;
+  let hheaXMaxExtent = 0;
+  for (const glyph of glyphsList) {
+    const adv = glyph.advanceWidth;
+    if (typeof adv === 'number' && Number.isFinite(adv) && adv > hheaAdvanceWidthMax) {
+      hheaAdvanceWidthMax = adv;
+    }
+    const bounds = glyph.path ? getOpenTypePathXBounds(glyph.path) : null;
+    (glyph as unknown as { leftSideBearing: number }).leftSideBearing = bounds ? bounds.xMin : 0;
+    if (bounds && typeof adv === 'number' && Number.isFinite(adv)) {
+      const lsb = bounds.xMin;
+      const extent = bounds.xMax - bounds.xMin;
+      if (lsb < hheaMinLeftSideBearing) hheaMinLeftSideBearing = lsb;
+      const rsb = adv - lsb - extent;
+      if (rsb < hheaMinRightSideBearing) hheaMinRightSideBearing = rsb;
+      const xExtent = lsb + extent;
+      if (xExtent > hheaXMaxExtent) hheaXMaxExtent = xExtent;
+    }
+  }
+  if (hheaMinLeftSideBearing === Number.POSITIVE_INFINITY) hheaMinLeftSideBearing = 0;
+  if (hheaMinRightSideBearing === Number.POSITIVE_INFINITY) hheaMinRightSideBearing = 0;
 
   // Generate safe ASCII PostScript name (no spaces, pure ASCII)
   const rawFamily = project.metadata.familyName || 'CustomFont';
@@ -604,42 +675,195 @@ export function compileFont(
   font.tables.os2.sFamilyClass = 0;
   font.tables.os2.panose = [2, 0, 5, 3, 0, 0, 0, 0, 0, 0];
 
+  // OpenType OS/2 ulUnicodeRange bit assignments (OpenType spec 1.9.1):
+  // bit -> Unicode ranges that set it. Each bit is set only when a
+  // glyph in one of its ranges is actually present; nothing is forced
+  // on. Bit numbers confirmed against the spec: Hiragana 49, Katakana
+  // 50, CJK Unified Ideographs (incl. Ext A / Ext B) 59, Halfwidth and
+  // Fullwidth Forms 68.
+  const UNICODE_RANGE_BITS: { bit: number; ranges: [number, number][] }[] = [
+    { bit: 0, ranges: [[0x0000, 0x007f]] }, // Basic Latin
+    { bit: 1, ranges: [[0x0080, 0x00ff]] }, // Latin-1 Supplement
+    { bit: 2, ranges: [[0x0100, 0x017f]] }, // Latin Extended-A
+    { bit: 3, ranges: [[0x0180, 0x024f]] }, // Latin Extended-B
+    { bit: 4, ranges: [[0x0250, 0x02af], [0x1d00, 0x1d7f], [0x1d80, 0x1dbf]] }, // IPA Extensions
+    { bit: 5, ranges: [[0x02b0, 0x02ff], [0xa700, 0xa71f]] }, // Spacing Modifier Letters
+    { bit: 6, ranges: [[0x0300, 0x036f], [0x1dc0, 0x1dff]] }, // Combining Diacritical Marks
+    { bit: 7, ranges: [[0x0370, 0x03ff]] }, // Greek and Coptic
+    { bit: 8, ranges: [[0x2c80, 0x2cff]] }, // Coptic
+    { bit: 9, ranges: [[0x0400, 0x04ff], [0x0500, 0x052f], [0x2de0, 0x2dff], [0xa640, 0xa69f]] }, // Cyrillic
+    { bit: 10, ranges: [[0x0530, 0x058f]] }, // Armenian
+    { bit: 11, ranges: [[0x0590, 0x05ff]] }, // Hebrew
+    { bit: 12, ranges: [[0xa500, 0xa63f]] }, // Vai
+    { bit: 13, ranges: [[0x0600, 0x06ff], [0x0750, 0x077f]] }, // Arabic
+    { bit: 14, ranges: [[0x07c0, 0x07ff]] }, // NKo
+    { bit: 15, ranges: [[0x0900, 0x097f]] }, // Devanagari
+    { bit: 16, ranges: [[0x0980, 0x09ff]] }, // Bangla
+    { bit: 17, ranges: [[0x0a00, 0x0a7f]] }, // Gurmukhi
+    { bit: 18, ranges: [[0x0a80, 0x0aff]] }, // Gujarati
+    { bit: 19, ranges: [[0x0b00, 0x0b7f]] }, // Odia
+    { bit: 20, ranges: [[0x0b80, 0x0bff]] }, // Tamil
+    { bit: 21, ranges: [[0x0c00, 0x0c7f]] }, // Telugu
+    { bit: 22, ranges: [[0x0c80, 0x0cff]] }, // Kannada
+    { bit: 23, ranges: [[0x0d00, 0x0d7f]] }, // Malayalam
+    { bit: 24, ranges: [[0x0e00, 0x0e7f]] }, // Thai
+    { bit: 25, ranges: [[0x0e80, 0x0eff]] }, // Lao
+    { bit: 26, ranges: [[0x10a0, 0x10ff], [0x2d00, 0x2d2f]] }, // Georgian
+    { bit: 27, ranges: [[0x1b00, 0x1b7f]] }, // Balinese
+    { bit: 28, ranges: [[0x1100, 0x11ff]] }, // Hangul Jamo
+    { bit: 29, ranges: [[0x1e00, 0x1eff], [0x2c60, 0x2c7f], [0xa720, 0xa7ff]] }, // Latin Extended Additional
+    { bit: 30, ranges: [[0x1f00, 0x1fff]] }, // Greek Extended
+    { bit: 31, ranges: [[0x2000, 0x206f], [0x2e00, 0x2e7f]] }, // General Punctuation
+    { bit: 32, ranges: [[0x2070, 0x209f]] }, // Superscripts and Subscripts
+    { bit: 33, ranges: [[0x20a0, 0x20cf]] }, // Currency Symbols
+    { bit: 34, ranges: [[0x20d0, 0x20ff]] }, // Combining Diacritical Marks for Symbols
+    { bit: 35, ranges: [[0x2100, 0x214f]] }, // Letterlike Symbols
+    { bit: 36, ranges: [[0x2150, 0x218f]] }, // Number Forms
+    { bit: 37, ranges: [[0x2190, 0x21ff], [0x27f0, 0x27ff], [0x2900, 0x297f], [0x2b00, 0x2bff]] }, // Arrows
+    { bit: 38, ranges: [[0x2200, 0x22ff], [0x2a00, 0x2aff], [0x27c0, 0x27ef], [0x2980, 0x29ff]] }, // Mathematical Operators
+    { bit: 39, ranges: [[0x2300, 0x23ff]] }, // Miscellaneous Technical
+    { bit: 40, ranges: [[0x2400, 0x243f]] }, // Control Pictures
+    { bit: 41, ranges: [[0x2440, 0x245f]] }, // Optical Character Recognition
+    { bit: 42, ranges: [[0x2460, 0x24ff]] }, // Enclosed Alphanumerics
+    { bit: 43, ranges: [[0x2500, 0x257f]] }, // Box Drawing
+    { bit: 44, ranges: [[0x2580, 0x259f]] }, // Block Elements
+    { bit: 45, ranges: [[0x25a0, 0x25ff]] }, // Geometric Shapes
+    { bit: 46, ranges: [[0x2600, 0x26ff]] }, // Miscellaneous Symbols
+    { bit: 47, ranges: [[0x2700, 0x27bf]] }, // Dingbats
+    { bit: 48, ranges: [[0x3000, 0x303f]] }, // CJK Symbols and Punctuation
+    { bit: 49, ranges: [[0x3040, 0x309f]] }, // Hiragana
+    { bit: 50, ranges: [[0x30a0, 0x30ff], [0x31f0, 0x31ff]] }, // Katakana
+    { bit: 51, ranges: [[0x3100, 0x312f], [0x31a0, 0x31bf]] }, // Bopomofo
+    { bit: 52, ranges: [[0x3130, 0x318f]] }, // Hangul Compatibility Jamo
+    { bit: 53, ranges: [[0xa840, 0xa87f]] }, // Phags-pa
+    { bit: 54, ranges: [[0x3200, 0x32ff]] }, // Enclosed CJK Letters and Months
+    { bit: 55, ranges: [[0x3300, 0x33ff]] }, // CJK Compatibility
+    { bit: 56, ranges: [[0xac00, 0xd7af]] }, // Hangul Syllables
+    { bit: 57, ranges: [[0x10000, 0x10ffff]] }, // Non-Plane 0
+    { bit: 58, ranges: [[0x10900, 0x1091f]] }, // Phoenician
+    { bit: 59, ranges: [[0x4e00, 0x9fff], [0x2e80, 0x2eff], [0x2f00, 0x2fdf], [0x2ff0, 0x2fff], [0x3400, 0x4dbf], [0x20000, 0x2a6df], [0x3190, 0x319f]] }, // CJK Unified Ideographs
+    { bit: 60, ranges: [[0xe000, 0xf8ff]] }, // Private Use Area (plane 0)
+    { bit: 61, ranges: [[0x31c0, 0x31ef], [0xf900, 0xfaff], [0x2f800, 0x2fa1f]] }, // CJK Strokes / Compatibility Ideographs
+    { bit: 62, ranges: [[0xfb00, 0xfb4f]] }, // Alphabetic Presentation Forms
+    { bit: 63, ranges: [[0xfb50, 0xfdff]] }, // Arabic Presentation Forms-A
+    { bit: 64, ranges: [[0xfe20, 0xfe2f]] }, // Combining Half Marks
+    { bit: 65, ranges: [[0xfe10, 0xfe1f], [0xfe30, 0xfe4f]] }, // Vertical Forms / CJK Compatibility Forms
+    { bit: 66, ranges: [[0xfe50, 0xfe6f]] }, // Small Form Variants
+    { bit: 67, ranges: [[0xfe70, 0xfeff]] }, // Arabic Presentation Forms-B
+    { bit: 68, ranges: [[0xff00, 0xffef]] }, // Halfwidth and Fullwidth Forms
+    { bit: 69, ranges: [[0xfff0, 0xffff]] }, // Specials
+    { bit: 70, ranges: [[0x0f00, 0x0fff]] }, // Tibetan
+    { bit: 71, ranges: [[0x0700, 0x074f]] }, // Syriac
+    { bit: 72, ranges: [[0x0780, 0x07bf]] }, // Thaana
+    { bit: 73, ranges: [[0x0d80, 0x0dff]] }, // Sinhala
+    { bit: 74, ranges: [[0x1000, 0x109f]] }, // Myanmar
+    { bit: 75, ranges: [[0x1200, 0x137f], [0x1380, 0x139f], [0x2d80, 0x2ddf]] }, // Ethiopic
+    { bit: 76, ranges: [[0x13a0, 0x13ff]] }, // Cherokee
+    { bit: 77, ranges: [[0x1400, 0x167f]] }, // Unified Canadian Aboriginal Syllabics
+    { bit: 78, ranges: [[0x1680, 0x169f]] }, // Ogham
+    { bit: 79, ranges: [[0x16a0, 0x16ff]] }, // Runic
+    { bit: 80, ranges: [[0x1780, 0x17ff], [0x19e0, 0x19ff]] }, // Khmer
+    { bit: 81, ranges: [[0x1800, 0x18af]] }, // Mongolian
+    { bit: 82, ranges: [[0x2800, 0x28ff]] }, // Braille Patterns
+    { bit: 83, ranges: [[0xa000, 0xa48f], [0xa490, 0xa4cf]] }, // Yi Syllables / Yi Radicals
+    { bit: 84, ranges: [[0x1700, 0x171f], [0x1720, 0x173f], [0x1740, 0x175f], [0x1760, 0x177f]] }, // Tagalog / Hanunoo / Buhid / Tagbanwa
+    { bit: 85, ranges: [[0x10300, 0x1032f]] }, // Old Italic
+    { bit: 86, ranges: [[0x10330, 0x1034f]] }, // Gothic
+    { bit: 87, ranges: [[0x10400, 0x1044f]] }, // Deseret
+    { bit: 88, ranges: [[0x1d000, 0x1d0ff], [0x1d100, 0x1d1ff], [0x1d200, 0x1d24f]] }, // Musical Symbols
+    { bit: 89, ranges: [[0x1d400, 0x1d7ff]] }, // Mathematical Alphanumeric Symbols
+    { bit: 90, ranges: [[0xf0000, 0xffffd], [0x100000, 0x10fffd]] }, // Private Use (planes 15-16)
+    { bit: 91, ranges: [[0xfe00, 0xfe0f], [0xe0100, 0xe01ef]] }, // Variation Selectors
+    { bit: 92, ranges: [[0xe0000, 0xe007f]] }, // Tags
+    { bit: 93, ranges: [[0x1900, 0x194f]] }, // Limbu
+    { bit: 94, ranges: [[0x1950, 0x197f]] }, // Tai Le
+    { bit: 95, ranges: [[0x1980, 0x19df]] }, // New Tai Lue
+    { bit: 96, ranges: [[0x1a00, 0x1a1f]] }, // Buginese
+    { bit: 97, ranges: [[0x2c00, 0x2c5f]] }, // Glagolitic
+    { bit: 98, ranges: [[0x2d30, 0x2d7f]] }, // Tifinagh
+    { bit: 99, ranges: [[0x4dc0, 0x4dff]] }, // Yijing Hexagram Symbols
+    { bit: 100, ranges: [[0xa800, 0xa82f]] }, // Syloti Nagri
+    { bit: 101, ranges: [[0x10000, 0x1007f], [0x10080, 0x100ff], [0x10100, 0x1013f]] }, // Linear B
+    { bit: 102, ranges: [[0x10140, 0x1018f]] }, // Ancient Greek Numbers
+    { bit: 103, ranges: [[0x10380, 0x1039f]] }, // Ugaritic
+    { bit: 104, ranges: [[0x103a0, 0x103df]] }, // Old Persian
+    { bit: 105, ranges: [[0x10450, 0x1047f]] }, // Shavian
+    { bit: 106, ranges: [[0x10480, 0x104af]] }, // Osmanya
+    { bit: 107, ranges: [[0x10800, 0x1083f]] }, // Cypriot Syllabary
+    { bit: 108, ranges: [[0x10a00, 0x10a5f]] }, // Kharoshthi
+    { bit: 109, ranges: [[0x1d300, 0x1d35f]] }, // Tai Xuan Jing Symbols
+    { bit: 110, ranges: [[0x12000, 0x123ff], [0x12400, 0x1247f]] }, // Cuneiform
+    { bit: 111, ranges: [[0x1d360, 0x1d37f]] }, // Counting Rod Numerals
+    { bit: 112, ranges: [[0x1b80, 0x1bbf]] }, // Sundanese
+    { bit: 113, ranges: [[0x1c00, 0x1c4f]] }, // Lepcha
+    { bit: 114, ranges: [[0x1c50, 0x1c7f]] }, // Ol Chiki
+    { bit: 115, ranges: [[0xa880, 0xa8df]] }, // Saurashtra
+    { bit: 116, ranges: [[0xa900, 0xa92f]] }, // Kayah Li
+    { bit: 117, ranges: [[0xa930, 0xa95f]] }, // Rejang
+    { bit: 118, ranges: [[0xaa00, 0xaa5f]] }, // Cham
+    { bit: 119, ranges: [[0x10190, 0x101cf]] }, // Ancient Symbols
+    { bit: 120, ranges: [[0x101d0, 0x101ff]] }, // Phaistos Disc
+    { bit: 121, ranges: [[0x102a0, 0x102df], [0x10280, 0x1029f], [0x10920, 0x1093f]] }, // Carian / Lycian / Lydian
+    { bit: 122, ranges: [[0x1f030, 0x1f09f], [0x1f000, 0x1f02f]] }, // Domino / Mahjong Tiles
+  ];
+
   // Calculate accurate OpenType OS/2 ulUnicodeRange flags from glyphs in project
-  let uRange1 = 0x00000001; // Basic Latin (0x20-0x7E)
-  let uRange2 = 0x00000000;
-  let uRange3 = 0x00000000;
-  let uRange4 = 0x00000000;
-
-  let hasHiragana = false;
-  let hasKatakana = false;
-  let hasKanji = false;
-
+  const unicodeRangeBits = new Set<number>();
   for (const glyph of glyphsList) {
     const u = typeof glyph.unicode === 'number' ? glyph.unicode : 0;
-    if (u >= 0x0080 && u <= 0x00ff) uRange1 |= 0x00000002; // Latin-1 Supplement
-    if (u >= 0x0100 && u <= 0x017f) uRange1 |= 0x00000004; // Latin Extended-A
-    if (u >= 0x0180 && u <= 0x024f) uRange1 |= 0x00000008; // Latin Extended-B
-    if (u >= 0x3000 && u <= 0x303f) { uRange2 |= 0x00010000; } // Bit 48: CJK Symbols & Punctuation
-    if (u >= 0x3040 && u <= 0x309f) { uRange2 |= 0x00020000; hasHiragana = true; } // Bit 49: Hiragana
-    if (u >= 0x30a0 && u <= 0x30ff) { uRange2 |= 0x00040000; hasKatakana = true; } // Bit 50: Katakana
-    if (u >= 0x31f0 && u <= 0x31ff) { uRange2 |= 0x01000000; } // Bit 56: Katakana Phonetic Extensions
-    if (u >= 0x3200 && u <= 0x32ff) { uRange2 |= 0x02000000; } // Bit 57: Enclosed CJK Letters and Months
-    if (u >= 0x3300 && u <= 0x33ff) { uRange2 |= 0x04000000; } // Bit 58: CJK Compatibility
-    if (u >= 0x3400 && u <= 0x4dbf) { uRange2 |= 0x08000000; hasKanji = true; } // Bit 59: CJK Unified Ideographs Ext A
-    if (u >= 0x4e00 && u <= 0x9fff) { uRange2 |= 0x08000000; hasKanji = true; } // Bit 59: CJK Unified Ideographs
-    if (u >= 0xf900 && u <= 0xfaff) { uRange2 |= 0x20000000; } // Bit 61: CJK Compatibility Ideographs
-    if (u >= 0x20000 && u <= 0x2a6df) { uRange2 |= 0x00002000; hasKanji = true; } // Bit 45: CJK Unified Ideographs Ext B
-    if (u >= 0xff00 && u <= 0xffef) { uRange3 |= 0x00000010; } // Bit 68: Halfwidth and Fullwidth Forms
+    if (u <= 0) continue; // .notdef (unicode 0) is not a real character
+    for (const { bit, ranges } of UNICODE_RANGE_BITS) {
+      if (unicodeRangeBits.has(bit)) continue;
+      for (const [start, end] of ranges) {
+        if (u >= start && u <= end) {
+          unicodeRangeBits.add(bit);
+          break;
+        }
+      }
+    }
   }
+  let uRange1 = 0;
+  let uRange2 = 0;
+  let uRange3 = 0;
+  let uRange4 = 0;
+  for (const bit of unicodeRangeBits) {
+    if (bit < 32) uRange1 |= 1 << bit;
+    else if (bit < 64) uRange2 |= 1 << (bit - 32);
+    else if (bit < 96) uRange3 |= 1 << (bit - 64);
+    else uRange4 |= 1 << (bit - 96);
+  }
+  // Bitwise OR keeps the sign bit as a negative number (e.g. bit 31);
+  // normalize to unsigned 32-bit values for the ULONG fields.
+  uRange1 >>>= 0;
+  uRange2 >>>= 0;
+  uRange3 >>>= 0;
+  uRange4 >>>= 0;
 
-  // Always enable Japanese script bitflags by default so OS treats font as Japanese
-  uRange2 |= 0x00030000; // Hiragana & CJK Symbols
-  if (hasKatakana || !hasHiragana) uRange2 |= 0x00040000; // Katakana
-  if (hasKanji) uRange2 |= 0x08000000; // Kanji
-
-  // OS/2 Table: Code Page Ranges (Crucial for Windows Japanese IME, DirectWrite & Font Selection)
-  font.tables.os2.ulCodePageRange1 = 0x00020001;
-  font.tables.os2.ulCodePageRange2 = 0x00000000;
+  // OS/2 Table: Code Page Ranges (OpenType spec). Each bit is set only
+  // when glyphs encodable in that code page are present. In particular
+  // Shift-JIS (932, bit 17) is set only for Japanese glyphs (kana,
+  // kanji, vertical forms, halfwidth/fullwidth forms), never
+  // unconditionally.
+  const hasUnicodeBit = (...bits: number[]): boolean => bits.some((b) => unicodeRangeBits.has(b));
+  let ulCodePageRange1 = 0;
+  if (hasUnicodeBit(0)) ulCodePageRange1 |= 1 << 0; // 1252 Latin 1
+  if (hasUnicodeBit(2, 3)) ulCodePageRange1 |= 1 << 1; // 1250 Latin 2
+  if (hasUnicodeBit(9)) ulCodePageRange1 |= 1 << 2; // 1251 Cyrillic
+  if (hasUnicodeBit(7)) ulCodePageRange1 |= 1 << 3; // 1253 Greek
+  if (hasUnicodeBit(11)) ulCodePageRange1 |= 1 << 5; // 1255 Hebrew
+  if (hasUnicodeBit(13)) ulCodePageRange1 |= 1 << 6; // 1256 Arabic
+  if (hasUnicodeBit(24)) ulCodePageRange1 |= 1 << 16; // 874 Thai
+  // Bit 48 (CJK Symbols and Punctuation) is deliberately not enough on
+  // its own: the synthetic fullwidth space (U+3000) always sets it, so
+  // it would claim Shift-JIS for every font. Kana, kanji, vertical
+  // forms and halfwidth/fullwidth forms are the Japanese signal.
+  if (hasUnicodeBit(49, 50, 59, 61, 65, 68)) ulCodePageRange1 |= 1 << 17; // 932 JIS/Japan
+  if (hasUnicodeBit(59, 61)) ulCodePageRange1 |= 1 << 18; // 936 Chinese Simplified
+  if (hasUnicodeBit(28, 52, 56)) ulCodePageRange1 |= 1 << 19; // 949 Korean Wansung
+  if (hasUnicodeBit(59, 61)) ulCodePageRange1 |= 1 << 20; // 950 Chinese Traditional
+  const ulCodePageRange2 = 0; // No OEM code pages are claimed.
+  font.tables.os2.ulCodePageRange1 = ulCodePageRange1;
+  font.tables.os2.ulCodePageRange2 = ulCodePageRange2;
 
   // OS/2 Table: Unicode Ranges
   font.tables.os2.ulUnicodeRange1 = uRange1;
@@ -726,13 +950,44 @@ export function compileFont(
   if (typeof project.metadata.isFixedPitch === 'boolean') {
     font.tables.post.isFixedPitch = project.metadata.isFixedPitch ? 1 : 0;
   }
-  font.tables.hhea.advanceWidthMax = Math.max(maxAdvanceWidth, 1000);
-  font.tables.hhea.minLeftSideBearing = 0;
-  font.tables.hhea.minRightSideBearing = 0;
-  font.tables.hhea.xMaxExtent = Math.max(maxAdvanceWidth, 1000);
+  // hhea metrics from the actual outlines (computed above). The same
+  // values are also injected as raw `hhea` bytes after serialization,
+  // because opentype.js recomputes hhea when writing and ignores this
+  // object (see the extraTables injection below).
+  font.tables.hhea.advanceWidthMax = hheaAdvanceWidthMax;
+  font.tables.hhea.minLeftSideBearing = hheaMinLeftSideBearing;
+  font.tables.hhea.minRightSideBearing = hheaMinRightSideBearing;
+  font.tables.hhea.xMaxExtent = hheaXMaxExtent;
   font.tables.hhea.caretSlopeRise = 1;
   font.tables.hhea.caretSlopeRun = 0;
   font.tables.hhea.caretOffset = 0;
+
+  // Deterministic uniqueID: a content hash (version, UPM, glyph count,
+  // advances, outlines, kerning) instead of Date.now(), so the same
+  // project content always produces the same value and repeated exports
+  // are byte-identical in the name table.
+  const versionMatch = /(\d+(?:\.\d+)?)/.exec(project.metadata.version || '');
+  const uniqueIdVersion = versionMatch ? versionMatch[1] : '1.000';
+  const contentHash = fnv1aHex(
+    [
+      project.metadata.version || 'Version 1.000',
+      postScriptName,
+      String(upm),
+      String(glyphsList.length),
+      ...glyphsList.map((glyph) => {
+        const commands = (glyph.path?.commands || [])
+          .map((cmd) => {
+            const c = cmd as { type: string; x?: number; y?: number; x1?: number; y1?: number; x2?: number; y2?: number };
+            return [c.type, c.x, c.y, c.x1, c.y1, c.x2, c.y2].join(',');
+          })
+          .join(';');
+        return `${glyph.unicode}:${glyph.advanceWidth}:${commands}`;
+      }),
+      ...Object.entries(configuredKerning)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([key, value]) => `${key}=${value}`),
+    ].join('|')
+  );
 
   // Name table: bilingual support for Windows, Mac, and Unicode
   if (!font.names) {
@@ -760,7 +1015,7 @@ export function compileFont(
     platNames.preferredFamily = { en: safeAsciiFamily, ...(rawFamily ? { ja: rawFamily } : {}) };
     platNames.preferredSubfamily = { en: safeAsciiStyle, ...(rawStyle ? { ja: rawStyle } : {}) };
     platNames.version = { en: project.metadata.version || 'Version 1.000' };
-    platNames.uniqueID = { en: `1.000;${postScriptName};${Date.now()}` };
+    platNames.uniqueID = { en: `${uniqueIdVersion};${postScriptName};${contentHash}` };
 
     if (project.metadata.copyright) {
       platNames.copyright = { en: project.metadata.copyright, ja: project.metadata.copyright };
@@ -803,66 +1058,46 @@ export function compileFont(
     }
 
     validKerningPairs = [];
+    // Dedupe by glyph-index pair: the same pair given once as characters
+    // ("A,V") and once as code points ("U+0041,U+0056") must produce a
+    // single entry. The last entry wins, matching font.kerningPairs.
+    const kerningPairByIndex = new Map<string, KernPair>();
 
     for (const [pairKey, val] of Object.entries(configuredKerning)) {
       if (typeof val !== 'number' || Math.abs(val) < 0.1) continue;
 
-      let leftChar = '';
-      let rightChar = '';
-
-      if (pairKey.includes(',')) {
-        const parts = pairKey.split(',');
-        leftChar = parts[0];
-        rightChar = parts[1];
-      } else if ([...pairKey].length === 2) {
-        const chars = [...pairKey];
-        leftChar = chars[0];
-        rightChar = chars[1];
+      // Shared with validateFontProject: "char1,char2", "U+XXXX,0xXXXX"
+      // hex, or "44,65" decimal code points. A key whose left or right
+      // side is "," itself (`,,X`, `A,,`) cannot be split unambiguously
+      // and is rejected here; validation warns about it before compile.
+      const { left, right } = parseKerningPairKey(pairKey);
+      if (left === null || right === null) {
+        console.warn(`カーニング「${pairKey}」の文字指定が無効なため、書き出し時に除外されます。`);
+        continue;
       }
-
-      if (!leftChar || !rightChar) continue;
+      const leftChar = safeFromCodePoint(left);
+      const rightChar = safeFromCodePoint(right);
+      if (leftChar === null || rightChar === null) continue;
 
       // Resolve glyph indices
-      let leftIdx = -1;
-      let rightIdx = -1;
-
-      // If hex codes like "U+0041" or "0x0041"
-      if (leftChar.startsWith('U+') || leftChar.startsWith('0x')) {
-        const code = parseInt(leftChar.replace(/^U\+|^0x/, ''), 16);
-        const leftCharFromCode = safeFromCodePoint(code);
-        leftIdx =
-          leftCharFromCode !== null && (font as any).hasChar?.(leftCharFromCode)
-            ? (font as any).charToGlyphIndex(leftCharFromCode)
-            : -1;
-      } else {
-        leftIdx = (font as any).hasChar?.(leftChar)
-          ? (font as any).charToGlyphIndex(leftChar)
-          : -1;
-      }
-
-      if (rightChar.startsWith('U+') || rightChar.startsWith('0x')) {
-        const code = parseInt(rightChar.replace(/^U\+|^0x/, ''), 16);
-        const rightCharFromCode = safeFromCodePoint(code);
-        rightIdx =
-          rightCharFromCode !== null && (font as any).hasChar?.(rightCharFromCode)
-            ? (font as any).charToGlyphIndex(rightCharFromCode)
-            : -1;
-      } else {
-        rightIdx = (font as any).hasChar?.(rightChar)
-          ? (font as any).charToGlyphIndex(rightChar)
-          : -1;
-      }
+      const leftIdx =
+        (font as any).hasChar?.(leftChar) ? (font as any).charToGlyphIndex(leftChar) : -1;
+      const rightIdx =
+        (font as any).hasChar?.(rightChar) ? (font as any).charToGlyphIndex(rightChar) : -1;
 
       if (leftIdx > 0 && rightIdx > 0) {
         // Register in opentype.js font.kerningPairs map for in-browser rendering / metrics
         font.kerningPairs[`${leftIdx},${rightIdx}`] = Math.round(val);
-        validKerningPairs.push({
+        kerningPairByIndex.set(`${leftIdx},${rightIdx}`, {
           leftIndex: leftIdx,
           rightIndex: rightIdx,
           value: Math.round(val),
         });
+      } else {
+        console.warn(`カーニング「${pairKey}」の対象グリフが存在しないため、書き出し時に除外されます。`);
       }
     }
+    validKerningPairs = [...kerningPairByIndex.values()];
 
     // The binary kern table is injected into the serialized font below
     // (injectKernTable): opentype.js 2.0.0 only parses kern tables and
@@ -952,6 +1187,58 @@ export function compileFont(
         }
       }
 
+      // Registration failures are collected and thrown after all
+      // features are registered, so one bad entry fails the compile
+      // instead of silently dropping a feature. Duplicates do not
+      // reach this list: opentype.js overwrites a duplicate Single
+      // substitution and ignores a duplicate ligature without throwing.
+      const gsubFailures: string[] = [];
+      const recordGsubFailure = (what: string, script: string, err: unknown): void => {
+        gsubFailures.push(
+          `${what} (${script}): ${err instanceof Error ? err.message : '不明なエラー'}`
+        );
+      };
+
+      // Ligatures are registered before the vertical singles: opentype.js
+      // requires features to be created in alphabetical order
+      // (getFeatureTable asserts `feature >= last created feature`), and
+      // 'liga' / 'dlig' / 'rlig' sort before 'vert' / 'vrt2'. Registering
+      // ligatures after vert made every ligature throw and be swallowed
+      // by the catch below whenever any vertical pair existed, so the
+      // font was exported with no ligatures and no error. Within the
+      // ligatures, entries are sorted by feature tag for the same reason;
+      // types sorting at or after 'vert' go after the vertical singles.
+      const enabledLigatures = openTypeFeaturesEnabled
+        ? [...(featureConfig?.ligatures || [])]
+            .filter((ligature) => ligature.enabled && ligature.inputChars.length >= 2)
+            .sort((a, b) => (a.type < b.type ? -1 : a.type > b.type ? 1 : 0))
+        : [];
+      const registerLigature = (
+        ligature: NonNullable<typeof featureConfig>['ligatures'][number]
+      ): void => {
+        const sourceIndices = ligature.inputChars
+          .map((char) => char.codePointAt(0))
+          .map((unicode) => (unicode === undefined ? undefined : unicodeToGlyphIndex.get(unicode)));
+        const targetIndex = unicodeToGlyphIndex.get(ligature.substituteUnicode);
+        if (sourceIndices.some((index) => index === undefined) || targetIndex === undefined) return;
+        for (const script of scripts) {
+          try {
+            substitutionApi.add?.(
+              ligature.type,
+              { sub: sourceIndices as number[], by: targetIndex },
+              script
+            );
+          } catch (err) {
+            recordGsubFailure(`合字 ${ligature.type} (${ligature.inputChars.join('')})`, script, err);
+          }
+        }
+      };
+      if (typeof substitutionApi.add === 'function') {
+        for (const ligature of enabledLigatures) {
+          if (ligature.type < 'vert') registerLigature(ligature);
+        }
+      }
+
       // Feature tags MUST be registered in alphabetical order in opentype.js ('vert' before 'vrt2')
       if (typeof substitutionApi.addSingle === 'function' && vertPairsToRegister.length > 0) {
         for (const feature of ['vert', 'vrt2'] as const) {
@@ -963,35 +1250,26 @@ export function compileFont(
               registeredVertKeys.add(dedupeKey);
               try {
                 substitutionApi.addSingle(feature, { sub: entry.srcIndex, by: entry.vertIndex }, script);
-              } catch {
-                // Ignore any duplicate or subtable collision
+              } catch (err) {
+                recordGsubFailure(
+                  `縦書き置換 ${feature} (${entry.srcIndex}→${entry.vertIndex})`,
+                  script,
+                  err
+                );
               }
             }
           }
         }
       }
 
-      // Apply user-configured ligatures to the exported GSUB table
-      if (openTypeFeaturesEnabled && typeof substitutionApi.add === 'function') {
-        for (const ligature of featureConfig?.ligatures || []) {
-          if (!ligature.enabled || ligature.inputChars.length < 2) continue;
-          const sourceIndices = ligature.inputChars
-            .map((char) => char.codePointAt(0))
-            .map((unicode) => (unicode === undefined ? undefined : unicodeToGlyphIndex.get(unicode)));
-          const targetIndex = unicodeToGlyphIndex.get(ligature.substituteUnicode);
-          if (sourceIndices.some((index) => index === undefined) || targetIndex === undefined) continue;
-          for (const script of scripts) {
-            try {
-              substitutionApi.add(
-                ligature.type,
-                { sub: sourceIndices as number[], by: targetIndex },
-                script
-              );
-            } catch {
-              // Ignore subtable collision for unsupported/duplicate ligature feature entries
-            }
-          }
+      if (typeof substitutionApi.add === 'function') {
+        for (const ligature of enabledLigatures) {
+          if (ligature.type >= 'vert') registerLigature(ligature);
         }
+      }
+
+      if (gsubFailures.length > 0) {
+        throw new Error(`GSUB 登録に失敗しました: ${gsubFailures.join(' / ')}`);
       }
     } catch (gsubErr) {
       // A missing GSUB table must not be treated as success: vertical
@@ -1037,6 +1315,24 @@ export function compileFont(
   }
 
   const extraTables: { tag: string; data: Uint8Array }[] = [];
+  // Corrected `hhea` (real outline metrics, computed above): opentype.js
+  // recomputes hhea from glyph metrics when serializing and ignores
+  // `font.tables.hhea`, so the corrected table is injected here to
+  // reach the written font. It is always injected, so every compile
+  // goes through injectSfntTables (and the self-validation parse below).
+  extraTables.push({
+    tag: 'hhea',
+    data: buildHheaTableBytes({
+      ascender: asc,
+      descender: desc,
+      lineGap,
+      advanceWidthMax: hheaAdvanceWidthMax,
+      minLeftSideBearing: hheaMinLeftSideBearing,
+      minRightSideBearing: hheaMinRightSideBearing,
+      xMaxExtent: hheaXMaxExtent,
+      numberOfHMetrics: font.glyphs.length,
+    }),
+  });
   const gposEntries: GposSinglePosEntry[] = [];
   if (paltEnabled && paltItems.length > 0) {
     for (const p of paltItems) {

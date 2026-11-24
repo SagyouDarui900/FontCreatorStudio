@@ -271,7 +271,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
             <button
               type="button"
               onClick={() => state.setShowBodyGrid(!state.showBodyGrid)}
-              className={`hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-colors duration-150 cursor-pointer ${
+              className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs transition-colors duration-150 cursor-pointer ${
                 state.showBodyGrid
                   ? `${themeClasses.accentBadge} font-bold`
                   : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
@@ -281,7 +281,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
               <span>マス目</span>
             </button>
 
-            <div className="hidden lg:flex items-center space-x-1 text-xs">
+            {/* L17: zoom must stay usable at mobile widths too. The zoom
+                value is persisted, so hiding this control on small screens
+                left no way to shrink a zoom set on desktop. */}
+            <div className="flex items-center space-x-1 text-xs">
               <button
                 type="button"
                 onClick={() => state.setZoom((z) => Math.max(0.7, Number((z - 0.1).toFixed(1))))}
@@ -411,6 +414,14 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                 <span>
                   著者: <strong>{state.displayWork.author}</strong>
                 </span>
+                {/* L12: the collected texts are excerpts of the opening
+                    part, not the full work. Not shown for custom text. */}
+                {!state.isCustomText && (
+                  <>
+                    <span>·</span>
+                    <span>冒頭部分の抜粋</span>
+                  </>
+                )}
               </div>
               <div className="flex items-center space-x-3 text-[11px]">
                 <span>行数: {state.currentLayout.lineCount}行</span>
@@ -447,7 +458,6 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                   fontFamily={state.effectiveFontFamily}
                   fontSizeQ={state.fontSizeQ}
                   zoom={state.zoom}
-                  charsPerLine={state.charsPerLine}
                   isVertical={state.isVertical}
                   lineFeedH={state.lineFeedH}
                   showGrid={state.showBodyGrid}

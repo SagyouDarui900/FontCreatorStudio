@@ -57,12 +57,17 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
     handleDragStart,
     handleDragMove,
     handleDragEnd,
+    handleRightResizePointerDown,
+    handleRightResizePointerMove,
+    handleRightResizePointerUp,
     rightAdjusterWidth,
+    setRightAdjusterWidth,
     isMobileScreen,
     mobileTab,
     setMobileTab,
     showLivePreviewBox,
     setShowLivePreviewBox,
+    isSelectedGlyphDeleted,
     handleAutoCenterGlyph,
     handleJumpToMainEditor,
     handleApplyTransformToGlyph,
@@ -100,7 +105,9 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                     : 'bg-amber-600 text-white'
                 }`}
                 title={
-                  isPixelOnlyActiveGlyph
+                  isSelectedGlyphDeleted
+                    ? '削除されたグリフ'
+                    : isPixelOnlyActiveGlyph
                     ? 'ドット絵グリフ'
                     : activeGlyphContours.length > 0
                     ? '自作グリフ'
@@ -189,10 +196,23 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               <AlertCircle className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-xs">未作成グリフ（システム代替表示中）</h4>
+              <h4 className="font-bold text-xs">
+                {isSelectedGlyphDeleted ? '削除されたグリフ' : '未作成グリフ（システム代替表示中）'}
+              </h4>
               <p className="text-[11px] opacity-85 mt-1 leading-relaxed">
-                「{selectedCharInfo.char}」は現在のフォントにまだ輪郭データがありません。<br />
-                この文字を作字すると、プレビューに自作フォントが反映されます。
+                {isSelectedGlyphDeleted ? (
+                  <>
+                    「{selectedCharInfo.char}」はプロジェクトから削除されました。
+                    <br />
+                    この文字を作字し直すと、プレビューに自作フォントが反映されます。
+                  </>
+                ) : (
+                  <>
+                    「{selectedCharInfo.char}」は現在のフォントにまだ輪郭データがありません。
+                    <br />
+                    この文字を作字すると、プレビューに自作フォントが反映されます。
+                  </>
+                )}
               </p>
             </div>
             {onSelectGlyphForEdit && (
@@ -317,7 +337,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
               })()}
 
               <div className="mt-1 flex items-center justify-center gap-2 text-[10.5px] font-mono text-stone-600 dark:text-stone-300">
-                <span>オフセット: ({adjustDx}, {adjustDy})</span>
+                <span>オフセット: ({adjustDx}, {adjustDy}) U</span>
                 <span>・</span>
                 <span>倍率: {adjustScaleX}%×{adjustScaleY}%</span>
               </div>
@@ -362,7 +382,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="h-6 w-6 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950 transition-colors shrink-0 select-none cursor-pointer"
-                      title="-5px"
+                      title="-5 U"
                     >
                       -
                     </button>
@@ -382,7 +402,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="h-6 w-6 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950 transition-colors shrink-0 select-none cursor-pointer"
-                      title="+5px"
+                      title="+5 U"
                     >
                       +
                     </button>
@@ -396,7 +416,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                         isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#18231c] border-stone-700 text-emerald-100'
                       }`}
                     />
-                    <span className="text-[10px] text-stone-500 font-mono shrink-0">px</span>
+                    <span className="text-[10px] text-stone-500 font-mono shrink-0" title="フォント単位 (UPM単位)">U</span>
                   </div>
 
                   {/* Direct Input & Slider Y */}
@@ -408,7 +428,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="h-6 w-6 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950 transition-colors shrink-0 select-none cursor-pointer"
-                      title="-5px"
+                      title="-5 U"
                     >
                       -
                     </button>
@@ -428,7 +448,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                       onPointerDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       className="h-6 w-6 inline-flex items-center justify-center rounded border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950 transition-colors shrink-0 select-none cursor-pointer"
-                      title="+5px"
+                      title="+5 U"
                     >
                       +
                     </button>
@@ -442,7 +462,7 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                         isLight ? 'bg-white border-stone-300 text-stone-900' : 'bg-[#18231c] border-stone-700 text-emerald-100'
                       }`}
                     />
-                    <span className="text-[10px] text-stone-500 font-mono shrink-0">px</span>
+                    <span className="text-[10px] text-stone-500 font-mono shrink-0" title="フォント単位 (UPM単位)">U</span>
                   </div>
 
                   {/* Micro adjustment button rows for X and Y */}
@@ -772,6 +792,18 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
       }`}
     >
       {panelContent}
+      {/* Width resize handle for the floating panel (L9). Docked panels
+          already have one in TestPreviewModal; floating panels had none. */}
+      <div
+        onPointerDown={handleRightResizePointerDown}
+        onPointerMove={handleRightResizePointerMove}
+        onPointerUp={handleRightResizePointerUp}
+        onDoubleClick={() => setRightAdjusterWidth(300)}
+        className="absolute top-0 bottom-0 right-0 w-1.5 hover:w-2 bg-transparent hover:bg-emerald-500/40 active:bg-emerald-500 cursor-col-resize shrink-0 transition-[width,background-color] z-30 group flex items-center justify-center select-none rounded-r-2xl"
+        title="ドラッグで小窓の幅を調整 (ダブルクリックで初期幅300pxにリセット)"
+      >
+        <div className="w-0.5 h-8 bg-stone-300 dark:bg-stone-700 group-hover:bg-emerald-400 rounded-full" />
+      </div>
     </div>
   );
 };
