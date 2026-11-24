@@ -78,6 +78,10 @@ export function getCharacterListChars(
 export interface RadicalSection {
   id: string;
   char: string;
+  /** Variant form shown in section headers, e.g. '氵' for the 水部. */
+  displayChar: string;
+  /** Other variant forms of the radical, e.g. ['氵', '氺']. */
+  altChars?: string[];
   name: string;
   reading: string;
   strokes: number;
@@ -120,6 +124,8 @@ export function getRadicalSections(): RadicalSection[] {
     sections.push({
       id: `kangxi_${entry.number}`,
       char: entry.char,
+      displayChar: entry.displayChar,
+      altChars: entry.altChars,
       name: entry.name,
       reading: entry.reading,
       strokes: entry.strokes,
@@ -154,6 +160,116 @@ export function uniqueChars(chars: CharacterListItem[]): CharacterListItem[] {
     if (seen.has(item.code)) continue;
     seen.add(item.code);
     result.push(item);
+  }
+  return result;
+}
+
+/** Katakana (U+30A1–U+30F6) to hiragana, for kana-insensitive matching. */
+export function toHiragana(text: string): string {
+  return text.replace(/[ァ-ヶ]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0x60)
+  );
+}
+
+/**
+ * Normalize a search query the same way the creation grid does:
+ * trim and lowercase. An empty result means "no search".
+ */
+export function normalizeCharacterSearchQuery(query: string): string {
+  return query.trim().toLowerCase();
+}
+
+/**
+ * Does one list character match a normalized search query?
+ * Same rules as the creation grid filter: the character itself, the
+ * code point as hex (plain, U+..., 0x..., zero-padded to 4 digits), and
+ * the special words 全角 / 空白 / スペース. There is no per-kanji
+ * reading data, so a kanji cannot be found by its reading.
+ */
+export function matchesCharacterListItem(
+  item: CharacterListItem,
+  normalizedQuery: string
+): boolean {
+  if (!normalizedQuery) return true;
+  const query = normalizedQuery;
+  const hex = item.code.toString(16).toLowerCase();
+  const hexPadded = hex.padStart(4, '0');
+  return (
+    item.char.toLowerCase().includes(query) ||
+    hex.includes(query) ||
+    hexPadded.includes(query) ||
+    `u+${hex}`.includes(query) ||
+    `u+${hexPadded}`.includes(query) ||
+    `0x${hex}`.includes(query) ||
+    `0x${hexPadded}`.includes(query) ||
+    (query === '全角' &&
+      (item.code === 0x3000 || (item.code >= 0xff01 && item.code <= 0xff5e))) ||
+    (query === '空白' && (item.code === 0x3000 || item.code === 0x0020)) ||
+    (query === 'スペース' && (item.code === 0x3000 || item.code === 0x0020))
+  );
+}
+
+/**
+ * Filter a flat character list by a raw (unnormalized) query.
+ * An empty query returns the list unchanged.
+ */
+export function filterCharacterListChars(
+  chars: CharacterListItem[],
+  query: string
+): CharacterListItem[] {
+  const normalized = normalizeCharacterSearchQuery(query);
+  if (!normalized) return chars;
+  return chars.filter((item) => matchesCharacterListItem(item, normalized));
+}
+
+/**
+ * Does a radical section match a normalized query by the radical itself:
+ * the radical character, its variant form (displayChar / altChars), its
+ * name, or its reading. Name and reading are compared hiragana-normalized,
+ * so 'すい' finds the reading 'スイ' and 'さんずい' finds the name
+ * 'みず・さんずい・したみず (水部)'.
+ */
+export function matchesRadicalSection(
+  section: RadicalSection,
+  normalizedQuery: string
+): boolean {
+  if (!normalizedQuery) return true;
+  const query = toHiragana(normalizedQuery);
+  const haystacks = [
+    section.char,
+    section.displayChar,
+    ...(section.altChars ?? []),
+    section.name,
+    section.reading,
+  ];
+  return haystacks.some((text) =>
+    toHiragana(text.toLowerCase()).includes(query)
+  );
+}
+
+/**
+ * Filter radical sections by a raw query. A section whose radical itself
+ * matches keeps all its kanji; otherwise only the kanji matching the
+ * query are kept, and sections with no matching kanji are dropped.
+ */
+export function filterRadicalSections(
+  sections: RadicalSection[],
+  query: string
+): RadicalSection[] {
+  const normalized = normalizeCharacterSearchQuery(query);
+  if (!normalized) return sections;
+  const result: RadicalSection[] = [];
+  for (const section of sections) {
+    if (matchesRadicalSection(section, normalized)) {
+      result.push(section);
+      continue;
+    }
+    const chars = section.chars.filter((item) =>
+      matchesCharacterListItem(item, normalized)
+    );
+    if (chars.length > 0) {
+      result.push({ ...section, chars });
+    }
   }
   return result;
 }

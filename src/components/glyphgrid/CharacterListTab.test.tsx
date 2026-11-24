@@ -19,9 +19,14 @@ import {
 import {
   CHARACTER_LIST_GROUPS,
   countWritten,
+  filterCharacterListChars,
+  filterRadicalSections,
   getCharacterListChars,
   getRadicalSections,
   isGlyphWritten,
+  matchesCharacterListItem,
+  matchesRadicalSection,
+  toHiragana,
 } from './characterListData';
 import type { FontProject, GlyphData } from '../../types';
 
@@ -168,6 +173,57 @@ describe('characterListData', () => {
     const chars = getCharacterListChars('hiragana').slice(0, 3);
     const glyphs = { [chars[0].code]: glyph(chars[0].char, true) };
     expect(countWritten(chars, glyphs)).toBe(1);
+  });
+
+  it('filters flat characters by character and by code', () => {
+    const hiragana = getCharacterListChars('hiragana');
+    expect(filterCharacterListChars(hiragana, '')).toBe(hiragana);
+    expect(filterCharacterListChars(hiragana, '   ')).toBe(hiragana);
+    expect(filterCharacterListChars(hiragana, 'あ').map((c) => c.char)).toEqual(['あ']);
+    expect(filterCharacterListChars(hiragana, 'U+3042').map((c) => c.char)).toEqual(['あ']);
+    expect(filterCharacterListChars(hiragana, '0x3042').map((c) => c.char)).toEqual(['あ']);
+    expect(filterCharacterListChars(hiragana, '3042').map((c) => c.char)).toEqual(['あ']);
+    expect(filterCharacterListChars(hiragana, 'zzz')).toEqual([]);
+    // Case-insensitive: 'a' finds the uppercase 'A' in the alphabet group.
+    const alphabet = getCharacterListChars('alphabet');
+    expect(filterCharacterListChars(alphabet, 'a').map((c) => c.char)).toContain('A');
+    // Special words, same as the creation grid filter.
+    const symbols = getCharacterListChars('symbols');
+    expect(filterCharacterListChars(symbols, '全角').map((c) => c.code)).toContain(0x3000);
+    expect(filterCharacterListChars(symbols, '空白').map((c) => c.code)).toEqual([0x3000]);
+    expect(filterCharacterListChars(getCharacterListChars('ascii_symbols'), 'スペース').map((c) => c.code)).toEqual([0x0020]);
+    expect(matchesCharacterListItem({ char: 'あ', code: 0x3042 }, '3042')).toBe(true);
+  });
+
+  it('filters radical sections by radical name, reading, and variant form', () => {
+    const sections = getRadicalSections();
+    const sanzui = sections.find((s) => s.id === 'kangxi_85')!;
+    // 'さんずい' matches only the 水部, which keeps all its kanji.
+    const byName = filterRadicalSections(sections, 'さんずい');
+    expect(byName).toEqual([sanzui]);
+    expect(byName[0].chars.map((c) => c.char)).toContain('海');
+    // The variant form '氵' matches the same section.
+    expect(filterRadicalSections(sections, '氵').map((s) => s.id)).toEqual(['kangxi_85']);
+    // Hiragana queries match katakana readings: 'すい' finds the four
+    // sections whose name or reading contains it (冫・夊・水・隹).
+    expect(filterRadicalSections(sections, 'すい').map((s) => s.id)).toEqual([
+      'kangxi_15',
+      'kangxi_35',
+      'kangxi_85',
+      'kangxi_172',
+    ]);
+    expect(toHiragana('スイ')).toBe('すい');
+    expect(matchesRadicalSection(sanzui, 'さんずい')).toBe(true);
+    expect(matchesRadicalSection(sanzui, 'みず')).toBe(true);
+    // A kanji query keeps only that kanji, under its own section.
+    const ai = filterRadicalSections(sections, '愛');
+    expect(ai).toHaveLength(1);
+    expect(ai[0].id).toBe('kangxi_61');
+    expect(ai[0].chars).toEqual([{ char: '愛', code: 0x611b }]);
+    const aiByCode = filterRadicalSections(sections, '611b');
+    expect(aiByCode).toHaveLength(1);
+    expect(aiByCode[0].chars).toEqual([{ char: '愛', code: 0x611b }]);
+    expect(filterRadicalSections(sections, 'zzz')).toEqual([]);
   });
 });
 
@@ -463,6 +519,98 @@ describe('CharacterListTab', () => {
       clickButton(container, '全角英数字');
       expect(container.textContent).toContain('作成済み 0 / 62字');
       expect(container.querySelector('button[aria-label^="Ａ "]')).not.toBeNull();
+    } finally {
+      unmount();
+    }
+  });
+
+  it('filters the hiragana list by character and shows the match count', () => {
+    const project = createProject();
+    const { container, unmount } = renderTab(project);
+    try {
+      const input = container.querySelector(
+        'input[aria-label="文字を検索"]'
+      ) as HTMLInputElement;
+      expect(input).not.toBeNull();
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )!.set!;
+      act(() => {
+        setter.call(input, 'あ');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      // Only 'あ' remains, but progress still covers the whole group.
+      expect(container.querySelectorAll('button[aria-pressed]')).toHaveLength(1);
+      expect(container.querySelector('button[aria-label^="あ "]')).not.toBeNull();
+      expect(container.querySelector('button[aria-label^="い "]')).toBeNull();
+      expect(container.textContent).toContain('一致 1件');
+      expect(container.textContent).toContain('作成済み 0 / 86字');
+    } finally {
+      unmount();
+    }
+  });
+
+  it('filters by code and shows an empty state for no matches', () => {
+    const project = createProject();
+    const { container, unmount } = renderTab(project);
+    try {
+      const input = container.querySelector(
+        'input[aria-label="文字を検索"]'
+      ) as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )!.set!;
+      act(() => {
+        setter.call(input, 'U+3042');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(container.querySelectorAll('button[aria-pressed]')).toHaveLength(1);
+      expect(container.textContent).toContain('一致 1件');
+      act(() => {
+        setter.call(input, 'zzz');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(container.querySelectorAll('button[aria-pressed]')).toHaveLength(0);
+      expect(container.textContent).toContain('一致 0件');
+      expect(container.textContent).toContain('一致する文字がありません');
+      // The clear button restores the full list.
+      const clear = container.querySelector(
+        'button[aria-label="検索をクリア"]'
+      ) as HTMLButtonElement;
+      expect(clear).not.toBeNull();
+      act(() => {
+        clear.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(container.querySelectorAll('button[aria-pressed]')).toHaveLength(86);
+      expect(container.textContent).not.toContain('一致');
+    } finally {
+      unmount();
+    }
+  });
+
+  it('filters the radical group by radical name', () => {
+    const project = createProject();
+    const { container, unmount } = renderTab(project);
+    try {
+      clickButton(container, '漢字（部首別）');
+      const input = container.querySelector(
+        'input[aria-label="文字を検索"]'
+      ) as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value'
+      )!.set!;
+      act(() => {
+        setter.call(input, 'さんずい');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      const sanzui = getRadicalSections().find((s) => s.id === 'kangxi_85')!;
+      expect(container.textContent).toContain('みず・さんずい・したみず');
+      expect(container.textContent).not.toContain('にんべん');
+      expect(container.textContent).toContain(`一致 ${sanzui.chars.length}件`);
+      expect(container.textContent).toContain('作成済み 0 / 10050字');
     } finally {
       unmount();
     }

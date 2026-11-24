@@ -5,6 +5,8 @@ import type { FontProject, GlyphData } from '../../types';
 import {
   CHARACTER_LIST_GROUPS,
   countWritten,
+  filterCharacterListChars,
+  filterRadicalSections,
   getCharacterListChars,
   getRadicalSections,
   isGlyphWritten,
@@ -283,6 +285,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
 }) => {
   const themeClasses = getThemeClasses(theme);
   const [activeGroup, setActiveGroup] = useState<CharacterListGroupId>('hiragana');
+  const [searchQuery, setSearchQuery] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -300,6 +303,19 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
     () => (activeGroup === 'radical' ? getRadicalSections() : []),
     [activeGroup]
   );
+  const isSearching = searchQuery.trim() !== '';
+  // Filtering happens before the layout calculation. In the radical
+  // group a matching radical keeps all its kanji; otherwise only the
+  // matching kanji are kept (see filterRadicalSections).
+  const filteredFlatChars = useMemo(
+    () => filterCharacterListChars(flatChars, searchQuery),
+    [flatChars, searchQuery]
+  );
+  const filteredRadicalSections = useMemo(
+    () => filterRadicalSections(radicalSections, searchQuery),
+    [radicalSections, searchQuery]
+  );
+  // Progress always covers the whole group, not the search result.
   const progressChars = useMemo(() => {
     if (activeGroup === 'radical') {
       return uniqueChars(radicalSections.flatMap((section) => section.chars));
@@ -312,10 +328,16 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
   );
   const totalCount = progressChars.length;
   const progressPercent = totalCount > 0 ? Math.round((writtenCount / totalCount) * 100) : 0;
+  const matchCount = useMemo(() => {
+    if (activeGroup === 'radical') {
+      return filteredRadicalSections.reduce((sum, section) => sum + section.chars.length, 0);
+    }
+    return filteredFlatChars.length;
+  }, [activeGroup, filteredFlatChars, filteredRadicalSections]);
 
   const sections = useMemo<VirtualListSection[]>(() => {
     if (activeGroup === 'radical') {
-      return radicalSections.map((section) => ({
+      return filteredRadicalSections.map((section) => ({
         id: section.id,
         header: {
           char: section.char,
@@ -326,8 +348,8 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         chars: section.chars,
       }));
     }
-    return [{ id: activeGroup, header: null, chars: flatChars }];
-  }, [activeGroup, flatChars, radicalSections]);
+    return [{ id: activeGroup, header: null, chars: filteredFlatChars }];
+  }, [activeGroup, filteredFlatChars, filteredRadicalSections]);
 
   // Measure the list area. The spacer's clientWidth (minus the side
   // insets) is the exact width the grid rows get, so the computed row
@@ -352,11 +374,11 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
     return () => observer.disconnect();
   }, [virtualized]);
 
-  // Switching groups starts at the top of the new list.
+  // Switching groups or changing the search starts at the top of the list.
   useLayoutEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
     setScrollTop(0);
-  }, [activeGroup]);
+  }, [activeGroup, searchQuery]);
 
   const layout = useMemo(
     () => computeVirtualLayout(sections, containerSize.width),
@@ -407,6 +429,30 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         ))}
       </div>
 
+      {/* Search */}
+      <div className={`px-2 py-1.5 border-b shrink-0 ${themeClasses.border}`}>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="文字・コード・部首名で検索（例：あ・U+3042・さんずい）"
+            aria-label="文字を検索"
+            className={`w-full border rounded-md pl-2 pr-7 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+          />
+          {searchQuery !== '' && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="検索をクリア"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 ${themeClasses.textMuted} hover:opacity-80 text-xs p-0.5 cursor-pointer`}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Progress */}
       <div className={`px-3 py-1.5 border-b shrink-0 ${themeClasses.border}`}>
         <div className={`flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
@@ -415,6 +461,11 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
           </span>
           <span className="tabular-nums">{progressPercent}%</span>
         </div>
+        {isSearching && (
+          <div className={`mt-1 text-[11px] ${themeClasses.textMuted}`}>
+            一致 {matchCount}件
+          </div>
+        )}
         <div
           className={`mt-1 h-1 rounded-full overflow-hidden ${themeClasses.canvasOuterBg}`}
           role="progressbar"
@@ -436,7 +487,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
           className={`flex flex-wrap gap-0.5 px-2 py-1.5 border-b shrink-0 max-h-20 overflow-y-auto ${themeClasses.border}`}
           aria-label="部首の一覧"
         >
-          {radicalSections.map((section) => (
+          {filteredRadicalSections.map((section) => (
             <button
               key={section.id}
               type="button"
@@ -456,7 +507,13 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
         className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${themeClasses.canvasOuterBg}`}
       >
-        {virtualized ? (
+        {isSearching && matchCount === 0 ? (
+          <div
+            className={`flex items-center justify-center px-3 py-8 text-sm ${themeClasses.textMuted}`}
+          >
+            一致する文字がありません
+          </div>
+        ) : virtualized ? (
           <div
             ref={spacerRef}
             className="relative"
@@ -535,7 +592,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
               ))
             ) : (
               <CharacterCells
-                chars={flatChars}
+                chars={filteredFlatChars}
                 glyphs={glyphs}
                 unitsPerEm={unitsPerEm}
                 selectedUnicode={selectedUnicode}
