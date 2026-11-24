@@ -14,7 +14,7 @@ import {
   reverseContour,
 } from "../bounds";
 import { simplifyPointsRDP } from "./smoothing";
-import { createSharpAngularContour, createSharpRoundedContour } from "./sharpContours";
+import { createSharpAngularContour, createPolygonContour, createSharpRoundedContour } from "./sharpContours";
 
 export interface SubdividedStrokeOptions {
   /** Target distance between fine sub-segments in font units (default: 1.25) */
@@ -29,6 +29,14 @@ export interface SubdividedStrokeOptions {
   customPreset?: Partial<UserPenPreset>;
   /** Disable automatic straightening for curved preview or delicate calligraphic strokes */
   disableAutoStraight?: boolean;
+}
+
+/**
+ * Pixel grid step for pixel_dot: about 8 steps across the stroke width,
+ * so the stair-steps stay visible at any width.
+ */
+function pixelGridSize(strokeWidth: number): number {
+  return Math.max(2, Math.round(strokeWidth / 8));
 }
 
 /**
@@ -71,18 +79,46 @@ export function strokePointsToOutline(
   options?: SubdividedStrokeOptions
 ): PathContour {
   // カクカク角筆・ポリゴン筆は専用の幾何学的マイター角・直線セグメント生成ルーチンを使用
-  if (style === 'sharp' || style === 'polygon') {
-    return createSharpAngularContour(points, strokeWidth, pressureSensitivity, pressureCurve);
+  // 多角形ペンは角筆と別ルーチン（以前は同じ関数で輪郭が同一だった）。
+  // 3種とも筆圧とカスタム設定が反映される。
+  if (style === 'sharp') {
+    return createSharpAngularContour(points, strokeWidth, pressureSensitivity, pressureCurve, {
+      customPreset: options?.customPreset,
+    });
+  }
+  if (style === 'polygon') {
+    return createPolygonContour(points, strokeWidth, pressureSensitivity, pressureCurve, {
+      customPreset: options?.customPreset,
+    });
   }
 
   // カクカク角丸筆は幾何学直線骨格＋角丸フィレット・ラウンドキャップルーチンを使用
   if (style === 'sharp_round') {
-    return createSharpRoundedContour(points, strokeWidth, pressureSensitivity, pressureCurve);
+    return createSharpRoundedContour(points, strokeWidth, pressureSensitivity, pressureCurve, {
+      customPreset: options?.customPreset,
+    });
   }
 
   if (points.length < 2) {
     const p = points[0] || { x: 500, y: 500 };
     const r = Math.max(6, strokeWidth / 2);
+    if (style === 'pixel_dot') {
+      // Pixel dot: a square on the pixel grid, not a smooth circle.
+      const grid = pixelGridSize(strokeWidth);
+      const cx = Math.round(p.x / grid) * grid;
+      const cy = Math.round(p.y / grid) * grid;
+      const rGrid = Math.max(grid, Math.round(r / grid) * grid);
+      return {
+        id: generateId(),
+        closed: true,
+        nodes: [
+          { id: generateId(), x: cx - rGrid, y: cy - rGrid, type: 'corner' },
+          { id: generateId(), x: cx + rGrid, y: cy - rGrid, type: 'corner' },
+          { id: generateId(), x: cx + rGrid, y: cy + rGrid, type: 'corner' },
+          { id: generateId(), x: cx - rGrid, y: cy + rGrid, type: 'corner' },
+        ],
+      };
+    }
     // create a smooth circle with 4 bezier nodes
     const kappa = 0.5522847498;
     const ox = r * kappa;
@@ -636,7 +672,10 @@ export function strokePointsToOutline(
       const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.12 + 1.65 * Math.pow(pointPressure, 1.30));
       leftHalfWidth = rightHalfWidth = Math.max(1.5, (strokeWidth / 2) * presFactor);
     } else if (style === 'pixel_dot') {
-      leftHalfWidth = rightHalfWidth = Math.max(3.0, strokeWidth / 2);
+      // Pixel pen: width follows pressure; the bitmap look comes from
+      // grid quantization of the outline below, not from a constant width.
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.35 + 1.15 * pointPressure);
+      leftHalfWidth = rightHalfWidth = Math.max(3.0, (strokeWidth / 2) * presFactor);
     } else if (style === 'marker') {
       const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.55 + 0.70 * pointPressure);
       leftHalfWidth = rightHalfWidth = Math.max(3, (strokeWidth / 2) * presFactor);
@@ -658,8 +697,8 @@ export function strokePointsToOutline(
       const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.25 + 1.25 * Math.pow(pointPressure, 1.10));
       leftHalfWidth = rightHalfWidth = Math.max(1.8, (strokeWidth / 3.6) * presFactor);
     } else if (style === 'wobbly') {
-      const wobbleLeft = Math.sin(normDist * 28 + i * 0.75) * 0.12;
-      const wobbleRight = Math.cos(normDist * 32 - i * 0.65) * 0.11;
+      const wobbleLeft = Math.sin(normDist * 28 + i * 0.75) * 0.22;
+      const wobbleRight = Math.cos(normDist * 32 - i * 0.65) * 0.20;
       const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.50 + 0.80 * pointPressure);
       leftHalfWidth = Math.max(3, (strokeWidth / 2) * (presFactor + wobbleLeft));
       rightHalfWidth = Math.max(3, (strokeWidth / 2) * (presFactor + wobbleRight));
@@ -816,7 +855,14 @@ export function strokePointsToOutline(
   smoothedRightWidths.set(rawRightWidths);
 
   const defaultPasses = intensityNorm > 0.05 ? Math.max(2, Math.round(2 + 4 * intensityNorm)) : 2;
-  const customPasses = options?.customPreset ? 16 : 0;
+  // Extra width smoothing only when the preset adds high-frequency width
+  // variation (jitterSize / jitterOpacity). Previously any active preset
+  // forced 16 passes, so merely selecting a preset changed the stroke
+  // even with every field at its default, and it halved the wobbly
+  // wobble detail.
+  const hasWidthJitter =
+    Boolean(cp) && ((cp?.jitterSize ?? 0) > 0 || (cp?.jitterOpacity ?? 0) > 0);
+  const customPasses = hasWidthJitter ? 16 : 0;
   const widthPasses = Math.max(options?.widthSmoothingPasses ?? defaultPasses, customPasses);
   for (let pass = 0; pass < widthPasses; pass++) {
     for (let i = 1; i < n - 1; i++) {
@@ -1057,6 +1103,32 @@ export function strokePointsToOutline(
 
   const simplifiedLoop: Point[] = cleanLoop;
 
+  // pixel_dot: snap the outline to a pixel grid so the stroke reads as
+  // bitmap-like steps. The corner nodes forced below keep the steps from
+  // being smoothed back into curves by the bezier conversion.
+  if (style === 'pixel_dot') {
+    const grid = pixelGridSize(strokeWidth);
+    for (const p of simplifiedLoop) {
+      p.x = Math.round(p.x / grid) * grid;
+      p.y = Math.round(p.y / grid) * grid;
+    }
+    for (let i = simplifiedLoop.length - 1; i > 0; i--) {
+      if (
+        simplifiedLoop[i].x === simplifiedLoop[i - 1].x &&
+        simplifiedLoop[i].y === simplifiedLoop[i - 1].y
+      ) {
+        simplifiedLoop.splice(i, 1);
+      }
+    }
+    if (
+      simplifiedLoop.length > 1 &&
+      simplifiedLoop[0].x === simplifiedLoop[simplifiedLoop.length - 1].x &&
+      simplifiedLoop[0].y === simplifiedLoop[simplifiedLoop.length - 1].y
+    ) {
+      simplifiedLoop.pop();
+    }
+  }
+
   // axisSlant / edgeRoughness: applied to the closed outline loop.
   // axisSlant shears the loop around its centroid (positive angle leans
   // the top to the right, as in italic). edgeRoughness adds deterministic
@@ -1181,6 +1253,16 @@ export function strokePointsToOutline(
       x: Number((curr.x + tanX * hOutLen).toFixed(2)),
       y: Number((curr.y + tanY * hOutLen).toFixed(2)),
     };
+  }
+
+  // pixel_dot: straight stair-step edges. Corner nodes with no handles
+  // render as straight segments between grid points.
+  if (style === 'pixel_dot') {
+    for (const node of nodes) {
+      node.type = 'corner';
+      node.handleIn = null;
+      node.handleOut = null;
+    }
   }
 
   const resultContour: PathContour = {
