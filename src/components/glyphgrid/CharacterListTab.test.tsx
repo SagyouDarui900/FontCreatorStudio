@@ -122,17 +122,23 @@ describe('characterListData', () => {
     expect(getCharacterListChars('joyo')[0].char).toBe('亜');
   });
 
-  it('radical sections are non-empty and deduplicated within each section', () => {
+  it('radical sections cover every JIS level 1 / 2 kanji exactly once', () => {
     const sections = getRadicalSections();
+    expect(sections.length).toBeLessThanOrEqual(214);
     expect(sections.length).toBeGreaterThan(200);
+    const all = sections.flatMap((s) => s.chars);
+    expect(all).toHaveLength(6355);
+    const codes = all.map((c) => c.code);
+    expect(new Set(codes).size).toBe(codes.length);
     for (const section of sections) {
       expect(section.chars.length).toBeGreaterThan(0);
-      const codes = section.chars.map((c) => c.code);
-      expect(new Set(codes).size).toBe(codes.length);
     }
-    const ninben = sections.find((s) => s.id === 'rad_ninben');
+    const ninben = sections.find((s) => s.id === 'kangxi_9');
     expect(ninben).toBeDefined();
     expect(ninben!.chars.map((c) => c.char)).toContain('休');
+    const sanzui = sections.find((s) => s.id === 'kangxi_85');
+    expect(sanzui).toBeDefined();
+    expect(sanzui!.chars.map((c) => c.char)).toContain('海');
   });
 
   it('isGlyphWritten only counts glyphs with contours', () => {
@@ -199,8 +205,9 @@ describe('CharacterListTab', () => {
     try {
       clickButton(container, '漢字（部首別）');
       expect(container.textContent).toContain('にんべん');
+      expect(container.textContent).toContain('作成済み 0 / 6355字');
       const indexButton = Array.from(container.querySelectorAll('button')).find(
-        (b) => b.textContent?.trim() === '亻'
+        (b) => b.textContent?.trim() === '人'
       );
       expect(indexButton).toBeDefined();
       act(() => {
