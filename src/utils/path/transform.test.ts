@@ -74,6 +74,39 @@ describe('transformContoursForPlacement', () => {
     expect(bbox.maxY).toBeLessThanOrEqual(900);
     expect(bbox.maxY).toBe(860);
   });
+
+  it('scales the target box for 2048 UPM instead of placing at 1000 coordinates', () => {
+    // A 1600x1600 square in 2048 space (200..1800) with the 2048 baseline.
+    const square2048 = [rectContour(200, 200, 1800, 1800)];
+    const placed = transformContoursForPlacement(square2048, 'hen', undefined, {
+      baselineY: 1638,
+      unitsPerEm: 2048,
+    });
+    const bbox = getContoursBoundingBox(placed);
+    // hen box scaled by 2048/1000: x 80 -> 163.84, width 380 -> 778.24.
+    expect(bbox.minX).toBeCloseTo(163.84, 2);
+    expect(bbox.width).toBeCloseTo(778.24, 2);
+    expect(bbox.maxY).toBeLessThanOrEqual(1638);
+  });
+
+  it('ashi at 2048 UPM ends exactly at the scaled baseline', () => {
+    const square2048 = [rectContour(200, 200, 1800, 1800)];
+    const placed = transformContoursForPlacement(square2048, 'ashi', undefined, {
+      baselineY: 1638,
+      unitsPerEm: 2048,
+    });
+    const bbox = getContoursBoundingBox(placed);
+    expect(bbox.maxY).toBeCloseTo(1638, 2);
+  });
+
+  it('invalid unitsPerEm falls back to the 1000 UPM boxes', () => {
+    for (const unitsPerEm of [0, -1000, NaN, undefined]) {
+      const placed = transformContoursForPlacement(square, 'hen', undefined, { unitsPerEm });
+      const bbox = getContoursBoundingBox(placed);
+      expect(bbox.minX).toBe(80);
+      expect(bbox.width).toBe(380);
+    }
+  });
 });
 
 describe('getContoursBoundingBox', () => {

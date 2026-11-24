@@ -4,7 +4,7 @@ import { BundledFontsModal } from './BundledFontsModal';
 import { BatchRadicalModal } from './radicalStudio/BatchRadicalModal';
 import { KANJI_RADICALS } from '../data/kanjiRadicals';
 import { KANGXI_214_RADICALS, KangxiRadicalFullEntry } from '../data/kangxi214Radicals';
-import { PathContour, CustomPart, RadicalPlacement, GlyphData } from '../types';
+import { PathContour, CustomPart, RadicalPlacement, GlyphData, PartCategory } from '../types';
 import { generateId, transformContoursForPlacement } from '../utils/path';
 import {
   extractRadicalFromFont,
@@ -113,6 +113,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     return buildDefaultCustomParts();
   });
   const [newPartName, setNewPartName] = useState<string>('');
+  const [newPartCategory, setNewPartCategory] = useState<PartCategory>('other');
   const [createOnlyFrame, setCreateOnlyFrame] = useState<boolean>(false);
   const [showSaveInput, setShowSaveInput] = useState<boolean>(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   const [pendingDuplicateSave, setPendingDuplicateSave] = useState<{
     contours: PathContour[];
     name: string;
+    category?: PartCategory;
   } | null>(null);
 
   const isLight = isLightTheme(theme);
@@ -311,7 +313,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(clonedContours, placement, defaultCategory, { baselineY });
+    const positioned = transformContoursForPlacement(clonedContours, placement, defaultCategory, { baselineY, unitsPerEm });
     onInsertRadical(positioned);
     showNotice(partName ? `「${partName}」をキャンバスに挿入しました` : '部首をキャンバスに挿入しました');
   };
@@ -418,7 +420,11 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   }, []);
 
   // Save contours as custom part (applies the save once the name is decided)
-  const applySaveContoursAsPart = async (contoursToSave: PathContour[], name: string) => {
+  const applySaveContoursAsPart = async (
+    contoursToSave: PathContour[],
+    name: string,
+    category?: PartCategory
+  ) => {
     // 保存前に IndexedDB から最新の一覧を読み、読み込み前に表示していた
     // 古い一覧で保存済みデータを上書きしないようにする。
     const stored = await loadCustomParts();
@@ -429,13 +435,19 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     if (existingIndex >= 0) {
       updated = base.map((p, idx) =>
         idx === existingIndex
-          ? { ...p, contours: JSON.parse(JSON.stringify(contoursToSave || [])), updatedAt: Date.now() }
+          ? {
+              ...p,
+              contours: JSON.parse(JSON.stringify(contoursToSave || [])),
+              category: category ?? p.category ?? 'other',
+              updatedAt: Date.now(),
+            }
           : p
       );
     } else {
       const newPart: CustomPart = {
         id: generateId(),
         name,
+        category: category ?? 'other',
         contours: JSON.parse(JSON.stringify(contoursToSave || [])),
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -466,17 +478,17 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   const handleSaveContoursAsPart = (
     contoursToSave: PathContour[],
     defaultName: string,
-    options?: { overwriteExisting?: boolean }
+    options?: { overwriteExisting?: boolean; category?: PartCategory }
   ) => {
     const name = newPartName.trim() || defaultName;
     if (!name) return;
 
     const existingIndex = customParts.findIndex((p) => p.name === name);
     if (existingIndex >= 0 && !options?.overwriteExisting) {
-      setPendingDuplicateSave({ contours: contoursToSave, name });
+      setPendingDuplicateSave({ contours: contoursToSave, name, category: options?.category });
       return;
     }
-    applySaveContoursAsPart(contoursToSave, name);
+    applySaveContoursAsPart(contoursToSave, name, options?.category);
   };
 
   // Create clean name-only frame without contours
@@ -491,6 +503,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
     const newPart: CustomPart = {
       id: generateId(),
       name,
+      category: newPartCategory,
       contours: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -966,6 +979,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             onInsertWithPlacement={handleInsertWithPlacement}
             onSaveContoursAsPart={handleSaveContoursAsPart}
             baselineY={baselineY}
+            unitsPerEm={unitsPerEm}
           />
         )}
 
@@ -1020,6 +1034,8 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
             setCreateOnlyFrame={setCreateOnlyFrame}
             newPartName={newPartName}
             setNewPartName={setNewPartName}
+            newPartCategory={newPartCategory}
+            setNewPartCategory={setNewPartCategory}
             selectedChar={selectedChar}
             currentContours={currentContours}
             customParts={customParts}
@@ -1062,7 +1078,11 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  applySaveContoursAsPart(pendingDuplicateSave.contours, pendingDuplicateSave.name);
+                  applySaveContoursAsPart(
+                    pendingDuplicateSave.contours,
+                    pendingDuplicateSave.name,
+                    pendingDuplicateSave.category
+                  );
                   setPendingDuplicateSave(null);
                 }}
                 className="px-3 py-1.5 rounded text-[11px] bg-emerald-800 text-white font-bold hover:bg-emerald-900 cursor-pointer"
@@ -1076,7 +1096,11 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
                     pendingDuplicateSave.name,
                     customParts.map((p) => p.name)
                   );
-                  applySaveContoursAsPart(pendingDuplicateSave.contours, uniqueName);
+                  applySaveContoursAsPart(
+                    pendingDuplicateSave.contours,
+                    uniqueName,
+                    pendingDuplicateSave.category
+                  );
                   setPendingDuplicateSave(null);
                 }}
                 className={`px-3 py-1.5 rounded text-[11px] font-bold border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
@@ -1109,6 +1133,7 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
           }}
           theme={theme}
           baselineY={baselineY}
+          unitsPerEm={unitsPerEm}
         />
       )}
     </>

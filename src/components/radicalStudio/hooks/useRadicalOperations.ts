@@ -112,6 +112,7 @@ export function useRadicalOperations({
   // Baseline from the project ascender; placement and extraction never
   // extend contours below it.
   const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+  const unitsPerEm = project.metadata?.unitsPerEm;
 
   const svgFileInputRef = useRef<HTMLInputElement>(null);
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -291,7 +292,7 @@ export function useRadicalOperations({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY });
+    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY, unitsPerEm });
     if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, [targetChar]);
     } else {
@@ -328,7 +329,7 @@ export function useRadicalOperations({
       })),
     }));
 
-    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY });
+    const positioned = transformContoursForPlacement(cloned, insertPlacement, activePart.category, { baselineY, unitsPerEm });
 
     if (onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, allTargetChars);
@@ -399,7 +400,7 @@ export function useRadicalOperations({
       cloned,
       placement,
       radical.category === 'basic' ? 'other' : (radical.category as PartCategory),
-      { baselineY }
+      { baselineY, unitsPerEm }
     );
 
     if (onBatchInsertToGlyphs) {
@@ -525,7 +526,7 @@ export function useRadicalOperations({
         contours = fallbackRad?.contours || [];
       }
 
-      const positioned = transformContoursForPlacement(contours, placement, item.category, { baselineY });
+      const positioned = transformContoursForPlacement(contours, placement, item.category, { baselineY, unitsPerEm });
       if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
         onBatchInsertToGlyphs(positioned, [targetChar]);
       } else {
@@ -548,7 +549,7 @@ export function useRadicalOperations({
       return;
     }
     const cloned: PathContour[] = JSON.parse(JSON.stringify(activePart.contours));
-    const positioned = transformContoursForPlacement(cloned, placement, activePart.category, { baselineY });
+    const positioned = transformContoursForPlacement(cloned, placement, activePart.category, { baselineY, unitsPerEm });
     if (targetChar && targetChar !== selectedChar && onBatchInsertToGlyphs) {
       onBatchInsertToGlyphs(positioned, [targetChar]);
     } else {
@@ -845,7 +846,7 @@ export function useRadicalOperations({
 
   const handleFitToPlacement = (place: RadicalPlacement) => {
     if (!activePart) return;
-    const positioned = transformContoursForPlacement(activePart.contours, place, activePart.category, { baselineY });
+    const positioned = transformContoursForPlacement(activePart.contours, place, activePart.category, { baselineY, unitsPerEm });
     commitPartChange(positioned);
     notify(`配置を「${place}」基準に自動フィットしました`, 'info');
   };

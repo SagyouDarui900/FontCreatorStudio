@@ -33,6 +33,8 @@ interface FontExtractionTabProps {
   onSaveContoursAsPart: (contours: PathContour[], name: string) => void;
   /** Baseline Y in screen coordinates. Placed contours never extend below it. */
   baselineY?: number;
+  /** Units per em of the project. The placement preview uses it for its viewBox. */
+  unitsPerEm?: number;
 }
 
 export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
@@ -56,6 +58,7 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
   onInsertWithPlacement,
   onSaveContoursAsPart,
   baselineY,
+  unitsPerEm,
 }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 p-3 pb-28 sm:pb-8 space-y-3 overflow-y-auto">
@@ -241,13 +244,13 @@ export const FontExtractionTab: React.FC<FontExtractionTabProps> = ({
           {isExtracting ? (
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
           ) : extractedContours.length > 0 ? (
-            <svg viewBox="0 0 1000 1000" className="w-full h-full">
+            <svg viewBox={`0 0 ${unitsPerEm ?? 1000} ${unitsPerEm ?? 1000}`} className="w-full h-full">
               {groupContoursForRendering(
                 transformContoursForPlacement(
                   extractedContours,
                   placement,
                   extractRegion !== 'full' ? extractRegion : categoryFilter !== 'all' ? categoryFilter : 'other',
-                  { baselineY }
+                  { baselineY, unitsPerEm }
                 )
               ).map((group) => (
                 <path

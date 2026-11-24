@@ -20,6 +20,11 @@ import { SCREEN_BASELINE_Y } from "../font/constants";
 export interface PlacementTransformOptions {
   /** Baseline Y in screen coordinates. Placed contours never extend below it. Defaults to 800. */
   baselineY?: number;
+  /**
+   * Units per em of the project. The target boxes are defined for a 1000 UPM
+   * em and are scaled by unitsPerEm / 1000. Defaults to 1000.
+   */
+  unitsPerEm?: number;
 }
 
 /** Placement categories that map directly to a placement position. */
@@ -713,6 +718,10 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
  * The placed contours never extend below `options.baselineY` (default 800):
  * each placement target box is clamped so its bottom edge is at most the
  * baseline, and the contours are scaled to fit the clamped box.
+ *
+ * The target boxes are defined for a 1000 UPM em and are scaled by
+ * `options.unitsPerEm / 1000` (default 1000), so the same relative position
+ * and size hold for other units-per-em values.
  */
 export function transformContoursForPlacement(
   contours: PathContour[],
@@ -816,6 +825,20 @@ export function transformContoursForPlacement(
       targetH = 660;
       break;
   }
+
+  // Target boxes are defined for a 1000 UPM em. Scale them to the
+  // project's units per em so placement lands at the same relative
+  // position and size for other UPM values (e.g. 2048).
+  const upmScale =
+    options?.unitsPerEm !== undefined &&
+    Number.isFinite(options.unitsPerEm) &&
+    options.unitsPerEm > 0
+      ? options.unitsPerEm / 1000
+      : 1;
+  targetX *= upmScale;
+  targetY *= upmScale;
+  targetW *= upmScale;
+  targetH *= upmScale;
 
   // Clamp the target box so the placed contours never extend below the
   // baseline (for example ashi ends at 860 and nyo at 860 with the

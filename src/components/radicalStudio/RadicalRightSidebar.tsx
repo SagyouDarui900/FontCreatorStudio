@@ -106,11 +106,12 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
 }) => {
   // Baseline from the project ascender; placement previews never extend below it.
   const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+  const unitsPerEm = project.metadata?.unitsPerEm ?? 1000;
 
   const previewGroups = useMemo(() => {
     if (!activePart || !activePart.contours || activePart.contours.length === 0) return [];
     return groupContoursForRendering(
-      transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category, { baselineY })
+      transformContoursForPlacement(activePart.contours, insertPlacement, activePart.category, { baselineY, unitsPerEm })
     );
   }, [activePart?.contours, insertPlacement, activePart?.category, baselineY]);
 
@@ -569,7 +570,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300">
  漢字合成シミュレータ
  </span>
- <span className="text-[10.5px] text-stone-400 font-medium">1000×1000 仮想漢字枠</span>
+ <span className="text-[10.5px] text-stone-400 font-medium">{unitsPerEm}×{unitsPerEm} 仮想漢字枠</span>
  </div>
 
  {/* Large Composite Preview Frame */}
@@ -580,16 +581,16 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  : 'bg-[#0b120d] border-emerald-900/60 shadow-inner'
  }`}
  >
- <svg viewBox="0 0 1000 1000" className="w-full h-full">
+ <svg viewBox={`0 0 ${unitsPerEm} ${unitsPerEm}`} className="w-full h-full">
  {/* Nine-box grid guide in preview */}
- <line x1={333} y1={0} x2={333} y2={1000} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
- <line x1={666} y1={0} x2={666} y2={1000} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
- <line x1={0} y1={333} x2={1000} y2={333} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
- <line x1={0} y1={666} x2={1000} y2={666} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
+ <line x1={unitsPerEm / 3} y1={0} x2={unitsPerEm / 3} y2={unitsPerEm} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
+ <line x1={(2 * unitsPerEm) / 3} y1={0} x2={(2 * unitsPerEm) / 3} y2={unitsPerEm} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
+ <line x1={0} y1={unitsPerEm / 3} x2={unitsPerEm} y2={unitsPerEm / 3} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
+ <line x1={0} y1={(2 * unitsPerEm) / 3} x2={unitsPerEm} y2={(2 * unitsPerEm) / 3} stroke="#3b82f6" strokeWidth={1} strokeDasharray="4 4" opacity={0.3} />
 
  {/* Center Crosshair */}
- <line x1={500} y1={0} x2={500} y2={1000} stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.4} />
- <line x1={0} y1={500} x2={1000} y2={500} stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.4} />
+ <line x1={unitsPerEm / 2} y1={0} x2={unitsPerEm / 2} y2={unitsPerEm} stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.4} />
+ <line x1={0} y1={unitsPerEm / 2} x2={unitsPerEm} y2={unitsPerEm / 2} stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.4} />
 
  {/* Companion ghost radical to simulate actual character balance */}
  {activePart.category === 'hen' && (
@@ -600,7 +601,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  KANJI_RADICALS.find((r) => r.id === 'rad_kihen')?.contours || [],
  'tsukuri',
  undefined,
- { baselineY }
+ { baselineY, unitsPerEm }
  )
  )}
  fill={isLight ? '#475569' : '#94a3b8'}
@@ -615,7 +616,7 @@ export const RadicalRightSidebar: React.FC<RadicalRightSidebarProps> = React.mem
  KANJI_RADICALS.find((r) => r.id === 'rad_ninben')?.contours || [],
  'hen',
  undefined,
- { baselineY }
+ { baselineY, unitsPerEm }
  )
  )}
  fill={isLight ? '#475569' : '#94a3b8'}

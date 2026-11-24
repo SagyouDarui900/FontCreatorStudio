@@ -26,6 +26,28 @@ export interface BatchRadicalModalProps {
   theme: ThemeMode;
   /** Baseline Y in screen coordinates. Placed contours never extend below it. */
   baselineY?: number;
+  /** Units per em of the project. The placement preview uses it for its viewBox. */
+  unitsPerEm?: number;
+}
+
+/**
+ * Default batch selection: only kanji with no contours yet, up to `limit`.
+ * Selecting already-drawn kanji by default would append the radical a
+ * second time to kanji that already contain it.
+ */
+export function getDefaultBatchSelection(
+  defaultKanjiList: readonly string[],
+  allGlyphs: Record<number, GlyphData>,
+  limit = 30
+): string[] {
+  return defaultKanjiList
+    .filter((ch) => {
+      const code = ch.codePointAt(0);
+      if (!code) return false;
+      const glyph = allGlyphs[code];
+      return !glyph || !glyph.contours || glyph.contours.length === 0;
+    })
+    .slice(0, limit);
 }
 
 const EMPTY_KANJI_LIST: string[] = [];
@@ -40,6 +62,7 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
   onBatchInsert,
   theme,
   baselineY,
+  unitsPerEm,
 }) => {
   const themeClasses = getThemeClasses(theme);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -47,14 +70,14 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
 
   const [placement, setPlacement] = useState<RadicalPlacement>('hen');
   const [selectedChars, setSelectedChars] = useState<Set<string>>(() => {
-    return new Set(defaultKanjiList.slice(0, 30));
+    return new Set(getDefaultBatchSelection(defaultKanjiList, allGlyphs));
   });
   const [customInput, setCustomInput] = useState('');
 
   const defaultKanjiKey = defaultKanjiList.join('\u0000');
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedChars(new Set(defaultKanjiList.slice(0, 30)));
+      setSelectedChars(new Set(getDefaultBatchSelection(defaultKanjiList, allGlyphs)));
       setCustomInput('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,8 +85,8 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
 
   // Transformed contours preview
   const transformedContours = useMemo(() => {
-    return transformContoursForPlacement(sourceContours, placement, undefined, { baselineY });
-  }, [sourceContours, placement, baselineY]);
+    return transformContoursForPlacement(sourceContours, placement, undefined, { baselineY, unitsPerEm });
+  }, [sourceContours, placement, baselineY, unitsPerEm]);
 
   const previewSvgPath = useMemo(() => {
     return contoursToSvgPath(transformedContours);
@@ -167,8 +190,8 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
             <div
               className={`w-20 h-20 rounded-xl border flex items-center justify-center relative overflow-hidden ${themeClasses.cardBg} ${themeClasses.border}`}
             >
-              <svg viewBox="0 0 1000 1000" className="w-full h-full p-2">
-                <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="currentColor" strokeDasharray="40 40" strokeWidth="10" className="text-stone-300 dark:text-stone-700" />
+              <svg viewBox={`0 0 ${unitsPerEm ?? 1000} ${unitsPerEm ?? 1000}`} className="w-full h-full p-2">
+                <rect x="0" y="0" width={unitsPerEm ?? 1000} height={unitsPerEm ?? 1000} fill="none" stroke="currentColor" strokeDasharray="40 40" strokeWidth="10" className="text-stone-300 dark:text-stone-700" />
                 <path d={previewSvgPath} fill="currentColor" className="text-emerald-600 dark:text-emerald-400" />
               </svg>
             </div>

@@ -1,10 +1,25 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookmarkPlus, Plus, Trash2, Sparkles, Layers, Search, Undo2 } from 'lucide-react';
-import { CustomPart, PathContour } from '../../types';
+import { CustomPart, PartCategory, PathContour } from '../../types';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 import { RadicalsDensity } from './types';
 
 type CustomPartsSortKey = 'name' | 'updated' | 'created';
+
+/** 分類の選択肢。自動配置は偏・旁・冠・脚・垂・繞・構を使い、それ以外は偏になる。 */
+export const PART_CATEGORY_OPTIONS: { id: PartCategory; label: string }[] = [
+  { id: 'other', label: 'その他' },
+  { id: 'hen', label: '偏 (へん)' },
+  { id: 'tsukuri', label: '旁 (つくり)' },
+  { id: 'kanmuri', label: '冠 (かんむり)' },
+  { id: 'ashi', label: '脚 (あし)' },
+  { id: 'tare', label: '垂 (たれ)' },
+  { id: 'nyo', label: '繞 (にょう)' },
+  { id: 'kamae', label: '構 (かまえ)' },
+  { id: 'stroke', label: '筆画・点・払い' },
+  { id: 'geometric', label: '幾何学パーツ' },
+  { id: 'kana', label: '仮名共通部' },
+];
 
 const SORT_OPTIONS: { id: CustomPartsSortKey; label: string }[] = [
   { id: 'updated', label: '更新日時順' },
@@ -21,6 +36,8 @@ interface CustomPartsTabProps {
   setCreateOnlyFrame: (c: boolean) => void;
   newPartName: string;
   setNewPartName: (n: string) => void;
+  newPartCategory: PartCategory;
+  setNewPartCategory: (c: PartCategory) => void;
   selectedChar: string;
   currentContours: PathContour[];
   customParts: CustomPart[];
@@ -29,9 +46,9 @@ interface CustomPartsTabProps {
   handleSaveContoursAsPart: (
     contours: PathContour[],
     defaultName: string,
-    options?: { overwriteExisting?: boolean }
+    options?: { overwriteExisting?: boolean; category?: PartCategory }
   ) => void;
-  handleInsertWithPlacement: (contours: PathContour[], name?: string) => void;
+  handleInsertWithPlacement: (contours: PathContour[], name?: string, category?: string) => void;
   onBatchInsertCustomPart?: (part: CustomPart) => void;
   showNotice: (msg: string) => void;
 }
@@ -45,6 +62,8 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
   setCreateOnlyFrame,
   newPartName,
   setNewPartName,
+  newPartCategory,
+  setNewPartCategory,
   selectedChar,
   currentContours,
   customParts,
@@ -102,6 +121,12 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
     }
     return matched;
   }, [customParts, searchQuery, sortKey]);
+
+  const handlePartCategoryChange = (part: CustomPart, category: PartCategory) => {
+    setCustomParts((prev) =>
+      prev.map((p) => (p.id === part.id ? { ...p, category, updatedAt: Date.now() } : p))
+    );
+  };
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
@@ -231,6 +256,23 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
             }`}
             autoFocus
           />
+          <label className="flex items-center gap-1.5 text-[11px] font-bold">
+            <span className="shrink-0">分類:</span>
+            <select
+              value={newPartCategory}
+              onChange={(e) => setNewPartCategory(e.target.value as PartCategory)}
+              className={`flex-1 min-w-0 px-1.5 py-1 rounded border text-[11px] cursor-pointer ${
+                isLight ? 'bg-[#f7faf8] border-stone-300 text-stone-800' : 'bg-[#101813] border-[#25362b] text-emerald-100'
+              }`}
+              title="自動配置で使う分類。偏・旁・冠・脚・垂・繞・構以外は偏として挿入されます"
+            >
+              {PART_CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="flex justify-end gap-1.5 pt-0.5">
             <button
               type="button"
@@ -250,7 +292,11 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={() => handleSaveContoursAsPart(currentContours, `パーツ_${selectedChar || '無題'}`)}
+                onClick={() =>
+                  handleSaveContoursAsPart(currentContours, `パーツ_${selectedChar || '無題'}`, {
+                    category: newPartCategory,
+                  })
+                }
                 className="px-3 py-1 rounded text-[11px] bg-emerald-800 text-white font-bold hover:bg-emerald-900 cursor-pointer whitespace-nowrap shrink-0"
               >
                 保存
@@ -372,7 +418,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                 key={part.id}
                 onClick={() => {
                   if (hasContours) {
-                    handleInsertWithPlacement(part.contours, part.name);
+                    handleInsertWithPlacement(part.contours, part.name, part.category);
                   } else {
                     showNotice(`「${part.name}」には輪郭が未登録です。「割当」を押してください`);
                   }
@@ -444,6 +490,21 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                     <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 text-center w-full leading-[1.25] break-words line-clamp-2">
                       {part.name}
                     </span>
+                    <select
+                      value={part.category ?? 'other'}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => handlePartCategoryChange(part, e.target.value as PartCategory)}
+                      className={`mt-1 w-full px-1 py-0.5 rounded border text-[9px] cursor-pointer ${
+                        isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#18231c] border-[#25362b] text-stone-300'
+                      }`}
+                      title="分類を変更（自動配置で使う）"
+                    >
+                      {PART_CATEGORY_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 ) : (
                   /* Minimal Name Frame Badge & Actions */
@@ -451,6 +512,21 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
                     <span className="text-[10px] font-bold text-stone-800 dark:text-emerald-100 text-center w-full leading-[1.25] break-words line-clamp-2">
                       {part.name}
                     </span>
+                    <select
+                      value={part.category ?? 'other'}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => handlePartCategoryChange(part, e.target.value as PartCategory)}
+                      className={`w-full px-1 py-0.5 rounded border text-[9px] cursor-pointer ${
+                        isLight ? 'bg-white border-stone-200 text-stone-600' : 'bg-[#18231c] border-[#25362b] text-stone-300'
+                      }`}
+                      title="分類を変更（自動配置で使う）"
+                    >
+                      {PART_CATEGORY_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
 
                     <div className="flex items-center">
                       {currentContours.length > 0 ? (
