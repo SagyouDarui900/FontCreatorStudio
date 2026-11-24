@@ -279,4 +279,49 @@ describe('useNodeEditing (Round 3)', () => {
       cleanup();
     }
   });
+
+  it('avoids cumulative rounding drift across multi-frame node drags and ignores right-click pointerdown', async () => {
+    const { store, cleanup } = renderNodeEditing([rectContour()]);
+    try {
+      const contour = store.contours![0];
+      // Right-click must not start a drag session
+      act(() => {
+        store.current.startNodeOrHandleDrag(
+          fakePointerEvent({ button: 2, buttons: 2, clientX: 100, clientY: 100 }),
+          contour,
+          contour.nodes[0],
+          'node'
+        );
+      });
+      expect(store.current.nodeDragSessionRef.current).toBeNull();
+
+      act(() => {
+        store.current.startNodeOrHandleDrag(
+          fakePointerEvent({ button: 0, buttons: 1, clientX: 100, clientY: 100 }),
+          contour,
+          contour.nodes[0],
+          'node'
+        );
+      });
+      // Repeated small sub-pixel drags should always compute from initialNode (no cumulative drift)
+      for (let i = 1; i <= 5; i++) {
+        act(() => {
+          store.current.handleNodeDragMove(
+            fakePointerEvent({ clientX: 100 + i * 0.14, clientY: 100 + i * 0.14, buttons: 1, altKey: true }),
+            { x: 100 + i * 0.14, y: 100 + i * 0.14 }
+          );
+        });
+        await flushRaf();
+      }
+      // 5 * 0.14 = 0.7 -> 100.7 (not 100 + 5 * 0.1 = 100.5)
+      expect(store.contours![0].nodes[0].x).toBe(100.7);
+      expect(store.contours![0].nodes[0].y).toBe(100.7);
+
+      act(() => {
+        store.current.handleNodeDragEnd();
+      });
+    } finally {
+      cleanup();
+    }
+  });
 });

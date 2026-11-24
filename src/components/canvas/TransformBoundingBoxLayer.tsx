@@ -30,15 +30,6 @@ export interface TransformBoundingBoxLayerProps {
   selectedContoursSvgPath: string | null;
   rotateDisplayAngle: number | null;
   handleTransformPointerDown: (e: React.PointerEvent, handle: TransformHandle, ids?: string[]) => void;
-  handleRotateSelected: (deg: number) => void;
-  handleFlipHSelected: () => void;
-  handleFlipVSelected: () => void;
-  handleDuplicateSelected: () => void;
-  handleMergeSelectedContours: () => void;
-  handleDeleteSelected: () => void;
-  setSelectedContourIds: (ids: string[]) => void;
-  setSelectedNodeId: (id: string | null) => void;
-  setSelectedHandleType: (type: 'node' | 'handleIn' | 'handleOut' | null) => void;
   isGlyphLocked?: boolean;
 }
 
@@ -69,6 +60,10 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
 
   const hs = Math.max(8, 10 / zoom); // handle size in canvas coordinates
   const rotStemDist = 32 / zoom;
+  const onHandlePointerDown = (e: React.PointerEvent, handle: TransformHandle) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    handleTransformPointerDown(e, handle);
+  };
 
   return (
     <g className="transform-bounding-box select-none">
@@ -98,7 +93,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
         pointerEvents={isGlyphLocked ? 'none' : 'stroke'}
         onPointerDown={(e) => {
           if (isGlyphLocked) return;
-          handleTransformPointerDown(e, 'move');
+          onHandlePointerDown(e, 'move');
         }}
       />
 
@@ -107,7 +102,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
         className={isGlyphLocked ? 'cursor-default' : 'cursor-move group'}
         onPointerDown={(e) => {
           if (isGlyphLocked) return;
-          handleTransformPointerDown(e, 'move');
+          onHandlePointerDown(e, 'move');
         }}
       >
         <circle cx={cx} cy={cy} r={4 / zoom} fill={selectionColor} stroke="#ffffff" strokeWidth={1 / zoom} />
@@ -132,7 +127,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
           {/* Rotation Grip Handle (Top-Center) */}
           <g
             className="cursor-grab active:cursor-grabbing"
-            onPointerDown={(e) => handleTransformPointerDown(e, 'rotate')}
+            onPointerDown={(e) => onHandlePointerDown(e, 'rotate')}
           >
             {/* Larger invisible hit area for touch/mouse */}
             <circle
@@ -163,7 +158,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
 
       {/* 8 Resize Handles (Corner & Edge) */}
       {/* NW (Top-Left) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'nw')} className="cursor-nwse-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'nw')} className="cursor-nwse-resize">
         <rect x={bx - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx - hs / 2}
@@ -178,7 +173,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* N (Top-Center) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'n')} className="cursor-ns-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'n')} className="cursor-ns-resize">
         <rect x={bx + bw / 2 - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx + bw / 2 - hs / 2}
@@ -193,7 +188,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* NE (Top-Right) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'ne')} className="cursor-nesw-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'ne')} className="cursor-nesw-resize">
         <rect x={bx + bw - hs} y={by - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx + bw - hs / 2}
@@ -208,7 +203,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* E (Middle-Right) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'e')} className="cursor-ew-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'e')} className="cursor-ew-resize">
         <rect x={bx + bw - hs} y={by + bh / 2 - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx + bw - hs / 2}
@@ -223,7 +218,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* SE (Bottom-Right) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'se')} className="cursor-nwse-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'se')} className="cursor-nwse-resize">
         <rect x={bx + bw - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx + bw - hs / 2}
@@ -238,7 +233,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* S (Bottom-Center) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 's')} className="cursor-ns-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 's')} className="cursor-ns-resize">
         <rect x={bx + bw / 2 - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx + bw / 2 - hs / 2}
@@ -253,7 +248,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* SW (Bottom-Left) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'sw')} className="cursor-nesw-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'sw')} className="cursor-nesw-resize">
         <rect x={bx - hs} y={by + bh - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx - hs / 2}
@@ -268,7 +263,7 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
       </g>
 
       {/* W (Middle-Left) */}
-      <g onPointerDown={(e) => handleTransformPointerDown(e, 'w')} className="cursor-ew-resize">
+      <g onPointerDown={(e) => onHandlePointerDown(e, 'w')} className="cursor-ew-resize">
         <rect x={bx - hs} y={by + bh / 2 - hs} width={hs * 2} height={hs * 2} fill="transparent" />
         <rect
           x={bx - hs / 2}

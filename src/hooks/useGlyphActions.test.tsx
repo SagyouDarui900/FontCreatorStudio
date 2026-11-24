@@ -222,4 +222,30 @@ describe('glyph copy & paste (review H4, M16, M17, M18)', () => {
       h.unmount();
     }
   });
+
+  it('creates only a single undo history entry when pasting contours onto the active glyph', () => {
+    const target = makeGlyph(0x3046, 'う', { contours: [makeContour('cU', 300)] });
+    const h = mount(makeProject('proj-1', { [0x3046]: target }));
+    try {
+      act(() => {
+        h.ctx.handleSelectGlyph(0x3046);
+      });
+      act(() => {
+        h.ctx.handleCopySelectedContours(['cU']);
+      });
+      act(() => {
+        h.ctx.handlePasteGlyph(0x3046);
+      });
+      expect(h.ctx.project.glyphs[0x3046].contours.length).toBe(2);
+      expect(h.ctx.undoStack.length).toBe(1);
+
+      act(() => {
+        h.ctx.handleUndo();
+      });
+      expect(h.ctx.project.glyphs[0x3046].contours.length).toBe(1);
+      expect(h.ctx.undoStack.length).toBe(0);
+    } finally {
+      h.unmount();
+    }
+  });
 });

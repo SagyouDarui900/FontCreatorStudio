@@ -20,7 +20,24 @@ export interface NodeDragSession {
   startPos: Point;
   initialNode: BezierNode;
   initialContour: PathContour;
+  initialContoursById?: Record<string, PathContour>;
   hasCommittedHistory?: boolean;
+}
+
+const roundTenth = (v: number) => Math.round(v * 10) / 10;
+
+function buildInitialContoursMap(
+  sourceContours: PathContour[],
+  targetNodeIds: string[],
+  fallbackContour: PathContour
+): Record<string, PathContour> {
+  const map: Record<string, PathContour> = { [fallbackContour.id]: { ...fallbackContour } };
+  for (const c of sourceContours) {
+    if (c.nodes.some((n) => targetNodeIds.includes(n.id))) {
+      map[c.id] = { ...c };
+    }
+  }
+  return map;
 }
 
 export interface UseNodeEditingOptions {
@@ -230,6 +247,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       node: BezierNode,
       handleType: 'node' | 'handleIn' | 'handleOut'
     ) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.stopPropagation();
       try {
         const el = e.currentTarget as Element;
@@ -269,6 +287,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
       setSelectedHandleType(handleType);
       hasCommittedDragHistoryRef.current = false;
+      const liveContours = contoursRef.current || contours;
       nodeDragSessionRef.current = {
         contourId: contour.id,
         nodeId: node.id,
@@ -277,16 +296,18 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         startPos: canvasPos,
         initialNode: { ...node },
         initialContour: { ...contour },
+        initialContoursById: buildInitialContoursMap(liveContours, nextSelectedIds, contour),
         hasCommittedHistory: false,
       };
     },
-    [screenToCanvas, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast]
+    [screenToCanvas, selectedNodeIds, setSelectedContourId, isGlyphLocked, showCanvasToast, contours, contoursRef]
   );
 
   // Check if clicking existing handle or node on main canvas pointer down
   const handleNodePointerDownOnCanvas = useCallback(
     (pos: Point, e: React.PointerEvent): boolean => {
       if (toolMode !== 'select' && toolMode !== 'node') return false;
+      if (e.pointerType === 'mouse' && e.button !== 0) return false;
 
       let foundNode = false;
       const isTouchMode = e.pointerType === 'touch';
@@ -316,6 +337,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                initialContoursById: { [contour.id]: { ...contour } },
                 hasCommittedHistory: false,
               };
             }
@@ -342,6 +364,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                initialContoursById: { [contour.id]: { ...contour } },
                 hasCommittedHistory: false,
               };
             }
@@ -383,6 +406,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                 startPos: pos,
                 initialNode: { ...node },
                 initialContour: { ...contour },
+                initialContoursById: buildInitialContoursMap(liveContours, nextSelectedIds, contour),
                 hasCommittedHistory: false,
               };
             }
@@ -413,6 +437,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   const handleInsertNodeOnContour = useCallback(
     (e: React.PointerEvent, contour: PathContour): boolean => {
       if (toolMode !== 'node') return false;
+      if (e.pointerType === 'mouse' && e.button !== 0) return false;
       e.stopPropagation();
       if (isGlyphLocked) {
         showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
@@ -443,6 +468,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
             startPos: clickPos,
             initialNode: { ...insertedNode },
             initialContour: { ...insertResult.updatedContour },
+            initialContoursById: { [contour.id]: { ...insertResult.updatedContour } },
             hasCommittedHistory: true,
           };
           try {
@@ -477,6 +503,9 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       // pointer. A bare hover (e.buttons === 0, e.g. after pointercancel
       // cleared the session) must not move the selected node.
       if (!nodeDragSessionRef.current && e.buttons === 0) return false;
+      if (e.pointerType === 'mouse' && typeof e.buttons === 'number' && (e.buttons & 1) === 0) {
+        return false;
+      }
 
       const activeContourId = nodeDragSessionRef.current?.contourId || selectedContourId!;
       const activeNodeId = nodeDragSessionRef.current?.nodeId || selectedNodeId!;
@@ -507,6 +536,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
             startPos: pos,
             initialNode: { ...fallbackNode },
             initialContour: { ...fallbackContour },
+            initialContoursById: buildInitialContoursMap(currentContours, multiNodeIds, fallbackContour),
             hasCommittedHistory: false,
           };
         }
@@ -545,50 +575,72 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         setActiveSnapGuides([]);
       }
 
-      // Find the primary node to compute delta
-      let primaryNode: BezierNode | undefined;
-      for (const c of currentContours) {
-        const found = c.nodes.find((n) => n.id === activeNodeId);
-        if (found) {
-          primaryNode = found;
-          break;
+      const activeSession = nodeDragSessionRef.current;
+      // Compute total displacement from initialNode so multi-frame drags
+      // never accumulate rounding drift across nodes or handles.
+      let totalDx = 0;
+      let totalDy = 0;
+      if (activeSession?.initialNode) {
+        totalDx = snapPos.x - activeSession.initialNode.x;
+        totalDy = snapPos.y - activeSession.initialNode.y;
+      } else {
+        let primaryNode: BezierNode | undefined;
+        for (const c of currentContours) {
+          const found = c.nodes.find((n) => n.id === activeNodeId);
+          if (found) {
+            primaryNode = found;
+            break;
+          }
         }
+        totalDx = primaryNode ? snapPos.x - primaryNode.x : 0;
+        totalDy = primaryNode ? snapPos.y - primaryNode.y : 0;
       }
-      const dx = primaryNode ? snapPos.x - primaryNode.x : 0;
-      const dy = primaryNode ? snapPos.y - primaryNode.y : 0;
+
+      const roundedHandlePos = { x: roundTenth(pos.x), y: roundTenth(pos.y) };
 
       const updatedContours = currentContours.map((contour: PathContour) => {
         if (activeHandleType !== 'node' && contour.id !== activeContourId) return contour;
         const hasMatchingNodes = contour.nodes.some((n) => multiNodeIds.includes(n.id));
         if (activeHandleType === 'node' && !hasMatchingNodes) return contour;
 
+        const baselineContour =
+          activeHandleType === 'node'
+            ? activeSession?.initialContoursById?.[contour.id] ??
+              (contour.id === activeSession?.initialContour.id ? activeSession.initialContour : contour)
+            : contour;
+        const baselineByNodeId =
+          activeHandleType === 'node'
+            ? new Map(baselineContour.nodes.map((bn) => [bn.id, bn]))
+            : null;
+
         return {
           ...contour,
           nodes: contour.nodes.map((node: BezierNode) => {
             if (activeHandleType === 'node') {
               if (!multiNodeIds.includes(node.id)) return node;
+              const baseNode = baselineByNodeId?.get(node.id) ?? node;
               return {
                 ...node,
-                x: Math.round((node.x + dx) * 10) / 10,
-                y: Math.round((node.y + dy) * 10) / 10,
-                handleIn: node.handleIn
-                  ? { x: Math.round((node.handleIn.x + dx) * 10) / 10, y: Math.round((node.handleIn.y + dy) * 10) / 10 }
+                x: roundTenth(baseNode.x + totalDx),
+                y: roundTenth(baseNode.y + totalDy),
+                handleIn: baseNode.handleIn
+                  ? { x: roundTenth(baseNode.handleIn.x + totalDx), y: roundTenth(baseNode.handleIn.y + totalDy) }
                   : null,
-                handleOut: node.handleOut
-                  ? { x: Math.round((node.handleOut.x + dx) * 10) / 10, y: Math.round((node.handleOut.y + dy) * 10) / 10 }
+                handleOut: baseNode.handleOut
+                  ? { x: roundTenth(baseNode.handleOut.x + totalDx), y: roundTenth(baseNode.handleOut.y + totalDy) }
                   : null,
               };
             } else if (node.id === activeNodeId && activeHandleType === 'handleOut') {
               if (e.altKey) {
                 return {
                   ...node,
-                  handleOut: { x: pos.x, y: pos.y },
+                  handleOut: roundedHandlePos,
                   type: 'corner' as const,
                 };
               }
               if (node.type === 'smooth' || node.type === 'symmetric') {
-                const hdx = pos.x - node.x;
-                const hdy = pos.y - node.y;
+                const hdx = roundedHandlePos.x - node.x;
+                const hdy = roundedHandlePos.y - node.y;
                 const lenOut = Math.hypot(hdx, hdy);
                 let handleIn = node.handleIn;
                 if (lenOut > 0.01 && handleIn) {
@@ -598,31 +650,31 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                       : Math.hypot(handleIn.x - node.x, handleIn.y - node.y);
                   const angle = Math.atan2(hdy, hdx);
                   handleIn = {
-                    x: Math.round(node.x - Math.cos(angle) * lenIn),
-                    y: Math.round(node.y - Math.sin(angle) * lenIn),
+                    x: roundTenth(node.x - Math.cos(angle) * lenIn),
+                    y: roundTenth(node.y - Math.sin(angle) * lenIn),
                   };
                 }
                 return {
                   ...node,
-                  handleOut: { x: pos.x, y: pos.y },
+                  handleOut: roundedHandlePos,
                   handleIn,
                 };
               }
               return {
                 ...node,
-                handleOut: { x: pos.x, y: pos.y },
+                handleOut: roundedHandlePos,
               };
             } else if (node.id === activeNodeId && activeHandleType === 'handleIn') {
               if (e.altKey) {
                 return {
                   ...node,
-                  handleIn: { x: pos.x, y: pos.y },
+                  handleIn: roundedHandlePos,
                   type: 'corner' as const,
                 };
               }
               if (node.type === 'smooth' || node.type === 'symmetric') {
-                const hdx = pos.x - node.x;
-                const hdy = pos.y - node.y;
+                const hdx = roundedHandlePos.x - node.x;
+                const hdy = roundedHandlePos.y - node.y;
                 const lenIn = Math.hypot(hdx, hdy);
                 let handleOut = node.handleOut;
                 if (lenIn > 0.01 && handleOut) {
@@ -632,19 +684,19 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                       : Math.hypot(handleOut.x - node.x, handleOut.y - node.y);
                   const angle = Math.atan2(hdy, hdx);
                   handleOut = {
-                    x: Math.round(node.x - Math.cos(angle) * lenOut),
-                    y: Math.round(node.y - Math.sin(angle) * lenOut),
+                    x: roundTenth(node.x - Math.cos(angle) * lenOut),
+                    y: roundTenth(node.y - Math.sin(angle) * lenOut),
                   };
                 }
                 return {
                   ...node,
-                  handleIn: { x: pos.x, y: pos.y },
+                  handleIn: roundedHandlePos,
                   handleOut,
                 };
               }
               return {
                 ...node,
-                handleIn: { x: pos.x, y: pos.y },
+                handleIn: roundedHandlePos,
               };
             }
             return node;
@@ -735,17 +787,21 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     nodeDragSessionRef.current = null;
     if (session) {
       const currentContours: PathContour[] = contoursRef.current || contours;
+      const restoreMap = session.initialContoursById ?? {
+        [session.initialContour.id]: session.initialContour,
+      };
       // Only restore when the dragged contour still belongs to the
       // current glyph: after a glyph switch its id is absent and the
       // restore is a no-op instead of touching the new glyph.
-      if (currentContours.some((c) => c.id === session.initialContour.id)) {
-        const restored = currentContours.map((c) =>
-          c.id === session.initialContour.id ? session.initialContour : c
-        );
+      const matchingInitials = Object.values(restoreMap).filter((ic) =>
+        currentContours.some((c) => c.id === ic.id)
+      );
+      if (matchingInitials.length > 0) {
+        const restored = currentContours.map((c) => restoreMap[c.id] ?? c);
         contoursRef.current = restored;
         onChangeContours(restored, { skipHistory: true });
         if (hadCommittedHistory) {
-          onDiscardLastHistory?.([session.initialContour]);
+          onDiscardLastHistory?.(matchingInitials);
         }
       }
     } else if (pending) {
@@ -908,6 +964,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     contoursRef.current = nextContours;
     onChangeContours(nextContours, { skipHistory: true });
     setSelectedNodeIds([newNode.id]);
+    setSelectedHandleType('node');
+    showCanvasToast('中間頂点を追加しました', 'ドラッグまたは矢印キーで位置を調整できます');
   }, [isGlyphLocked, selectedContourId, selectedNodeId, contours, contoursRef, onChangeContours, onCommitHistory, showCanvasToast]);
 
   const onDeleteSelectedContourRef = useRef(onDeleteSelectedContour);
@@ -942,11 +1000,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       .filter((c): c is PathContour => c !== null);
 
     if (anyContourCollapsed && updated.length < liveContours.length) {
+      const deletedContours = liveContours.length - updated.length;
       onCommitHistory?.();
       contoursRef.current = updated;
       onChangeContours(updated, { skipHistory: true });
       setSelectedNodeIds([]);
-      showCanvasToast('パスを削除しました');
+      setSelectedHandleType(null);
+      showCanvasToast(
+        deletedContours === 1 ? 'パスを削除しました' : `${deletedContours}個のパスを削除しました`
+      );
       return;
     }
 
@@ -954,6 +1016,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     contoursRef.current = updated;
     onChangeContours(updated, { skipHistory: true });
     setSelectedNodeIds([]);
+    setSelectedHandleType(null);
     showCanvasToast('選択した頂点を削除しました', `${targetIds.length} 個`);
   }, [isGlyphLocked, selectedNodeIds, selectedNodeId, contours, contoursRef, onChangeContours, onCommitHistory, showCanvasToast]);
 
@@ -1009,13 +1072,13 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
                     x: Math.round((n.handleIn.x + dx) * 10) / 10,
                     y: Math.round((n.handleIn.y + dy) * 10) / 10,
                   }
-                : undefined,
+                : null,
               handleOut: n.handleOut
                 ? {
                     x: Math.round((n.handleOut.x + dx) * 10) / 10,
                     y: Math.round((n.handleOut.y + dy) * 10) / 10,
                   }
-                : undefined,
+                : null,
             };
           }),
         };

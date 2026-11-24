@@ -20,6 +20,9 @@ import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefault
 import { CanvasRulersLayer } from './CanvasRulersLayer';
 import { MetricsGuidesLayer } from './MetricsGuidesLayer';
 import { JapaneseGuidesLayer } from './JapaneseGuidesLayer';
+import { InteractiveContourHitLayer } from './InteractiveContourHitLayer';
+import { BezierNodeControlsLayer } from './BezierNodeControlsLayer';
+import { CanvasContextMenu } from './CanvasContextMenu';
 import {
   getLineSegmentIntersection,
   findContourIntersections,
@@ -1553,6 +1556,304 @@ describe('AdjacentGlyphsLayer zoom normalization (L7)', () => {
       root.unmount();
     });
     clearLiveViewport();
+    container.remove();
+  });
+});
+
+describe('Selection, Transform, Node & ContextMenu remediation tests', () => {
+  it('InteractiveContourHitLayer keeps wide transparent hit stroke for selected contours in node mode and ignores right-click', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const handleInsertNodeOnContour = vi.fn(() => true);
+    const contour: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n2', x: 300, y: 100, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n3', x: 300, y: 300, type: 'corner', handleIn: null, handleOut: null },
+      ],
+    };
+    const svgMap = new Map([['c1', 'M 100 100 L 300 100 L 300 300 Z']]);
+
+    act(() => {
+      root.render(
+        <svg>
+          <InteractiveContourHitLayer
+            contours={[contour]}
+            selectedContourIds={['c1']}
+            contourSvgMap={svgMap}
+            selectionColor="#10b981"
+            toolMode="node"
+            screenToCanvas={(x, y) => ({ x, y })}
+            onChangeContours={vi.fn()}
+            setSelectedContourId={vi.fn()}
+            setSelectedContourIds={vi.fn()}
+            setSelectedNodeId={vi.fn()}
+            setSelectedHandleType={vi.fn()}
+            nodeDragSessionRef={{ current: null }}
+            handleInsertNodeOnContour={handleInsertNodeOnContour}
+            showCanvasToast={vi.fn()}
+            handleTransformPointerDown={vi.fn()}
+          />
+        </svg>
+      );
+    });
+
+    const paths = Array.from(container.querySelectorAll('path'));
+    expect(paths.length).toBe(2);
+    const visualPath = paths[0];
+    const hitPath = paths[1];
+    expect(visualPath.getAttribute('pointer-events')).toBe('none');
+    expect(hitPath.getAttribute('stroke')).toBe('transparent');
+    expect(Number(hitPath.getAttribute('stroke-width'))).toBeGreaterThanOrEqual(18);
+
+    // Right-click pointerdown must be ignored
+    act(() => {
+      hitPath.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', button: 2 }));
+    });
+    expect(handleInsertNodeOnContour).not.toHaveBeenCalled();
+
+    // Left-click triggers node insertion handler
+    act(() => {
+      hitPath.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse', button: 0 }));
+    });
+    expect(handleInsertNodeOnContour).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+    clearLiveViewport();
+    container.remove();
+  });
+
+  it('BezierNodeControlsLayer activates all contours in selectedContourIds and renders symmetric nodes as circles', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const c1: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        {
+          id: 'n1',
+          x: 100,
+          y: 100,
+          type: 'symmetric',
+          handleIn: { x: 80, y: 100 },
+          handleOut: { x: 120, y: 100 },
+        },
+        { id: 'n2', x: 200, y: 100, type: 'corner', handleIn: null, handleOut: null },
+      ],
+    };
+    const c2: PathContour = {
+      id: 'c2',
+      closed: true,
+      nodes: [
+        {
+          id: 'n3',
+          x: 300,
+          y: 300,
+          type: 'smooth',
+          handleIn: { x: 280, y: 300 },
+          handleOut: { x: 320, y: 300 },
+        },
+      ],
+    };
+    const svgMap = new Map([
+      ['c1', 'M 100 100 L 200 100 Z'],
+      ['c2', 'M 300 300 Z'],
+    ]);
+
+    act(() => {
+      root.render(
+        <svg>
+          <BezierNodeControlsLayer
+            showNodes
+            contours={[c1, c2]}
+            contourSvgMap={svgMap}
+            toolMode="node"
+            eraserMode="stroke"
+            eraserSize={20}
+            selectedContourId="c1"
+            selectedContourIds={['c1', 'c2']}
+            selectedNodeId="n3"
+            selectedNodeIds={['n1', 'n3']}
+            nodeStyle="clean"
+            gridSettings={{
+              showGrid: false,
+              gridSize: 50,
+              showMetrics: false,
+              showPoints: true,
+              showHandles: false,
+              snapToGrid: false,
+              snapToPoints: false,
+              snapToGuides: false,
+            }}
+            isLight
+            startNodeOrHandleDrag={vi.fn()}
+            handleToggleNodeType={vi.fn()}
+          />
+        </svg>
+      );
+    });
+
+    // Both c1 and c2 are active: handle lines rendered for n1 and n3
+    const lines = container.querySelectorAll('line');
+    expect(lines.length).toBe(4);
+    // Symmetric node n1 has a dashed red selection <circle>, not a <rect>
+    const dashedSelectionCircles = Array.from(container.querySelectorAll('circle')).filter(
+      (el) => el.getAttribute('stroke') === '#ef4444'
+    );
+    expect(dashedSelectionCircles.length).toBe(2);
+
+    act(() => {
+      root.unmount();
+    });
+    clearLiveViewport();
+    container.remove();
+  });
+
+  it('useTransformSession supports inward proportional Shift corner shrink and clears snap guides on cancel', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const rect: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 300, y: 100, type: 'corner' },
+        { id: 'n3', x: 300, y: 300, type: 'corner' },
+        { id: 'n4', x: 100, y: 300, type: 'corner' },
+      ],
+    };
+    const contoursRef = { current: [rect] } as React.MutableRefObject<PathContour[]>;
+    const setActiveSnapGuides = vi.fn();
+    let api!: ReturnType<typeof useTransformSession>;
+
+    function Harness() {
+      api = useTransformSession({
+        contours: [rect],
+        contoursRef,
+        selectedContourIds: ['c1'],
+        screenToCanvas: (x, y) => ({ x, y }),
+        onChangeContours: (next) => {
+          contoursRef.current = next;
+        },
+        onCommitHistory: vi.fn(),
+        gridSettings: {
+          showGrid: false,
+          gridSize: 50,
+          snapToGrid: false,
+          snapToGuides: false,
+          snapToPoints: false,
+          showMetrics: true,
+          showPoints: true,
+          showHandles: true,
+        },
+        snapMetrics: {
+          lsb: 50,
+          advanceWidth: 1000,
+          baseline: 800,
+          ascender: 800,
+          capHeight: 700,
+          xHeight: 500,
+          descender: 1000,
+        },
+        customGuidelines: [],
+        zoom: 1,
+        setActiveSnapGuides,
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    const downEv = {
+      pointerType: 'mouse',
+      button: 0,
+      clientX: 300,
+      clientY: 300,
+      pointerId: 1,
+      stopPropagation: vi.fn(),
+      currentTarget: { setPointerCapture: vi.fn() },
+    } as unknown as React.PointerEvent;
+    // Shrink SE corner proportionally inward: X moved -100px (0.5x), Y moved -40px (0.8x)
+    const moveEv = { shiftKey: true, altKey: false } as unknown as React.PointerEvent<SVGSVGElement>;
+
+    act(() => {
+      api.handleTransformPointerDown(downEv, 'se', ['c1']);
+      api.handleTransformPointerMove({ x: 200, y: 260 }, moveEv);
+    });
+    // Dominant deviation from 1 is 0.5x, so height must shrink to 100 (from 200) -> maxY = 200
+    const xs = contoursRef.current[0].nodes.map((n) => n.x);
+    const ys = contoursRef.current[0].nodes.map((n) => n.y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(100, 1);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(100, 1);
+
+    setActiveSnapGuides.mockClear();
+    act(() => {
+      api.cancelTransformSession();
+    });
+    expect(setActiveSnapGuides).toHaveBeenCalledWith([]);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('CanvasContextMenu displays node operations and keeps Select All Nodes visible even with selection', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const onToggleNodeType = vi.fn();
+    const onAddNode = vi.fn();
+    const onDeleteSelectedNode = vi.fn();
+    const onSelectAllNodes = vi.fn();
+
+    act(() => {
+      root.render(
+        <CanvasContextMenu
+          isOpen
+          x={100}
+          y={100}
+          onClose={vi.fn()}
+          theme="light"
+          hasSelection
+          selectedContourCount={1}
+          contourCount={2}
+          toolMode="node"
+          selectedNodeCount={1}
+          onToggleNodeType={onToggleNodeType}
+          onAddNode={onAddNode}
+          onDeleteSelectedNode={onDeleteSelectedNode}
+          onSelectAllNodes={onSelectAllNodes}
+        />
+      );
+    });
+
+    const buttons = Array.from(container.querySelectorAll('button'));
+    const findBtn = (txt: string) => buttons.find((b) => b.textContent?.includes(txt));
+    expect(findBtn('角 ⇄ スムーズ切替')).toBeDefined();
+    expect(findBtn('中間頂点を追加')).toBeDefined();
+    expect(findBtn('選択頂点を削除')).toBeDefined();
+    expect(findBtn('すべてのノードを選択')).toBeDefined();
+
+    act(() => {
+      findBtn('中間頂点を追加')?.click();
+    });
+    expect(onAddNode).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
     container.remove();
   });
 });

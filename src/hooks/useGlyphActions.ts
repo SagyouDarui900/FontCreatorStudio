@@ -327,7 +327,9 @@ export function useGlyphActions({
       commitHistory(unicode);
       const freshContours = regenerateContourIds(entry.contours);
       if (unicode === selectedUnicode) {
-        handleUpdateContours([...(currentGlyph.contours || []), ...freshContours]);
+        handleUpdateContours([...(currentGlyph.contours || []), ...freshContours], {
+          skipHistory: true,
+        });
         return;
       }
       setProject((prev) => {
@@ -584,7 +586,7 @@ export function useGlyphActions({
       }
       commitHistory();
       const cloned = cloneContours(sourceGlyph.contours);
-      handleUpdateContours(cloned);
+      handleUpdateContours(cloned, { skipHistory: true });
       onShowToast(`「${sourceChar}」から字形を読み込みました`, 'success');
     },
     [currentGlyph.locked, project.glyphs, commitHistory, handleUpdateContours, onShowToast]

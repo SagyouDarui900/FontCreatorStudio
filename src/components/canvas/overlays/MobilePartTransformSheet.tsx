@@ -39,6 +39,7 @@ export interface MobilePartTransformSheetProps {
   handleSmoothStrokeSelected: (strength?: 'mild' | 'standard' | 'strong', keepShape?: boolean) => void;
   handleSimplifySelected: (tol?: number) => void;
   handleDeleteSelected: () => void;
+  isGlyphLocked?: boolean;
 }
 
 export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> = React.memo(
@@ -59,8 +60,10 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
     handleSmoothStrokeSelected,
     handleSimplifySelected,
     handleDeleteSelected,
+    isGlyphLocked = false,
   }) => {
     if (!isOpen || typeof document === 'undefined') return null;
+    const disabledCls = isGlyphLocked ? 'opacity-45 cursor-not-allowed' : '';
 
     return createPortal(
       <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
@@ -77,6 +80,11 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
             <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
               <span>選択輪郭パーツの変形・調整</span>
+              {isGlyphLocked && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold">
+                  ロック中
+                </span>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -94,11 +102,12 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                   {selectedContourIds.length === 1 ? '一筆書き重なり白抜きの解消' : 'パスの合体・白抜き解消'}
                 </div>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => {
                     handleMergeSelectedContours();
                     onClose();
                   }}
-                  className="w-full p-2.5 rounded-lg border flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 font-bold transition-colors"
+                  className={`w-full p-2.5 rounded-lg border flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800 font-bold transition-colors ${disabledCls}`}
                 >
                   <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>
@@ -115,36 +124,41 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
               <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">反転・回転</div>
               <div className="grid grid-cols-5 gap-1.5">
                 <button
+                  disabled={isGlyphLocked}
                   onClick={handleFlipHSelected}
-                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <FlipHorizontal className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>左右反転</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={handleFlipVSelected}
-                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <FlipVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>上下反転</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleRotateSelected(90)}
-                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <RotateCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>+90°回転</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleRotateSelected(-90)}
-                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>-90°回転</span>
                 </button>
                 <button
-                  onClick={() => handleSlantSelected(0.2)}
-                  className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  disabled={isGlyphLocked}
+                  onClick={() => handleSlantSelected(10)}
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <Italic className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>斜体</span>
@@ -152,59 +166,68 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
               </div>
             </div>
 
-            {/* Align (2+ selected) and Distribute (3+ selected).
-                Same handlers as the desktop SelectionSubToolbar; the
-                subtoolbar itself is hidden below 640px, so without
-                these the operations were unreachable on mobile. */}
-            {selectedContourIds.length >= 2 && handleAlignSelected && (
+            {/* Align (1+ selected for emBoxCenterH, 2+ for contour-to-contour align)
+                and Distribute (3+ selected). */}
+            {selectedContourIds.length >= 1 && handleAlignSelected && (
               <div>
                 <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">整列</div>
                 <div className="grid grid-cols-4 gap-1.5">
+                  {selectedContourIds.length >= 2 && (
+                    <>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('left')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>左揃え</span>
+                      </button>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('centerH')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignCenter className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>水平中央</span>
+                      </button>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('right')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>右揃え</span>
+                      </button>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('top')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignStartVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>上揃え</span>
+                      </button>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('centerV')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignCenterVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>垂直中央</span>
+                      </button>
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => handleAlignSelected('bottom')}
+                        className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                      >
+                        <AlignEndVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>下揃え</span>
+                      </button>
+                    </>
+                  )}
                   <button
-                    onClick={() => handleAlignSelected('left')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>左揃え</span>
-                  </button>
-                  <button
-                    onClick={() => handleAlignSelected('centerH')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignCenter className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>水平中央</span>
-                  </button>
-                  <button
-                    onClick={() => handleAlignSelected('right')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>右揃え</span>
-                  </button>
-                  <button
-                    onClick={() => handleAlignSelected('top')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignStartVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>上揃え</span>
-                  </button>
-                  <button
-                    onClick={() => handleAlignSelected('centerV')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignCenterVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>垂直中央</span>
-                  </button>
-                  <button
-                    onClick={() => handleAlignSelected('bottom')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
-                  >
-                    <AlignEndVertical className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>下揃え</span>
-                  </button>
-                  <button
+                    disabled={isGlyphLocked}
                     onClick={() => handleAlignSelected('emBoxCenterH')}
-                    className="p-2 rounded-lg border flex flex-col items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold"
+                    className={`p-2 rounded-lg border flex flex-col items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold ${disabledCls}`}
                   >
                     <AlignCenter className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     <span>全角中央</span>
@@ -218,14 +241,16 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                 <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">等間隔</div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
+                    disabled={isGlyphLocked}
                     onClick={() => handleDistributeSelected('horizontal')}
-                    className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                   >
                     <span>水平等間隔</span>
                   </button>
                   <button
+                    disabled={isGlyphLocked}
                     onClick={() => handleDistributeSelected('vertical')}
-                    className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                   >
                     <span>垂直等間隔</span>
                   </button>
@@ -238,22 +263,25 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
               <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">サイズ伸縮・複製</div>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleScaleSelected(1.1)}
-                  className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>拡大 +10%</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleScaleSelected(0.9)}
-                  className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex items-center justify-center gap-1 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <Minus className="w-3.5 h-3.5" />
                   <span>縮小 -10%</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={handleDuplicateSelected}
-                  className="p-2 rounded-lg border flex items-center justify-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 font-bold"
+                  className={`p-2 rounded-lg border flex items-center justify-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 font-bold ${disabledCls}`}
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>パーツ複製</span>
@@ -266,15 +294,17 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
               <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">ストローク最適化</div>
               <div className="grid grid-cols-2 gap-1.5">
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleSmoothStrokeSelected('standard', true)}
-                  className="p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <Wand2 className="w-3.5 h-3.5 text-stone-600 dark:text-stone-300" />
                   <span>筆跡スムーズ化</span>
                 </button>
                 <button
+                  disabled={isGlyphLocked}
                   onClick={() => handleSimplifySelected(6)}
-                  className="p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium"
+                  className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
                 >
                   <Wand2 className="w-3.5 h-3.5 text-emerald-500" />
                   <span>アンカー点削減</span>
@@ -285,11 +315,12 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
             {/* Delete button */}
             <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
               <button
+                disabled={isGlyphLocked}
                 onClick={() => {
                   handleDeleteSelected();
                   onClose();
                 }}
-                className="w-full py-2 rounded-lg bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/80 dark:hover:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold flex items-center justify-center gap-1.5 transition-colors"
+                className={`w-full py-2 rounded-lg bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/80 dark:hover:bg-rose-900 text-rose-800 dark:text-rose-200 font-bold flex items-center justify-center gap-1.5 transition-colors ${disabledCls}`}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>選択した輪郭パーツを削除</span>

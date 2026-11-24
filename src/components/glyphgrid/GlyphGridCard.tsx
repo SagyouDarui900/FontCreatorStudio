@@ -140,7 +140,10 @@ export const GlyphGridCard = memo(
             onSelectGlyph(item.code, item.char);
           }
         }}
-        onContextMenu={(e) => onContextMenu(e, item)}
+        onContextMenu={(e) => {
+          e.stopPropagation();
+          onContextMenu(e, item);
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={clearLongPress}

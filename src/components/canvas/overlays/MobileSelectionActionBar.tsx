@@ -11,7 +11,10 @@ export interface MobileSelectionActionBarProps {
   handleDuplicateSelected: () => void;
   handleDeleteSelected: () => void;
   setSelectedContourIds: (ids: string[]) => void;
+  setSelectedContourId?: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setSelectedHandleType?: (t: 'node' | 'handleIn' | 'handleOut' | null) => void;
+  isGlyphLocked?: boolean;
 }
 
 export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> = React.memo(({
@@ -23,7 +26,10 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
   handleDuplicateSelected,
   handleDeleteSelected,
   setSelectedContourIds,
+  setSelectedContourId,
   setSelectedNodeId,
+  setSelectedHandleType,
+  isGlyphLocked = false,
 }) => {
   if ((toolMode !== 'select' && toolMode !== 'node') || selectedContourIds.length === 0) {
     return null;
@@ -45,8 +51,9 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
       <div className="flex items-center space-x-1.5">
         {selectedContourIds.length >= 2 && (
           <button
+            disabled={isGlyphLocked}
             onClick={handleMergeSelectedContours}
-            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center gap-1"
+            className="px-2.5 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center gap-1 disabled:opacity-45 disabled:cursor-not-allowed"
             title="選択したパスを合体"
           >
             <Layers className="w-3.5 h-3.5" />
@@ -60,15 +67,17 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
           変形
         </button>
         <button
+          disabled={isGlyphLocked}
           onClick={handleDuplicateSelected}
-          className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-emerald-300"
+          className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-emerald-300 disabled:opacity-45 disabled:cursor-not-allowed"
           title="複製"
         >
           <Copy className="w-4 h-4" />
         </button>
         <button
+          disabled={isGlyphLocked}
           onClick={handleDeleteSelected}
-          className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400"
+          className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 disabled:opacity-45 disabled:cursor-not-allowed"
           title="削除"
         >
           <Trash2 className="w-4 h-4" />
@@ -76,7 +85,9 @@ export const MobileSelectionActionBar: React.FC<MobileSelectionActionBarProps> =
         <button
           onClick={() => {
             setSelectedContourIds([]);
+            setSelectedContourId?.(null);
             setSelectedNodeId(null);
+            setSelectedHandleType?.(null);
           }}
           className="p-1.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400"
           title="選択解除"

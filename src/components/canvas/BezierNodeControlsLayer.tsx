@@ -160,7 +160,7 @@ const NodeControls: React.FC<NodeControlsProps> = React.memo(
             className={isNodeInteractive ? 'cursor-pointer' : 'pointer-events-none'}
             pointerEvents={isNodeInteractive ? 'all' : 'none'}
             onPointerDown={(e) => {
-              if (!isNodeInteractive) return;
+              if (!isNodeInteractive || (e.pointerType === 'mouse' && e.button !== 0)) return;
               dragRef.current(e, contour, node, 'node');
             }}
             onDoubleClick={(e) => {
@@ -185,7 +185,7 @@ const NodeControls: React.FC<NodeControlsProps> = React.memo(
 
     // Active / Selected contour nodes
     const isClean = nodeStyle === 'clean';
-    const isSmooth = node.type === 'smooth';
+    const isSmooth = node.type === 'smooth' || node.type === 'symmetric';
 
     // Node point visual dimensions (Clean vs Full)
     const anchorRadius = isSelected
@@ -209,7 +209,7 @@ const NodeControls: React.FC<NodeControlsProps> = React.memo(
           className={isNodeInteractive ? 'cursor-pointer' : 'pointer-events-none'}
           pointerEvents={isNodeInteractive ? 'all' : 'none'}
           onPointerDown={(e) => {
-            if (!isNodeInteractive) return;
+            if (!isNodeInteractive || (e.pointerType === 'mouse' && e.button !== 0)) return;
             dragRef.current(e, contour, node, 'node');
           }}
           onDoubleClick={(e) => {
@@ -243,7 +243,7 @@ const NodeControls: React.FC<NodeControlsProps> = React.memo(
                   className={isHandleInteractive ? (isGlyphLocked ? 'cursor-default' : 'cursor-move') : 'pointer-events-none'}
                   pointerEvents={isHandleInteractive ? 'all' : 'none'}
                   onPointerDown={(e) => {
-                    if (!isHandleInteractive) return;
+                    if (!isHandleInteractive || (e.pointerType === 'mouse' && e.button !== 0)) return;
                     dragRef.current(e, contour, node, 'handleIn');
                   }}
                 />
@@ -280,7 +280,7 @@ const NodeControls: React.FC<NodeControlsProps> = React.memo(
                   className={isHandleInteractive ? (isGlyphLocked ? 'cursor-default' : 'cursor-move') : 'pointer-events-none'}
                   pointerEvents={isHandleInteractive ? 'all' : 'none'}
                   onPointerDown={(e) => {
-                    if (!isHandleInteractive) return;
+                    if (!isHandleInteractive || (e.pointerType === 'mouse' && e.button !== 0)) return;
                     dragRef.current(e, contour, node, 'handleOut');
                   }}
                 />
@@ -413,6 +413,7 @@ export interface BezierNodeControlsLayerProps {
   eraserMode: 'stroke' | 'cut' | 'all' | 'node' | 'point';
   eraserSize: number;
   selectedContourId: string | null;
+  selectedContourIds?: string[];
   selectedNodeId: string | null;
   selectedNodeIds?: string[];
   nodeStyle: 'clean' | 'full' | 'selected_only';
@@ -432,6 +433,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     eraserMode,
     eraserSize,
     selectedContourId,
+    selectedContourIds,
     selectedNodeId,
     selectedNodeIds,
     nodeStyle,
@@ -484,7 +486,10 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
         )}
 
         {contours.map((contour) => {
-          const isContourActive = contour.id === selectedContourId;
+          const isContourActive =
+            selectedContourIds && selectedContourIds.length > 0
+              ? selectedContourIds.includes(contour.id)
+              : contour.id === selectedContourId;
           const isEraserNodeMode = toolMode === 'eraser' && eraserMode === 'node';
 
           // When in selected_only style, skip unselected contours entirely (unless in eraser node mode where all nodes must be visible for deletion)

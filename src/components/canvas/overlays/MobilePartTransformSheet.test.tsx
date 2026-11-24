@@ -41,7 +41,7 @@ describe('MobilePartTransformSheet align / distribute (item 6)', () => {
           handleFlipHSelected={noop}
           handleFlipVSelected={noop}
           handleRotateSelected={(handlers.handleRotateSelected as (deg: number) => void) || noop}
-          handleSlantSelected={noop}
+          handleSlantSelected={(handlers.handleSlantSelected as (amt: number) => void) || noop}
           handleScaleSelected={noop}
           handleAlignSelected={
             (handlers.handleAlignSelected as (d: string) => void) || undefined
@@ -102,5 +102,17 @@ describe('MobilePartTransformSheet align / distribute (item 6)', () => {
       findButton('-90°回転')?.click();
     });
     expect(handleRotateSelected).toHaveBeenCalledWith(-90);
+  });
+
+  it('slant button uses 10 degrees instead of 0.2 radians/degrees and single selection exposes emBoxCenterH', () => {
+    const handleSlantSelected = vi.fn();
+    const handleAlignSelected = vi.fn();
+    renderSheet(['a'], { handleSlantSelected, handleAlignSelected });
+    act(() => {
+      findButton('斜体')?.click();
+      findButton('全角中央')?.click();
+    });
+    expect(handleSlantSelected).toHaveBeenCalledWith(10);
+    expect(handleAlignSelected).toHaveBeenCalledWith('emBoxCenterH');
   });
 });

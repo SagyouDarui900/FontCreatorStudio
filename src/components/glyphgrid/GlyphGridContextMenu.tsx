@@ -78,6 +78,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
     <div
       ref={contextMenuRef}
       style={{ top: pos.top, left: pos.left }}
+      onContextMenu={(e) => e.preventDefault()}
       className={`fixed z-[60] w-52 max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto p-1.5 rounded-md border shadow-xl anim-pop ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
     >
       <div className={`px-2 py-1 border-b text-[11px] font-bold flex items-center justify-between mb-1 ${themeClasses.border} ${themeClasses.accentText}`}>
@@ -144,30 +145,40 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
         {(() => {
           const dakuInfo = DAKUTEN_MAPPINGS[item.char];
           if (hasContours && dakuInfo?.type === 'seion' && onGenerateDakutenTarget) {
+            const dakuCode = dakuInfo.daku?.codePointAt(0);
+            const isDakuLocked = dakuCode !== undefined && Boolean(project.glyphs[dakuCode]?.locked);
+            const handakuCode = dakuInfo.handaku?.codePointAt(0);
+            const isHandakuLocked = handakuCode !== undefined && Boolean(project.glyphs[handakuCode]?.locked);
             return (
               <>
                 {dakuInfo.daku && (
                   <button
+                    disabled={isDakuLocked}
                     onClick={() => {
+                      if (isDakuLocked) return;
                       onGenerateDakutenTarget(dakuInfo.daku!, false, item.char);
                       onClose();
                     }}
-                    className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer"
+                    title={isDakuLocked ? `生成先「${dakuInfo.daku}」は編集ロック中です` : undefined}
+                    className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
                   >
                     <Wand2 className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
-                    <span>濁音「{dakuInfo.daku}」を生成</span>
+                    <span>濁音「{dakuInfo.daku}」を生成{isDakuLocked ? ' (ロック中)' : ''}</span>
                   </button>
                 )}
                 {dakuInfo.handaku && (
                   <button
+                    disabled={isHandakuLocked}
                     onClick={() => {
+                      if (isHandakuLocked) return;
                       onGenerateDakutenTarget(dakuInfo.handaku!, true, item.char);
                       onClose();
                     }}
-                    className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer"
+                    title={isHandakuLocked ? `生成先「${dakuInfo.handaku}」は編集ロック中です` : undefined}
+                    className="w-full text-left px-2 py-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-200 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
                   >
                     <Wand2 className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
-                    <span>半濁音「{dakuInfo.handaku}」を生成</span>
+                    <span>半濁音「{dakuInfo.handaku}」を生成{isHandakuLocked ? ' (ロック中)' : ''}</span>
                   </button>
                 )}
               </>
@@ -180,16 +191,20 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
         {(() => {
           const pair = KANA_PAIRS[item.char];
           if (hasContours && pair && onDuplicateAsSmallKana) {
+            const isSmallLocked = Boolean(project.glyphs[pair.smallUnicode]?.locked);
             return (
               <button
+                disabled={isSmallLocked}
                 onClick={() => {
+                  if (isSmallLocked) return;
                   onDuplicateAsSmallKana(item.code);
                   onClose();
                 }}
-                className="w-full text-left px-2 py-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-950/60 flex items-center gap-1.5 font-medium text-indigo-900 dark:text-indigo-200 transition-colors cursor-pointer"
+                title={isSmallLocked ? `生成先「${pair.smallChar}」は編集ロック中です` : undefined}
+                className="w-full text-left px-2 py-1 rounded hover:bg-indigo-100 dark:hover:bg-indigo-950/60 flex items-center gap-1.5 font-medium text-indigo-900 dark:text-indigo-200 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" />
-                <span>小文字「{pair.smallChar}」へ縮小複製</span>
+                <span>小文字「{pair.smallChar}」へ縮小複製{isSmallLocked ? ' (ロック中)' : ''}</span>
               </button>
             );
           }

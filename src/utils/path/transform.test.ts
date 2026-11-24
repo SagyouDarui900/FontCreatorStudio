@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { transformContoursForPlacement } from './transform';
-import { getContoursBoundingBox, contoursHaveFiniteCoordinates } from './bounds';
+import {
+  transformContoursForPlacement,
+  flipSingleContourH,
+  flipSingleContourV,
+} from './transform';
+import {
+  getContoursBoundingBox,
+  contoursHaveFiniteCoordinates,
+  getContourSignedArea,
+} from './bounds';
 import { PathContour } from '../../types';
 
 function rectContour(minX: number, minY: number, maxX: number, maxY: number): PathContour {
@@ -155,5 +163,21 @@ describe('contoursHaveFiniteCoordinates', () => {
     ];
     expect(contoursHaveFiniteCoordinates(badHandle)).toBe(false);
     expect(contoursHaveFiniteCoordinates([])).toBe(false);
+  });
+});
+
+describe('flipSingleContourH / flipSingleContourV winding preservation', () => {
+  it('preserves signed area sign on horizontal and vertical single-contour flips', () => {
+    const contour = rectContour(100, 200, 400, 600);
+    const originalArea = getContourSignedArea(contour);
+    expect(originalArea).not.toBe(0);
+
+    const flippedH = flipSingleContourH(contour);
+    expect(Math.sign(getContourSignedArea(flippedH))).toBe(Math.sign(originalArea));
+    expect(getContoursBoundingBox([flippedH])).toEqual(getContoursBoundingBox([contour]));
+
+    const flippedV = flipSingleContourV(contour);
+    expect(Math.sign(getContourSignedArea(flippedV))).toBe(Math.sign(originalArea));
+    expect(getContoursBoundingBox([flippedV])).toEqual(getContoursBoundingBox([contour]));
   });
 });

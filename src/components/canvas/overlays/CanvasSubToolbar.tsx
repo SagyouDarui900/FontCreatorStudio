@@ -102,7 +102,10 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
   handleConvertToSmoothSelected,
   handleConvertToCornersSelected,
   handleToggleNodeType,
+  handleAddNodeToSelected,
   handleDeleteSelectedNode,
+  handleRegisterSelectedAsCustomPart,
+  isGlyphLocked = false,
   handleClearAllGuidelines,
   isGuideEraserActive,
   setIsGuideEraserActive,
@@ -339,7 +342,9 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 selectedNodeIds={selectedNodeIds}
                 selectedContourId={selectedContourIds[0] || null}
                 handleToggleNodeType={handleToggleNodeType}
+                handleAddNodeToSelected={handleAddNodeToSelected}
                 handleDeleteSelectedNode={handleDeleteSelectedNode}
+                isGlyphLocked={isGlyphLocked}
                 isShapeTool={isShapeTool}
                 isShiftLockRatio={isShiftLockRatio}
                 setIsShiftLockRatio={setIsShiftLockRatio}
@@ -381,6 +386,8 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
                 handleDistributeSelected={handleDistributeSelected}
                 contours={contours}
                 activeChar={activeChar}
+                isGlyphLocked={isGlyphLocked}
+                onRegisterSelectedAsCustomPart={handleRegisterSelectedAsCustomPart}
               />
             </div>
           </div>

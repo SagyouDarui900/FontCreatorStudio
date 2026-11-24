@@ -102,7 +102,9 @@ export interface CanvasSubToolbarProps {
   handleConvertToSmoothSelected: () => void;
   handleConvertToCornersSelected: () => void;
   handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
+  handleAddNodeToSelected?: () => void;
   handleDeleteSelectedNode: () => void;
+  handleRegisterSelectedAsCustomPart?: () => void;
   handleClearAllGuidelines: () => void;
   isGuideEraserActive: boolean;
   setIsGuideEraserActive: React.Dispatch<React.SetStateAction<boolean>>;

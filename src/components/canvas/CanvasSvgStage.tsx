@@ -111,13 +111,7 @@ export interface CanvasSvgStageProps {
   activeEraserPathRef: React.RefObject<SVGPathElement | null>;
   eraserSize: number;
   activeShapeContours: PathContour[];
-  rotateDisplayAngle: number;
-  handleRotateSelected: (angleDeg?: number) => void;
-  handleFlipHSelected: () => void;
-  handleFlipVSelected: () => void;
-  handleDuplicateSelected: () => void;
-  handleMergeSelectedContours: () => void;
-  handleDeleteSelected: () => void;
+  rotateDisplayAngle: number | null;
   showNodes: boolean;
   eraserMode: 'stroke' | 'cut' | 'all' | 'node';
   nodeStyle: 'clean' | 'full' | 'selected_only';
@@ -212,12 +206,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   eraserSize,
   activeShapeContours,
   rotateDisplayAngle,
-  handleRotateSelected,
-  handleFlipHSelected,
-  handleFlipVSelected,
-  handleDuplicateSelected,
-  handleMergeSelectedContours,
-  handleDeleteSelected,
   showNodes,
   eraserMode,
   nodeStyle,
@@ -307,7 +295,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
       onPointerLeave={handlePointerLeave}
       onLostPointerCapture={handleLostPointerCapture}
       onDoubleClick={(e) => {
-        if (isAnyModalOpen) return;
+        if (isAnyModalOpen || e.button !== 0) return;
         const clickPos = screenToCanvas(e.clientX, e.clientY);
         const hitContour = contours.find((c) => isPointNearContour(clickPos, c, 24 / zoom));
         if (hitContour) {
@@ -530,15 +518,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           selectedContoursSvgPath={selectedContoursSvgPath}
           rotateDisplayAngle={rotateDisplayAngle}
           handleTransformPointerDown={handleTransformPointerDown}
-          handleRotateSelected={handleRotateSelected}
-          handleFlipHSelected={handleFlipHSelected}
-          handleFlipVSelected={handleFlipVSelected}
-          handleDuplicateSelected={handleDuplicateSelected}
-          handleMergeSelectedContours={handleMergeSelectedContours}
-          handleDeleteSelected={handleDeleteSelected}
-          setSelectedContourIds={setSelectedContourIds}
-          setSelectedNodeId={setSelectedNodeId}
-          setSelectedHandleType={setSelectedHandleType}
           isGlyphLocked={isGlyphLocked}
         />
 
@@ -550,6 +529,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           gridSettings={gridSettings}
           contours={contours}
           selectedContourId={selectedContourId}
+          selectedContourIds={selectedContourIds}
           selectedNodeId={selectedNodeId}
           selectedNodeIds={selectedNodeIds}
           contourSvgMap={contourSvgMap}

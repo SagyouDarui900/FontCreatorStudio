@@ -288,7 +288,7 @@ export function flipSingleContourH(contour: PathContour): PathContour {
     y: p.y,
   });
 
-  return {
+  return reverseContour({
     ...contour,
     nodes: contour.nodes.map((node) => ({
       ...node,
@@ -296,7 +296,7 @@ export function flipSingleContourH(contour: PathContour): PathContour {
       handleIn: node.handleIn ? flipPoint(node.handleIn) : null,
       handleOut: node.handleOut ? flipPoint(node.handleOut) : null,
     })),
-  };
+  });
 }
 
 /**
@@ -311,7 +311,7 @@ export function flipSingleContourV(contour: PathContour): PathContour {
     y: Math.round(2 * cy - p.y),
   });
 
-  return {
+  return reverseContour({
     ...contour,
     nodes: contour.nodes.map((node) => ({
       ...node,
@@ -319,7 +319,7 @@ export function flipSingleContourV(contour: PathContour): PathContour {
       handleIn: node.handleIn ? flipPoint(node.handleIn) : null,
       handleOut: node.handleOut ? flipPoint(node.handleOut) : null,
     })),
-  };
+  });
 }
 
 /**

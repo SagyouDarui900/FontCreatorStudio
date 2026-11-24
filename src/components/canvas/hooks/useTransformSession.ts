@@ -86,6 +86,7 @@ export function useTransformSession({
       handle: TransformHandleType,
       overrideTargetIds?: string[]
     ) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.stopPropagation();
       if (isGlyphLocked) {
         showCanvasToast?.('この文字は編集ロックされています', '解除してから変形してください');
@@ -296,6 +297,22 @@ export function useTransformSession({
 
       const isPreserveAspect = e.shiftKey;
 
+      const computeAspectScale = (newW: number, newH: number): number => {
+        const minScale =
+          width < 1e-3
+            ? 8 / safeH
+            : height < 1e-3
+            ? 8 / safeW
+            : 8 / Math.min(safeW, safeH);
+        const clampedMin = Math.min(1, minScale);
+        if (width < 1e-3) return Math.max(clampedMin, newH / safeH);
+        if (height < 1e-3) return Math.max(clampedMin, newW / safeW);
+        const sx = newW / safeW;
+        const sy = newH / safeH;
+        const chosen = Math.abs(sx - 1) >= Math.abs(sy - 1) ? sx : sy;
+        return Math.max(clampedMin, chosen);
+      };
+
       switch (handle) {
         case 'se': {
           anchorX = minX;
@@ -303,7 +320,7 @@ export function useTransformSession({
           const newW = Math.max(8, snapX - minX);
           const newH = Math.max(8, snapY - minY);
           if (isPreserveAspect) {
-            const s = Math.max(newW / safeW, newH / safeH);
+            const s = computeAspectScale(newW, newH);
             scaleX = s;
             scaleY = s;
           } else {
@@ -318,7 +335,7 @@ export function useTransformSession({
           const newW = Math.max(8, maxX - snapX);
           const newH = Math.max(8, maxY - snapY);
           if (isPreserveAspect) {
-            const s = Math.max(newW / safeW, newH / safeH);
+            const s = computeAspectScale(newW, newH);
             scaleX = s;
             scaleY = s;
           } else {
@@ -333,7 +350,7 @@ export function useTransformSession({
           const newW = Math.max(8, snapX - minX);
           const newH = Math.max(8, maxY - snapY);
           if (isPreserveAspect) {
-            const s = Math.max(newW / safeW, newH / safeH);
+            const s = computeAspectScale(newW, newH);
             scaleX = s;
             scaleY = s;
           } else {
@@ -348,7 +365,7 @@ export function useTransformSession({
           const newW = Math.max(8, maxX - snapX);
           const newH = Math.max(8, snapY - minY);
           if (isPreserveAspect) {
-            const s = Math.max(newW / safeW, newH / safeH);
+            const s = computeAspectScale(newW, newH);
             scaleX = s;
             scaleY = s;
           } else {
@@ -511,7 +528,8 @@ export function useTransformSession({
     }
     setTransformSession(null);
     setRotateDisplayAngle(null);
-  }, [transformSession, contours, contoursRef, onChangeContours, onDiscardLastHistory]);
+    setActiveSnapGuides([]);
+  }, [transformSession, contours, contoursRef, onChangeContours, onDiscardLastHistory, setActiveSnapGuides]);
 
   return {
     transformSession,

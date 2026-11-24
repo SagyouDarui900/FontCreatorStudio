@@ -73,7 +73,9 @@ export interface CanvasFloatingOverlaysProps {
   handleDuplicateSelected: () => void;
   handleDeleteSelected: () => void;
   setSelectedContourIds: React.Dispatch<React.SetStateAction<string[]>>;
+  setSelectedContourId?: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setSelectedHandleType?: (t: 'node' | 'handleIn' | 'handleOut' | null) => void;
   handleFlipHSelected: () => void;
   handleFlipVSelected: () => void;
   handleRotateSelected: (angleDeg?: number) => void;
@@ -165,7 +167,9 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   handleDuplicateSelected,
   handleDeleteSelected,
   setSelectedContourIds,
+  setSelectedContourId,
   setSelectedNodeId,
+  setSelectedHandleType,
   handleFlipHSelected,
   handleFlipVSelected,
   handleRotateSelected,
@@ -344,7 +348,10 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleDuplicateSelected={handleDuplicateSelected}
         handleDeleteSelected={handleDeleteSelected}
         setSelectedContourIds={setSelectedContourIds}
+        setSelectedContourId={setSelectedContourId}
         setSelectedNodeId={setSelectedNodeId}
+        setSelectedHandleType={setSelectedHandleType}
+        isGlyphLocked={isGlyphLocked}
       />
 
       {/* Mobile Part Transform Bottom Sheet */}
@@ -365,6 +372,7 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleSmoothStrokeSelected={handleSmoothStrokeSelected}
         handleSimplifySelected={handleSimplifySelected}
         handleDeleteSelected={handleDeleteSelected}
+        isGlyphLocked={isGlyphLocked}
       />
 
       {/* Mobile Brush Presets & Width Bottom Sheet */}

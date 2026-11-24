@@ -740,24 +740,71 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const handleCanvasContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      handleNodeDragCancel();
+      cancelTransformSession();
+      setMarqueeSelection(null);
+
       const pos = screenToCanvas(e.clientX, e.clientY);
+
+      if (toolMode === 'node') {
+        const nodeRadius = 16 / (zoom || 1);
+        for (let ci = contours.length - 1; ci >= 0; ci--) {
+          const contour = contours[ci];
+          for (let ni = contour.nodes.length - 1; ni >= 0; ni--) {
+            const node = contour.nodes[ni];
+            if (Math.hypot(pos.x - node.x, pos.y - node.y) <= nodeRadius) {
+              setSelectedContourId(contour.id);
+              setSelectedContourIds((prev) =>
+                prev.length > 1 && prev.includes(contour.id) ? prev : [contour.id]
+              );
+              setSelectedNodeId(node.id);
+              setSelectedNodeIds((prev) =>
+                prev.includes(node.id) ? prev : [node.id]
+              );
+              setSelectedHandleType(null);
+              setContextMenuState({ x: e.clientX, y: e.clientY });
+              return;
+            }
+          }
+        }
+      }
+
       const hitId = hitTestContours(contours, pos, Math.max(6, 10 / zoom));
       if (hitId) {
         setSelectedContourIds((prev) =>
           prev.length > 1 && prev.includes(hitId) ? prev : [hitId]
         );
         setSelectedContourId(hitId);
-        setSelectedNodeId(null);
-        setSelectedNodeIds([]);
+        if (toolMode !== 'node' || !selectedContourIds.includes(hitId) || selectedNodeIds.length === 0) {
+          setSelectedNodeId(null);
+          setSelectedNodeIds([]);
+        }
+        setSelectedHandleType(null);
       } else {
         setSelectedContourIds([]);
         setSelectedContourId(null);
         setSelectedNodeId(null);
         setSelectedNodeIds([]);
+        setSelectedHandleType(null);
       }
       setContextMenuState({ x: e.clientX, y: e.clientY });
     },
-    [screenToCanvas, contours, zoom, setSelectedContourIds, setSelectedContourId, setSelectedNodeId, setSelectedNodeIds]
+    [
+      screenToCanvas,
+      contours,
+      zoom,
+      toolMode,
+      selectedContourIds,
+      selectedNodeIds,
+      handleNodeDragCancel,
+      cancelTransformSession,
+      setMarqueeSelection,
+      setSelectedContourIds,
+      setSelectedContourId,
+      setSelectedNodeId,
+      setSelectedNodeIds,
+      setSelectedHandleType,
+    ]
   );
 
   const handleCloseContextMenu = useCallback(() => setContextMenuState(null), []);
@@ -1080,7 +1127,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     contours,
     selectedContourIds,
     onChangeContours,
-    onCommitHistory,
     showCanvasToast,
     setSelectedContourIds,
     setSelectedContourId,
@@ -1276,7 +1322,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
         handleConvertToSmoothSelected={handleConvertToSmoothSelected}
         handleConvertToCornersSelected={handleConvertToCornersSelected}
         handleToggleNodeType={handleToggleNodeType}
+        handleAddNodeToSelected={handleAddNodeToSelected}
         handleDeleteSelectedNode={handleDeleteSelectedNode}
+        handleRegisterSelectedAsCustomPart={handleRegisterSelectedAsCustomPart}
         handleClearAllGuidelines={handleClearAllGuidelines}
         isGuideEraserActive={isGuideEraserActive}
         setIsGuideEraserActive={setIsGuideEraserActive}
@@ -1393,13 +1441,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           activeEraserPathRef={activeEraserPathRef}
           eraserSize={eraserSize}
           activeShapeContours={activeShapeContours}
-          rotateDisplayAngle={rotateDisplayAngle ?? 0}
-          handleRotateSelected={handleRotateSelectedWithDefault}
-          handleFlipHSelected={handleFlipHSelected}
-          handleFlipVSelected={handleFlipVSelected}
-          handleDuplicateSelected={handleDuplicateSelected}
-          handleMergeSelectedContours={handleMergeSelectedContours}
-          handleDeleteSelected={handleDeleteSelected}
+          rotateDisplayAngle={rotateDisplayAngle}
           showNodes={showNodes}
           eraserMode={eraserMode}
           nodeStyle={nodeStyle}
@@ -1468,7 +1510,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleDuplicateSelected={handleDuplicateSelected}
           handleDeleteSelected={handleDeleteSelected}
           setSelectedContourIds={setSelectedContourIds}
+          setSelectedContourId={setSelectedContourId}
           setSelectedNodeId={setSelectedNodeId}
+          setSelectedHandleType={setSelectedHandleType}
           handleFlipHSelected={handleFlipHSelected}
           handleFlipVSelected={handleFlipVSelected}
           handleRotateSelected={handleRotateSelectedWithDefault}
@@ -1532,6 +1576,11 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           onSelectPrevGlyph={onSelectPrevGlyph}
           onSelectNextGlyph={onSelectNextGlyph}
           onSelectAllNodes={handleSelectAllNodes}
+          toolMode={toolMode}
+          selectedNodeCount={selectedNodeIds.length > 0 ? selectedNodeIds.length : selectedNodeId ? 1 : 0}
+          onToggleNodeType={() => handleToggleNodeType()}
+          onAddNode={handleAddNodeToSelected}
+          onDeleteSelectedNode={handleDeleteSelectedNode}
         />
       </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Trash2 } from 'lucide-react';
+import { Activity, Plus, Trash2 } from 'lucide-react';
 import { ToolMode } from '../../../types';
 
 interface NodeAndShapeSubToolbarProps {
@@ -10,7 +10,9 @@ interface NodeAndShapeSubToolbarProps {
   selectedNodeIds?: string[];
   selectedContourId: string | null;
   handleToggleNodeType: (contourId?: string, nodeId?: string) => void;
+  handleAddNodeToSelected?: () => void;
   handleDeleteSelectedNode: () => void;
+  isGlyphLocked?: boolean;
   isShapeTool: boolean;
   isShiftLockRatio: boolean;
   setIsShiftLockRatio: React.Dispatch<React.SetStateAction<boolean>>;
@@ -28,7 +30,9 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
   selectedNodeIds = [],
   selectedContourId,
   handleToggleNodeType,
+  handleAddNodeToSelected,
   handleDeleteSelectedNode,
+  isGlyphLocked = false,
   isShapeTool,
   isShiftLockRatio,
   setIsShiftLockRatio,
@@ -87,12 +91,15 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
             <>
               <button
                 type="button"
+                disabled={isGlyphLocked}
                 onClick={() =>
                   selectedNodeCount > 1
                     ? handleToggleNodeType(undefined, undefined)
                     : handleToggleNodeType(selectedContourId ?? undefined, selectedNodeId ?? undefined)
                 }
-                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 cursor-pointer ${
+                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 ${
+                  isGlyphLocked ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
+                } ${
                   isLight
                     ? 'bg-sky-100 text-sky-900 hover:bg-sky-200 border border-sky-300'
                     : 'bg-sky-950 text-sky-200 hover:bg-sky-900 border border-sky-700'
@@ -105,10 +112,33 @@ export const NodeAndShapeSubToolbar: React.FC<NodeAndShapeSubToolbarProps> = ({
                   <span className="font-mono tabular-nums text-[10px] opacity-80">({selectedNodeCount}点)</span>
                 )}
               </button>
+              {handleAddNodeToSelected && (
+                <button
+                  type="button"
+                  disabled={isGlyphLocked || !selectedContourId}
+                  onClick={() => handleAddNodeToSelected()}
+                  className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 border ${
+                    isGlyphLocked || !selectedContourId
+                      ? 'opacity-45 cursor-not-allowed'
+                      : 'cursor-pointer'
+                  } ${
+                    isLight
+                      ? 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border-emerald-300'
+                      : 'bg-emerald-950 text-emerald-200 hover:bg-emerald-900 border-emerald-700'
+                  }`}
+                  title="選択頂点の次のセグメント中央に頂点を追加"
+                >
+                  <Plus className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>中間点</span>
+                </button>
+              )}
               <button
                 type="button"
+                disabled={isGlyphLocked}
                 onClick={() => handleDeleteSelectedNode()}
-                className="px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 cursor-pointer"
+                className={`px-2 py-0.5 rounded text-xs font-bold flex items-center space-x-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 ${
+                  isGlyphLocked ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'
+                }`}
                 title="選択したノードを削除 (Deleteキー)"
               >
                 <Trash2 className="w-3 h-3 text-rose-600 dark:text-rose-400" />

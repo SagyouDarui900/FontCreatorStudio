@@ -190,13 +190,13 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
                     x: Math.round((n.handleIn.x + dx) * 10) / 10,
                     y: Math.round((n.handleIn.y + dy) * 10) / 10,
                   }
-                : undefined,
+                : null,
               handleOut: n.handleOut
                 ? {
                     x: Math.round((n.handleOut.x + dx) * 10) / 10,
                     y: Math.round((n.handleOut.y + dy) * 10) / 10,
                   }
-                : undefined,
+                : null,
             })),
           };
         });
@@ -306,9 +306,10 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     });
     setSelectedContourIds(contours.map((c) => c.id));
     setSelectedNodeIds?.(allNodeIds);
+    setSelectedHandleType(null);
     onSetToolMode?.('node');
     showCanvasToast('ノード全選択', `${allNodeIds.length}個のノードを選択しました`);
-  }, [contours, setSelectedContourIds, setSelectedNodeIds, onSetToolMode, showCanvasToast]);
+  }, [contours, setSelectedContourIds, setSelectedNodeIds, setSelectedHandleType, onSetToolMode, showCanvasToast]);
 
   return {
     handleDrawRulerAsStroke,

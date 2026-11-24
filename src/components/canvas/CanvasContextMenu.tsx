@@ -14,7 +14,10 @@ import {
   Binary,
   Layers,
   Lock,
+  Activity,
+  Plus,
 } from 'lucide-react';
+import { ToolMode } from '../../types';
 import { isLightTheme, getThemeClasses, ThemeMode } from '../../utils/theme';
 
 export interface CanvasContextMenuProps {
@@ -41,6 +44,11 @@ export interface CanvasContextMenuProps {
   onSelectPrevGlyph?: () => void;
   onSelectNextGlyph?: () => void;
   onSelectAllNodes?: () => void;
+  toolMode?: ToolMode;
+  selectedNodeCount?: number;
+  onToggleNodeType?: () => void;
+  onAddNode?: () => void;
+  onDeleteSelectedNode?: () => void;
   isGlyphLocked?: boolean;
 }
 
@@ -68,6 +76,11 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   onSelectPrevGlyph,
   onSelectNextGlyph,
   onSelectAllNodes,
+  toolMode: _toolMode,
+  selectedNodeCount = 0,
+  onToggleNodeType,
+  onAddNode,
+  onDeleteSelectedNode,
   isGlyphLocked = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -139,7 +152,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
     }
     nextTop = Math.max(pad, Math.min(nextTop, maxTop));
     setPos({ left: nextLeft, top: nextTop });
-  }, [isOpen, x, y, hasSelection, selectedContourCount, contourCount, hasClipboard]);
+  }, [isOpen, x, y, hasSelection, selectedContourCount, selectedNodeCount, contourCount, hasClipboard]);
 
   if (!isOpen) return null;
 
@@ -148,6 +161,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
       ref={menuRef}
       data-allow-native-scroll="true"
       style={{ left: pos.left, top: pos.top }}
+      onContextMenu={(e) => e.preventDefault()}
       className={`fixed z-50 w-56 max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] overflow-y-auto overscroll-contain touch-pan-y rounded-md border shadow-2xl p-1 flex flex-col gap-0.5 text-xs anim-pop select-none ${
         isLight
           ? 'bg-white border-stone-200 text-stone-800 shadow-stone-400/30'
@@ -165,12 +179,77 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             </span>
           )}
         </span>
-        {hasSelection && (
+        {(hasSelection || selectedNodeCount > 0) && (
           <span className="font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-            {selectedContourCount}個選択中
+            {selectedNodeCount > 0
+              ? `${selectedNodeCount}頂点`
+              : `${selectedContourCount}個選択中`}
           </span>
         )}
       </div>
+
+      {selectedNodeCount > 0 && (
+        <>
+          <div className="px-2 py-0.5 text-[10px] font-bold text-stone-400 dark:text-emerald-500 uppercase">
+            頂点操作 ({selectedNodeCount}点)
+          </div>
+          {onToggleNodeType && (
+            <button
+              disabled={isGlyphLocked}
+              onClick={() => {
+                if (isGlyphLocked) return;
+                onToggleNodeType();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                isGlyphLocked
+                  ? 'opacity-45 cursor-not-allowed'
+                  : `${themeClasses.activeToolHover} cursor-pointer`
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span>角 ⇄ スムーズ切替</span>
+            </button>
+          )}
+          {onAddNode && selectedContourCount === 1 && (
+            <button
+              disabled={isGlyphLocked}
+              onClick={() => {
+                if (isGlyphLocked) return;
+                onAddNode();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                isGlyphLocked
+                  ? 'opacity-45 cursor-not-allowed'
+                  : `${themeClasses.activeToolHover} cursor-pointer`
+              }`}
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>中間頂点を追加</span>
+            </button>
+          )}
+          {onDeleteSelectedNode && (
+            <button
+              disabled={isGlyphLocked}
+              onClick={() => {
+                if (isGlyphLocked) return;
+                onDeleteSelectedNode();
+                onClose();
+              }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 transition-colors ${
+                isGlyphLocked
+                  ? 'opacity-45 cursor-not-allowed'
+                  : 'hover:bg-rose-500/10 cursor-pointer'
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>選択頂点を削除</span>
+            </button>
+          )}
+          <div className="my-1 border-t border-stone-200/60 dark:border-emerald-900/40" />
+        </>
+      )}
 
       {hasSelection ? (
         <>
@@ -360,21 +439,19 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
 
           <div className="my-1 border-t border-stone-200/60 dark:border-emerald-900/40" />
         </>
-      ) : (
-        <>
-          {onSelectAllNodes && contourCount > 0 && (
-            <button
-              onClick={() => {
-                onSelectAllNodes();
-                onClose();
-              }}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
-            >
-              <Maximize2 className="w-3.5 h-3.5 text-stone-500" />
-              <span>すべてのノードを選択</span>
-            </button>
-          )}
-        </>
+      ) : null}
+
+      {onSelectAllNodes && contourCount > 0 && (
+        <button
+          onClick={() => {
+            onSelectAllNodes();
+            onClose();
+          }}
+          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left ${themeClasses.activeToolHover} cursor-pointer transition-colors`}
+        >
+          <Maximize2 className="w-3.5 h-3.5 text-stone-500" />
+          <span>すべてのノードを選択</span>
+        </button>
       )}
 
       {hasClipboard && onPasteSelected && (
