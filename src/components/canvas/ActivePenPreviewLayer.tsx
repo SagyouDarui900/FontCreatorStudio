@@ -1,13 +1,13 @@
 import React from 'react';
-import { PathContour, Point } from '../../types';
+import { PathContour } from '../../types';
 import { useHoverCanvasPos } from './hoverStore';
+import { usePenMousePos } from './penMouseStore';
 
 export interface ActivePenPreviewLayerProps {
   activePenContour: PathContour | null;
   penSvgPath: string;
   penStrokeWidth: number;
   penCapStyle: 'round' | 'square' | 'butt';
-  penMousePos: Point | null;
   zoom: number;
   selectionColor: string;
 }
@@ -18,11 +18,14 @@ export const ActivePenPreviewLayer: React.FC<ActivePenPreviewLayerProps> = React
     penSvgPath,
     penStrokeWidth,
     penCapStyle,
-    penMousePos,
     zoom,
     selectionColor,
   }) => {
     const hoverCanvasPos = useHoverCanvasPos();
+    // H12: the pen position comes from the pen-only external store, which
+    // the dispatcher writes on every pen pointermove (no hover threshold
+    // or rAF batching), so the rubber-band tracks the pointer immediately.
+    const penMousePos = usePenMousePos();
     if (!activePenContour) return null;
 
     return (

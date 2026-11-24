@@ -36,6 +36,7 @@ import { KANA_PAIRS } from './data/unicodeTables';
 import { ModalProvider, useModalContext } from './contexts/ModalContext';
 import { ProjectProvider, useProjectContext } from './contexts/ProjectContext';
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from './utils/storageKeys';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from './utils/gridDefaults';
 import { contoursHaveFiniteCoordinates } from './utils/path';
 import { AppModalsHost } from './components/modals/AppModalsHost';
 import { toStoredTraceSettings, areStoredTraceSettingsEqual } from './utils/traceSettings';
@@ -56,8 +57,8 @@ const DEFAULT_TRACE_SETTINGS: TraceSettings = {
 
 const DEFAULT_GRID_SETTINGS: GridSettings = {
   showGrid: true,
-  gridSize: 100,
-  gridOpacity: 35,
+  gridSize: DEFAULT_GRID_SIZE,
+  gridOpacity: DEFAULT_GRID_OPACITY,
   snapToGrid: false,
   snapToPoints: false,
   snapToGuides: false,
@@ -66,7 +67,7 @@ const DEFAULT_GRID_SETTINGS: GridSettings = {
   showHandles: true,
   japaneseGuide: 'cross',
   showBodyFrame: true,
-  showKanaFrame: false,
+  showKanaFrame: true,
   highContrastCursor: true,
   showCursorCrosshair: false,
 };
@@ -381,6 +382,7 @@ function AppMain({
     setIsPixelStudioOpen,
     setIsMojikumiStudioOpen,
     setIsPenPresetsModalOpen,
+    openModal,
     closeModal,
     isAnyModalOpen,
     activeModal,
@@ -607,6 +609,7 @@ function AppMain({
     setToolMode,
     handleAutoSpaceCurrentGlyph,
     handleSimplifyCurrentGlyph,
+    onOpenShortcutsHelp: () => openModal('shortcuts'),
   });
 
   return (

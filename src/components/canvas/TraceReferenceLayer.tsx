@@ -3,6 +3,7 @@ import { TraceSettings, ToolMode } from '../../types';
 import { computeTraceCharMetrics } from './traceCharMetrics';
 import { TRACE_DEFAULT_OPACITY } from './traceOptions';
 import { resolveBaselineY } from '../../utils/font/constants';
+import { useLiveViewportZoom } from './viewportStore';
 
 // Corner handles only. All four corners scale from the center by the
 // pointer distance ratio, so no edge (n/s/e/w) handle exists.
@@ -41,7 +42,9 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
     onTraceImageError,
     zoom = 1,
   }) => {
-    const z = zoom && zoom > 0 ? zoom : 1;
+    // L4: use the live pinch zoom so the adjust-handle sizes track the gesture.
+    const liveZoom = useLiveViewportZoom(zoom);
+    const z = liveZoom && liveZoom > 0 ? liveZoom : 1;
     const upm = unitsPerEm || 1000;
     const half = upm / 2;
     const baselineY = resolveBaselineY(ascender, upm);

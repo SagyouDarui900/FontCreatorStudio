@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import {
   MousePointer,
   PenTool,
@@ -286,7 +287,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
         >
           <Grid className="w-4 h-4 shrink-0" />
           <span className="absolute bottom-0.5 right-0.5 text-[6.5px] font-mono font-bold text-emerald-600 dark:text-emerald-400 leading-none pointer-events-none">
-            {gridSettings.gridSize || 50}
+            {gridSettings.gridSize || DEFAULT_GRID_SIZE}
           </span>
         </button>
       </div>

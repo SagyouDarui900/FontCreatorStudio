@@ -50,7 +50,6 @@ function CleanupHarness({
     resetBrushDrawing: vi.fn(),
     finalizeBrushDrawing,
     setActivePenContour: vi.fn(),
-    setPenMousePos: vi.fn(),
     setShapeStartPoint: vi.fn(),
     setShapeCurrentPoint: vi.fn(),
     setTransformSession: vi.fn(),

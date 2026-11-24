@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import { resolveCanvasMetrics } from '../../utils/font/constants';
 import { useLiveViewportZoom } from './viewportStore';
 
@@ -28,7 +29,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     isLight = true,
     showVerticalCenter = true,
     suppressCenterLine = false,
-    gridOpacity = 30,
+    gridOpacity = DEFAULT_GRID_OPACITY,
     unitsPerEm = 1000,
     ascender,
     descender,
@@ -47,7 +48,7 @@ export const MetricsGuidesLayer: React.FC<MetricsGuidesLayerProps> = React.memo(
     const isKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(activeChar);
     const isJapanese = isKana || isKanji;
 
-    const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? 30) / 45));
+    const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? DEFAULT_GRID_OPACITY) / 45));
 
     // When drafting Japanese characters, keep Western-specific metrics very subtle and suppress Latin text clutter inside/near the glyph
     const latinMetricsOpacity = (isJapanese ? 0.2 : 0.58) * opacityScale;

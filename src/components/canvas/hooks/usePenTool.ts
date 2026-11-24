@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { PathContour, Point, BezierNode, ToolMode } from '../../../types';
 import { contoursToSvgPath, unionContours, hasContourIntersections, expandStrokeContours } from '../../../utils/path';
+import { setPenMousePos } from '../penMouseStore';
 
 interface UsePenToolOptions {
   toolMode?: ToolMode;
@@ -78,7 +79,6 @@ export function usePenTool({
   }, []);
 
   const [activePenContour, setActivePenContour] = useState<PathContour | null>(null);
-  const [penMousePos, setPenMousePos] = useState<Point | null>(null);
   const [penHudPos, setPenHudPos] = useState<{ x: number; y: number } | null>(null);
   const isDraggingPenHudRef = useRef(false);
   const penHudDragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -334,8 +334,6 @@ export function usePenTool({
     setShowPenStrokeMenu,
     activePenContour,
     setActivePenContour,
-    penMousePos,
-    setPenMousePos,
     penHudPos,
     setPenHudPos,
     handleUndoPenNode,

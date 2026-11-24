@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import {
   Sliders,
@@ -353,7 +354,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                     <span>方眼グリッドサイズ</span>
                   </span>
                   <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
-                    {gridSettings.gridSize || 50}px
+                    {gridSettings.gridSize || DEFAULT_GRID_SIZE}px
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -361,7 +362,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                     type="button"
                     onClick={() =>
                       onChangeGridSettings((prev) => {
-                        const current = prev.gridSize || 50;
+                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
                         const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
                         return { ...prev, gridSize: Math.max(5, current - step) };
                       })
@@ -375,7 +376,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                     min="5"
                     max="200"
                     step="5"
-                    value={gridSettings.gridSize || 50}
+                    value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
@@ -386,7 +387,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                     type="button"
                     onClick={() =>
                       onChangeGridSettings((prev) => {
-                        const current = prev.gridSize || 50;
+                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
                         const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
                         return { ...prev, gridSize: Math.min(250, current + step) };
                       })
@@ -403,7 +404,7 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                       type="button"
                       onClick={() => onChangeGridSettings((prev) => ({ ...prev, gridSize: size }))}
                       className={`flex-1 py-1 rounded text-[10px] font-mono font-bold border transition-colors ${
-                        (gridSettings.gridSize || 50) === size
+                        (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
                           ? 'bg-emerald-600 text-white border-emerald-600'
                           : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300'
                       }`}

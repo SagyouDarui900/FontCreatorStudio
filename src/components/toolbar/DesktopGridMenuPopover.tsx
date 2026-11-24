@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import { Grid, X } from 'lucide-react';
 import { GridSettings } from '../../types';
@@ -30,10 +31,10 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
   isLight,
   popoverRef,
 }) => {
-  const [draftGridSize, setDraftGridSize] = useState<string>(String(gridSettings.gridSize || 50));
+  const [draftGridSize, setDraftGridSize] = useState<string>(String(gridSettings.gridSize || DEFAULT_GRID_SIZE));
 
   useEffect(() => {
-    setDraftGridSize(String(gridSettings.gridSize || 50));
+    setDraftGridSize(String(gridSettings.gridSize || DEFAULT_GRID_SIZE));
   }, [gridSettings.gridSize]);
 
   if (!isOpen || typeof document === 'undefined') return null;
@@ -41,7 +42,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
   const commitDraftGridSize = () => {
     const parsed = parseInt(draftGridSize, 10);
     if (isNaN(parsed)) {
-      setDraftGridSize(String(gridSettings.gridSize || 50));
+      setDraftGridSize(String(gridSettings.gridSize || DEFAULT_GRID_SIZE));
       return;
     }
     const clamped = Math.max(5, Math.min(250, parsed));
@@ -155,7 +156,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               type="button"
               onClick={() =>
                 setGridSettings((prev) => {
-                  const current = prev.gridSize || 50;
+                  const current = prev.gridSize || DEFAULT_GRID_SIZE;
                   const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
                   return { ...prev, gridSize: Math.max(5, current - step) };
                 })
@@ -197,7 +198,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               type="button"
               onClick={() =>
                 setGridSettings((prev) => {
-                  const current = prev.gridSize || 50;
+                  const current = prev.gridSize || DEFAULT_GRID_SIZE;
                   const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
                   return { ...prev, gridSize: Math.min(250, current + step) };
                 })
@@ -218,7 +219,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
             min="5"
             max="250"
             step="5"
-            value={gridSettings.gridSize || 100}
+            value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
               setGridSettings((prev) => ({
@@ -244,7 +245,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                 }))
               }
               className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
-                (gridSettings.gridSize || 100) === size
+                (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
               }`}
@@ -261,7 +262,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               グリッド線の濃さ
             </span>
             <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
-              {gridSettings.gridOpacity ?? 35}%
+              {gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}%
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -271,7 +272,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
               min="10"
               max="100"
               step="5"
-              value={gridSettings.gridOpacity ?? 35}
+              value={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
                 setGridSettings((prev) => ({
@@ -300,7 +301,7 @@ export const DesktopGridMenuPopover: React.FC<DesktopGridMenuPopoverProps> = Rea
                   }))
                 }
                 className={`flex-1 py-0.5 rounded text-[9.5px] font-bold border cursor-pointer ${
-                  (gridSettings.gridOpacity ?? 35) === p.val
+                  (gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY) === p.val
                     ? 'bg-emerald-600 text-white border-emerald-600'
                     : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
                 }`}

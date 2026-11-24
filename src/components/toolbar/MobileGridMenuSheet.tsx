@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import { X, Grid, Magnet, Eye, Move, Bookmark, Save, Download, Ruler, Crosshair, Layers } from 'lucide-react';
 import { GridSettings, JapaneseGuidePattern, ThemeClasses } from '../../types';
@@ -149,7 +150,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  type="button"
  onClick={() =>
  setGridSettings((prev) => {
- const current = prev.gridSize || 50;
+ const current = prev.gridSize || DEFAULT_GRID_SIZE;
  const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
  return { ...prev, gridSize: Math.max(5, current - step) };
  })
@@ -163,7 +164,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  type="number"
  min="5"
  max="250"
- value={gridSettings.gridSize || 50}
+ value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
  onChange={(e) => {
  const val = parseInt(e.target.value, 10);
  if (!isNaN(val)) {
@@ -181,7 +182,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  type="button"
  onClick={() =>
  setGridSettings((prev) => {
- const current = prev.gridSize || 50;
+ const current = prev.gridSize || DEFAULT_GRID_SIZE;
  const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
  return { ...prev, gridSize: Math.min(250, current + step) };
  })
@@ -201,7 +202,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  min="5"
  max="250"
  step="5"
- value={gridSettings.gridSize || 100}
+ value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
  onChange={(e) => {
  const val = parseInt(e.target.value, 10);
  setGridSettings((prev) => ({
@@ -227,7 +228,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }))
  }
  className={`py-1.5 rounded-lg text-xs font-mono font-bold border ${
- (gridSettings.gridSize || 100) === size
+ (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
  : isLight
  ? 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
@@ -246,7 +247,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  グリッド線の濃さ
  </span>
  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
- {gridSettings.gridOpacity ?? 35}%
+ {gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}%
  </span>
  </div>
  <div className="flex items-center gap-2">
@@ -256,7 +257,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  min="10"
  max="100"
  step="5"
- value={gridSettings.gridOpacity ?? 35}
+ value={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
  onChange={(e) => {
  const val = parseInt(e.target.value, 10);
  setGridSettings((prev) => ({
@@ -285,7 +286,7 @@ export const MobileGridMenuSheet: React.FC<MobileGridMenuSheetProps> = React.mem
  }))
  }
  className={`py-1 rounded-lg text-xs font-bold border ${
- (gridSettings.gridOpacity ?? 35) === p.val
+ (gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY) === p.val
  ? 'bg-emerald-600 text-white border-emerald-600 '
  : isLight
  ? 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'

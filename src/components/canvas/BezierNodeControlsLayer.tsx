@@ -2,6 +2,7 @@ import React, { useSyncExternalStore } from 'react';
 import { PathContour, BezierNode, Point, ToolMode, GridSettings } from '../../types';
 import { contoursToSvgPath } from '../../utils/path';
 import { getHoverCanvasPos, subscribeHoverCanvasPos } from './hoverStore';
+import { useLiveViewportZoom } from './viewportStore';
 
 const NOOP_UNSUB = () => () => {};
 const NULL_POS = (): Point | null => null;
@@ -43,7 +44,7 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
     selectedNodeIds,
     nodeStyle,
     gridSettings,
-    zoom,
+    zoom: propZoom,
     isLight,
     startNodeOrHandleDrag,
     handleToggleNodeType,
@@ -54,6 +55,8 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
       isEraserNodeActive ? subscribeHoverCanvasPos : NOOP_UNSUB,
       isEraserNodeActive ? getHoverCanvasPos : NULL_POS
     );
+    // M6: keep node handles a constant screen size during pinch zoom.
+    const zoom = useLiveViewportZoom(propZoom);
     if (!showNodes && !isEraserNodeActive) {
       return null;
     }

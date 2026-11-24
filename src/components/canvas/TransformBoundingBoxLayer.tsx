@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLiveViewportZoom } from './viewportStore';
 
 export interface SelContoursBBox {
   minX: number;
@@ -46,13 +47,15 @@ export const TransformBoundingBoxLayer: React.FC<TransformBoundingBoxLayerProps>
   toolMode,
   selectedContourIds,
   selContoursBBox,
-  zoom,
+  zoom: propZoom,
   selectionColor,
   selectedContoursSvgPath,
   rotateDisplayAngle,
   handleTransformPointerDown,
   isGlyphLocked = false,
 }) => {
+  // M6: keep the selection frame handles a constant screen size during pinch zoom.
+  const zoom = useLiveViewportZoom(propZoom);
   if (toolMode !== 'select' || selectedContourIds.length === 0 || !selContoursBBox) {
     return null;
   }

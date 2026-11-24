@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import { ThemeMode } from '../../utils/theme';
 import { JapaneseGuidePattern, VerticalGuidePattern } from '../../types';
 import { useLiveViewportZoom } from './viewportStore';
@@ -24,7 +25,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
     showKanaFrame,
     isLight,
     theme = 'light',
-    gridOpacity = 30,
+    gridOpacity = DEFAULT_GRID_OPACITY,
     unitsPerEm = 1000,
     zoom = 1,
   }) => {
@@ -72,7 +73,7 @@ export const JapaneseGuidesLayer: React.FC<JapaneseGuidesLayerProps> = React.mem
       return null;
     }
 
-    const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? 30) / 45));
+    const opacityScale = Math.min(1.1, Math.max(0.25, (gridOpacity ?? DEFAULT_GRID_OPACITY) / 45));
     const labelColor = isLight ? '#64748b' : '#94a3b8';
 
     const primaryColor =

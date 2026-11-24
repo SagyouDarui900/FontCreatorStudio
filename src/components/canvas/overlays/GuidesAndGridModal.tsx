@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import {
   Grid,
@@ -240,7 +241,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                     type="button"
                     onClick={() =>
                       onChangeGridSettings?.((prev) => {
-                        const current = prev.gridSize || 50;
+                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
                         const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
                         return { ...prev, gridSize: Math.max(5, current - step) };
                       })
@@ -255,7 +256,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       type="number"
                       min="5"
                       max="250"
-                      value={gridSettings.gridSize || 50}
+                      value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         if (!isNaN(val)) {
@@ -273,7 +274,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                     type="button"
                     onClick={() =>
                       onChangeGridSettings?.((prev) => {
-                        const current = prev.gridSize || 50;
+                        const current = prev.gridSize || DEFAULT_GRID_SIZE;
                         const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
                         return { ...prev, gridSize: Math.min(250, current + step) };
                       })
@@ -294,7 +295,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   min="5"
                   max="250"
                   step="5"
-                  value={gridSettings.gridSize || 100}
+                  value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     onChangeGridSettings?.((prev) => ({
@@ -303,7 +304,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                     }));
                   }}
                   className="flex-1 h-2 bg-stone-200 dark:bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-600 focus:outline-hidden touch-pan-x"
-                  title={`グリッドサイズ: ${gridSettings.gridSize || 100}px`}
+                  title={`グリッドサイズ: ${gridSettings.gridSize || DEFAULT_GRID_SIZE}px`}
                 />
                 <span className="text-[10px] font-mono text-stone-400 font-bold">250px</span>
               </div>
@@ -328,7 +329,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       }))
                     }
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors shrink-0 ${
-                      (gridSettings.gridSize || 100) === preset.size
+                      (gridSettings.gridSize || DEFAULT_GRID_SIZE) === preset.size
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
                     }`}
@@ -346,7 +347,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   グリッド・ガイド線の濃さ (透明度)
                 </span>
                 <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {gridSettings.gridOpacity ?? 35}%
+                  {gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -356,7 +357,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                   min="10"
                   max="100"
                   step="5"
-                  value={gridSettings.gridOpacity ?? 35}
+                  value={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     onChangeGridSettings?.((prev) => ({
@@ -387,7 +388,7 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                       }))
                     }
                     className={`flex-1 py-1 rounded text-[10px] font-bold border transition-colors ${
-                      (gridSettings.gridOpacity ?? 35) === p.val
+                      (gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY) === p.val
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
                     }`}

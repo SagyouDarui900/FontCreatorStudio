@@ -64,7 +64,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['W'], description: 'キャンバス幅に合わせて拡大', category: 'view' },
   { keys: ['+'], description: 'ズームイン', category: 'view' },
   { keys: ['-'], description: 'ズームアウト', category: 'view' },
-  { keys: ['F'], description: '全画面表示の切り替え', category: 'view' },
+  { keys: ['F'], description: 'サイドバー収納の集中モード切替', category: 'view' },
   { keys: ['Shift', '+', 'O', 'または', 'Alt + O'], description: '輪郭線表示と塗りつぶし表示を切り替え', category: 'view' },
   { keys: ['N'], description: 'ノードとハンドルの表示を切り替え', category: 'view' },
   { keys: ['G'], description: '方眼グリッドの表示を切り替え', category: 'view' },

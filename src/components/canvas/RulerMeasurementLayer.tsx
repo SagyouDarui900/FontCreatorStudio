@@ -1,5 +1,6 @@
 import React from 'react';
 import { Point } from '../../types';
+import { useLiveViewportZoom } from './viewportStore';
 
 interface RulerMeasurementLayerProps {
   rulerMeasurement: { start: Point; end: Point; active?: boolean } | null;
@@ -10,7 +11,9 @@ interface RulerMeasurementLayerProps {
 }
 
 export const RulerMeasurementLayer: React.FC<RulerMeasurementLayerProps> = React.memo(
-  ({ rulerMeasurement, zoom, onDrawLine, onConvertToGuide, onClear }) => {
+  ({ rulerMeasurement, zoom: propZoom, onDrawLine, onConvertToGuide, onClear }) => {
+    // M6: keep the measurement label a constant screen size during pinch zoom.
+    const zoom = useLiveViewportZoom(propZoom);
     if (!rulerMeasurement) return null;
 
     const { start, end, active } = rulerMeasurement;

@@ -18,6 +18,7 @@ import { usePointerTransformDispatch } from './usePointerTransformDispatch';
 import { usePointerGuidelineDrag } from './usePointerGuidelineDrag';
 import { computePinchTransform } from './viewportMath';
 import { setHoverCanvasPos, getHoverCanvasPos } from '../hoverStore';
+import { setPenMousePos } from '../penMouseStore';
 import { setLiveViewport } from '../viewportStore';
 
 export interface UseCanvasPointerDispatcherOptions {
@@ -120,7 +121,6 @@ export interface UseCanvasPointerDispatcherOptions {
   penStrokeWidth: number;
   penCapStyle: 'round' | 'butt' | 'square';
   autoResolveBrushOverlap: boolean;
-  setPenMousePos: (pos: Point | null) => void;
 
   handleTransformPointerMove: (pos: Point, e: React.PointerEvent<SVGSVGElement>) => boolean;
   handleTransformPointerUp: () => boolean;
@@ -239,7 +239,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     resetEraserVisuals,
     activePenContour,
     setActivePenContour,
-    setPenMousePos,
     handleTransformPointerMove,
     handleTransformPointerUp,
     setTransformSession,
@@ -810,6 +809,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         hoverCanvasPosRef.current = penPos;
         pendingHoverPosRef.current = penPos;
         setHoverCanvasPos(penPos);
+        setPenMousePos(penPos);
         return;
       }
 
@@ -897,6 +897,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       hoverCanvasPosRef.current = penPos;
       pendingHoverPosRef.current = penPos;
       setHoverCanvasPos(penPos);
+      setPenMousePos(penPos);
       return;
     }
 
@@ -1259,8 +1260,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Pen tool handle drag & rubber-band (hoverStore drives ActivePenPreviewLayer without GlyphCanvas re-renders)
+    // Pen tool handle drag & rubber-band. H12: write the pen position to
+    // the pen-only external store immediately (no hover threshold or rAF
+    // batching) so the rubber-band tracks the pointer without lag.
     if (toolMode === 'pen') {
+      setPenMousePos(pos);
       const currentContour = activePenContourRef.current;
       const session = penDragHandleSessionRef.current;
 
@@ -1350,7 +1354,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isShapeTool,
     shapeStartPoint,
     handleShapePointerMove,
-    setPenMousePos,
     handleNodeDragMove,
     panStartRef,
     panRef,

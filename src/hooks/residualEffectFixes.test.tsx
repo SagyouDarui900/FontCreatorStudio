@@ -267,4 +267,114 @@ describe('Residual useEffect fixes (R2 & R4)', () => {
     });
     container.remove();
   });
+
+  it("useAppShortcuts opens the shortcuts help modal on '?' and ignores it while a modal is open", () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const onOpenShortcutsHelp = vi.fn();
+    const makeOptions = (isAnyModalOpen = false): UseAppShortcutsOptions => ({
+      isAnyModalOpen,
+      handleUndo: vi.fn(),
+      handleRedo: vi.fn(),
+      handleQuickSaveCurrentGlyph: vi.fn(),
+      handleCopyGlyph: vi.fn(),
+      handlePasteGlyph: vi.fn(),
+      selectedUnicode: 0x3042,
+      currentGlyph: { unicode: 0x3042, char: 'あ', name: 'uni3042', contours: [], advanceWidth: 1000, lsb: 0 },
+      clipboardContours: null,
+      handleSelectPrevGlyph: vi.fn(),
+      handleSelectNextGlyph: vi.fn(),
+      toggleZenMode: vi.fn(),
+      setToolMode: vi.fn(),
+      onOpenShortcutsHelp,
+    });
+
+    act(() => {
+      root.render(<AppShortcutsHarness {...makeOptions(false)} />);
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    });
+    expect(onOpenShortcutsHelp).toHaveBeenCalledTimes(1);
+
+    // While any modal is open, '?' must not open another one.
+    act(() => {
+      root.render(<AppShortcutsHarness {...makeOptions(true)} />);
+    });
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    });
+    expect(onOpenShortcutsHelp).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('FontInfoModal asks for confirmation before discarding unsaved edits on close (M2)', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const setProject = vi.fn();
+    const onClose = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    act(() => {
+      root.render(
+        <FontInfoModal
+          isOpen={true}
+          onClose={onClose}
+          project={makeProject('InitialFont')}
+          setProject={setProject}
+          theme="dark"
+        />
+      );
+    });
+
+    const getFamilyInput = () =>
+      container.querySelector<HTMLInputElement>('input[placeholder="例: MyCustomFont"]');
+    const getCloseButton = () =>
+      Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '閉じる');
+
+    // No edits yet: closing needs no confirmation.
+    act(() => {
+      getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Edit the family name, then cancel the close confirmation.
+    act(() => {
+      const input = getFamilyInput();
+      if (input) {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+        setter.call(input, 'EditedFont');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    expect(getFamilyInput()?.value).toBe('EditedFont');
+
+    act(() => {
+      getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Accepting the confirmation discards the edits and closes.
+    confirmSpy.mockReturnValue(true);
+    act(() => {
+      getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

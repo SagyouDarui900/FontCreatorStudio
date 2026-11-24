@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useRef } from 'react';
 import { ToolMode, Point, PathContour, SnapGuideLine } from '../../../types';
 import type { TouchLoupeState } from '../overlays/CanvasTouchLoupe';
 import { isShapeToolMode } from './useShapeCreation';
+import { setPenMousePos } from '../penMouseStore';
 
 export type { TouchLoupeState };
 
@@ -20,7 +21,6 @@ export interface UseToolModeCleanupOptions {
   resetBrushDrawing: () => void;
   finalizeBrushDrawing?: () => boolean;
   setActivePenContour: (val: any) => void;
-  setPenMousePos?: (pos: Point | null) => void;
   setShapeStartPoint: (pt: Point | null) => void;
   setShapeCurrentPoint: (pt: Point | null) => void;
   setTransformSession: (val: any) => void;
@@ -92,7 +92,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       }
       opts.isPenDrawingRef.current = false;
       opts.setActivePenContour(null);
-      opts.setPenMousePos?.(null);
+      setPenMousePos(null);
     }
     // H9: the guide-eraser mode belongs to the ruler tool only.
     opts.setIsGuideEraserActive?.(false);
@@ -125,7 +125,7 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
     opts.isErasingRef.current = false;
     opts.isPenDrawingRef.current = false;
     opts.setActivePenContour(null);
-    opts.setPenMousePos?.(null);
+    setPenMousePos(null);
     opts.setShapeStartPoint(null);
     opts.setShapeCurrentPoint(null);
     opts.setMarqueeSelection(null);

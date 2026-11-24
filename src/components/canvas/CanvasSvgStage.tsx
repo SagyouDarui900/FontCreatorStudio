@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import {
   PathContour,
   BezierNode,
@@ -131,7 +132,6 @@ export interface CanvasSvgStageProps {
   penSvgPath: string;
   penStrokeWidth: number;
   penCapStyle: 'round' | 'butt' | 'square';
-  penMousePos: Point | null;
   brushWidth: number;
   activeSnapGuides: SnapGuideLine[];
   isGlyphLocked?: boolean;
@@ -227,7 +227,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   penSvgPath,
   penStrokeWidth,
   penCapStyle,
-  penMousePos,
   brushWidth,
   activeSnapGuides,
   isGlyphLocked = false,
@@ -326,8 +325,8 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           isLight={isLight}
           theme={theme}
           showGrid={!!gridSettings.showGrid}
-          gridSize={gridSettings.gridSize || 50}
-          gridOpacity={gridSettings.gridOpacity ?? 30}
+          gridSize={gridSettings.gridSize || DEFAULT_GRID_SIZE}
+          gridOpacity={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
           unitsPerEm={upm}
           zoom={zoom}
         />
@@ -341,7 +340,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           isLight={isLight}
           theme={theme}
           activeChar={activeChar}
-          gridOpacity={gridSettings.gridOpacity ?? 30}
+          gridOpacity={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
           unitsPerEm={upm}
           zoom={zoom}
         />
@@ -351,6 +350,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           isLight={isLight}
           advanceWidth={advanceWidth}
           unitsPerEm={upm}
+          zoom={zoom}
         />
 
         {/* 3.5 Glyph Overlay Comparison Layer */}
@@ -397,7 +397,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
               (gridSettings.verticalGuide &&
                 ['center', 'quarters', 'eighths'].includes(gridSettings.verticalGuide))
           )}
-          gridOpacity={gridSettings.gridOpacity ?? 30}
+          gridOpacity={gridSettings.gridOpacity ?? DEFAULT_GRID_OPACITY}
           unitsPerEm={upm}
           ascender={project?.metadata?.ascender}
           descender={project?.metadata?.descender}
@@ -571,7 +571,6 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
             penSvgPath={penSvgPath}
             penStrokeWidth={penStrokeWidth}
             penCapStyle={penCapStyle}
-            penMousePos={penMousePos}
             zoom={zoom}
             selectionColor={selectionColor}
           />

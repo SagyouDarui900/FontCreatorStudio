@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import {
   X,
   ChevronLeft,
@@ -514,10 +515,10 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                     ? 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-900'
                     : 'bg-[#17261c] hover:bg-emerald-900 border-emerald-700 text-emerald-200'
                 }`}
-                title="グリッドサイズ変更 (Alt +/-)"
+                title="グリッドサイズ変更"
               >
                 <Grid className="w-3 h-3" />
-                <span>{gridSettings.gridSize || 50}px</span>
+                <span>{gridSettings.gridSize || DEFAULT_GRID_SIZE}px</span>
               </button>
 
               {showQuickGridSlider && (
@@ -534,7 +535,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                       <span>グリッドサイズ</span>
                     </span>
                     <span className="font-mono tabular-nums font-bold text-xs px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
-                      {gridSettings.gridSize || 50}px
+                      {gridSettings.gridSize || DEFAULT_GRID_SIZE}px
                     </span>
                   </div>
                   <div className="space-y-2">
@@ -543,7 +544,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                         type="button"
                         onClick={() =>
                           onChangeGridSettings((prev) => {
-                            const current = prev.gridSize || 50;
+                            const current = prev.gridSize || DEFAULT_GRID_SIZE;
                             const step = current > 100 ? 10 : current <= 20 ? 2 : 5;
                             return { ...prev, gridSize: Math.max(5, current - step) };
                           })
@@ -557,7 +558,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                         min="5"
                         max="250"
                         step="5"
-                        value={gridSettings.gridSize || 100}
+                        value={gridSettings.gridSize || DEFAULT_GRID_SIZE}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           onChangeGridSettings((prev) => ({ ...prev, gridSize: val }));
@@ -568,7 +569,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                         type="button"
                         onClick={() =>
                           onChangeGridSettings((prev) => {
-                            const current = prev.gridSize || 100;
+                            const current = prev.gridSize || DEFAULT_GRID_SIZE;
                             const step = current >= 100 ? 10 : current < 20 ? 2 : 5;
                             return { ...prev, gridSize: Math.min(250, current + step) };
                           })
@@ -587,7 +588,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                             onChangeGridSettings((prev) => ({ ...prev, gridSize: size }))
                           }
                           className={`px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums font-bold border transition-colors ${
-                            (gridSettings.gridSize || 100) === size
+                            (gridSettings.gridSize || DEFAULT_GRID_SIZE) === size
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300'
                           }`}
@@ -615,7 +616,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 }));
                 showCanvasToast(next ? 'スナップ: ON' : 'スナップ: OFF');
               }}
-              title={`スマートスナップ [S]: ${gridSettings.snapToGrid || gridSettings.snapToGuides ? 'ON' : 'OFF'}`}
+              title={`スマートスナップ: ${gridSettings.snapToGrid || gridSettings.snapToGuides ? 'ON' : 'OFF'}`}
               className={`h-6 px-1.5 rounded transition-colors flex items-center justify-center gap-1 font-bold text-[10.5px] ${
                 gridSettings.snapToGrid || gridSettings.snapToGuides
                   ? 'bg-emerald-600 text-white'
@@ -702,7 +703,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             <button
               type="button"
               onClick={onToggleZenMode}
-              title={`集中モード (Zキー): ${isZenMode ? 'ON' : 'OFF'}`}
+              title={`集中モード (Fキー): ${isZenMode ? 'ON' : 'OFF'}`}
               className={`h-6 w-6 flex items-center justify-center rounded transition-colors ${
                 isZenMode
                   ? isLight

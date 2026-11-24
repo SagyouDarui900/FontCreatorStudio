@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   X,
   Settings,
@@ -41,6 +41,16 @@ interface FontInfoModalProps {
 
 type ModalTab = 'info' | 'license' | 'opentype' | 'guide';
 
+/** The form's starting metadata: stored defaults with an inferred weight class. */
+function toFormMetadata(meta: FontMetadata): FontMetadata {
+  return {
+    license: meta.license || 'SIL Open Font License 1.1',
+    licenseUrl: meta.licenseUrl || 'https://openfontlicense.org/',
+    usWeightClass: meta.usWeightClass ?? inferWeightClassFromStyleName(meta.styleName),
+    ...meta,
+  };
+}
+
 const STYLE_PRESET_CHIPS: { styleName: string; usWeightClass: number }[] = [
   { styleName: 'Thin', usWeightClass: 100 },
   { styleName: 'ExtraLight', usWeightClass: 200 },
@@ -64,29 +74,39 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
   commitProjectHistory,
 }) => {
   const [activeTab, setActiveTab] = useState<ModalTab>('info');
-  const [formData, setFormData] = useState<FontMetadata>({
-    license: 'SIL Open Font License 1.1',
-    licenseUrl: 'https://openfontlicense.org/',
-    usWeightClass:
-      project.metadata.usWeightClass ?? inferWeightClassFromStyleName(project.metadata.styleName),
-    ...project.metadata,
-  });
+  const [formData, setFormData] = useState<FontMetadata>(() => toFormMetadata(project.metadata));
 
   // Sync formData only when modal opens (false -> true) so unsaved edits are preserved
   const prevIsOpenRef = React.useRef(false);
   const metadataRef = React.useRef(project.metadata);
   metadataRef.current = project.metadata;
+  // M2: last saved metadata, for the unsaved-changes check on close.
+  // Stored in the same normalized form as formData, so the initial state
+  // (e.g. an inferred usWeightClass) does not count as an edit.
+  const savedMetadataRef = useRef<FontMetadata>(toFormMetadata(project.metadata));
+  const formDataRef = useRef<FontMetadata>(formData);
+  formDataRef.current = formData;
+  const isFormDirty = useCallback(
+    () => JSON.stringify(formDataRef.current) !== JSON.stringify(savedMetadataRef.current),
+    []
+  );
+  const handleRequestClose = useCallback(() => {
+    if (
+      isFormDirty() &&
+      !window.confirm('保存されていない変更があります。閉じると変更は破棄されます。閉じますか？')
+    ) {
+      return;
+    }
+    onClose();
+  }, [isFormDirty, onClose]);
   React.useEffect(() => {
     const justOpened = isOpen && !prevIsOpenRef.current;
     prevIsOpenRef.current = isOpen;
     if (justOpened) {
       const meta = metadataRef.current;
-      setFormData({
-        license: meta.license || 'SIL Open Font License 1.1',
-        licenseUrl: meta.licenseUrl || 'https://openfontlicense.org/',
-        usWeightClass: meta.usWeightClass ?? inferWeightClassFromStyleName(meta.styleName),
-        ...meta,
-      });
+      const normalized = toFormMetadata(meta);
+      savedMetadataRef.current = normalized;
+      setFormData(normalized);
     }
   }, [isOpen]);
   const [isDownloaded, setIsDownloaded] = useState(false);
@@ -110,7 +130,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         if (isFullscreen) {
           setIsFullscreen(false);
         } else {
-          onClose();
+          handleRequestClose();
         }
       } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -119,7 +139,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isTopModal, isFullscreen, isBundledFontsModalOpen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, isBundledFontsModalOpen, handleRequestClose]);
 
   if (!isOpen) return null;
 
@@ -257,6 +277,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         onShowToast('フォント情報を保存しました', 'success');
       }
     }
+    savedMetadataRef.current = formData;
     onClose();
   };
 
@@ -319,7 +340,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleRequestClose}
               aria-label="閉じる"
               className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
@@ -665,7 +686,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleRequestClose}
               className={`flex-1 sm:flex-none px-4 py-2 sm:py-1.5 max-sm:min-h-[40px] border rounded-lg font-medium transition-colors cursor-pointer text-xs ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
             >
               閉じる

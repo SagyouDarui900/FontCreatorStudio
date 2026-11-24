@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useViewportWidth, getResponsiveOverlayFlags } from '../utils/viewportLayout';
 
 export interface UseAppLayoutOptions {
@@ -30,8 +30,17 @@ export function useAppLayout({
 
   const isZenMode = !showGridDrawer && !showMetricsDrawer && !showRadicals;
 
+  // H11: remember the drawer layout before entering Zen mode so leaving
+  // it restores exactly what was open, instead of only the grid drawer.
+  const preZenLayoutRef = useRef<{
+    showGridDrawer: boolean;
+    showMetricsDrawer: boolean;
+    showRadicals: boolean;
+  } | null>(null);
+
   const toggleZenMode = useCallback(() => {
     if (showGridDrawer || showMetricsDrawer || showRadicals) {
+      preZenLayoutRef.current = { showGridDrawer, showMetricsDrawer, showRadicals };
       setShowGridDrawer(false);
       setShowMetricsDrawer(false);
       setShowRadicals(false);
@@ -39,7 +48,15 @@ export function useAppLayout({
         showToast('全面作図・集中モード（サイドバー収納）', 'info');
       }
     } else {
-      setShowGridDrawer(true);
+      const prev = preZenLayoutRef.current;
+      preZenLayoutRef.current = null;
+      if (prev) {
+        setShowGridDrawer(prev.showGridDrawer);
+        setShowMetricsDrawer(prev.showMetricsDrawer);
+        setShowRadicals(prev.showRadicals);
+      } else {
+        setShowGridDrawer(true);
+      }
       if (showToast) {
         showToast('標準レイアウトに戻しました', 'info');
       }

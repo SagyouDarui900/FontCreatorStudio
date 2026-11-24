@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import {
   Grid,
   Magnet,
@@ -79,7 +80,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
                 ? themeClasses.activeTool
                 : themeClasses.activeToolHover
             }`}
-            title={`方眼グリッド表示 (クリックで切替 / 右クリックまたは▼で設定開閉: 現在${gridSettings.gridSize || 50}px)`}
+            title={`方眼グリッド表示 (クリックで切替 / 右クリックまたは▼で設定開閉: 現在${gridSettings.gridSize || DEFAULT_GRID_SIZE}px)`}
           >
             <Grid className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
             <span

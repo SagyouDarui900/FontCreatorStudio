@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { ThemeMode } from '../../utils/theme';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
+import { useLiveViewportZoom } from './viewportStore';
 
 interface CanvasBackgroundLayerProps {
   isLight: boolean;
@@ -12,9 +14,12 @@ interface CanvasBackgroundLayerProps {
 }
 
 export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React.memo(
-  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = 30, unitsPerEm = 1000, zoom = 1 }) => {
-    const z = zoom && zoom > 0 ? zoom : 1;
-    const size = Math.max(5, gridSize || 50);
+  ({ isLight, theme = 'light', showGrid, gridSize, gridOpacity = DEFAULT_GRID_OPACITY, unitsPerEm = 1000, zoom = 1 }) => {
+    // L4/M6: use the live pinch zoom so the minor-line fade tracks the
+    // gesture instead of snapping when the pointer is released.
+    const liveZoom = useLiveViewportZoom(zoom);
+    const z = liveZoom && liveZoom > 0 ? liveZoom : 1;
+    const size = Math.max(5, gridSize || DEFAULT_GRID_SIZE);
     const upm = unitsPerEm || 1000;
     const opacityFactor = Math.min(1, Math.max(0.08, gridOpacity / 100));
 
@@ -41,36 +46,27 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
       };
     }, [showGrid, size, upm]);
 
-    // Fade minor subdivisions cleanly when cells become < 8 screen px wide to prevent moiré haze
+    // Fade minor subdivisions cleanly only when cells become < 6 screen px wide to prevent moiré
     const cellScreenPx = size * z;
-    const minorZoomFade = cellScreenPx >= 8 ? 1 : Math.max(0, (cellScreenPx - 3.5) / 4.5);
+    const minorZoomFade = cellScreenPx >= 6 ? 1 : Math.max(0, (cellScreenPx - 2.5) / 3.5);
 
-    // Calm, neutral drafting grid colors so contours and guides remain primary
+    // Green drafting grid colors (pre-faead31), so contours and guides
+    // stay distinguishable from the neutral UI. Minor and major tiers
+    // share one hue and differ only in opacity.
     const minorStroke =
       theme === 'sepia'
-        ? 'rgb(120, 90, 58)'
+        ? 'rgb(140, 103, 59)'
         : theme === 'warm'
-        ? 'rgb(148, 88, 52)'
+        ? 'rgb(194, 65, 12)'
         : theme === 'nord'
         ? 'rgb(129, 161, 193)'
         : theme === 'monochrome'
-        ? 'rgb(82, 82, 91)'
+        ? 'rgb(24, 24, 27)'
         : isLight
-        ? 'rgb(100, 116, 139)'
-        : 'rgb(148, 163, 184)';
+        ? 'rgb(5, 150, 105)'
+        : 'rgb(52, 211, 153)';
 
-    const majorStroke =
-      theme === 'sepia'
-        ? 'rgb(96, 68, 40)'
-        : theme === 'warm'
-        ? 'rgb(124, 68, 36)'
-        : theme === 'nord'
-        ? 'rgb(143, 188, 187)'
-        : theme === 'monochrome'
-        ? 'rgb(39, 39, 42)'
-        : isLight
-        ? 'rgb(71, 85, 105)'
-        : 'rgb(203, 213, 225)';
+    const majorStroke = minorStroke;
 
     const dimmingFill =
       theme === 'sepia'
@@ -160,7 +156,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
                 stroke={minorStroke}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
-                opacity={opacityFactor * 0.26 * minorZoomFade}
+                opacity={opacityFactor * 0.36 * minorZoomFade}
               />
             )}
             {majorPath && (
@@ -171,7 +167,7 @@ export const CanvasBackgroundLayer: React.FC<CanvasBackgroundLayerProps> = React
                 stroke={majorStroke}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
-                opacity={opacityFactor * 0.65}
+                opacity={opacityFactor * 0.72}
               />
             )}
           </g>

@@ -20,6 +20,8 @@ export interface UseAppShortcutsOptions {
   setToolMode: (mode: ToolMode) => void;
   handleAutoSpaceCurrentGlyph?: () => void;
   handleSimplifyCurrentGlyph?: () => void;
+  /** Open the shortcuts/help modal (bound to the '?' key). */
+  onOpenShortcutsHelp?: () => void;
 }
 
 export function useAppShortcuts(options: UseAppShortcutsOptions) {
@@ -47,6 +49,7 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
         setToolMode,
         handleAutoSpaceCurrentGlyph,
         handleSimplifyCurrentGlyph,
+        onOpenShortcutsHelp,
       } = optionsRef.current;
 
       const activeElement = document.activeElement;
@@ -135,6 +138,15 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
           toggleZenMode();
           return;
         }
+      }
+
+      // H10: '?' (Shift+/) opens the shortcuts/help modal, matching the
+      // help text and the modal footer. Ignored while a modal is open
+      // (checked above) or while typing.
+      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        onOpenShortcutsHelp?.();
+        return;
       }
 
       // Tool switching only runs with no modifier keys. Alt/Shift + letter

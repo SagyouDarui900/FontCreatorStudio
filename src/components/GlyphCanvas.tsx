@@ -57,6 +57,8 @@ import {
 } from './canvas/cursors';
 import { GlyphCanvasProps } from './canvas/glyphCanvasTypes';
 import { hitTestContours } from './canvas/canvasHitTest';
+import { setPenMousePos } from './canvas/penMouseStore';
+import { setHoverCanvasPos } from './canvas/hoverStore';
 import { getInkColors } from './canvas/glyphCanvasConstants';
 import { resolveCanvasMetrics } from '../utils/font/constants';
 export type { GlyphCanvasProps };
@@ -446,8 +448,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleSetPenCapStyle,
     activePenContour,
     setActivePenContour,
-    penMousePos,
-    setPenMousePos,
     handleUndoPenNode,
     handleResetPenContour,
     handleFinishPenContour,
@@ -628,6 +628,9 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
       if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
       if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
+      // M7: also clear the hover position, or the ruler hover marker and
+      // the status-bar coordinates stay visible while the crosshair is off.
+      setHoverCanvasPos(null);
     }
   }, [gridSettings.showCursorCrosshair]);
 
@@ -846,7 +849,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     penStrokeWidth,
     penCapStyle,
     autoResolveBrushOverlap,
-    setPenMousePos,
     handleTransformPointerMove,
     handleTransformPointerUp,
     setTransformSession,
@@ -893,6 +895,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
     if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
     clearHoverPos();
+    setPenMousePos(null);
   }, [clearHoverPos]);
 
   // Consolidated Tool Switch & Pointer Loss Cleanup
@@ -911,7 +914,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     resetBrushDrawing,
     finalizeBrushDrawing,
     setActivePenContour,
-    setPenMousePos,
     setShapeStartPoint,
     setShapeCurrentPoint,
     setTransformSession,
@@ -1331,7 +1333,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           penSvgPath={penSvgPath}
           penStrokeWidth={penStrokeWidth}
           penCapStyle={penCapStyle}
-          penMousePos={penMousePos}
             brushWidth={brushWidth}
             activeSnapGuides={activeSnapGuides}
             isGlyphLocked={isGlyphLocked}

@@ -12,8 +12,11 @@ import { useNodeEditing } from '../../hooks/useNodeEditing';
 import { useTransformSession } from './hooks/useTransformSession';
 import { useShapeCreation, isShapeToolMode } from './hooks/useShapeCreation';
 import { getHoverCanvasPos, setHoverCanvasPos } from './hoverStore';
+import { getPenMousePos, setPenMousePos } from './penMouseStore';
 import { clearLiveViewport, setLiveViewport, useLiveViewportZoom } from './viewportStore';
 import { CanvasBackgroundLayer } from './CanvasBackgroundLayer';
+import { AdjacentGlyphsLayer } from './AdjacentGlyphsLayer';
+import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../utils/gridDefaults';
 import { CanvasRulersLayer } from './CanvasRulersLayer';
 import { MetricsGuidesLayer } from './MetricsGuidesLayer';
 import { JapaneseGuidesLayer } from './JapaneseGuidesLayer';
@@ -65,7 +68,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         resetBrushDrawing: vi.fn(),
         finalizeBrushDrawing: vi.fn(() => false),
         setActivePenContour,
-        setPenMousePos: vi.fn(),
         setShapeStartPoint: vi.fn(),
         setShapeCurrentPoint: vi.fn(),
         setTransformSession: vi.fn(),
@@ -201,7 +203,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         penStrokeWidth: 20,
         penCapStyle: 'round',
         autoResolveBrushOverlap: false,
-        setPenMousePos: vi.fn(),
         handleTransformPointerMove: vi.fn(() => false),
         handleTransformPointerUp: vi.fn(() => false),
         setTransformSession: vi.fn(),
@@ -973,7 +974,7 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     setHoverCanvasPos(null);
     const setSelectedHandleType = vi.fn();
     const setActiveSnapGuides = vi.fn();
-    const setPenMousePos = vi.fn();
+    setPenMousePos(null);
     let api!: ReturnType<typeof useCanvasPointerDispatcher>;
 
     const origRaf = window.requestAnimationFrame;
@@ -1062,7 +1063,6 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
         penStrokeWidth: 20,
         penCapStyle: 'round',
         autoResolveBrushOverlap: false,
-        setPenMousePos,
         handleTransformPointerMove: vi.fn(() => false),
         handleTransformPointerUp: vi.fn(() => false),
         setTransformSession: vi.fn(),
@@ -1128,7 +1128,9 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       api.handlePointerMove(moveEvent);
     });
     expect(getHoverCanvasPos()).toEqual({ x: 345, y: 456 });
-    expect(setPenMousePos).not.toHaveBeenCalled();
+    // H12: pen pointermove writes the pen-only store immediately, so the
+    // rubber-band does not wait for the throttled hover update.
+    expect(getPenMousePos()).toEqual({ x: 345, y: 456 });
 
     const upEvent = {
       pointerId: 1,
@@ -1172,6 +1174,13 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
       expect(p.getAttribute('vector-effect')).toBe('non-scaling-stroke');
       expect(p.getAttribute('shape-rendering')).toBeNull();
     });
+
+    // H13: pre-faead31 opacities (minor 0.36, major 0.72) at the shared
+    // default gridOpacity of 30.
+    expect(DEFAULT_GRID_SIZE).toBe(50);
+    expect(DEFAULT_GRID_OPACITY).toBe(30);
+    expect(gridPaths[0].getAttribute('opacity')).toBe('0.108');
+    expect(gridPaths[1].getAttribute('opacity')).toBe('0.216');
 
     const minorD = gridPaths[0].getAttribute('d') || '';
     const majorD = gridPaths[1].getAttribute('d') || '';
@@ -1510,5 +1519,34 @@ describe('Wave 3 canvas, pointer & geometry remediation tests', () => {
     expect(getContourSignedArea(normalized[0])).toBeGreaterThan(0);
     expect(getContourSignedArea(normalized[1])).toBeLessThan(0);
     expect(getContourSignedArea(normalized[2])).toBeGreaterThan(0);
+  });
+});
+
+describe('AdjacentGlyphsLayer zoom normalization (L7)', () => {
+  it('keeps the neighbour labels a constant screen size at high zoom', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <svg>
+          <AdjacentGlyphsLayer isLight={true} advanceWidth={1000} unitsPerEm={1000} zoom={4} />
+        </svg>
+      );
+    });
+
+    const labels = Array.from(container.querySelectorAll('text'));
+    expect(labels.length).toBe(2);
+    labels.forEach((label) => {
+      expect(label.getAttribute('font-size')).toBe('6');
+    });
+
+    act(() => {
+      root.unmount();
+    });
+    clearLiveViewport();
+    container.remove();
   });
 });

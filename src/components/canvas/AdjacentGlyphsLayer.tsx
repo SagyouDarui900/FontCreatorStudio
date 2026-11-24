@@ -4,11 +4,14 @@ interface AdjacentGlyphsLayerProps {
   isLight: boolean;
   advanceWidth: number;
   unitsPerEm?: number;
+  zoom?: number;
 }
 
 export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.memo(
-  ({ isLight, advanceWidth, unitsPerEm = 1000 }) => {
+  ({ isLight, advanceWidth, unitsPerEm = 1000, zoom = 1 }) => {
     const upm = unitsPerEm || 1000;
+    // L7: keep the labels a constant screen size like the other layers.
+    const z = zoom && zoom > 0 ? zoom : 1;
 
     return (
       <g className="adjacent-glyphs-layer pointer-events-none opacity-20 select-none">
@@ -30,7 +33,7 @@ export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.mem
           textAnchor="middle"
           dominantBaseline="middle"
           fill={isLight ? '#64748b' : '#94a3b8'}
-          fontSize="24"
+          fontSize={24 / z}
           fontFamily="sans-serif"
           letterSpacing="2"
         >
@@ -55,7 +58,7 @@ export const AdjacentGlyphsLayer: React.FC<AdjacentGlyphsLayerProps> = React.mem
           textAnchor="middle"
           dominantBaseline="middle"
           fill={isLight ? '#065f46' : '#34d399'}
-          fontSize="24"
+          fontSize={24 / z}
           fontFamily="sans-serif"
           letterSpacing="2"
         >
