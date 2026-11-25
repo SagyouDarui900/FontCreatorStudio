@@ -45,6 +45,7 @@ export function batchOptimizeProjectExtrema(
       updatedGlyphs[unicode] = {
         ...glyph,
         contours: res.contours,
+        modified: true,
       };
 
       details.push({

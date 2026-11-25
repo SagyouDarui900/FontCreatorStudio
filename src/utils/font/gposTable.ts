@@ -90,12 +90,28 @@ export function isKanaUnicode(unicode: number): boolean {
   );
 }
 
+/** Maximum size of a GPOS table: every offset inside it is a uint16. */
+export const GPOS_MAX_TABLE_SIZE = 0xffff;
+
 function clampInt16(value: number): number {
   return Math.max(-32768, Math.min(32767, Math.round(value)));
 }
 
 function clampUint16(value: number): number {
   return Math.max(0, Math.min(0xffff, Math.round(value)));
+}
+
+/**
+ * A uint16 value that must fit: offsets and counts inside GPOS cannot
+ * be clamped, because a clamped offset would point at the wrong table
+ * and silently corrupt the font. Throw instead so the export stops.
+ */
+function requireUint16(value: number, what: string): number {
+  const rounded = Math.round(value);
+  if (!Number.isFinite(rounded) || rounded < 0 || rounded > 0xffff) {
+    throw new Error(`GPOS ${what} (${value}) does not fit in 16 bits`);
+  }
+  return rounded;
 }
 
 /** Minimal big-endian writer with patchable uint16 slots. */
@@ -107,7 +123,7 @@ class ByteWriter {
   }
 
   u16(value: number): void {
-    const v = clampUint16(value);
+    const v = requireUint16(value, 'uint16 value');
     this.bytes.push((v >> 8) & 0xff, v & 0xff);
   }
 
@@ -127,7 +143,7 @@ class ByteWriter {
   }
 
   patchU16(at: number, value: number): void {
-    const v = clampUint16(value);
+    const v = requireUint16(value, 'offset');
     this.bytes[at] = (v >> 8) & 0xff;
     this.bytes[at + 1] = v & 0xff;
   }
@@ -433,6 +449,18 @@ export function buildGposTableBytes(
     } else {
       buildSinglePosLookup(writer, lookups[i].singleEntries!);
     }
+  }
+
+  // Every offset inside GPOS is a uint16 measured from its own base,
+  // so a table larger than 65535 bytes cannot be addressed correctly.
+  // Refuse to write it instead of emitting clamped, wrong offsets.
+  if (writer.length > GPOS_MAX_TABLE_SIZE) {
+    throw new Error(
+      `GPOS table would be ${writer.length} bytes, exceeding the 65535-byte limit ` +
+        `for 16-bit offsets (${sortedKern.length} kerning pairs, ` +
+        `${sorted.length} palt entries). Reduce the number of kerning pairs ` +
+        `or palt entries and export again.`
+    );
   }
 
   return writer.toBytes();

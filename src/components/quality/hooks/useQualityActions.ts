@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { FontProject } from '../../../types';
 import { commitChangedGlyphHistory } from '../../../utils/historyHelper';
 import {
@@ -22,6 +22,8 @@ interface UseQualityActionsProps {
   onShowToast?: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   commitHistory?: (targetUnicode?: number) => void;
   state: QualityState;
+  /** FontQualityModal の表示状態。未指定の場合は開いているものとして扱う。 */
+  isOpen?: boolean;
 }
 
 export function useQualityActions({
@@ -32,6 +34,7 @@ export function useQualityActions({
   onShowToast,
   commitHistory,
   state,
+  isOpen = true,
 }: UseQualityActionsProps) {
   const {
     setIsScanning,
@@ -69,12 +72,65 @@ export function useQualityActions({
     [onShowToast]
   );
 
+  // 非同期スキャンの世代管理。古いタイマーの完了を破棄し、
+  // モーダルを閉じた後やアンマウント後の setState を防ぐ。
+  const mountedRef = useRef(true);
+  const isOpenRef = useRef(isOpen);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanGenerationRef = useRef(0);
+  const diagTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diagGenerationRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+        scanTimerRef.current = null;
+      }
+      if (diagTimerRef.current) {
+        clearTimeout(diagTimerRef.current);
+        diagTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+    if (!isOpen) {
+      // モーダルを閉じたら待機中のスキャンを無効化する。
+      // 世代を進めることで、既に発火済みのタイマー完了も破棄される。
+      scanGenerationRef.current++;
+      diagGenerationRef.current++;
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+        scanTimerRef.current = null;
+      }
+      if (diagTimerRef.current) {
+        clearTimeout(diagTimerRef.current);
+        diagTimerRef.current = null;
+      }
+      setIsScanning(false);
+      setIsDiagScanning(false);
+    }
+  }, [isOpen, setIsScanning, setIsDiagScanning]);
+
   // Run or refresh quality scan
   const runScan = useCallback(
     (targetProject?: FontProject) => {
+      if (!isOpenRef.current) return;
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+        scanTimerRef.current = null;
+      }
+      const generation = ++scanGenerationRef.current;
       setIsScanning(true);
       const proj = targetProject || project;
-      setTimeout(() => {
+      scanTimerRef.current = setTimeout(() => {
+        scanTimerRef.current = null;
+        if (!mountedRef.current || !isOpenRef.current) return;
+        if (generation !== scanGenerationRef.current) return;
         const rep = checkFontQuality(proj);
         setReport(rep);
         setIsScanning(false);
@@ -86,10 +142,19 @@ export function useQualityActions({
   // Run project diagnostics
   const runDiagnostics = useCallback(
     (scope?: DiagnosticScope, targetProject?: FontProject) => {
+      if (!isOpenRef.current) return;
+      if (diagTimerRef.current) {
+        clearTimeout(diagTimerRef.current);
+        diagTimerRef.current = null;
+      }
+      const generation = ++diagGenerationRef.current;
       setIsDiagScanning(true);
       const targetScope = scope || diagScope;
       const proj = targetProject || project;
-      setTimeout(() => {
+      diagTimerRef.current = setTimeout(() => {
+        diagTimerRef.current = null;
+        if (!mountedRef.current || !isOpenRef.current) return;
+        if (generation !== diagGenerationRef.current) return;
         const rep = runProjectDiagnostics(proj, { scope: targetScope, includeCompletedInItems: true });
         setDiagReport(rep);
         setIsDiagScanning(false);

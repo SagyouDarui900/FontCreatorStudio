@@ -12,7 +12,7 @@ import {
 } from './types';
 import { safePreservingNodeOptimization } from './nodeOptimizer';
 import { findContourIntersections } from './intersectionResolver';
-import { DEFAULT_BASELINE_Y } from './checker';
+import { resolveBaselineY } from '../font/constants';
 
 export function fixQualityIssue(
   project: FontProject,
@@ -44,29 +44,44 @@ export function fixQualityIssue(
 
     case 'align_baseline': {
       const bbox = getContoursBoundingBox(newContours);
-      const targetBaselineY = issue.details?.targetBaselineY ?? DEFAULT_BASELINE_Y;
+      // クランプ範囲とフォールバックは UPM 1000 前提の固定値だったため、
+      // UPM に比例させる。UPM 1000 の場合は従来値 (30 / 960 / 970 / 800)
+      // と同一になる。フォールバックは ascender があればそれを使い、
+      // なければ UPM の 80% (resolveBaselineY と同じ基準) を使う。
+      const upm =
+        typeof project.metadata?.unitsPerEm === 'number' &&
+        Number.isFinite(project.metadata.unitsPerEm) &&
+        project.metadata.unitsPerEm > 0
+          ? project.metadata.unitsPerEm
+          : 1000;
+      const topLimit = Math.round(upm * 0.03);
+      const bottomLimit = Math.round(upm * 0.97);
+      const overflowBottomTarget = Math.round(upm * 0.96);
+      const targetBaselineY =
+        issue.details?.targetBaselineY ??
+        resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
       let deltaY = 0;
 
       if (issue.details?.deviationType === 'overflow_top') {
-        deltaY = 30 - bbox.minY; // 上端がはみ出しているため下へ移動
-        if (bbox.maxY + deltaY > 970) {
-          deltaY = Math.max(0, 970 - bbox.maxY);
+        deltaY = topLimit - bbox.minY; // 上端がはみ出しているため下へ移動
+        if (bbox.maxY + deltaY > bottomLimit) {
+          deltaY = Math.max(0, bottomLimit - bbox.maxY);
         }
       } else if (issue.details?.deviationType === 'overflow_bottom') {
-        deltaY = 960 - bbox.maxY; // 下端が床を突き抜けているため上へ移動
-        if (bbox.minY + deltaY < 30) {
-          deltaY = 30 - bbox.minY;
+        deltaY = overflowBottomTarget - bbox.maxY; // 下端が床を突き抜けているため上へ移動
+        if (bbox.minY + deltaY < topLimit) {
+          deltaY = topLimit - bbox.minY;
         }
       } else {
         deltaY = targetBaselineY - bbox.maxY;
         // 文字の形・縦横比を一切変えず、位置のみを平行移動
-        // 仮想ボディの上端 (Y=30) を突き抜けてクリッピングされないよう安全リミット
-        if (bbox.minY + deltaY < 30) {
-          deltaY = 30 - bbox.minY;
+        // 仮想ボディの上端 (Y=3% UPM) を突き抜けてクリッピングされないよう安全リミット
+        if (bbox.minY + deltaY < topLimit) {
+          deltaY = topLimit - bbox.minY;
         }
-        // 仮想ボディの下端 (Y=970) を突き抜けないよう安全リミット
-        if (bbox.maxY + deltaY > 970) {
-          deltaY = 970 - bbox.maxY;
+        // 仮想ボディの下端 (Y=97% UPM) を突き抜けないよう安全リミット
+        if (bbox.maxY + deltaY > bottomLimit) {
+          deltaY = bottomLimit - bbox.maxY;
         }
       }
 

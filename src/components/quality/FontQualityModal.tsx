@@ -36,6 +36,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
     onShowToast,
     commitHistory,
     state,
+    isOpen,
   });
 
   const {
@@ -412,8 +413,11 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
           isOpen={true}
           onClose={() => setHeatmapModalUnicode(null)}
           unicode={heatmapModalUnicode}
+          onSelectUnicode={(u) => setHeatmapModalUnicode(u)}
+          allProblemUnicodes={excessiveNodesUnicodes}
           project={project}
           setProject={setProject}
+          onSelectGlyph={onSelectGlyph}
           theme={theme}
           onShowToast={onShowToast}
           commitHistory={commitHistory}

@@ -302,6 +302,10 @@ export function simplifySingleContourInGlyph(
 
 /**
  * 密集ホットスポット周辺の局所ノード群をピンポイントで即時単純化
+ *
+ * nodeIndex を中心に、輪郭の順序に沿って radius 以内にあるノードだけを
+ * 対象範囲として単純化する。範囲外のノードは位置も順序も変更しない。
+ * 対象範囲が輪郭全体に及ぶ場合は全体単純化に委譲する。
  */
 export function simplifyContourClusterInGlyph(
   contours: PathContour[],
@@ -310,8 +314,8 @@ export function simplifyContourClusterInGlyph(
   radius: number = 60,
   tolerance: number = 4.0
 ): ContourSimplificationResult {
-  if (!contours || contourIndex < 0 || contourIndex >= contours.length) {
-    const total = contours.reduce((sum, c) => sum + (c.nodes?.length || 0), 0);
+  const emptyResult = (): ContourSimplificationResult => {
+    const total = (contours || []).reduce((sum, c) => sum + (c.nodes?.length || 0), 0);
     return {
       updatedContours: contours || [],
       beforeNodeCount: total,
@@ -320,9 +324,134 @@ export function simplifyContourClusterInGlyph(
       reductionPercentage: 0,
       simplifiedContourIndices: [],
     };
+  };
+
+  if (!contours || contourIndex < 0 || contourIndex >= contours.length) {
+    return emptyResult();
   }
 
-  return simplifySingleContourInGlyph(contours, contourIndex, tolerance);
+  const target = contours[contourIndex];
+  const nodes = target.nodes || [];
+  if (nodeIndex < 0 || nodeIndex >= nodes.length) {
+    return emptyResult();
+  }
+
+  const beforeTotal = contours.reduce((sum, c) => sum + (c.nodes?.length || 0), 0);
+  const center = nodes[nodeIndex];
+  const count = nodes.length;
+
+  // nodeIndex を中心に、輪郭の順序に沿って radius 以内の連続範囲を求める。
+  // 閉じた輪郭では端をまたいで広がる場合がある。
+  const withinRadius = (idx: number) =>
+    Math.hypot(nodes[idx].x - center.x, nodes[idx].y - center.y) <= radius;
+
+  let startOffset = 0;
+  while (startOffset + 1 < count) {
+    const idx = target.closed
+      ? (nodeIndex - startOffset - 1 + count) % count
+      : nodeIndex - startOffset - 1;
+    if (idx < 0 || !withinRadius(idx)) break;
+    startOffset++;
+  }
+  let endOffset = 0;
+  while (endOffset + 1 < count) {
+    const idx = target.closed
+      ? (nodeIndex + endOffset + 1) % count
+      : nodeIndex + endOffset + 1;
+    if (idx >= count || !withinRadius(idx)) break;
+    endOffset++;
+  }
+
+  const windowLength = startOffset + 1 + endOffset;
+  if (windowLength >= count) {
+    // 対象範囲が輪郭全体に及ぶ場合は全体単純化と同じ結果になる。
+    return simplifySingleContourInGlyph(contours, contourIndex, tolerance);
+  }
+  if (windowLength <= 4) {
+    return emptyResult();
+  }
+
+  const startIndex = target.closed
+    ? (nodeIndex - startOffset + count) % count
+    : nodeIndex - startOffset;
+  const windowIndices: number[] = [];
+  for (let i = 0; i < windowLength; i++) {
+    windowIndices.push(target.closed ? (startIndex + i) % count : startIndex + i);
+  }
+  const windowNodes = windowIndices.map((idx) => nodes[idx]);
+
+  // 対象範囲だけを開いた部分輪郭として単純化する（全体単純化と同じ手順）。
+  const subContour: PathContour = {
+    ...target,
+    nodes: [...windowNodes],
+    closed: false,
+  };
+  let simplifiedSub = smoothStrokeContour(subContour, {
+    tolerance,
+    level: tolerance >= 5 ? 'strong' : tolerance <= 2 ? 'mild' : 'standard',
+    preserveCorners: true,
+  }).contour;
+
+  const redundantClean = optimizeContoursRedundantNodes([simplifiedSub], {
+    level: 'normal',
+    preserveSharpCorners: true,
+  });
+  if (redundantClean.contours.length > 0) {
+    simplifiedSub = redundantClean.contours[0];
+  }
+
+  if (simplifiedSub.nodes.length > 25 && simplifiedSub.nodes.length >= windowNodes.length * 0.85) {
+    const rdpSimplified = simplifyContour(simplifiedSub, tolerance * 1.2);
+    if (rdpSimplified.nodes.length >= 4) {
+      simplifiedSub = rdpSimplified;
+    }
+  }
+
+  const simplifiedNodes = simplifiedSub.nodes || [];
+  // 削減が無い、または範囲が潰れる場合は変更しない。
+  if (simplifiedNodes.length >= windowNodes.length || simplifiedNodes.length < 2) {
+    return emptyResult();
+  }
+
+  // 範囲の両端を元のノード位置に固定し、範囲外との接続を保つ。
+  simplifiedNodes[0] = { ...simplifiedNodes[0], x: windowNodes[0].x, y: windowNodes[0].y };
+  const lastIdx = simplifiedNodes.length - 1;
+  simplifiedNodes[lastIdx] = {
+    ...simplifiedNodes[lastIdx],
+    x: windowNodes[windowNodes.length - 1].x,
+    y: windowNodes[windowNodes.length - 1].y,
+  };
+
+  // 範囲外のノードはそのまま残し、対象範囲だけを置き換える。
+  let newNodes: BezierNode[];
+  if (target.closed && startIndex + windowLength > count) {
+    // 範囲が末尾と先頭にまたがる場合、残りの弧を範囲の後に続ける。
+    const complement: BezierNode[] = [];
+    for (let i = windowLength; i < count; i++) {
+      complement.push(nodes[(startIndex + i) % count]);
+    }
+    newNodes = [...simplifiedNodes, ...complement];
+  } else {
+    newNodes = [
+      ...nodes.slice(0, startIndex),
+      ...simplifiedNodes,
+      ...nodes.slice(startIndex + windowLength),
+    ];
+  }
+
+  const updatedContour: PathContour = { ...target, nodes: newNodes };
+  const updatedContours = contours.map((c, idx) => (idx === contourIndex ? updatedContour : c));
+  const afterTotal = updatedContours.reduce((sum, c) => sum + (c.nodes?.length || 0), 0);
+  const reduced = beforeTotal - afterTotal;
+
+  return {
+    updatedContours,
+    beforeNodeCount: beforeTotal,
+    afterNodeCount: afterTotal,
+    reducedCount: Math.max(0, reduced),
+    reductionPercentage: beforeTotal > 0 ? Math.round((Math.max(0, reduced) / beforeTotal) * 100) : 0,
+    simplifiedContourIndices: [contourIndex],
+  };
 }
 
 /**

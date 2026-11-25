@@ -1,6 +1,59 @@
 import { FontProject, GlyphData, PathContour, CharCategory } from '../types';
 import { getContoursBoundingBox } from './pathUtils';
 import { UNICODE_CATEGORIES, getCategoryCharList } from '../data/unicodeTables';
+import { pixelGridToContours, normalizePixelGrid } from './pixelFontUtils';
+import { DEFAULT_UPM, DEFAULT_ASCENDER, DEFAULT_DESCENDER } from './font/constants';
+
+/** pixelData のみを持つグリフに塗りつぶしピクセルがあるか判定する。 */
+function hasFilledPixelData(glyph: GlyphData | undefined): boolean {
+  return (
+    !!glyph?.pixelData &&
+    Array.isArray(glyph.pixelData.data) &&
+    glyph.pixelData.data.some((d) => d !== 0)
+  );
+}
+
+/**
+ * グリフの診断対象輪郭を返す。contours が空で pixelData がある場合は
+ * コンパイラ (compilerCore.ts) と同じフォールバックで pixelGridToContours
+ * により輪郭へ変換するため、pixelData のみのグリフは作成済みとして扱う。
+ */
+function resolveGlyphContoursForDiagnostics(
+  glyph: GlyphData | undefined,
+  project: FontProject
+): PathContour[] {
+  const contours = glyph?.contours || [];
+  if (contours.length > 0) return contours;
+  if (!hasFilledPixelData(glyph) || !glyph?.pixelData) return [];
+  const pixelData = glyph.pixelData;
+  if (!pixelData.width || !pixelData.height) return [];
+  const pGrid = normalizePixelGrid(pixelData.data);
+  if (!pGrid.some((val) => val === 1)) return [];
+  const upm =
+    typeof project.metadata?.unitsPerEm === 'number' &&
+    Number.isFinite(project.metadata.unitsPerEm) &&
+    project.metadata.unitsPerEm > 0
+      ? project.metadata.unitsPerEm
+      : DEFAULT_UPM;
+  const advWidth = Math.round(
+    Number.isFinite(glyph.advanceWidth) && (glyph.advanceWidth ?? 0) > 0
+      ? (glyph.advanceWidth ?? 1000)
+      : glyph.unicode > 255
+        ? upm
+        : Math.round(upm / 2)
+  );
+  return pixelGridToContours(
+    pGrid,
+    pixelData.width,
+    pixelData.height,
+    project.metadata?.unitsPerEm || DEFAULT_UPM,
+    project.metadata?.ascender || DEFAULT_ASCENDER,
+    project.metadata?.descender || DEFAULT_DESCENDER,
+    advWidth,
+    pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+    project.pixelFontSettings?.mergeContours !== false
+  );
+}
 
 export type DiagnosticStatus =
   | 'empty'                     // 未作成（輪郭なし）
@@ -353,7 +406,7 @@ export function runProjectDiagnostics(
   targetCharsMap.forEach((charInfo, unicode) => {
     const glyphData = project.glyphs?.[unicode];
     const isRegistered = !!glyphData;
-    const contours = glyphData?.contours || [];
+    const contours = resolveGlyphContoursForDiagnostics(glyphData, project);
     const char = charInfo.char || (unicode ? String.fromCodePoint(unicode) : '');
     const glyphName = glyphData?.name || charInfo.name || `uni${unicode.toString(16).toUpperCase()}`;
     const categoryType = getCharacterCategoryType(unicode, char);
@@ -467,7 +520,7 @@ export function runProjectDiagnostics(
 
     list.forEach((item) => {
       const g = project.glyphs?.[item.code];
-      const contours = g?.contours || [];
+      const contours = resolveGlyphContoursForDiagnostics(g, project);
       const m = analyzeGlyphComplexity(contours, item.code, item.char);
 
       if (item.code === 0x0020 || item.code === 0x3000) {

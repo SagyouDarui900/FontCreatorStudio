@@ -2,6 +2,30 @@ import React from 'react';
 import { Video, Type, X } from 'lucide-react';
 import { FontProject } from '../../types';
 
+/**
+ * The display character for a glyph: the stored char when present,
+ * otherwise the character for its Unicode value. An out-of-range or
+ * non-integer Unicode (hand-edited project data) yields '' instead of
+ * throwing a RangeError from String.fromCodePoint and breaking the
+ * whole preview section.
+ */
+export function safeGlyphChar(glyph: { char?: string; unicode: number }): string {
+  if (glyph.char) return glyph.char;
+  if (
+    typeof glyph.unicode !== 'number' ||
+    !Number.isInteger(glyph.unicode) ||
+    glyph.unicode < 0 ||
+    glyph.unicode > 0x10ffff
+  ) {
+    return '';
+  }
+  try {
+    return String.fromCodePoint(glyph.unicode);
+  } catch {
+    return '';
+  }
+}
+
 interface FontPreviewSectionProps {
   isLight: boolean;
   previewText: string;
@@ -104,7 +128,7 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
             type="button"
             onClick={() => {
               const allChars = Object.values(project.glyphs)
-                .map((g) => g.char || String.fromCodePoint(g.unicode))
+                .map((g) => safeGlyphChar(g))
                 .join('');
               setPreviewText(allChars);
             }}

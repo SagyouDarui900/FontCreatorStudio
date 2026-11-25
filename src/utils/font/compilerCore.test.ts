@@ -1271,3 +1271,266 @@ describe('compileFont GSUB ligatures with vertical pairs (L40)', () => {
     expect(reparsed.tables.gsub.features.filter((f: any) => f.tag === 'vert')).toHaveLength(1);
   });
 });
+
+describe('compileFont palt / vpal scaling with export scale (E-H1)', () => {
+  const rect = (id: string): PathContour => ({
+    id,
+    closed: true,
+    nodes: [
+      { id: `${id}n1`, x: 100, y: 100, type: 'corner' },
+      { id: `${id}n2`, x: 500, y: 100, type: 'corner' },
+      { id: `${id}n3`, x: 500, y: 600, type: 'corner' },
+      { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
+    ],
+  });
+
+  function readSfntTable(buffer: ArrayBuffer, tag: string): Uint8Array | null {
+    const bytes = new Uint8Array(buffer);
+    const view = new DataView(buffer);
+    const numTables = view.getUint16(4, false);
+    for (let i = 0; i < numTables; i++) {
+      const recOffset = 12 + i * 16;
+      const foundTag = String.fromCharCode(
+        bytes[recOffset],
+        bytes[recOffset + 1],
+        bytes[recOffset + 2],
+        bytes[recOffset + 3]
+      );
+      if (foundTag === tag) {
+        const offset = view.getUint32(recOffset + 8, false);
+        const length = view.getUint32(recOffset + 12, false);
+        return bytes.slice(offset, offset + length);
+      }
+    }
+    return null;
+  }
+
+  function paltProject(paltList: any[] = []): FontProject {
+    return createMockProject({
+      glyphs: {
+        12354: {
+          char: 'あ',
+          name: 'uni3042',
+          unicode: 12354,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rect('c1')],
+        },
+      },
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: { enabled: true, defaultVertAdvance: 1000, vertOriginY: 800, substitutions: [] },
+        ligatures: [],
+        customKerningPairs: [],
+        palt: {
+          enabled: true,
+          autoDerivePalt: true,
+          autoDeriveVpal: true,
+          opticalSideBearingPercent: 5,
+          paltList,
+          vpalList: [],
+        },
+      } as any,
+    });
+  }
+
+  function gposXAdvances(buffer: ArrayBuffer): number[] {
+    const reparsed: any = opentype.parse(buffer);
+    const paltLookup = reparsed.tables.gpos.lookups.find((l: any) => l.lookupType === 1);
+    return paltLookup.subtables[0].values.map((v: any) => v.xAdvance);
+  }
+
+  it('scales a derived palt advance to the 1.35x outline instead of the 1.0x value', () => {
+    // Outline 400 wide, 5% padding: 1.0x gives proportionalAdvance 500
+    // (xAdvance -500); at 1.35x the outline is 540 wide with scaled
+    // padding, so proportionalAdvance is 675 (xAdvance -325).
+    const compiled = compileFont(paltProject(), { skipBlobUrl: true, scaleFactor: 1.35 });
+    expect(gposXAdvances(compiled.buffer)).toEqual([-325]);
+  });
+
+  it('scales a saved palt list to the export scale, and leaves 1.0x unchanged', () => {
+    const saved = [
+      {
+        unicode: 12354,
+        char: 'あ',
+        originalAdvance: 1000,
+        proportionalAdvance: 500,
+        xPlacement: -50,
+        deltaAdvance: -500,
+        opticalMarginLeft: 100,
+        opticalMarginRight: 400,
+        enabled: true,
+      },
+    ];
+    const scaled = compileFont(paltProject(saved), { skipBlobUrl: true, scaleFactor: 1.35 });
+    expect(gposXAdvances(scaled.buffer)).toEqual([-325]);
+    const unscaled = compileFont(paltProject(saved), { skipBlobUrl: true, scaleFactor: 1.0 });
+    expect(gposXAdvances(unscaled.buffer)).toEqual([-500]);
+  });
+
+  it('scales a derived vpal advance to the export scale', () => {
+    // Outline 500 high, 5% padding: 1.0x gives vertical advance 600;
+    // at 1.35x it is 810. The vmtx advance stays at the default vertical
+    // advance (1000); the tightening is carried by the GPOS vpal
+    // SinglePos: yAdvance = 810 - 1000 = -190 (at 1.0x it is -400).
+    // Glyph order: .notdef, あ, space, fullwidth space.
+    const scaled = compileFont(paltProject(), { skipBlobUrl: true, scaleFactor: 1.35 });
+    const vmtx = readSfntTable(scaled.buffer, 'vmtx');
+    expect(vmtx).not.toBeNull();
+    expect(vmtx!.length).toBe(16);
+    const vmtxView = new DataView(vmtx!.buffer);
+    expect(vmtxView.getUint16(4, false)).toBe(1000);
+    const reparsed: any = opentype.parse(scaled.buffer);
+    const vpalFeature = reparsed.tables.gpos.features.find((f: any) => f.tag === 'vpal');
+    expect(vpalFeature).toBeDefined();
+    const vpalLookup =
+      reparsed.tables.gpos.lookups[vpalFeature.feature.lookupListIndexes[0]];
+    expect(vpalLookup.subtables[0].values[0].yAdvance).toBe(-190);
+    const unscaled = compileFont(paltProject(), { skipBlobUrl: true, scaleFactor: 1.0 });
+    const reparsedUnscaled: any = opentype.parse(unscaled.buffer);
+    const vpalFeatureUnscaled = reparsedUnscaled.tables.gpos.features.find(
+      (f: any) => f.tag === 'vpal'
+    );
+    const vpalLookupUnscaled =
+      reparsedUnscaled.tables.gpos.lookups[vpalFeatureUnscaled.feature.lookupListIndexes[0]];
+    expect(vpalLookupUnscaled.subtables[0].values[0].yAdvance).toBe(-400);
+  });
+});
+
+describe('compileFont OS/2 win metrics from actual outlines (E-H2)', () => {
+  const rect = (id: string, y1: number, y2: number): PathContour => ({
+    id,
+    closed: true,
+    nodes: [
+      { id: `${id}n1`, x: 100, y: y1, type: 'corner' },
+      { id: `${id}n2`, x: 500, y: y1, type: 'corner' },
+      { id: `${id}n3`, x: 500, y: y2, type: 'corner' },
+      { id: `${id}n4`, x: 100, y: y2, type: 'corner' },
+    ],
+  });
+
+  function glyphProject(y1: number, y2: number, metadataOverrides: any = {}): FontProject {
+    return createMockProject({
+      metadata: { ...createMockProject().metadata, ...metadataOverrides },
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [rect('c1', y1, y2)],
+        },
+      },
+    });
+  }
+
+  it('raises usWinAscent to cover an outline above the ascender', () => {
+    // Screen y -100 is font y 900 (baseline 800), above ascender 800.
+    const compiled = compileFont(glyphProject(-100, 600), { skipBlobUrl: true, scaleFactor: 1.0 });
+    expect(compiled.font.tables.os2.usWinAscent).toBe(900);
+    expect(compiled.font.tables.os2.usWinDescent).toBe(200);
+  });
+
+  it('raises usWinDescent to cover an outline below the descender', () => {
+    // Screen y 1050 is font y -250, below descender -200.
+    const compiled = compileFont(glyphProject(100, 1050), { skipBlobUrl: true, scaleFactor: 1.0 });
+    expect(compiled.font.tables.os2.usWinAscent).toBe(800);
+    expect(compiled.font.tables.os2.usWinDescent).toBe(250);
+  });
+
+  it('keeps an explicitly set winAscent / winDescent instead of the outline fallback', () => {
+    const compiled = compileFont(glyphProject(-100, 1050, { winAscent: 1200, winDescent: 300 }), {
+      skipBlobUrl: true,
+      scaleFactor: 1.0,
+    });
+    expect(compiled.font.tables.os2.usWinAscent).toBe(1200);
+    expect(compiled.font.tables.os2.usWinDescent).toBe(300);
+  });
+
+  it('scales the cap height, x height and win fallbacks with UPM', () => {
+    const project = createMockProject({
+      metadata: {
+        familyName: 'TestFont',
+        styleName: 'Regular',
+        designer: 'Tester',
+        copyright: 'Copyright 2026',
+        version: '1.0',
+        unitsPerEm: 2000,
+      } as any,
+      glyphs: {},
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true });
+    expect(compiled.font.tables.os2.sCapHeight).toBe(1400);
+    expect(compiled.font.tables.os2.sxHeight).toBe(1000);
+    expect(compiled.font.tables.os2.usWinAscent).toBe(1600);
+    expect(compiled.font.tables.os2.usWinDescent).toBe(400);
+  });
+});
+
+describe('compileFont pixel glyph uses sanitized metrics (E-M2)', () => {
+  it('sizes a pixel glyph from the sanitized descender, not the raw metadata value', () => {
+    // Raw descender 0 would be passed as -200 by `|| DEFAULT_DESCENDER`
+    // (effective em 1000, cell 420, glyph 840 wide). The sanitized
+    // descender is 0, so the effective em is 800 - 0 = 800 and the
+    // glyph is 672 units wide. (An ascender of 0 cannot be used here:
+    // opentype.js rejects a falsy ascender when constructing the Font.)
+    const project = createMockProject({
+      metadata: {
+        ...createMockProject().metadata,
+        ascender: 800,
+        descender: 0,
+      },
+      glyphs: {
+        65: {
+          char: 'A',
+          name: 'A',
+          unicode: 65,
+          advanceWidth: 1000,
+          lsb: 50,
+          contours: [],
+          pixelData: { width: 2, height: 2, data: [1, 1, 1, 1] },
+        },
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    const glyph = compiled.font.glyphs.get(compiled.font.charToGlyphIndex('A'));
+    const bbox = glyph.getBoundingBox();
+    expect(bbox.x2 - bbox.x1).toBe(672);
+    expect(bbox.y2 - bbox.y1).toBe(672);
+  });
+});
+
+describe('compileFont PostScript glyph name sanitizing (E-M3)', () => {
+  it('replaces non-ASCII glyph name characters and deduplicates collisions', () => {
+    const rect: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner' },
+        { id: 'n2', x: 500, y: 100, type: 'corner' },
+        { id: 'n3', x: 500, y: 600, type: 'corner' },
+        { id: 'n4', x: 100, y: 600, type: 'corner' },
+      ],
+    };
+    const project = createMockProject({
+      glyphs: {
+        65: { char: 'A', name: 'My Glyph (1)', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect] },
+        66: { char: 'B', name: 'My Glyph [1]', unicode: 66, advanceWidth: 1000, lsb: 50, contours: [rect] },
+        67: { char: 'C', name: 'あいう', unicode: 67, advanceWidth: 1000, lsb: 50, contours: [rect] },
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0 });
+    const names: string[] = [];
+    for (let i = 0; i < compiled.font.glyphs.length; i++) {
+      names.push(compiled.font.glyphs.get(i).name ?? '');
+    }
+    for (const name of names) {
+      expect(name).toMatch(/^[A-Za-z0-9._]+$/);
+    }
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toContain('My_Glyph__1_');
+    expect(names).toContain('My_Glyph__1__2');
+    expect(names).toContain('___');
+  });
+});

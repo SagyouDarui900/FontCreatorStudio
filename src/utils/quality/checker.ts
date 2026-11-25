@@ -13,7 +13,8 @@ import {
 } from './types';
 import { findContourIntersections } from './intersectionResolver';
 import { analyzeGlyphContourDensity } from './densityAnalyzer';
-import { resolveBaselineY } from '../font/constants';
+import { resolveBaselineY, DEFAULT_UPM, DEFAULT_ASCENDER, DEFAULT_DESCENDER } from '../font/constants';
+import { pixelGridToContours, normalizePixelGrid } from '../pixelFontUtils';
 
 export const DEFAULT_BASELINE_Y = 800;
 const DEFAULT_MAX_NODES_PER_CONTOUR = 90;
@@ -45,17 +46,78 @@ function getGlyphGeometrySignature(contours: PathContour[]): string {
   const bbox = getContoursBoundingBox(contours);
   const totalNodes = contours.reduce((sum, c) => sum + (c.nodes ? c.nodes.length : 0), 0);
 
-  // 幅・高さおよび相対位置のサンプリングによるシグネチャ
-  const relativeSample: string[] = [];
-  contours.forEach((c) => {
-    (c.nodes || []).slice(0, 10).forEach((n) => {
-      const rx = Math.round(n.x - bbox.minX);
-      const ry = Math.round(n.y - bbox.minY);
-      relativeSample.push(`${rx},${ry}`);
-    });
-  });
+  // 全輪郭・全ノードの相対座標によるシグネチャ。先頭数点だけでは、
+  // 序盤が似ている別文字が同一シグネチャになるため、全点を含める。
+  // 輪郭数・総ノード数・外接サイズ・輪郭ごとのノード数と閉合状態も含める。
+  const perContour = contours
+    .map((c) => {
+      const nodes = (c.nodes || [])
+        .map((n) => {
+          const rx = Math.round(n.x - bbox.minX);
+          const ry = Math.round(n.y - bbox.minY);
+          const type = n.type ? `:${n.type}` : '';
+          const hi = n.handleIn
+            ? `,hi${Math.round(n.handleIn.x - bbox.minX)},${Math.round(n.handleIn.y - bbox.minY)}`
+            : '';
+          const ho = n.handleOut
+            ? `,ho${Math.round(n.handleOut.x - bbox.minX)},${Math.round(n.handleOut.y - bbox.minY)}`
+            : '';
+          return `${rx},${ry}${type}${hi}${ho}`;
+        })
+        .join(';');
+      return `${c.nodes ? c.nodes.length : 0}:${c.closed ? 'c' : 'o'}:[${nodes}]`;
+    })
+    .join('|');
 
-  return `${contours.length}_${totalNodes}_${Math.round(bbox.width)}x${Math.round(bbox.height)}_${relativeSample.slice(0, 8).join(';')}`;
+  return `${contours.length}_${totalNodes}_${Math.round(bbox.width)}x${Math.round(bbox.height)}_${perContour}`;
+}
+
+/** pixelData のみを持つグリフに塗りつぶしピクセルがあるか判定する。 */
+function hasFilledPixelData(glyph: GlyphData): boolean {
+  return (
+    !!glyph.pixelData &&
+    Array.isArray(glyph.pixelData.data) &&
+    glyph.pixelData.data.some((d) => d !== 0)
+  );
+}
+
+/**
+ * グリフの検査対象輪郭を返す。contours が空で pixelData がある場合は
+ * コンパイラ (compilerCore.ts) と同じフォールバックで pixelGridToContours
+ * により輪郭へ変換する。塗りつぶしピクセルがない場合は空配列を返す。
+ */
+function resolveGlyphContours(glyph: GlyphData, project: FontProject): PathContour[] {
+  const contours = glyph.contours || [];
+  if (contours.length > 0) return contours;
+  if (!hasFilledPixelData(glyph) || !glyph.pixelData) return [];
+  const pixelData = glyph.pixelData;
+  if (!pixelData.width || !pixelData.height) return [];
+  const pGrid = normalizePixelGrid(pixelData.data);
+  if (!pGrid.some((val) => val === 1)) return [];
+  const upm =
+    typeof project.metadata?.unitsPerEm === 'number' &&
+    Number.isFinite(project.metadata.unitsPerEm) &&
+    project.metadata.unitsPerEm > 0
+      ? project.metadata.unitsPerEm
+      : DEFAULT_UPM;
+  const advWidth = Math.round(
+    Number.isFinite(glyph.advanceWidth) && (glyph.advanceWidth ?? 0) > 0
+      ? (glyph.advanceWidth ?? 1000)
+      : glyph.unicode > 255
+        ? upm
+        : Math.round(upm / 2)
+  );
+  return pixelGridToContours(
+    pGrid,
+    pixelData.width,
+    pixelData.height,
+    project.metadata?.unitsPerEm || DEFAULT_UPM,
+    project.metadata?.ascender || DEFAULT_ASCENDER,
+    project.metadata?.descender || DEFAULT_DESCENDER,
+    advWidth,
+    pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+    project.pixelFontSettings?.mergeContours !== false
+  );
 }
 
 /**
@@ -67,6 +129,16 @@ export function checkFontQuality(
 ): FontQualityReport {
   const baselineY =
     options.baselineY ?? resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+  // ベースライン判定の固定値は UPM 1000 前提で書かれているため、UPM に比例させる。
+  // scale を掛けた値は UPM 1000 の場合に従来値と同一になる。
+  const upm =
+    typeof project.metadata?.unitsPerEm === 'number' &&
+    Number.isFinite(project.metadata.unitsPerEm) &&
+    project.metadata.unitsPerEm > 0
+      ? project.metadata.unitsPerEm
+      : DEFAULT_UPM;
+  const upmScale = upm / DEFAULT_UPM;
+  const px = (value: number): number => Math.round(value * upmScale);
   const maxNodesContour = options.maxNodesPerContour ?? DEFAULT_MAX_NODES_PER_CONTOUR;
   const maxNodesGlyph = options.maxNodesPerGlyph ?? DEFAULT_MAX_NODES_PER_GLYPH;
   const checkDuplicates = options.checkDuplicates ?? true;
@@ -83,12 +155,13 @@ export function checkFontQuality(
     const signatureMap = new Map<string, GlyphData[]>();
 
     glyphs.forEach((g) => {
-      if (!g.contours || g.contours.length === 0) return;
+      const contours = resolveGlyphContours(g, project);
+      if (contours.length === 0) return;
       // 孤立した空グリフは除外
-      const hasRealNodes = g.contours.some((c) => c.nodes && c.nodes.length > 1);
+      const hasRealNodes = contours.some((c) => c.nodes && c.nodes.length > 1);
       if (!hasRealNodes) return;
 
-      const sig = getGlyphGeometrySignature(g.contours);
+      const sig = getGlyphGeometrySignature(contours);
       if (!sig) return;
 
       if (!signatureMap.has(sig)) {
@@ -109,13 +182,19 @@ export function checkFontQuality(
             if (seenDupPairs.has(pairKey)) continue;
             seenDupPairs.add(pairKey);
 
-            // 二重チェック: 点座標が極めて高い一致度を持つか検証
-            const b1 = getContoursBoundingBox(g1.contours);
-            const b2 = getContoursBoundingBox(g2.contours);
+            // 二重チェック: 点座標が極めて高い一致度を持つか検証。
+            // シグネチャは全ノードを含むため、ここでは輪郭数・総ノード数・
+            // 外接サイズが一致することの明示的な確認を行う。
+            const c1 = resolveGlyphContours(g1, project);
+            const c2 = resolveGlyphContours(g2, project);
+            const b1 = getContoursBoundingBox(c1);
+            const b2 = getContoursBoundingBox(c2);
             const dx = Math.abs(b1.width - b2.width);
             const dy = Math.abs(b1.height - b2.height);
+            const n1 = c1.reduce((sum, c) => sum + (c.nodes ? c.nodes.length : 0), 0);
+            const n2 = c2.reduce((sum, c) => sum + (c.nodes ? c.nodes.length : 0), 0);
 
-            if (dx <= 4 && dy <= 4 && g1.contours.length === g2.contours.length) {
+            if (dx <= 4 && dy <= 4 && c1.length === c2.length && n1 === n2) {
               issues.push({
                 id: `dup-${g1.unicode}-${g2.unicode}`,
                 unicode: g1.unicode,
@@ -144,9 +223,11 @@ export function checkFontQuality(
     const unicode = g.unicode;
     const char = g.char || (unicode ? String.fromCodePoint(unicode) : '');
     const glyphName = g.name || `uni${unicode.toString(16).toUpperCase()}`;
-    const contours = g.contours || [];
+    const contours = resolveGlyphContours(g, project);
 
     // 空グリフは未制作状態（プロジェクト診断で管理）のため品質検査の幾何異常からは除外
+    // pixelData のみのグリフは resolveGlyphContours で輪郭へ変換済みのため、
+    // ここに到達した時点で contours が空の場合は塗りつぶしのない空グリフである。
     if (contours.length === 0) {
       return;
     }
@@ -241,7 +322,7 @@ export function checkFontQuality(
         (unicode >= 0x3400 && unicode <= 0x4dbf);
 
       // 上端のはみ出し (仮想ボディ上限 Y=0 を大きく超える)
-      if (bbox.minY < -40) {
+      if (bbox.minY < -px(40)) {
         issues.push({
           id: `bound-top-${unicode}`,
           unicode,
@@ -263,8 +344,8 @@ export function checkFontQuality(
         });
       }
 
-      // 下端のはみ出し (em-box 下限 Y=1000 を超える)
-      if (bbox.maxY > 1030) {
+      // 下端のはみ出し (em-box 下限 Y=UPM を超える)
+      if (bbox.maxY > px(1030)) {
         issues.push({
           id: `bound-btm-${unicode}`,
           unicode,
@@ -273,12 +354,12 @@ export function checkFontQuality(
           type: 'baseline_deviation',
           severity: 'warning',
           title: '仮想ボディ下端（ディセンダ）はみ出し',
-          description: `輪郭の下端 (Y=${Math.round(bbox.maxY)}) がフォント枠の床面 (Y=1000) を超えています。`,
+          description: `輪郭の下端 (Y=${Math.round(bbox.maxY)}) がフォント枠の床面 (Y=${upm}) を超えています。`,
           recommendation: 'ベースラインに合わせて文字全体を上に引き上げてください。',
           details: {
             currentBaselineY: Math.round(bbox.maxY),
             targetBaselineY: baselineY,
-            deviationPx: Math.round(bbox.maxY - 1000),
+            deviationPx: Math.round(bbox.maxY - upm),
             deviationType: 'overflow_bottom',
           },
           canAutoFix: true,
@@ -287,9 +368,9 @@ export function checkFontQuality(
       }
 
       // 和文漢字・かな（小書き・約物・記号除く）のベースライン浮遊または沈み
-      if (isFullwidth && !isSmallKana && !isExcludedFloat && bbox.height > 120) {
-        // 和文の標準下端目安: 760 ~ 850
-        if (bbox.maxY < 680) {
+      if (isFullwidth && !isSmallKana && !isExcludedFloat && bbox.height > px(120)) {
+        // 和文の標準下端目安: 760 ~ 850 (UPM 1000 の場合)
+        if (bbox.maxY < px(680)) {
           issues.push({
             id: `base-float-${unicode}`,
             unicode,
@@ -298,7 +379,7 @@ export function checkFontQuality(
             type: 'baseline_deviation',
             severity: 'warning',
             title: '文字がベースラインから浮いています',
-            description: `文字「${char}」の下端が Y=${Math.round(bbox.maxY)} の位置にあり、基準下端（標準目安: 780〜840）より上方に配置されています。`,
+            description: `文字「${char}」の下端が Y=${Math.round(bbox.maxY)} の位置にあり、基準下端（標準目安: ${px(780)}〜${px(840)}）より上方に配置されています。`,
             recommendation: '「自動整列」でベースライン基準位置に移動するか、キャンバスで配置を調整してください。',
             details: {
               currentBaselineY: Math.round(bbox.maxY),
@@ -309,7 +390,7 @@ export function checkFontQuality(
             canAutoFix: true,
             autoFixType: 'align_baseline',
           });
-        } else if (bbox.maxY > 920) {
+        } else if (bbox.maxY > px(920)) {
           issues.push({
             id: `base-drop-${unicode}`,
             unicode,
@@ -335,8 +416,8 @@ export function checkFontQuality(
       // 欧文アルファベットのベースライン検査
       if (isAscii && char.match(/[a-zA-Z0-9]/)) {
         if (isDescenderChar) {
-          // ディセンダ付き文字 (g, p, yなど) は baselineY (800) より下に来るのが正常
-          if (bbox.maxY < 760) {
+          // ディセンダ付き文字 (g, p, yなど) は baselineY より下に来るのが正常
+          if (bbox.maxY < px(760)) {
             issues.push({
               id: `base-desc-float-${unicode}`,
               unicode,
@@ -346,11 +427,11 @@ export function checkFontQuality(
               severity: 'warning',
               title: 'ディセンダ（降下部分）の不足',
               description: `欧文文字「${char}」はディセンダ（下向きの突き出し）を持つべき文字ですが、下端が Y=${Math.round(bbox.maxY)} とベースラインより上に浮いています。`,
-              recommendation: 'ベースライン (Y=${baselineY}) を適度に下回るように作図してください。',
+              recommendation: `ベースライン (Y=${baselineY}) を適度に下回るように作図してください。`,
               details: {
                 currentBaselineY: Math.round(bbox.maxY),
-                targetBaselineY: 920,
-                deviationPx: Math.round(920 - bbox.maxY),
+                targetBaselineY: px(920),
+                deviationPx: Math.round(px(920) - bbox.maxY),
                 deviationType: 'floating',
               },
               canAutoFix: false,
@@ -358,7 +439,7 @@ export function checkFontQuality(
           }
         } else {
           // ディセンダを持たない文字 (A-Z, b, d, f, h, k, l, etc.)
-          if (bbox.maxY < 680) {
+          if (bbox.maxY < px(680)) {
             issues.push({
               id: `base-latin-float-${unicode}`,
               unicode,
@@ -368,7 +449,7 @@ export function checkFontQuality(
               severity: 'warning',
               title: '欧文文字のベースライン浮遊',
               description: `欧文文字「${char}」の下端 (Y=${Math.round(bbox.maxY)}) がベースライン (Y=${baselineY}) から大きく浮いています。`,
-              recommendation: '「自動整列」で下端をベースライン Y=${baselineY} に設置してください。',
+              recommendation: `「自動整列」で下端をベースライン Y=${baselineY} に設置してください。`,
               details: {
                 currentBaselineY: Math.round(bbox.maxY),
                 targetBaselineY: baselineY,
@@ -378,7 +459,7 @@ export function checkFontQuality(
               canAutoFix: true,
               autoFixType: 'align_baseline',
             });
-          } else if (bbox.maxY > 870) {
+          } else if (bbox.maxY > px(870)) {
             issues.push({
               id: `base-latin-drop-${unicode}`,
               unicode,

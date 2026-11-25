@@ -65,6 +65,7 @@ export function batchOptimizeProjectNodes(
       updatedGlyphs[unicode] = {
         ...glyph,
         contours: res.contours,
+        modified: true,
       };
       details.push({
         unicode,

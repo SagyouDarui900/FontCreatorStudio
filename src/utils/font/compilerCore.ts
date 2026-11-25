@@ -10,8 +10,6 @@ import {
 import { pixelGridToContours, normalizePixelGrid } from '../pixelFontUtils';
 import {
   DEFAULT_UPM,
-  DEFAULT_ASCENDER,
-  DEFAULT_DESCENDER,
   isAsymmetricOrPunctuationGlyph,
   resolveBaselineY,
 } from './constants';
@@ -81,6 +79,68 @@ function safeFromCodePoint(code: number): string | null {
 }
 
 /**
+ * Sanitize a glyph name for the CFF charset / PostScript name table.
+ * Only ASCII letters, digits, '.' and '_' are kept; every other
+ * character (spaces, Japanese, parentheses, ...) becomes '_'. A name
+ * starting with a digit gets a 'g' prefix, leading dots are stripped,
+ * and the result is capped at 63 characters. Returns the fallback
+ * (already safe) when nothing usable remains.
+ */
+function sanitizePostScriptGlyphName(rawName: string, fallback: string): string {
+  let name = rawName.replace(/[^A-Za-z0-9._]/g, '_').replace(/^\.+/, '');
+  if (/^[0-9]/.test(name)) {
+    name = `g${name}`;
+  }
+  name = name.slice(0, 63).replace(/\.+$/, '');
+  return name.length > 0 ? name : fallback;
+}
+
+/**
+ * Return a glyph name that is not already in `used`, appending _2,
+ * _3, ... when the base name is taken. The base is shortened as needed
+ * so the suffixed name stays within 63 characters.
+ */
+function uniqueGlyphName(used: Set<string>, base: string): string {
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
+  let suffix = 2;
+  for (;;) {
+    const suffixText = `_${suffix}`;
+    const candidate = `${base.slice(0, 63 - suffixText.length)}${suffixText}`;
+    if (!used.has(candidate)) {
+      used.add(candidate);
+      return candidate;
+    }
+    suffix++;
+  }
+}
+
+/**
+ * Scale a stored proportional metric (palt / vpal list entry, derived
+ * from the unscaled outline) to the exported outline scale. Returns
+ * the entry unchanged when scaleFactor is 1, so 1.0 exports are
+ * byte-identical to before. Otherwise the proportional advance is
+ * multiplied by the scale and clamped to the (unscaled) original
+ * advance: the advance width itself is not scaled, so a proportional
+ * metric can only tighten within it.
+ */
+function scaleStoredProportionalMetric<
+  T extends { proportionalAdvance: number; originalAdvance: number; deltaAdvance: number },
+>(item: T, scaleFactor: number): T {
+  if (scaleFactor === 1) return item;
+  const upper =
+    typeof item.originalAdvance === 'number' &&
+    Number.isFinite(item.originalAdvance) &&
+    item.originalAdvance > 0
+      ? item.originalAdvance
+      : item.proportionalAdvance;
+  const scaled = Math.max(100, Math.min(upper, Math.round(item.proportionalAdvance * scaleFactor)));
+  return { ...item, proportionalAdvance: scaled, deltaAdvance: scaled - item.originalAdvance };
+}
+
+/**
  * FNV-1a 32-bit hash, rendered as 8 lowercase hex digits. Used for the
  * deterministic `uniqueID`: same project content always yields the same
  * value, and no clock or random input is involved.
@@ -119,6 +179,27 @@ function getOpenTypePathXBounds(path: opentype.Path): { xMin: number; xMax: numb
 }
 
 /**
+ * Vertical extent of an opentype.js path (font Y, baseline = 0, up is
+ * positive), over all command points including bezier control points.
+ * Returns null for an empty path. Used for the OS/2 winAscent /
+ * winDescent fallbacks, which must cover the outlines actually written.
+ */
+function getOpenTypePathYBounds(path: opentype.Path): { yMin: number; yMax: number } | null {
+  let yMin = Number.POSITIVE_INFINITY;
+  let yMax = Number.NEGATIVE_INFINITY;
+  for (const cmd of path.commands || []) {
+    const coords = cmd as { y?: number; y1?: number; y2?: number };
+    for (const y of [coords.y, coords.y1, coords.y2]) {
+      if (typeof y === 'number' && Number.isFinite(y)) {
+        if (y < yMin) yMin = y;
+        if (y > yMax) yMax = y;
+      }
+    }
+  }
+  return yMin === Number.POSITIVE_INFINITY ? null : { yMin, yMax };
+}
+
+/**
  * Infer OpenType OS/2 usWeightClass (100-900) from a style/subfamily name.
  * Multi-word/prefixed tokens (ExtraLight, SemiBold, ExtraBold) are matched
  * before Light/Bold so "SemiBold" resolves to 600 rather than 700.
@@ -150,6 +231,8 @@ export function compileFont(
   font: opentype.Font;
   buffer: ArrayBuffer;
   blobUrl: string;
+  /** Non-fatal problems found while compiling (e.g. dropped kern pairs). */
+  warnings: string[];
 } {
   // One broken pixelData entry must not stop the whole export: strip
   // invalid pixelData (and normalize values to 0/1) before validating.
@@ -221,6 +304,37 @@ export function compileFont(
 
   const rawAscender = project.metadata?.ascender;
   const baselineY = resolveBaselineY(rawAscender, upm);
+  // Ascender/descender fallbacks scale with unitsPerEm: the fallback
+  // ascender is the baseline position (80% of UPM, same as
+  // resolveBaselineY) and the fallback descender is baseline minus UPM,
+  // so they agree with the baseline for any UPM instead of the fixed
+  // 800 / -200 of a 1000-UPM font. Resolved here, before the glyph
+  // loop, so the pixel-glyph conversion below uses these sanitized
+  // values instead of the raw metadata.
+  const safeAscender =
+    typeof project.metadata.ascender === 'number' && Number.isFinite(project.metadata.ascender)
+      ? Math.round(project.metadata.ascender)
+      : resolveBaselineY(project.metadata.ascender, upm);
+  const safeDescender =
+    typeof project.metadata.descender === 'number' && Number.isFinite(project.metadata.descender)
+      ? Math.round(project.metadata.descender)
+      : safeAscender - upm;
+  // Export outline scale, resolved once: the glyph loop, the palt /
+  // vpal derivation and the saved-list scaling below all use this one
+  // value. An invalid scale (NaN, infinite, <= 0) falls back to the
+  // default instead of mirroring or collapsing the outlines.
+  const exportScaleFactor =
+    typeof options?.scaleFactor === 'number' &&
+    Number.isFinite(options.scaleFactor) &&
+    options.scaleFactor > 0
+      ? options.scaleFactor
+      : 1.35;
+  // Non-fatal problems collected for the caller (see `warnings`).
+  const compileWarnings: string[] = [];
+  // Glyph names already used in this font (seeded with .notdef): CFF
+  // glyph names must be unique, so sanitized names are deduplicated
+  // against this set.
+  const usedGlyphNames = new Set<string>(['.notdef']);
   const featureConfig = project.openTypeFeatures;
   const openTypeFeaturesEnabled = featureConfig?.enabled !== false;
   const verticalWritingEnabled = openTypeFeaturesEnabled && featureConfig?.verticalWriting?.enabled !== false;
@@ -241,10 +355,14 @@ export function compileFont(
       : 5;
   let paltItems: PaltGlyphMetric[] = [];
   if (paltEnabled) {
+    // A saved list was derived from the unscaled outline, so its
+    // proportional advances are scaled to the export scale here; a
+    // freshly derived list is computed at the export scale directly.
+    // Either way each advance is scaled exactly once.
     paltItems =
       paltConfig?.paltList && paltConfig.paltList.length > 0
-        ? paltConfig.paltList
-        : deriveProjectPaltMetrics(project, opticalSideBearingPercent);
+        ? paltConfig.paltList.map((item) => scaleStoredProportionalMetric(item, exportScaleFactor))
+        : deriveProjectPaltMetrics(project, opticalSideBearingPercent, exportScaleFactor);
   }
   // vpal items feed the vmtx table (built after the glyph list is final).
   // They are only used when palt is enabled and either a list was saved
@@ -256,8 +374,8 @@ export function compileFont(
   if (vpalEnabled) {
     vpalItems =
       paltConfig?.vpalList && paltConfig.vpalList.length > 0
-        ? paltConfig.vpalList
-        : deriveProjectVpalMetrics(project, opticalSideBearingPercent);
+        ? paltConfig.vpalList.map((item) => scaleStoredProportionalMetric(item, exportScaleFactor))
+        : deriveProjectVpalMetrics(project, opticalSideBearingPercent, exportScaleFactor);
   }
 
   if (openTypeFeaturesEnabled) {
@@ -301,9 +419,9 @@ export function compileFont(
           pGrid,
           g.pixelData.width,
           g.pixelData.height,
-          project.metadata.unitsPerEm || DEFAULT_UPM,
-          project.metadata.ascender || DEFAULT_ASCENDER,
-          project.metadata.descender || DEFAULT_DESCENDER,
+          upm,
+          safeAscender,
+          safeDescender,
           advWidth,
           g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
           project.pixelFontSettings?.mergeContours !== false
@@ -311,7 +429,6 @@ export function compileFont(
       }
     }
 
-    const scaleFactor = options?.scaleFactor !== undefined ? options.scaleFactor : 1.35;
     const shouldBalance = options?.balanceSideBearings !== false;
     const shouldMerge = options?.mergeOverlaps === true;
 
@@ -325,7 +442,7 @@ export function compileFont(
       const origBbox = getContoursBoundingBox(glyphContours);
       if (origBbox.width > 0 && origBbox.height > 0) {
         // 1. Scale around optical center (anchorX, anchorY) so Japanese glyphs expand smoothly
-        if (Math.abs(scaleFactor - 1.0) > 0.001) {
+        if (Math.abs(exportScaleFactor - 1.0) > 0.001) {
           const isAsymmetric = isAsymmetricOrPunctuationGlyph(g.unicode, g.char);
           const anchorX = (shouldBalance && !isAsymmetric) ? origBbox.centerX : advWidth / 2;
           // Scale around the center of the Japanese virtual body, as a
@@ -338,8 +455,8 @@ export function compileFont(
 
           // Safety boundary clamping: prevent expanding beyond em-box boundaries
           // which would cause vertical clipping or line collision in Word / web renderers
-          let safeScale = scaleFactor;
-          if (scaleFactor > 1.0) {
+          let safeScale = exportScaleFactor;
+          if (exportScaleFactor > 1.0) {
             const distTop = anchorY - origBbox.minY;
             const distBottom = origBbox.maxY - anchorY;
             if (distTop > 0) {
@@ -394,7 +511,17 @@ export function compileFont(
 
     const path = contoursToOpenTypePath(glyphContours, baselineY);
 
-    const glyphName = g.name || (g.char ? `uni${g.unicode.toString(16).toUpperCase().padStart(4, '0')}` : `glyph${g.unicode}`);
+    // CFF glyph names allow only ASCII letters, digits, '.' and '_':
+    // sanitize the stored name (spaces, Japanese, parentheses, ...) and
+    // deduplicate, so two names that sanitize to the same string do not
+    // collide in the charset.
+    const rawGlyphName =
+      g.name ||
+      (g.char ? `uni${g.unicode.toString(16).toUpperCase().padStart(4, '0')}` : `glyph${g.unicode}`);
+    const glyphName = uniqueGlyphName(
+      usedGlyphNames,
+      sanitizePostScriptGlyphName(rawGlyphName, `glyph${g.unicode}`)
+    );
 
     const glyph = new opentype.Glyph({
       name: glyphName,
@@ -416,7 +543,7 @@ export function compileFont(
   if (!addedUnicodes.has(32)) {
     const spaceWidth = Math.round(upm / 2);
     const spaceGlyph = new opentype.Glyph({
-      name: 'space',
+      name: uniqueGlyphName(usedGlyphNames, 'space'),
       unicode: 32,
       advanceWidth: spaceWidth,
       path: new opentype.Path(),
@@ -433,7 +560,7 @@ export function compileFont(
   if (!addedUnicodes.has(12288)) {
     const fullSpaceWidth = upm;
     const fullSpaceGlyph = new opentype.Glyph({
-      name: 'space.fullwidth',
+      name: uniqueGlyphName(usedGlyphNames, 'space.fullwidth'),
       unicode: 12288,
       advanceWidth: fullSpaceWidth,
       path: new opentype.Path(),
@@ -554,7 +681,10 @@ export function compileFont(
 
         const path = contoursToOpenTypePath(derivedContours, baselineY);
         const vertGlyph = new opentype.Glyph({
-          name: `vert_${deriv.targetUnicode.toString(16).toUpperCase()}`,
+          name: uniqueGlyphName(
+            usedGlyphNames,
+            `vert_${deriv.targetUnicode.toString(16).toUpperCase()}`
+          ),
           unicode: deriv.targetUnicode,
           advanceWidth: upm,
           path: path,
@@ -652,12 +782,21 @@ export function compileFont(
   let hheaMinLeftSideBearing = Number.POSITIVE_INFINITY;
   let hheaMinRightSideBearing = Number.POSITIVE_INFINITY;
   let hheaXMaxExtent = 0;
+  // Vertical outline extremes over the same glyph set, for the OS/2
+  // winAscent / winDescent fallbacks below.
+  let outlineYMax: number | null = null;
+  let outlineYMin: number | null = null;
   for (const glyph of glyphsList) {
     const adv = glyph.advanceWidth;
     if (typeof adv === 'number' && Number.isFinite(adv) && adv > hheaAdvanceWidthMax) {
       hheaAdvanceWidthMax = adv;
     }
     const bounds = glyph.path ? getOpenTypePathXBounds(glyph.path) : null;
+    const yBounds = glyph.path ? getOpenTypePathYBounds(glyph.path) : null;
+    if (yBounds) {
+      if (outlineYMax === null || yBounds.yMax > outlineYMax) outlineYMax = yBounds.yMax;
+      if (outlineYMin === null || yBounds.yMin < outlineYMin) outlineYMin = yBounds.yMin;
+    }
     (glyph as unknown as { leftSideBearing: number }).leftSideBearing = bounds ? bounds.xMin : 0;
     if (bounds && typeof adv === 'number' && Number.isFinite(adv)) {
       const lsb = bounds.xMin;
@@ -710,21 +849,9 @@ export function compileFont(
   const isRegularSelection = safeWeightClass === 400 && !isBold && !isItalic;
 
   const avgWidth =
-    countedAdvanceGlyphs > 0 ? Math.round(totalAdvanceWidth / countedAdvanceGlyphs) : 500;
-
-  // Ascender/descender fallbacks scale with unitsPerEm: the fallback
-  // ascender is the baseline position (80% of UPM, same as
-  // resolveBaselineY) and the fallback descender is baseline minus UPM,
-  // so they agree with the baseline for any UPM instead of the fixed
-  // 800 / -200 of a 1000-UPM font.
-  const safeAscender =
-    typeof project.metadata.ascender === 'number' && Number.isFinite(project.metadata.ascender)
-      ? Math.round(project.metadata.ascender)
-      : resolveBaselineY(project.metadata.ascender, upm);
-  const safeDescender =
-    typeof project.metadata.descender === 'number' && Number.isFinite(project.metadata.descender)
-      ? Math.round(project.metadata.descender)
-      : safeAscender - upm;
+    countedAdvanceGlyphs > 0
+      ? Math.round(totalAdvanceWidth / countedAdvanceGlyphs)
+      : Math.round(upm * 0.5);
 
   const safeItalicAngle =
     typeof project.metadata.italicAngle === 'number' && Number.isFinite(project.metadata.italicAngle)
@@ -981,12 +1108,16 @@ export function compileFont(
 
   const rawWinAscent = project.metadata.winAscent;
   const rawWinDescent = project.metadata.winDescent;
+  // Unset winAscent / winDescent fall back to the outlines actually
+  // written (after scaling), not to fixed 1000-UPM numbers: the ascent
+  // must cover the highest outline point and the descent the lowest,
+  // or Windows clips the glyphs. An explicitly set value still wins.
   font.tables.os2.usWinAscent = Math.max(
     0,
     Math.round(
       typeof rawWinAscent === 'number' && Number.isFinite(rawWinAscent)
         ? rawWinAscent
-        : Math.max(asc, 800)
+        : Math.max(asc, outlineYMax ?? asc)
     )
   );
   font.tables.os2.usWinDescent = Math.max(
@@ -994,7 +1125,7 @@ export function compileFont(
     Math.round(
       typeof rawWinDescent === 'number' && Number.isFinite(rawWinDescent)
         ? rawWinDescent
-        : Math.abs(desc)
+        : Math.max(Math.abs(desc), outlineYMin !== null && outlineYMin < 0 ? -outlineYMin : 0)
     )
   );
   font.tables.os2.sTypoAscender =
@@ -1009,14 +1140,16 @@ export function compileFont(
     typeof project.metadata.typoLineGap === 'number' && Number.isFinite(project.metadata.typoLineGap)
       ? Math.round(project.metadata.typoLineGap)
       : lineGap;
+  // Cap height (0.7 em) and x height (0.5 em) fall back to UPM-scaled
+  // values, matching resolveCanvasMetrics, instead of fixed 700 / 500.
   font.tables.os2.sCapHeight =
     typeof project.metadata.capHeight === 'number' && Number.isFinite(project.metadata.capHeight)
       ? Math.round(project.metadata.capHeight)
-      : 700;
+      : Math.round(upm * 0.7);
   font.tables.os2.sxHeight =
     typeof project.metadata.xHeight === 'number' && Number.isFinite(project.metadata.xHeight)
       ? Math.round(project.metadata.xHeight)
-      : 500;
+      : Math.round(upm * 0.5);
   // bit 7 (0x0080) = USE_TYPO_METRICS (essential for Windows DirectWrite/AviUtl2/GDI consistent line metrics)
   font.tables.os2.fsSelection =
     (isBold ? 0x0020 : 0) |
@@ -1402,7 +1535,9 @@ export function compileFont(
   // self-validation parse below then covers the injected bytes too.
   if (validKerningPairs.length > 0) {
     try {
-      buffer = injectKernTable(buffer, validKerningPairs);
+      buffer = injectKernTable(buffer, validKerningPairs, (message) => {
+        compileWarnings.push(message);
+      });
     } catch (kernErr) {
       // A missing binary kern table must not be treated as success:
       // the in-memory kerningPairs fallback does not reach the file.
@@ -1638,5 +1773,5 @@ export function compileFont(
     blobUrl = URL.createObjectURL(blob);
   }
 
-  return { font, buffer, blobUrl };
+  return { font, buffer, blobUrl, warnings: compileWarnings };
 }

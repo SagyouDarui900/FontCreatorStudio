@@ -15,7 +15,10 @@ const HEAD_CHECKSUM_ADJUSTMENT_OFFSET = 8;
 const HEAD_CHECKSUM_MAGIC = 0xb1b0afba;
 // OpenType kern format 0 subtable stores its byte length in a uint16 (max 65535),
 // with 14 bytes of subtable/format-0 header + 6 bytes per pair -> max 10920 pairs.
-const MAX_FORMAT0_PAIRS = Math.floor((0xffff - 14) / 6);
+export const MAX_FORMAT0_PAIRS = Math.floor((0xffff - 14) / 6);
+
+/** Called with a warning when pairs are dropped; lets the caller show it. */
+export type KernWarningHandler = (message: string) => void;
 
 function computeSearchParams(count: number, unitSize: number): {
   searchRange: number;
@@ -50,7 +53,14 @@ function clampInt16(value: number): number {
   return Math.max(-32768, Math.min(32767, rounded));
 }
 
-function buildKernTableBytes(pairs: KernPair[]): Uint8Array {
+/**
+ * Build a format 0 `kern` table. When more than MAX_FORMAT0_PAIRS
+ * valid pairs are given, only the first MAX_FORMAT0_PAIRS (in sorted
+ * glyph-index order) are kept and `onWarning` is called with the
+ * dropped count, so the truncation is visible to the caller instead of
+ * happening silently.
+ */
+export function buildKernTableBytes(pairs: KernPair[], onWarning?: KernWarningHandler): Uint8Array {
   // Deduplicate by (leftIndex, rightIndex), keeping the latest value,
   // and exclude out-of-range glyph indices or zero values.
   const deduped = new Map<number, KernPair>();
@@ -67,10 +77,17 @@ function buildKernTableBytes(pairs: KernPair[]): Uint8Array {
 
   const sortedPairs = Array.from(deduped.entries())
     .sort((a, b) => a[0] - b[0])
-    .slice(0, MAX_FORMAT0_PAIRS)
     .map(([, pair]) => pair);
+  if (sortedPairs.length > MAX_FORMAT0_PAIRS) {
+    onWarning?.(
+      `カーニングペアが ${sortedPairs.length} 件あり、kern テーブル（format 0）の上限 ` +
+        `${MAX_FORMAT0_PAIRS} 件を超えたため、${sortedPairs.length - MAX_FORMAT0_PAIRS} 件を kern テーブルから除外しました。` +
+        `除外されたペアは GPOS の kern には残りますが、kern テーブルのみを読む環境では適用されません。`
+    );
+  }
+  const keptPairs = sortedPairs.slice(0, MAX_FORMAT0_PAIRS);
 
-  const nPairs = sortedPairs.length;
+  const nPairs = keptPairs.length;
   const subtableLength = 14 + nPairs * 6;
   const totalLength = 4 + subtableLength;
   const out = new Uint8Array(totalLength);
@@ -93,7 +110,7 @@ function buildKernTableBytes(pairs: KernPair[]): Uint8Array {
   view.setUint16(16, rangeShift, false);
 
   let offset = 18;
-  for (const pair of sortedPairs) {
+  for (const pair of keptPairs) {
     view.setUint16(offset, pair.leftIndex, false);
     view.setUint16(offset + 2, pair.rightIndex, false);
     view.setInt16(offset + 4, pair.value, false);
@@ -217,9 +234,15 @@ export function injectSfntTables(
 /**
  * Inject (or replace) a standard Windows/OpenType Format 0 `kern` table inside a
  * serialized SFNT (OTF/TTF) ArrayBuffer and update directory offsets and checksums.
+ * `onWarning` receives a message when pairs had to be dropped at the
+ * format 0 limit, so the caller can show the truncation to the user.
  */
-export function injectKernTable(buffer: ArrayBuffer, pairs: KernPair[]): ArrayBuffer {
-  const kernBytes = buildKernTableBytes(pairs);
+export function injectKernTable(
+  buffer: ArrayBuffer,
+  pairs: KernPair[],
+  onWarning?: KernWarningHandler
+): ArrayBuffer {
+  const kernBytes = buildKernTableBytes(pairs, onWarning);
   if (kernBytes.length <= 18) {
     return buffer;
   }

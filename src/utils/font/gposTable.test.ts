@@ -242,6 +242,38 @@ describe('buildGposTableBytes', () => {
   });
 });
 
+describe('buildGposTableBytes 16-bit offset limit (E-M1)', () => {
+  it('builds a GPOS table for a moderate number of kern pairs', () => {
+    const pairs = Array.from({ length: 100 }, (_, i) => ({
+      leftGlyph: i + 1,
+      rightGlyph: 1,
+      value: -10,
+    }));
+    const bytes = buildGposTableBytes([], new Map(), pairs);
+    expect(bytes).not.toBeNull();
+    expect(bytes!.length).toBeLessThanOrEqual(0xffff);
+  });
+
+  it('throws instead of writing clamped offsets when the table exceeds 64KB', () => {
+    const pairs = Array.from({ length: 20000 }, (_, i) => ({
+      leftGlyph: i + 1,
+      rightGlyph: 1,
+      value: -10,
+    }));
+    expect(() => buildGposTableBytes([], new Map(), pairs)).toThrow(/GPOS/);
+  });
+
+  it('throws with the 65535-byte message when the table just exceeds the limit', () => {
+    // SinglePos offsets stay small, so a table of ~16500 entries passes
+    // every offset write and is caught by the total-size check instead.
+    const entries = Array.from({ length: 16500 }, (_, i) => ({
+      glyphIndex: i + 1,
+      xAdvance: -5,
+    }));
+    expect(() => buildGposTableBytes(entries, new Map())).toThrow(/65535/);
+  });
+});
+
 describe('buildVmtxTableBytes / buildVheaTableBytes', () => {
   it('writes one 4-byte vmtx record per glyph in glyph-index order', () => {
     const bytes = buildVmtxTableBytes(

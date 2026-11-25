@@ -36,6 +36,50 @@ const rect: PathContour = {
   ],
 };
 
+describe('deriveProjectPaltMetrics / deriveProjectVpalMetrics scaleFactor (E-H1)', () => {
+  it('scales the proportional advance to the exported outline scale', () => {
+    const project = makeProject({
+      65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect] },
+    });
+    // Outline 400 wide, 5% padding (50 each side): 1.0 -> 500.
+    expect(deriveProjectPaltMetrics(project).map((m) => m.proportionalAdvance)).toEqual([500]);
+    // 1.35 -> outline 540 wide plus scaled padding 67.5 each side: 675.
+    expect(deriveProjectPaltMetrics(project, 5, 1.35).map((m) => m.proportionalAdvance)).toEqual([
+      675,
+    ]);
+    expect(deriveProjectPaltMetrics(project, 5, 1.35).map((m) => m.deltaAdvance)).toEqual([-325]);
+    // Outline 500 high: 1.0 -> 600, 1.35 -> 810.
+    expect(deriveProjectVpalMetrics(project).map((m) => m.proportionalAdvance)).toEqual([600]);
+    expect(deriveProjectVpalMetrics(project, 5, 1.35).map((m) => m.proportionalAdvance)).toEqual([
+      810,
+    ]);
+  });
+
+  it('treats an invalid scaleFactor as 1.0', () => {
+    const project = makeProject({
+      65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect] },
+    });
+    for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(deriveProjectPaltMetrics(project, 5, bad).map((m) => m.proportionalAdvance)).toEqual([
+        500,
+      ]);
+      expect(deriveProjectVpalMetrics(project, 5, bad).map((m) => m.proportionalAdvance)).toEqual([
+        600,
+      ]);
+    }
+  });
+
+  it('never scales the proportional advance past the advance width', () => {
+    const project = makeProject({
+      65: { char: 'A', name: 'A', unicode: 65, advanceWidth: 1000, lsb: 50, contours: [rect] },
+    });
+    // A 10x scale would give 5000, but palt only tightens within the advance.
+    expect(deriveProjectPaltMetrics(project, 5, 10).map((m) => m.proportionalAdvance)).toEqual([
+      1000,
+    ]);
+  });
+});
+
 describe('deriveProjectPaltMetrics / deriveProjectVpalMetrics invalid Unicode (L41)', () => {
   it('skips a glyph whose Unicode is above 0x10FFFF instead of throwing RangeError', () => {
     const project = makeProject({

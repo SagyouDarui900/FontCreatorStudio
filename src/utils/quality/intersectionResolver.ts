@@ -188,11 +188,16 @@ export function batchResolveProjectIntersections(
     const intersections = findContourIntersections(glyph.contours);
     if (intersections.length > 0) {
       const resolved = resolveContourOverlaps(glyph.contours);
-      if (resolved && resolved.length > 0) {
+      const changed =
+        resolved &&
+        resolved.length > 0 &&
+        JSON.stringify(resolved) !== JSON.stringify(glyph.contours);
+      if (changed) {
         resolvedCount++;
         updatedGlyphs[unicode] = {
           ...glyph,
           contours: resolved,
+          modified: true,
         };
       }
     }
