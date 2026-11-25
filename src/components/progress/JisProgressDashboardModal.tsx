@@ -158,31 +158,31 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
       role="dialog"
       aria-modal="true"
       aria-label="JIS規格・常用漢字 制作進捗ダッシュボード"
-      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-5 bg-black/75 anim-fade"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-3 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-5xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-[1440px] sm:max-h-[94vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-4 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="hidden sm:flex p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <BarChart3 className="w-5 h-5" />
+            <div className="hidden sm:flex p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <BarChart3 className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex flex-col xl:flex-row xl:items-baseline xl:gap-3">
               <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 truncate ${themeClasses.textPrimary}`}>
                 JIS規格・常用漢字 制作進捗ダッシュボード
               </h2>
-              <p className={`hidden sm:block text-xs ${themeClasses.textMuted}`}>
-                日本のフォント規格（常用漢字2,136字・JIS第1水準2,965字・第2水準3,390字）の制作達成状況を管理
+              <p className={`hidden sm:block text-[11px] truncate ${themeClasses.textMuted}`}>
+                常用漢字2,136字・JIS第1水準2,965字・第2水準3,390字の制作達成状況
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             title="閉じる"
           >
             <X className="w-5 h-5" />
@@ -191,7 +191,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
         {/* Metric Cards Top Section */}
         <div
-          className={`p-2.5 sm:p-4 border-b grid grid-cols-3 gap-1.5 sm:gap-3 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`p-2 sm:px-4 sm:py-2 border-b grid grid-cols-3 gap-1.5 sm:gap-2.5 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* 常用漢字 */}
           <button
@@ -199,28 +199,28 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jouyou');
               setCurrentPage(1);
             }}
-            className={`p-2 sm:p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jouyou'
-                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} shadow-md ring-2 ring-emerald-500/20`
+                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} ring-2 ring-emerald-500/20`
                 : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
-            <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
+            <div className="flex items-center justify-between gap-1 mb-1">
               <span className={`text-[11px] sm:text-xs font-bold truncate ${themeClasses.textPrimary}`}>
                 <span className="sm:hidden">常用漢字</span>
                 <span className="hidden sm:inline">常用漢字 (2,136字)</span>
               </span>
-              <span className="font-mono font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 shrink-0">
+              <span className="font-mono tabular-nums font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 shrink-0">
                 {progress.jouyou.percent}%
               </span>
             </div>
-            <div className="w-full h-1.5 sm:h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1.5">
+            <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jouyou.percent}%` }}
               />
             </div>
-            <div className={`hidden sm:flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+            <div className={`hidden sm:flex items-center justify-between text-[11px] tabular-nums ${themeClasses.textMuted}`}>
               <span>完了: <strong className={themeClasses.textPrimary}>{progress.jouyou.completed}</strong> 字</span>
               <span>未作: {progress.jouyou.missingChars.length} 字</span>
             </div>
@@ -232,28 +232,28 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jis1');
               setCurrentPage(1);
             }}
-            className={`p-2 sm:p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jis1'
-                ? `${themeClasses.cardBg} border-teal-500 shadow-md ring-2 ring-teal-500/20`
+                ? `${themeClasses.cardBg} border-teal-500 ring-2 ring-teal-500/20`
                 : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
-            <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
+            <div className="flex items-center justify-between gap-1 mb-1">
               <span className={`text-[11px] sm:text-xs font-bold truncate ${themeClasses.textPrimary}`}>
                 <span className="sm:hidden">JIS第1</span>
                 <span className="hidden sm:inline">JIS第1水準 (2,965字)</span>
               </span>
-              <span className="font-mono font-bold text-xs sm:text-sm text-teal-600 dark:text-teal-400 shrink-0">
+              <span className="font-mono tabular-nums font-bold text-xs sm:text-sm text-teal-600 dark:text-teal-400 shrink-0">
                 {progress.jis1.percent}%
               </span>
             </div>
-            <div className="w-full h-1.5 sm:h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1.5">
+            <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1">
               <div
                 className="h-full bg-teal-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jis1.percent}%` }}
               />
             </div>
-            <div className={`hidden sm:flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+            <div className={`hidden sm:flex items-center justify-between text-[11px] tabular-nums ${themeClasses.textMuted}`}>
               <span>完了: <strong className={themeClasses.textPrimary}>{progress.jis1.completed}</strong> 字</span>
               <span>未作: {progress.jis1.missingChars.length} 字</span>
             </div>
@@ -265,28 +265,28 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               setActiveTab('jis2');
               setCurrentPage(1);
             }}
-            className={`p-2 sm:p-3 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
+            className={`p-2 sm:px-3 sm:py-2 rounded-xl border text-left transition-colors cursor-pointer relative overflow-hidden ${
               activeTab === 'jis2'
-                ? `${themeClasses.cardBg} border-cyan-500 shadow-md ring-2 ring-cyan-500/20`
+                ? `${themeClasses.cardBg} border-cyan-500 ring-2 ring-cyan-500/20`
                 : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
             }`}
           >
-            <div className="flex items-center justify-between gap-1 mb-1 sm:mb-1.5">
+            <div className="flex items-center justify-between gap-1 mb-1">
               <span className={`text-[11px] sm:text-xs font-bold truncate ${themeClasses.textPrimary}`}>
                 <span className="sm:hidden">JIS第2</span>
                 <span className="hidden sm:inline">JIS第2水準 (3,390字)</span>
               </span>
-              <span className="font-mono font-bold text-xs sm:text-sm text-cyan-600 dark:text-cyan-400 shrink-0">
+              <span className="font-mono tabular-nums font-bold text-xs sm:text-sm text-cyan-600 dark:text-cyan-400 shrink-0">
                 {progress.jis2.percent}%
               </span>
             </div>
-            <div className="w-full h-1.5 sm:h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1.5">
+            <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden sm:mb-1">
               <div
                 className="h-full bg-cyan-500 rounded-full transition-[width] duration-300"
                 style={{ width: `${progress.jis2.percent}%` }}
               />
             </div>
-            <div className={`hidden sm:flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
+            <div className={`hidden sm:flex items-center justify-between text-[11px] tabular-nums ${themeClasses.textMuted}`}>
               <span>完了: <strong className={themeClasses.textPrimary}>{progress.jis2.completed}</strong> 字</span>
               <span>未作: {progress.jis2.missingChars.length} 字</span>
             </div>
@@ -295,7 +295,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
         {/* Filter and Action Bar */}
         <div
-          className={`px-3 sm:px-4 py-2 sm:py-2.5 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {/* Status filter tabs */}
           <div className="flex items-center gap-1 overflow-x-auto max-w-full no-scrollbar whitespace-nowrap">
@@ -400,13 +400,13 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
         </div>
 
         {/* Character Grid Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 sm:p-3.5">
           {filteredList.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center text-center">
               <p className={`text-sm ${themeClasses.textMuted}`}>該当する文字がありません</p>
             </div>
           ) : (
-            <div className="grid grid-cols-5 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-5 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 xl:grid-cols-[repeat(18,minmax(0,1fr))] 2xl:grid-cols-[repeat(20,minmax(0,1fr))] gap-1.5">
               {pagedList.map((ch) => {
                 const isCompleted = completedCharSet.has(ch);
                 const kuten = getJisKuTenCode(ch);
@@ -416,7 +416,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                   <button
                     key={ch}
                     onClick={() => handleJumpToChar(ch)}
-                    className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-colors cursor-pointer group relative ${
+                    className={`p-1.5 sm:py-1.5 sm:px-1 rounded-lg border flex flex-col items-center justify-center transition-colors cursor-pointer group relative ${
                       isCompleted
                         ? `${themeClasses.accentBadge} hover:opacity-90`
                         : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
@@ -425,14 +425,14 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
                       kuten ? ` (JIS区点 ${kuten.kuTenStr})` : ''
                     } - ${isCompleted ? '作成済み' : '未作成'}`}
                   >
-                    <span className="text-xl font-medium leading-none mb-1">
+                    <span className="text-lg font-medium leading-tight mb-0.5">
                       {ch}
                     </span>
-                    <span className="text-[9px] font-mono leading-none opacity-60">
+                    <span className="text-[9px] font-mono tabular-nums leading-none opacity-60">
                       {kuten ? kuten.kuTenStr : unicode ? unicode.toString(16).toUpperCase() : ''}
                     </span>
                     {isCompleted && (
-                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-xs bg-emerald-500" />
                     )}
                   </button>
                 );
@@ -443,9 +443,9 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
         {/* Footer Pagination */}
         <div
-          className={`px-3.5 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`px-3.5 sm:px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:py-2.5 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
-          <div className={`text-xs ${themeClasses.textMuted}`}>
+          <div className={`text-xs tabular-nums ${themeClasses.textMuted}`}>
             全 <strong>{filteredList.length}</strong> 字中{' '}
             <span className="font-mono">
               {Math.min(filteredList.length, (validPage - 1) * pageSize + 1)}〜

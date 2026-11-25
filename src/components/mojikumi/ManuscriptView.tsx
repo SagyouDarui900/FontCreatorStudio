@@ -393,7 +393,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
               className="w-max mx-auto relative flex items-center justify-center border-2 border-emerald-700/50 dark:border-emerald-500/50 bg-white/40 dark:bg-black/20 p-2 pb-4 rounded-lg"
               style={{ fontFeatureSettings: '"vert" 0, "vrt2" 0' }}
             >
-              <div className="flex flex-row-reverse items-center">
+              <div className="flex flex-row-reverse items-start">
                 {/* First half: Lines 1 to 10 (col 0 is rightmost) */}
                 {renderHalfBlock(gridCells.slice(0, 10), 1)}
 

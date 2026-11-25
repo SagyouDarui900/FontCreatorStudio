@@ -4,7 +4,10 @@ import {
   OpenTypeFeatureLigature,
   OpenTypeFeaturesConfig,
 } from '../../types';
-import { deriveProjectPaltMetrics } from '../../utils/font';
+import {
+  deriveProjectPaltMetrics,
+  deriveProjectVpalMetrics,
+} from '../../utils/font';
 import {
   buildDefaultOpenTypeFeaturesConfig,
   parseUnicodeCodePoint,
@@ -36,6 +39,7 @@ export function useOpenTypeFeaturesState({
 
   // Form Inputs for Adding Custom Ligatures
   const [newLigName, setNewLigName] = useState('');
+  const [newLigType, setNewLigType] = useState<'liga' | 'dlig' | 'rlig'>('liga');
   const [newLigInputs, setNewLigInputs] = useState('');
   const [newLigTargetUnicode, setNewLigTargetUnicode] = useState('');
 
@@ -46,6 +50,7 @@ export function useOpenTypeFeaturesState({
   const [previewWritingMode, setPreviewWritingMode] = useState<'vertical-rl' | 'horizontal-tb'>(
     'vertical-rl'
   );
+  const [previewUsePalt, setPreviewUsePalt] = useState(true);
 
   // Resync optical margin percent whenever modal opens or project palt config changes
   useEffect(() => {
@@ -67,6 +72,11 @@ export function useOpenTypeFeaturesState({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isTopModal, onClose]);
+
+  const existingUnicodes = useMemo(
+    () => new Set(Object.keys(project.glyphs || {}).map(Number)),
+    [project.glyphs]
+  );
 
   const config: OpenTypeFeaturesConfig = useMemo(() => {
     const defaults = buildDefaultOpenTypeFeaturesConfig(
@@ -121,17 +131,29 @@ export function useOpenTypeFeaturesState({
     onShowToast(`縦書き ('vert') 機能: ${updated.verticalWriting.enabled ? 'ON' : 'OFF'}`, 'info');
   }, [config, onShowToast, updateFeatures]);
 
+  const commitVerticalMetricHistory = useCallback(() => {
+    commitProjectHistory?.();
+  }, [commitProjectHistory]);
+
   const updateVerticalMetricField = useCallback(
     (field: 'defaultVertAdvance' | 'vertOriginY', value: number) => {
-      updateFeatures({
-        ...config,
-        verticalWriting: {
-          ...config.verticalWriting,
-          [field]: value,
-        },
+      setProject((prev) => {
+        const baseConfig = prev.openTypeFeatures ?? config;
+        const baseVert = baseConfig.verticalWriting ?? config.verticalWriting;
+        return {
+          ...prev,
+          openTypeFeatures: {
+            ...baseConfig,
+            verticalWriting: {
+              ...baseVert,
+              [field]: value,
+            },
+          },
+          updatedAt: Date.now(),
+        };
       });
     },
-    [config, updateFeatures]
+    [config, setProject]
   );
 
   const toggleVertSub = useCallback(
@@ -198,7 +220,7 @@ export function useOpenTypeFeaturesState({
 
     const newLig: OpenTypeFeatureLigature = {
       id: `lig_custom_${Date.now()}`,
-      type: 'liga',
+      type: newLigType,
       name: newLigName.trim() || `${inputArr.join('+')} 合字`,
       inputChars: inputArr,
       substituteUnicode: targetUni,
@@ -213,8 +235,8 @@ export function useOpenTypeFeaturesState({
     setNewLigName('');
     setNewLigInputs('');
     setNewLigTargetUnicode('');
-    onShowToast(`合字「${newLig.name}」を追加しました`, 'success');
-  }, [config, newLigInputs, newLigName, newLigTargetUnicode, onShowToast, updateFeatures]);
+    onShowToast(`合字「${newLig.name}」(${newLigType}) を追加しました`, 'success');
+  }, [config, newLigInputs, newLigName, newLigTargetUnicode, newLigType, onShowToast, updateFeatures]);
 
   const handleRemoveLigature = useCallback(
     (id: string) => {
@@ -249,7 +271,8 @@ export function useOpenTypeFeaturesState({
   }, [config, onShowToast, updateFeatures]);
 
   const handleAutoDerivePalt = useCallback(() => {
-    const list = deriveProjectPaltMetrics(project, opticalSideBearingPercent);
+    const paltList = deriveProjectPaltMetrics(project, opticalSideBearingPercent);
+    const vpalList = deriveProjectVpalMetrics(project, opticalSideBearingPercent);
     const updated: OpenTypeFeaturesConfig = {
       ...config,
       palt: {
@@ -257,13 +280,13 @@ export function useOpenTypeFeaturesState({
         autoDerivePalt: true,
         autoDeriveVpal: true,
         opticalSideBearingPercent,
-        paltList: list,
-        vpalList: config.palt?.vpalList || [],
+        paltList,
+        vpalList,
       },
     };
     updateFeatures(updated);
     onShowToast(
-      `${list.length} 文字のプロポーショナルメトリクス (palt) を自動算出・登録しました`,
+      `横書き(palt) ${paltList.length}文字・縦書き(vpal) ${vpalList.length}文字のプロポーショナルメトリクスを算出しました`,
       'success'
     );
   }, [config, onShowToast, opticalSideBearingPercent, project, updateFeatures]);
@@ -285,18 +308,42 @@ export function useOpenTypeFeaturesState({
     [config, updateFeatures]
   );
 
+  const toggleVpalItem = useCallback(
+    (unicode: number) => {
+      if (!config.palt) return;
+      const updatedList = (config.palt.vpalList || []).map((v) =>
+        v.unicode === unicode ? { ...v, enabled: !v.enabled } : v
+      );
+      updateFeatures({
+        ...config,
+        palt: {
+          ...config.palt,
+          vpalList: updatedList,
+        },
+      });
+    },
+    [config, updateFeatures]
+  );
+
   const togglePreviewWritingMode = useCallback(() => {
     setPreviewWritingMode((prev) => (prev === 'vertical-rl' ? 'horizontal-tb' : 'vertical-rl'));
+  }, []);
+
+  const togglePreviewPalt = useCallback(() => {
+    setPreviewUsePalt((prev) => !prev);
   }, []);
 
   return {
     activeTab,
     setActiveTab,
     config,
+    existingUnicodes,
     opticalSideBearingPercent,
     setOpticalSideBearingPercent,
     newLigName,
     setNewLigName,
+    newLigType,
+    setNewLigType,
     newLigInputs,
     setNewLigInputs,
     newLigTargetUnicode,
@@ -305,8 +352,11 @@ export function useOpenTypeFeaturesState({
     setPreviewText,
     previewWritingMode,
     togglePreviewWritingMode,
+    previewUsePalt,
+    togglePreviewPalt,
     toggleFeaturesGlobal,
     toggleVerticalWriting,
+    commitVerticalMetricHistory,
     updateVerticalMetricField,
     toggleVertSub,
     handleAutoDetectVerticalGlyphs,
@@ -316,5 +366,6 @@ export function useOpenTypeFeaturesState({
     togglePaltGlobal,
     handleAutoDerivePalt,
     togglePaltItem,
+    toggleVpalItem,
   };
 }

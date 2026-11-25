@@ -185,6 +185,7 @@ export const SMALL_KANA_REVERSE: { [smallChar: string]: { baseChar: string; base
 // 縦書き用約物・記号の定義（OpenType vert / Unicode Vertical Presentation Forms）
 export const VERTICAL_FORMS_LIST: { char: string; code: number; name: string; baseChar?: string }[] = [
   { char: '︱', code: 0xfe31, name: '縦書き長音符・ダッシュ (ー/―)', baseChar: 'ー' },
+  { char: '︳', code: 0xfe33, name: '縦書きダッシュ (―)', baseChar: '―' },
   { char: '︑', code: 0xfe11, name: '縦書き読点 (、)', baseChar: '、' },
   { char: '︒', code: 0xfe12, name: '縦書き句点 (。)', baseChar: '。' },
   { char: '﹁', code: 0xfe41, name: '縦書き鉤括弧 始 (「)', baseChar: '「' },
@@ -193,6 +194,8 @@ export const VERTICAL_FORMS_LIST: { char: string; code: number; name: string; ba
   { char: '﹄', code: 0xfe44, name: '縦書き二重鉤括弧 終 (』)', baseChar: '』' },
   { char: '︵', code: 0xfe35, name: '縦書き丸括弧 始 (（)', baseChar: '（' },
   { char: '︶', code: 0xfe36, name: '縦書き丸括弧 終 (）)', baseChar: '）' },
+  { char: '︷', code: 0xfe37, name: '縦書き波括弧 始 (｛)', baseChar: '｛' },
+  { char: '︸', code: 0xfe38, name: '縦書き波括弧 終 (｝)', baseChar: '｝' },
   { char: '︻', code: 0xfe3b, name: '縦書き隅付き括弧 始 (【)', baseChar: '【' },
   { char: '︼', code: 0xfe3c, name: '縦書き隅付き括弧 終 (】)', baseChar: '】' },
   { char: '︹', code: 0xfe39, name: '縦書き亀甲括弧 始 (〔)', baseChar: '〔' },
@@ -202,11 +205,22 @@ export const VERTICAL_FORMS_LIST: { char: string; code: number; name: string; ba
   { char: '︽', code: 0xfe3d, name: '縦書き二重山括弧 始 (《)', baseChar: '《' },
   { char: '︾', code: 0xfe3e, name: '縦書き二重山括弧 終 (》)', baseChar: '》' },
   { char: '︙', code: 0xfe19, name: '縦書き三点リーダー (…)', baseChar: '…' },
+  { char: '︰', code: 0xfe30, name: '縦書き二点リーダー (‥)', baseChar: '‥' },
   { char: '︓', code: 0xfe13, name: '縦書きコロン (：)', baseChar: '：' },
   { char: '︔', code: 0xfe14, name: '縦書きセミコロン (；)', baseChar: '；' },
   { char: '︕', code: 0xfe15, name: '縦書き感嘆符 (!/！)', baseChar: '！' },
   { char: '︖', code: 0xfe16, name: '縦書き疑問符 (?/？)', baseChar: '？' },
-  { char: '︴', code: 0xfe4f, name: '縦書き波ダッシュ (〜)', baseChar: '〜' },
+  { char: '﹏', code: 0xfe4f, name: '縦書き波ダッシュ (〜)', baseChar: '〜' },
+];
+
+// 欧文合字 (OpenType liga / dlig ターゲットグリフ)
+export const LIGATURE_FORMS_LIST: { char: string; code: number; name: string }[] = [
+  { char: 'ﬀ', code: 0xfb00, name: 'ff 合字 (U+FB00)' },
+  { char: 'ﬁ', code: 0xfb01, name: 'fi 合字 (U+FB01)' },
+  { char: 'ﬂ', code: 0xfb02, name: 'fl 合字 (U+FB02)' },
+  { char: 'ﬃ', code: 0xfb03, name: 'ffi 合字 (U+FB03)' },
+  { char: 'ﬄ', code: 0xfb04, name: 'ffl 合字 (U+FB04)' },
+  { char: 'ﬆ', code: 0xfb06, name: 'st 合字 (U+FB06)' },
 ];
 
 // 半角英数字
@@ -293,6 +307,12 @@ export const UNICODE_CATEGORIES: CharCategory[] = [
     name: '縦書き用約物 (vert/vrt2)',
     nameEn: 'Vertical Presentation Forms',
     charList: VERTICAL_FORMS_LIST,
+  },
+  {
+    id: 'ligature_forms',
+    name: '合字・リガチャー (liga/dlig)',
+    nameEn: 'Alphabetic Presentation Forms (Ligatures)',
+    charList: LIGATURE_FORMS_LIST,
   },
   // 小学校学年別漢字 (計1,026字)
   {

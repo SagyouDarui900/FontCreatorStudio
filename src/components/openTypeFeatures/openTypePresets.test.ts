@@ -43,4 +43,12 @@ describe('openTypePresets helpers', () => {
     const found = findVertPresetInfo(sub, 0);
     expect(found?.name).toBe('長音記号 (ー)');
   });
+
+  it('orders 3-char ligatures (ffi/ffl) before ff and uses fullwidth curly braces in vertical presets', () => {
+    const ids = DEFAULT_LIGATURE_PRESETS.map((p) => p.id);
+    expect(ids.indexOf('liga_ffi')).toBeLessThan(ids.indexOf('liga_ff'));
+    expect(ids.indexOf('liga_ffl')).toBeLessThan(ids.indexOf('liga_ff'));
+    expect(DEFAULT_VERT_PRESETS.some((p) => p.sourceUnicode === 0xff5b && p.vertUnicode === 0xfe37)).toBe(true);
+    expect(DEFAULT_VERT_PRESETS.some((p) => p.sourceUnicode === 0x3010 && p.vertUnicode === 0xfe3b)).toBe(true);
+  });
 });

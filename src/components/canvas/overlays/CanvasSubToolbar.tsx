@@ -203,17 +203,25 @@ export const CanvasSubToolbar: React.FC<CanvasSubToolbarProps> = React.memo(({
     window.addEventListener('mouseup', onMouseUp);
     el.addEventListener('scroll', onScroll, { passive: true });
 
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => {
+    let rafId: number | null = null;
+    const scheduleScrollCheck = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
         checkSubToolbarScroll();
       });
+    };
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(scheduleScrollCheck);
       ro.observe(el);
     }
 
     checkSubToolbarScroll();
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);

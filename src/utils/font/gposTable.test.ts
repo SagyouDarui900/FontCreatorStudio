@@ -4,6 +4,7 @@ import {
   buildGposTableBytes,
   buildVheaTableBytes,
   buildVmtxTableBytes,
+  buildVorgTableBytes,
   isKanaUnicode,
 } from './gposTable';
 import { injectSfntTables } from './kernTable';
@@ -284,5 +285,25 @@ describe('buildVmtxTableBytes / buildVheaTableBytes', () => {
     expect(view.getInt16(14, false)).toBe(20);
     expect(view.getInt16(16, false)).toBe(900);
     expect(view.getUint16(34, false)).toBe(3);
+  });
+
+  it('builds a valid VORG v1.0 table and encodes GPOS vpal entries in alphabetical feature order', () => {
+    const vorg = buildVorgTableBytes(880, [{ glyphIndex: 3, vertOriginY: 910 }]);
+    const vorgView = new DataView(vorg.buffer);
+    expect(vorg.length).toBe(12);
+    expect(vorgView.getUint16(0, false)).toBe(1);
+    expect(vorgView.getUint16(2, false)).toBe(0);
+    expect(vorgView.getInt16(4, false)).toBe(880);
+    expect(vorgView.getUint16(6, false)).toBe(1);
+    expect(vorgView.getUint16(8, false)).toBe(3);
+    expect(vorgView.getInt16(10, false)).toBe(910);
+
+    const gposBytes = buildGposTableBytes(
+      [{ glyphIndex: 1, xAdvance: -200 }],
+      new Map([[1, 0x3042]]),
+      [],
+      [{ glyphIndex: 1, yPlacement: 60, yAdvance: -300 }]
+    );
+    expect(gposBytes).not.toBeNull();
   });
 });

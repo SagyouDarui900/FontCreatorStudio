@@ -274,22 +274,22 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl sm:max-h-[92vh] ${themeClasses.border}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-5xl xl:max-w-6xl border-0 sm:border rounded-none sm:rounded-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
         {/* Header Bar */}
         <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
+            <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
                 <span className="truncate">サイズ・太さ・品質の一括統一</span>
                 {isFullscreen && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面
                   </span>
                 )}
@@ -337,10 +337,10 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         </div>
 
         {/* Content: Balanced 2-Column CAD Studio Layout on lg+ */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             {/* Left: Dedicated Visual Stage (5 cols) */}
-            <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-3">
+            <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-2.5">
               <BatchPreviewSection
                 isLight={isLight}
                 themeClasses={themeClasses}
@@ -361,7 +361,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             </div>
 
             {/* Right: Normalization Controls & Sizing (7 cols) */}
-            <div className="lg:col-span-7 space-y-4">
+            <div className="lg:col-span-7 space-y-3">
               <BatchOptionsSection
                 isLight={isLight}
                 themeClasses={themeClasses}
@@ -397,7 +397,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
         {/* Footer Action Bar */}
         <div
-          className={`p-3.5 sm:p-4 border-t flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 sm:gap-2.5 shrink-0 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] sm:pb-3.5 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3 sm:px-5 sm:py-2.5 border-t flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 sm:gap-2.5 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-2.5 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button

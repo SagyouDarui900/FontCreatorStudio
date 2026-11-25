@@ -301,22 +301,22 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl xl:max-w-4xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
         {/* Header */}
         <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`p-2 rounded-xl border shrink-0 ${themeClasses.accentBadge}`}>
+            <div className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${themeClasses.accentBadge}`}>
               <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
                 <span className="truncate">SVGインポート & 画像ベクター化</span>
                 {isFullscreen && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面
                   </span>
                 )}
@@ -397,7 +397,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 1: IMAGE VECTORIZER */}
         {activeTab === 'vectorizer' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-4 space-y-3 text-xs">
             {/* Upload Toolbar */}
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -446,13 +446,13 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
             </div>
 
             {!rawImageSrc ? (
-              <div className="space-y-3.5">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
                 <div
                   onClick={() => imgFileInputRef.current?.click()}
-                  className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center space-y-3 cursor-pointer text-center transition-colors ${themeClasses.cardBg} ${themeClasses.accentBorder} hover:opacity-90`}
+                  className={`lg:col-span-6 p-6 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center space-y-2.5 cursor-pointer text-center transition-colors ${themeClasses.cardBg} ${themeClasses.accentBorder} hover:opacity-90`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center ${themeClasses.accentBadge}`}>
-                    <ImageIcon className="w-7 h-7" />
+                  <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${themeClasses.accentBadge}`}>
+                    <ImageIcon className="w-6 h-6" />
                   </div>
                   <div>
                     <p className="font-bold text-sm">手書き文字の写真やスケッチ画像をアップロード</p>
@@ -464,7 +464,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
                 {/* Recommended Image Specification Guide */}
                 <div
-                  className={`p-3.5 sm:p-4 rounded-xl border text-[11px] space-y-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+                  className={`lg:col-span-6 p-3.5 sm:p-4 rounded-xl border text-[11px] space-y-2 flex flex-col justify-center ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className={`flex items-center space-x-1.5 font-bold text-xs ${themeClasses.accentText}`}>
                     <Info className="w-4 h-4 shrink-0" />
@@ -497,7 +497,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 {/* Vectorizer Preview */}
                 <div
-                  className={`relative aspect-square rounded-2xl border overflow-hidden flex items-center justify-center ${
+                  className={`relative aspect-square w-full max-h-[380px] mx-auto rounded-2xl border overflow-hidden flex items-center justify-center ${
                     isLight ? 'bg-white' : 'bg-black/30'
                   } ${themeClasses.border}`}
                 >
@@ -674,7 +674,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 2: DIRECT SVG IMPORT */}
         {activeTab === 'svg_import' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 space-y-4 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-4 space-y-3 text-xs">
             {/* SVG file upload toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <input

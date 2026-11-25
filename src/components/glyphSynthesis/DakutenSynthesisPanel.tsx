@@ -93,12 +93,12 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
     : previewMapping?.daku || previewMapping?.handaku || '';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4">
       {/* Left Controls */}
-      <div className="lg:col-span-7 flex flex-col gap-3.5 order-last lg:order-first">
+      <div className="lg:col-span-7 flex flex-col gap-2.5 order-last lg:order-first">
         {/* Scope & Overwrite Card */}
         <div
-          className={`p-3.5 rounded-lg border flex flex-col gap-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
             <span className="font-bold flex items-center gap-1.5">
@@ -136,7 +136,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
 
         {/* Style Options */}
         <div
-          className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           <span className="text-xs font-bold flex items-center gap-1.5">
             <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
@@ -266,7 +266,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             </span>
           </div>
           <div
-            className={`flex flex-wrap gap-1.5 sm:gap-1 max-h-36 sm:max-h-28 overflow-y-auto p-1.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
+            className={`flex flex-wrap gap-1.5 sm:gap-1 max-h-36 sm:max-h-24 overflow-y-auto p-1.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
           >
             {availableDakutenSources.map((item) => (
               <button
@@ -339,7 +339,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
           </div>
 
           <div
-            className={`w-44 h-44 sm:w-56 sm:h-56 lg:w-full lg:h-auto lg:aspect-square lg:max-w-[280px] relative rounded-xl border flex items-center justify-center overflow-hidden ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+            className={`w-44 h-44 sm:w-56 sm:h-56 lg:w-full lg:h-auto lg:aspect-square lg:max-w-[250px] relative rounded-xl border flex items-center justify-center overflow-hidden ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
             <div className="absolute inset-0 pointer-events-none opacity-20">
               <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />

@@ -29,6 +29,21 @@ export interface GposSinglePosEntry {
   xAdvance: number;
 }
 
+/** One glyph's vertical proportional adjustment (`vpal`), in font units. */
+export interface GposVpalEntry {
+  glyphIndex: number;
+  /** Vertical origin shift (positive moves the glyph upward). */
+  yPlacement: number;
+  /** Vertical advance delta (positive shrinks downward advanceHeight). */
+  yAdvance: number;
+}
+
+/** One glyph's explicit vertical origin Y entry for the `VORG` table. */
+export interface VorgEntry {
+  glyphIndex: number;
+  vertOriginY: number;
+}
+
 /** One GPOS `kern` pair adjustment, in font units. */
 export interface GposKernPair {
   leftGlyph: number;
@@ -218,6 +233,39 @@ function buildSinglePosLookup(
   }
 }
 
+function buildVpalSinglePosLookup(
+  writer: ByteWriter,
+  entries: GposVpalEntry[]
+): void {
+  const lookupStart = writer.length;
+  writer.u16(1); // lookupType: SinglePos
+  writer.u16(0); // lookupFlag
+  writer.u16(1); // subtableCount
+  const subtableOffsetSlot = writer.length;
+  writer.u16(0);
+
+  // SinglePos format 2 subtable with valueFormat = yPlacement (0x0002) | yAdvance (0x0008).
+  const subtableStart = writer.length;
+  writer.patchU16(subtableOffsetSlot, subtableStart - lookupStart);
+  writer.u16(2); // posFormat
+  const coverageOffsetSlot = writer.length;
+  writer.u16(0);
+  writer.u16(0x000a); // valueFormat: yPlacement + yAdvance
+  writer.u16(entries.length);
+  for (const entry of entries) {
+    writer.i16(entry.yPlacement);
+    writer.i16(entry.yAdvance);
+  }
+
+  const coverageStart = writer.length;
+  writer.patchU16(coverageOffsetSlot, coverageStart - subtableStart);
+  writer.u16(1);
+  writer.u16(entries.length);
+  for (const entry of entries) {
+    writer.u16(entry.glyphIndex);
+  }
+}
+
 /**
  * Build a GPOS table (version 1.0) with `palt` and, when any kana glyph
  * has a non-zero adjustment, `pkna` features, plus a `kern` feature
@@ -237,7 +285,8 @@ function buildSinglePosLookup(
 export function buildGposTableBytes(
   entries: GposSinglePosEntry[],
   glyphUnicodes: Map<number, number>,
-  kernPairs: GposKernPair[] = []
+  kernPairs: GposKernPair[] = [],
+  vpalEntries: GposVpalEntry[] = []
 ): Uint8Array | null {
   const deduped = new Map<number, number>();
   for (const entry of entries) {
@@ -268,7 +317,19 @@ export function buildGposTableBytes(
     (a, b) => a.leftGlyph - b.leftGlyph || a.rightGlyph - b.rightGlyph
   );
 
-  if (sorted.length === 0 && sortedKern.length === 0) return null;
+  const dedupedVpal = new Map<number, GposVpalEntry>();
+  for (const entry of vpalEntries) {
+    const glyphIndex = Math.round(entry.glyphIndex);
+    const yPlacement = clampInt16(entry.yPlacement);
+    const yAdvance = clampInt16(entry.yAdvance);
+    if (glyphIndex <= 0 || glyphIndex > 0xffff || (yPlacement === 0 && yAdvance === 0)) continue;
+    dedupedVpal.set(glyphIndex, { glyphIndex, yPlacement, yAdvance });
+  }
+  const sortedVpal = Array.from(dedupedVpal.values()).sort(
+    (a, b) => a.glyphIndex - b.glyphIndex
+  );
+
+  if (sorted.length === 0 && sortedKern.length === 0 && sortedVpal.length === 0) return null;
 
   const paltEntries = sorted;
   const pknaEntries = sorted.filter((e) => {
@@ -278,9 +339,10 @@ export function buildGposTableBytes(
   // One lookup per feature, in alphabetical feature order.
   const lookups: {
     tag: string;
-    kind: 'single' | 'pair';
+    kind: 'single' | 'pair' | 'vpal';
     singleEntries?: GposSinglePosEntry[];
     kernPairs?: GposKernPair[];
+    vpalEntries?: GposVpalEntry[];
   }[] = [];
   if (sortedKern.length > 0) {
     lookups.push({ tag: 'kern', kind: 'pair', kernPairs: sortedKern });
@@ -290,6 +352,9 @@ export function buildGposTableBytes(
   }
   if (pknaEntries.length > 0) {
     lookups.push({ tag: 'pkna', kind: 'single', singleEntries: pknaEntries });
+  }
+  if (sortedVpal.length > 0) {
+    lookups.push({ tag: 'vpal', kind: 'vpal', vpalEntries: sortedVpal });
   }
   const features = lookups.map((l) => l.tag);
 
@@ -363,6 +428,8 @@ export function buildGposTableBytes(
     writer.patchU16(lookupOffsetSlots[i], lookupStart - lookupListStart);
     if (lookups[i].kind === 'pair') {
       buildPairPosLookup(writer, lookups[i].kernPairs!);
+    } else if (lookups[i].kind === 'vpal') {
+      buildVpalSinglePosLookup(writer, lookups[i].vpalEntries!);
     } else {
       buildSinglePosLookup(writer, lookups[i].singleEntries!);
     }
@@ -421,6 +488,37 @@ export function buildVheaTableBytes(metrics: VheaMetrics): Uint8Array {
   // reserved1..4 (24..31) stay 0
   view.setInt16(32, 0, false); // metricDataFormat
   view.setUint16(34, metrics.numberOfVMetrics, false);
+  return out;
+}
+
+/**
+ * Build an OpenType `VORG` (Vertical Origin) table (version 1.0) for CFF fonts.
+ * Stores `defaultVertOriginY` plus optional per-glyph overrides sorted by glyph index.
+ */
+export function buildVorgTableBytes(
+  defaultVertOriginY: number,
+  entries: VorgEntry[] = []
+): Uint8Array {
+  const sorted = [...entries]
+    .filter(
+      (e) =>
+        Number.isInteger(e.glyphIndex) &&
+        e.glyphIndex >= 0 &&
+        e.glyphIndex <= 0xffff &&
+        Number.isFinite(e.vertOriginY)
+    )
+    .sort((a, b) => a.glyphIndex - b.glyphIndex);
+  const out = new Uint8Array(8 + sorted.length * 4);
+  const view = new DataView(out.buffer);
+  view.setUint16(0, 1, false); // majorVersion
+  view.setUint16(2, 0, false); // minorVersion
+  view.setInt16(4, clampInt16(defaultVertOriginY), false); // defaultVertOriginY
+  view.setUint16(6, sorted.length, false); // numVertOriginYMetrics
+  for (let i = 0; i < sorted.length; i++) {
+    const offset = 8 + i * 4;
+    view.setUint16(offset, clampUint16(sorted[i].glyphIndex), false);
+    view.setInt16(offset + 2, clampInt16(sorted[i].vertOriginY), false);
+  }
   return out;
 }
 

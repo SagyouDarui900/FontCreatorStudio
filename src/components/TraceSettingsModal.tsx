@@ -173,12 +173,12 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
         className={`flex flex-col overflow-hidden ${
           isFullscreen
             ? `w-screen h-[100dvh] rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-lg xl:max-w-2xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl lg:max-w-4xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header */}
         <div
-          className={`p-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`p-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <Layers className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
@@ -187,7 +187,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             >
               <span className="truncate">下絵・レタリングトレース設定</span>
               {isFullscreen && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                   全画面
                 </span>
               )}
@@ -230,58 +230,62 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3.5 text-xs">
-          {/* Toggle Enable */}
-          <div
-            className={`flex items-center justify-between p-2.5 rounded-xl border ${themeClasses.cardBg} ${themeClasses.border}`}
-          >
-            <div className="flex items-center space-x-2">
-              <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
-              <span className={`font-semibold ${themeClasses.textPrimary}`}>
-                下絵ガイドを表示する
-              </span>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3 text-xs">
+          {/* Top Bar: Enable Toggle + Source Type Selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+            <label
+              className={`sm:col-span-5 flex items-center justify-between p-2.5 rounded-xl border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border}`}
+            >
+              <div className="flex items-center space-x-2">
+                <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
+                <span className={`font-semibold ${themeClasses.textPrimary}`}>
+                  下絵ガイドを表示する
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={Boolean(traceSettings?.enabled)}
+                onChange={(e) => setTraceSettings((s) => ({ ...s, enabled: e.target.checked }))}
+                className="w-4 h-4 accent-emerald-700 rounded-sm"
+              />
+            </label>
+
+            {/* Source Type Selector */}
+            <div className="sm:col-span-7 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
+                className={`p-2 sm:py-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-w-0 transition-colors cursor-pointer ${
+                  traceSettings.type === 'image'
+                    ? themeClasses.activeTool
+                    : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                }`}
+              >
+                <ImageIcon className="w-4 h-4 shrink-0" />
+                <span className="text-xs font-semibold truncate text-center">写真・下絵画像</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTraceSettings((s) => ({ ...s, type: 'char' }))}
+                className={`p-2 sm:py-2 rounded-xl border flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 min-w-0 transition-colors cursor-pointer ${
+                  traceSettings.type === 'char'
+                    ? themeClasses.activeTool
+                    : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                }`}
+              >
+                <Type className="w-4 h-4 shrink-0" />
+                <span className="text-xs font-semibold truncate text-center">標準フォント下絵</span>
+              </button>
             </div>
-            <input
-              type="checkbox"
-              checked={Boolean(traceSettings?.enabled)}
-              onChange={(e) => setTraceSettings((s) => ({ ...s, enabled: e.target.checked }))}
-              className="w-4 h-4 accent-emerald-700 rounded-sm"
-            />
-          </div>
-
-          {/* Source Type Selector */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
-              className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 min-w-0 transition-colors cursor-pointer ${
-                traceSettings.type === 'image'
-                  ? themeClasses.activeTool
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-            >
-              <ImageIcon className="w-4 h-4 shrink-0" />
-              <span className="text-xs truncate w-full text-center">写真・下絵画像</span>
-            </button>
-
-            <button
-              onClick={() => setTraceSettings((s) => ({ ...s, type: 'char' }))}
-              className={`p-2.5 rounded-xl border flex flex-col items-center space-y-1 min-w-0 transition-colors cursor-pointer ${
-                traceSettings.type === 'char'
-                  ? themeClasses.activeTool
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-            >
-              <Type className="w-4 h-4 shrink-0" />
-              <span className="text-xs truncate w-full text-center">標準フォント下絵</span>
-            </button>
           </div>
 
           {/* IMAGE TRACE CONFIGURATION */}
           {traceSettings.type === 'image' ? (
-            <div className="space-y-3">
-              {/* Photo Upload & Camera Buttons */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+              {/* Left Col: Upload, Scope & Specs */}
               <div
-                className={`p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}
+                className={`lg:col-span-5 p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}
               >
                 <input
                   ref={fileInputRef}
@@ -393,9 +397,9 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Photo Positioning & Adjustments */}
+              {/* Right Col: Photo Positioning & Adjustments */}
               <div
-                className={`p-3 rounded-xl border space-y-3 ${themeClasses.cardBg} ${themeClasses.border}`}
+                className={`lg:col-span-7 p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 font-semibold">
@@ -614,51 +618,53 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
             </div>
           ) : (
             /* SYSTEM FONT TRACE CONFIGURATION */
-            <div
-              className={`space-y-2.5 p-3 rounded-xl border ${themeClasses.cardBg} ${themeClasses.border}`}
-            >
-              <div className="flex flex-col space-y-1">
-                <label className={themeClasses.textMuted}>
-                  表示文字 (初期値: 現在選択中の文字)
-                </label>
-                <input
-                  type="text"
-                  maxLength={1}
-                  value={traceSettings.text || activeChar || ''}
-                  onChange={(e) => setTraceSettings((s) => ({ ...s, text: e.target.value }))}
-                  className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
-                />
-              </div>
-
-              <div className="flex flex-col space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className={`font-semibold ${themeClasses.textMuted}`}>
-                    下絵フォント書体
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+              <div
+                className={`lg:col-span-5 space-y-3 p-3 rounded-xl border ${themeClasses.cardBg} ${themeClasses.border}`}
+              >
+                <div className="flex flex-col space-y-1">
+                  <label className={themeClasses.textMuted}>
+                    表示文字 (初期値: 現在選択中の文字)
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsLicenseModalOpen(true)}
-                    className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>フォントとライセンス一覧</span>
-                  </button>
+                  <input
+                    type="text"
+                    maxLength={1}
+                    value={traceSettings.text || activeChar || ''}
+                    onChange={(e) => setTraceSettings((s) => ({ ...s, text: e.target.value }))}
+                    className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                  />
                 </div>
-                <select
-                  value={traceSettings.fontFamily ?? "'Noto Sans JP', sans-serif"}
-                  onChange={(e) => setTraceSettings((s) => ({ ...s, fontFamily: e.target.value }))}
-                  className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
-                >
-                  {TRACE_FONT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+
+                <div className="flex flex-col space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className={`font-semibold ${themeClasses.textMuted}`}>
+                      下絵フォント書体
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsLicenseModalOpen(true)}
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>フォントとライセンス一覧</span>
+                    </button>
+                  </div>
+                  <select
+                    value={traceSettings.fontFamily ?? "'Noto Sans JP', sans-serif"}
+                    onChange={(e) => setTraceSettings((s) => ({ ...s, fontFamily: e.target.value }))}
+                    className={`border rounded-lg p-2 focus:outline-none ${themeClasses.appBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                  >
+                    {TRACE_FONT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Position & Scale Controls for Font Trace */}
-              <div className={`pt-2 border-t space-y-2.5 ${themeClasses.border}`}>
+              <div className={`lg:col-span-7 p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}>
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs flex items-center space-x-1">
                     <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />

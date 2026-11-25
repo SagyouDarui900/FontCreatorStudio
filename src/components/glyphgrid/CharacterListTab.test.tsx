@@ -464,6 +464,77 @@ describe('CharacterListTab virtualization', () => {
       unmount();
     }
   });
+
+  it('re-attaches ResizeObserver and updates columns when clearing an empty search and resizing', () => {
+    let observedCallbacks: ResizeObserverCallback[] = [];
+    (globalThis as Record<string, unknown>).ResizeObserver = class {
+      constructor(private callback: ResizeObserverCallback) {
+        observedCallbacks.push(callback);
+      }
+      observe() {
+        this.callback([], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    };
+
+    let currentWidth = 400;
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get: () => currentWidth,
+    });
+
+    const rafQueue: FrameRequestCallback[] = [];
+    let nextRafId = 1;
+    const rafStub = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafQueue.push(cb);
+      return nextRafId++;
+    });
+    const flushRaf = () => {
+      while (rafQueue.length > 0) {
+        const cb = rafQueue.shift()!;
+        cb(0);
+      }
+    };
+    const project = createProject();
+    const { container, unmount } = renderTab(project);
+    try {
+      act(() => {
+        flushRaf();
+      });
+      clickButton(container, '漢字（常用）');
+      const input = container.querySelector('input[aria-label="文字を検索"]') as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+      act(() => {
+        setter.call(input, 'zzz');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        flushRaf();
+      });
+      expect(container.textContent).toContain('一致する文字がありません');
+
+      // Clear empty search
+      const clear = container.querySelector('button[aria-label="検索をクリア"]') as HTMLButtonElement;
+      act(() => {
+        clear.click();
+        flushRaf();
+      });
+      expect(container.querySelectorAll('button[aria-pressed]').length).toBeGreaterThan(0);
+
+      // Simulate sidebar resize narrower after recovery
+      currentWidth = 240;
+      act(() => {
+        observedCallbacks.forEach((cb) => cb([], {} as ResizeObserver));
+        flushRaf();
+      });
+
+      const gridRow = container.querySelector('.absolute.grid');
+      expect(gridRow).not.toBeNull();
+      expect((gridRow as HTMLElement).style.gridTemplateColumns).toContain('repeat(5,');
+    } finally {
+      rafStub.mockRestore();
+      unmount();
+    }
+  });
 });
 
 describe('CharacterListTab', () => {

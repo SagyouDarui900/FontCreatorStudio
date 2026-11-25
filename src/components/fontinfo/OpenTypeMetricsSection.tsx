@@ -27,9 +27,9 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
   }`;
 
   return (
-    <div className="space-y-4 anim-fade">
+    <div className="space-y-3 anim-fade">
       <div
-        className={`p-3 sm:p-3.5 rounded-xl border space-y-1.5 ${
+        className={`p-2.5 sm:p-3 rounded-xl border space-y-1 ${
           isLight ? 'bg-indigo-50/70 border-indigo-200 text-slate-800' : 'bg-indigo-950/40 border-indigo-800/60 text-slate-200'
         }`}
       >
@@ -42,7 +42,7 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
         {/* Weight Class */}
         <div className="flex flex-col space-y-1">
           <label className={labelCls}>

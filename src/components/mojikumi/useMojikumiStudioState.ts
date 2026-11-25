@@ -94,10 +94,12 @@ function usePersistedField<S extends object, K extends keyof S>(
   initial: S[K]
 ): [S[K], React.Dispatch<React.SetStateAction<S[K]>>] {
   const [internal, setInternal] = useState<S[K]>(initial);
+  const initialRef = useRef(initial);
+  initialRef.current = initial;
   const setPersisted = useCallback(
     (action: React.SetStateAction<S[K]>) => {
       persistedOnChange?.((prev) => {
-        const currentVal = prev[key] ?? initial;
+        const currentVal = prev[key] ?? initialRef.current;
         return {
           ...prev,
           [key]:
@@ -107,7 +109,7 @@ function usePersistedField<S extends object, K extends keyof S>(
         };
       });
     },
-    [persistedOnChange, key, initial]
+    [persistedOnChange, key]
   );
   if (persistedValue === undefined || persistedOnChange === undefined) {
     return [internal, setInternal];
@@ -137,7 +139,12 @@ export function useMojikumiStudioState({
   onPersistedStateChange,
   commitProjectHistory,
 }: UseMojikumiStudioStateParams) {
-  const persistedDefaults = useMemo(() => createDefaultMojikumiPersistedState(project), [project]);
+  const persistedDefaults = useMemo(
+    () => createDefaultMojikumiPersistedState(project),
+    // Only mojikumiSettings affects createDefaultMojikumiPersistedState.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [project.mojikumiSettings]
+  );
   const [layoutMode, setLayoutMode] = usePersistedField(
     persistedState,
     onPersistedStateChange,
@@ -292,25 +299,24 @@ export function useMojikumiStudioState({
 
   // Compile only the glyphs the preview text can show (M31), mirroring
   // the test preview's buildPreviewProject / isEquivalentPreviewProject.
-  // The candidate is rebuilt on every render (cheap: a text scan plus
-  // glyph lookups), but the state below only adopts it when it is not
-  // equivalent to the previous one, so the compile effect does not re-run
-  // for edits to glyphs outside the preview text. The text used here is
-  // the deferred text (M21), so typing does not rebuild the candidate
-  // on every keystroke either.
+  // Keep the previous FontProject reference when the subset is equivalent
+  // so edits to glyphs outside the preview text never re-trigger compilation,
+  // without calling setState synchronously during render.
   const deferredCustomText = useDeferredValue(customText);
-  const [previewProjectState, setPreviewProjectState] = useState(() => ({
-    text: deferredCustomText,
-    preview: buildPreviewProject(project, deferredCustomText),
-  }));
-  const previewProjectCandidate = buildPreviewProject(project, deferredCustomText);
-  if (
-    previewProjectState.text !== deferredCustomText ||
-    !isEquivalentPreviewProject(previewProjectState.preview, previewProjectCandidate)
-  ) {
-    setPreviewProjectState({ text: deferredCustomText, preview: previewProjectCandidate });
-  }
-  const previewProject = previewProjectState.preview;
+  const stablePreviewRef = useRef<{ text: string; preview: FontProject } | null>(null);
+  const previewProject = useMemo(() => {
+    const candidate = buildPreviewProject(project, deferredCustomText);
+    const prev = stablePreviewRef.current;
+    if (
+      prev &&
+      prev.text === deferredCustomText &&
+      isEquivalentPreviewProject(prev.preview, candidate)
+    ) {
+      return prev.preview;
+    }
+    stablePreviewRef.current = { text: deferredCustomText, preview: candidate };
+    return candidate;
+  }, [project, deferredCustomText]);
 
   // Compile project font for live editorial preview with leak-free FontFace/URL lifecycle.
   // Debounced by 250ms (same as ExportModal and TestPreview) so continuous

@@ -88,16 +88,16 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {/* 1. Target Scope Selection */}
       {setScope && (
-        <div className={`p-4 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+        <div className={`p-3 rounded-xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
           <div className="flex items-center justify-between">
             <span className="font-bold text-xs flex items-center gap-1.5">
               <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>① 処理対象の文字グループ</span>
             </span>
-            <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full border ${themeClasses.accentBadge}`}>
+            <span className={`text-[11px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md border ${themeClasses.accentBadge}`}>
               対象: {targetGlyphsCount} 文字
             </span>
           </div>
@@ -110,14 +110,14 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                   key={s.id}
                   type="button"
                   onClick={() => setScope(s.id)}
-                  className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-colors cursor-pointer ${
+                  className={`p-1.5 sm:px-2 sm:py-1.5 rounded-xl border text-left flex flex-col justify-between transition-colors cursor-pointer ${
                     isSelected
                       ? themeClasses.activeTool
                       : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                   }`}
                 >
                   <div className="text-xs font-bold truncate w-full">{s.label}</div>
-                  <div className={`text-[9.5px] truncate w-full mt-0.5 opacity-75`}>
+                  <div className={`text-[9.5px] truncate w-full opacity-75`}>
                     {s.sub}
                   </div>
                 </button>
@@ -128,13 +128,13 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       )}
 
       {/* 2. Size & Bounding Frame Presets */}
-      <div className={`p-4 rounded-xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-3 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <div className="flex items-center justify-between">
           <span className="font-bold text-xs flex items-center gap-1.5">
             <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
             <span>② 字面枠サイズ設定</span>
           </span>
-          <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>
+          <span className={`text-[11px] font-mono tabular-nums ${themeClasses.textMuted}`}>
             UPM: 1000基準
           </span>
         </div>
@@ -152,23 +152,23 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
                     handlePresetChange(p.id);
                   }
                 }}
-                className={`p-2 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer last:max-sm:col-span-2 ${
+                className={`p-1.5 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer last:max-sm:col-span-2 ${
                   isSelected
                     ? themeClasses.activeTool
                     : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
                 }`}
               >
                 <div className="text-xs font-bold truncate w-full">{p.label}</div>
-                <div className="text-[10px] font-mono mt-0.5 opacity-80">{p.size}</div>
+                <div className="text-[10px] font-mono tabular-nums opacity-80">{p.size}</div>
               </button>
             );
           })}
         </div>
 
         {/* Width & Height Sliders */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Target Width */}
-          <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+          <div className={`p-2 rounded-xl border space-y-1 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">目標幅 (Width)</span>
               <div className="flex items-center gap-1.5 sm:gap-1">
@@ -212,7 +212,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
           </div>
 
           {/* Target Height */}
-          <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+          <div className={`p-2 rounded-xl border space-y-1 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium">目標高さ (Height)</span>
               <div className="flex items-center gap-1.5 sm:gap-1">
@@ -257,12 +257,12 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
         </div>
 
         {/* 3. Stroke Weight Normalization Slider */}
-        <div className={`p-3 rounded-xl border space-y-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+        <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold flex items-center gap-1">
               <span>③ 線の太さ（ウェイト）微調整</span>
             </span>
-            <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
+            <span className={`font-mono tabular-nums font-bold text-xs px-2 py-0.5 rounded-md border ${
               weightDelta === 0
                 ? `${themeClasses.cardBg} ${themeClasses.border}`
                 : themeClasses.accentBadge
@@ -279,7 +279,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
             onChange={(e) => setWeightDelta(Number(e.target.value))}
             className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
           />
-          <div className={`flex justify-between text-[10px] font-mono ${themeClasses.textMuted}`}>
+          <div className={`flex justify-between text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
             <span>-20px (スリム化)</span>
             <button
               type="button"
@@ -294,13 +294,13 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       </div>
 
       {/* 4. Alignment & Advance Width */}
-      <div className={`p-4 rounded-xl border space-y-3.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-3 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <span className="font-bold text-xs flex items-center gap-1.5">
           <MoveHorizontal className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
           <span>④ 位置揃え & 送り幅 (Advance Width)</span>
         </span>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Horizontal Align */}
           <div className="space-y-1.5">
             <label className={`text-[11px] font-medium block ${themeClasses.textMuted}`}>
@@ -376,7 +376,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
         </div>
 
         {/* Advance Width Checkbox & Input */}
-        <div className={`p-2.5 rounded-xl border flex flex-wrap items-center justify-between gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+        <div className={`p-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
           <label className="flex items-center gap-2 cursor-pointer select-none min-h-[36px] sm:min-h-0">
             <input
               type="checkbox"
@@ -392,7 +392,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
               disabled={!unifyAdvance}
               value={advanceWidth}
               onChange={(e) => setAdvanceWidth(Number(e.target.value))}
-              className={`w-20 border rounded-lg p-1.5 text-right font-mono text-xs font-bold ${
+              className={`w-20 border rounded-lg p-1 text-right font-mono tabular-nums text-xs font-bold ${
                 themeClasses.cardBg
               } ${themeClasses.border} ${!unifyAdvance && 'opacity-40 cursor-not-allowed'}`}
             />
@@ -402,15 +402,15 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       </div>
 
       {/* 5. Quality & File Size Optimization */}
-      <div className={`p-4 rounded-xl border space-y-3 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
+      <div className={`p-3 rounded-xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
         <span className="font-bold text-xs flex items-center gap-1.5">
           <ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
           <span>⑤ 輪郭・データ最適化</span>
         </span>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           {/* Point Optimization Toggle */}
-          <label className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${
+          <label className={`p-2 rounded-xl border flex items-start gap-2 cursor-pointer transition-colors ${
             optimizePoints ? themeClasses.subtoolbarBg : `${themeClasses.cardBg} opacity-60`
           } ${themeClasses.border}`}>
             <input
@@ -428,7 +428,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
           </label>
 
           {/* Winding Normalization Toggle */}
-          <label className={`p-2.5 rounded-xl border flex items-start gap-2.5 cursor-pointer transition-colors ${
+          <label className={`p-2 rounded-xl border flex items-start gap-2 cursor-pointer transition-colors ${
             normalizeWinding ? themeClasses.subtoolbarBg : `${themeClasses.cardBg} opacity-60`
           } ${themeClasses.border}`}>
             <input

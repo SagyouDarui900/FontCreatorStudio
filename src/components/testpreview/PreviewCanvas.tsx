@@ -424,7 +424,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                       textAlign: textAlign,
                       writingMode: 'vertical-rl',
                       textOrientation: 'mixed',
-                      fontFeatureSettings: useTsume ? '"palt" 1, "pkna" 1' : 'normal',
+                      fontFeatureSettings: useTsume ? '"dlig" 1, "palt" 1, "pkna" 1, "vpal" 1' : '"dlig" 1',
                     }}
                     className={`whitespace-pre-wrap min-h-[200px] w-max min-w-full break-normal py-1 ${isLight ? 'text-stone-900' : 'text-emerald-100'}`}
                   >
@@ -440,7 +440,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                     letterSpacing: `${letterSpacing}em`,
                     textAlign: textAlign,
                     writingMode: 'horizontal-tb',
-                    fontFeatureSettings: useTsume ? '"palt" 1, "pkna" 1' : 'normal',
+                    fontFeatureSettings: useTsume ? '"dlig" 1, "palt" 1, "pkna" 1' : '"dlig" 1',
                   }}
                   className={`whitespace-pre-wrap break-words ${isLight ? 'text-stone-900' : 'text-emerald-100'}`}
                 >
@@ -687,7 +687,11 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
                   textAlign: textAlign,
                   writingMode: writingMode === 'vertical' ? 'vertical-rl' : 'horizontal-tb',
                   textOrientation: writingMode === 'vertical' ? 'mixed' : undefined,
-                  fontFeatureSettings: useTsume ? '"palt" 1, "pkna" 1' : 'normal',
+                  fontFeatureSettings: useTsume
+                    ? writingMode === 'vertical'
+                      ? '"dlig" 1, "palt" 1, "pkna" 1, "vpal" 1'
+                      : '"dlig" 1, "palt" 1, "pkna" 1'
+                    : '"dlig" 1',
                 }}
                 className={`relative z-10 whitespace-pre-wrap select-text min-h-[300px] ${
                   isLight ? 'text-stone-900' : 'text-emerald-50'

@@ -46,7 +46,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
           <button
             type="button"
             onClick={() => setFormat('otf')}
-            className={`p-2.5 sm:p-3 rounded-xl border text-left min-h-[56px] cursor-pointer ${
+            className={`p-2.5 rounded-xl border text-left min-h-[48px] cursor-pointer ${
               format === 'otf'
                 ? isLight
                   ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 ring-2 ring-emerald-500/20'
@@ -60,7 +60,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
               <span className="font-bold text-xs sm:text-sm whitespace-nowrap">.OTF (OpenType)</span>
               {format === 'otf' && <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />}
             </div>
-            <p className="mt-1 text-[10.5px] sm:text-[11px] opacity-75 leading-snug jp-wrap">
+            <p className="mt-0.5 text-[10.5px] sm:text-[11px] opacity-75 leading-snug jp-wrap">
               Illustrator・InDesign等のDTPデザイン向け
             </p>
           </button>
@@ -69,7 +69,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
 
       {/* Size & Em-box Optimization */}
       <div
-        className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 sm:space-y-3 ${
+        className={`p-2.5 sm:p-3 rounded-xl border space-y-2 ${
           isLight ? 'bg-stone-50/90 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
         }`}
       >
@@ -163,7 +163,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
 
       {/* Visual Fidelity & Vector Purity */}
       <div
-        className={`p-3 sm:p-3.5 rounded-xl border space-y-2 ${
+        className={`p-2.5 sm:p-3 rounded-xl border space-y-1.5 ${
           isLight ? 'bg-stone-50/90 border-stone-200' : 'bg-[#18241d] border-[#25362b]'
         }`}
       >
@@ -180,7 +180,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px]">
+          <label className="flex items-start gap-2.5 p-2 sm:py-1.5 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px] sm:min-h-0">
             <input
               type="checkbox"
               checked={balanceSideBearings}
@@ -192,7 +192,7 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
             </span>
           </label>
 
-          <label className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px]">
+          <label className="flex items-start gap-2.5 p-2 sm:py-1.5 rounded-lg hover:bg-emerald-500/10 cursor-pointer min-h-[44px] sm:min-h-0">
             <input
               type="checkbox"
               checked={mergeOverlaps}

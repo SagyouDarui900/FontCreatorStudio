@@ -496,7 +496,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         className={`relative flex flex-col min-h-0 overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full ${showPresetDrawer ? 'sm:max-w-5xl' : 'sm:max-w-4xl'} h-[100dvh] sm:h-[86vh] sm:max-h-[720px] rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl`
+            : `w-full ${showPresetDrawer ? 'sm:max-w-5xl xl:max-w-7xl' : 'sm:max-w-4xl xl:max-w-6xl'} h-[100dvh] sm:h-[88vh] sm:max-h-[880px] rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl`
         }`}
       >
         {/* Header */}

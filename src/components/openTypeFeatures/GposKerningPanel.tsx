@@ -12,9 +12,9 @@ export const GposKerningPanel: React.FC<GposKerningPanelProps> = ({
   themeClasses,
 }) => {
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4">
       <div
-        className={`p-5 rounded-xl border transition-colors space-y-4 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`p-4 rounded-xl border transition-colors space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
         <div className="flex items-center space-x-3">
           <div

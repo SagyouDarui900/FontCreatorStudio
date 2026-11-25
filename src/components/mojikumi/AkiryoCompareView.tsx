@@ -269,7 +269,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
   ];
 
   return (
-    <div className="w-full h-full flex flex-col p-2 sm:p-4 select-none">
+    <div className="w-full flex flex-col p-2 sm:p-4 select-none">
       {/* Mobile sub tabs switcher */}
       <div className="flex md:hidden items-center justify-center p-1 mb-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-900 text-xs">
         <button
@@ -350,7 +350,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
       </div>
 
       {/* 3 Columns Grid */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {columns.map((col) => {
           const isVisible = mobileTab === 'all' || mobileTab === col.id;
           if (!isVisible) return null;
@@ -364,9 +364,9 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
             >
               {/* Header */}
               <div className={`p-3.5 border-b shrink-0 ${isLight ? 'bg-stone-50' : 'bg-[#18281d]'}`}>
-                <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center justify-between pb-1 gap-2">
                   <h3 className="font-bold text-sm tracking-tight">{col.title}</h3>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-medium ${col.badgeColor}`}>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-medium shrink-0 ${col.badgeColor}`}>
                     {col.badge}
                   </span>
                 </div>
@@ -382,7 +382,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
 
               {/* Text Render Area */}
               <div
-                className={`flex-1 min-h-[320px] p-4 overflow-auto custom-scrollbar relative ${
+                className={`flex-1 min-h-[300px] max-h-[520px] p-3 overflow-auto custom-scrollbar relative ${
                   isLight ? 'bg-stone-50/50' : 'bg-[#0f1712]'
                 }`}
               >

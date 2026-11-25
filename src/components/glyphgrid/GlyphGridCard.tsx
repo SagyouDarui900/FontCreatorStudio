@@ -174,7 +174,7 @@ export const GlyphGridCard = memo(
         {/* Top Header: Character label + Unicode Hex code + Status indicator */}
         <div className="w-full flex items-center justify-between px-1 pt-0.5 z-10 leading-none shrink-0 gap-0.5">
           <div className="flex items-baseline gap-1 min-w-0 truncate">
-            {item.code !== 0x3000 && item.code !== 0x0020 && (
+            {density !== 'compact' && item.code !== 0x3000 && item.code !== 0x0020 && (
               <span
                 className={`font-sans text-[11px] font-bold leading-none shrink-0 ${
                   isSelected
@@ -329,7 +329,7 @@ export const GlyphGridCard = memo(
             }}
             title="メニューを開く"
             aria-label={`「${item.char}」のメニューを開く`}
-            className="opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 p-1 -m-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
+            className="opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 p-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
           >
             <MoreHorizontal className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
           </button>

@@ -24,8 +24,10 @@ import {
   buildHheaTableBytes,
   buildVheaTableBytes,
   buildVmtxTableBytes,
+  buildVorgTableBytes,
   type GposKernPair,
   type GposSinglePosEntry,
+  type GposVpalEntry,
   type VmtxEntry,
 } from './gposTable';
 import type { PaltGlyphMetric, VpalGlyphMetric } from '../../types';
@@ -278,6 +280,7 @@ export function compileFont(
 
   // Add all user defined glyphs
   const glyphEntries = Object.values(project.glyphs);
+  const compiledGlyphDataByUnicode = new Map<number, { contours: PathContour[]; advWidth: number }>();
 
   for (const g of glyphEntries) {
     if (!g || typeof g.unicode !== 'number' || isNaN(g.unicode) || g.unicode <= 0 || g.unicode > 0x10ffff) continue;
@@ -387,6 +390,8 @@ export function compileFont(
       }
     }
 
+    compiledGlyphDataByUnicode.set(g.unicode, { contours: glyphContours, advWidth });
+
     const path = contoursToOpenTypePath(glyphContours, baselineY);
 
     const glyphName = g.name || (g.char ? `uni${g.unicode.toString(16).toUpperCase().padStart(4, '0')}` : `glyph${g.unicode}`);
@@ -460,14 +465,20 @@ export function compileFont(
     { targetUnicode: 0xfe36, sourceUnicode: 0xff09, action: 'rotate90' }, // 丸括弧 ） -> ︶
     { targetUnicode: 0xfe3b, sourceUnicode: 0x3010, action: 'rotate90' }, // 隅付き括弧 【 -> ︻
     { targetUnicode: 0xfe3c, sourceUnicode: 0x3011, action: 'rotate90' }, // 隅付き括弧 】 -> ︼
+    { targetUnicode: 0xfe39, sourceUnicode: 0x3014, action: 'rotate90' }, // 亀甲括弧 〔 -> ︹
+    { targetUnicode: 0xfe3a, sourceUnicode: 0x3015, action: 'rotate90' }, // 亀甲括弧 〕 -> ︺
+    { targetUnicode: 0xfe3f, sourceUnicode: 0x3008, action: 'rotate90' }, // 山括弧 〈 -> ︿
+    { targetUnicode: 0xfe40, sourceUnicode: 0x3009, action: 'rotate90' }, // 山括弧 〉 -> ﹀
+    { targetUnicode: 0xfe3d, sourceUnicode: 0x300a, action: 'rotate90' }, // 二重山括弧 《 -> ︽
+    { targetUnicode: 0xfe3e, sourceUnicode: 0x300b, action: 'rotate90' }, // 二重山括弧 》 -> ︾
     { targetUnicode: 0xfe11, sourceUnicode: 0x3001, action: 'shiftTopRight' }, // 読点 、 -> ︑
     { targetUnicode: 0xfe12, sourceUnicode: 0x3002, action: 'shiftTopRight' }, // 句点 。 -> ︒
     { targetUnicode: 0xfe19, sourceUnicode: 0x2026, action: 'rotate90' }, // 三点リーダー … -> ︙
-    { targetUnicode: 0xfe4f, sourceUnicode: 0x301c, action: 'rotate90' }, // 波ダッシュ 〜 -> ︴
-    { targetUnicode: 0xfe37, sourceUnicode: 0x007b, action: 'rotate90' }, // 波括弧 ｛ -> ︷
-    { targetUnicode: 0xfe38, sourceUnicode: 0x007d, action: 'rotate90' }, // 波括弧 ｝ -> ︸
+    { targetUnicode: 0xfe4f, sourceUnicode: 0x301c, action: 'rotate90' }, // 波ダッシュ 〜 -> ﹏
     { targetUnicode: 0xfe37, sourceUnicode: 0xff5b, action: 'rotate90' }, // 全角波括弧 ｛ -> ︷
     { targetUnicode: 0xfe38, sourceUnicode: 0xff5d, action: 'rotate90' }, // 全角波括弧 ｝ -> ︸
+    { targetUnicode: 0xfe37, sourceUnicode: 0x007b, action: 'rotate90' }, // 半角波括弧 { -> ︷
+    { targetUnicode: 0xfe38, sourceUnicode: 0x007d, action: 'rotate90' }, // 半角波括弧 } -> ︸
     { targetUnicode: 0xfe30, sourceUnicode: 0x2025, action: 'rotate90' }, // 二点リーダー ‥ -> ︰
   ];
 
@@ -485,6 +496,9 @@ export function compileFont(
       .map((sub) => `${sub.sourceUnicode}:${sub.vertUnicode}`)
   );
 
+  // Body vertical center matches the Japanese virtual body scaling anchor (0.45 em).
+  const vertBodyCenterY = Math.round(upm * 0.45);
+
   for (const deriv of verticalDerivations) {
     const substitutionKey = `${deriv.sourceUnicode}:${deriv.targetUnicode}`;
     const substitutionEnabled =
@@ -499,19 +513,31 @@ export function compileFont(
       !addedUnicodes.has(deriv.targetUnicode) &&
       project.glyphs[deriv.sourceUnicode]
     ) {
-      const srcGlyph = project.glyphs[deriv.sourceUnicode];
-      if (srcGlyph.contours && srcGlyph.contours.length > 0) {
-        const emCenter = upm / 2;
+      const compiledSrc = compiledGlyphDataByUnicode.get(deriv.sourceUnicode);
+      if (compiledSrc && compiledSrc.contours.length > 0) {
         let derivedContours: PathContour[] = [];
         if (deriv.action === 'rotate90') {
-          derivedContours = rotateContours(srcGlyph.contours, 90, emCenter, emCenter);
+          const srcCenterX = compiledSrc.advWidth / 2;
+          derivedContours = rotateContours(
+            compiledSrc.contours,
+            90,
+            srcCenterX,
+            vertBodyCenterY
+          );
+          const dx = Math.round(upm / 2 - srcCenterX);
+          if (dx !== 0) {
+            derivedContours = transformContours(derivedContours, (p) => ({
+              x: p.x + dx,
+              y: p.y,
+            }));
+          }
         } else if (deriv.action === 'shiftTopRight') {
-          const bbox = getContoursBoundingBox(srcGlyph.contours);
+          const bbox = getContoursBoundingBox(compiledSrc.contours);
           const targetX = Math.round(upm * 0.75);
           const targetY = Math.round(upm * 0.25);
           const dx = targetX - bbox.centerX;
           const dy = targetY - bbox.centerY;
-          derivedContours = transformContours(srcGlyph.contours, (p) => ({
+          derivedContours = transformContours(compiledSrc.contours, (p) => ({
             x: Math.round(p.x + dx),
             y: Math.round(p.y + dy),
           }));
@@ -539,6 +565,75 @@ export function compileFont(
         totalAdvanceWidth += upm;
         countedAdvanceGlyphs += 1;
       }
+    }
+  }
+
+  // Generate unencoded vertical glyph variants for same-codepoint substitutions
+  // (e.g. small kana っ/ッ/ゃ/ゅ/ょ -> .vert top-right shift) or explicit xOffset/yOffset rules,
+  // and collect per-glyph vertical advance overrides.
+  const vertVariantGlyphIndexBySubId = new Map<string, number>();
+  const vertAdvanceOverrideByUnicode = new Map<number, number>();
+  const vertAdvanceOverrideByGlyphIndex = new Map<number, number>();
+  if (verticalWritingEnabled) {
+    for (const sub of featureConfig?.verticalWriting?.substitutions || []) {
+      if (!sub.enabled) continue;
+      if (
+        typeof sub.vertAdvanceHeight === 'number' &&
+        Number.isFinite(sub.vertAdvanceHeight) &&
+        sub.vertAdvanceHeight > 0
+      ) {
+        vertAdvanceOverrideByUnicode.set(sub.vertUnicode, Math.round(sub.vertAdvanceHeight));
+      }
+
+      const hasExplicitOffset =
+        (typeof sub.xOffset === 'number' && Number.isFinite(sub.xOffset) && sub.xOffset !== 0) ||
+        (typeof sub.yOffset === 'number' && Number.isFinite(sub.yOffset) && sub.yOffset !== 0);
+      const isSameUnicodeVariant = sub.sourceUnicode === sub.vertUnicode;
+      if (!isSameUnicodeVariant && !hasExplicitOffset) continue;
+
+      const compiledSrc = compiledGlyphDataByUnicode.get(sub.sourceUnicode);
+      if (!compiledSrc || compiledSrc.contours.length === 0) continue;
+
+      const dx =
+        typeof sub.xOffset === 'number' && Number.isFinite(sub.xOffset)
+          ? Math.round(sub.xOffset)
+          : isSameUnicodeVariant
+          ? Math.round(upm * 0.08)
+          : 0;
+      const dy =
+        typeof sub.yOffset === 'number' && Number.isFinite(sub.yOffset)
+          ? Math.round(sub.yOffset)
+          : isSameUnicodeVariant
+          ? -Math.round(upm * 0.08)
+          : 0;
+      if (dx === 0 && dy === 0) continue;
+
+      let variantContours = transformContours(compiledSrc.contours, (p) => ({
+        x: Math.round(p.x + dx),
+        y: Math.round(p.y + dy),
+      }));
+      if (options?.normalizeWinding !== false) {
+        variantContours = normalizeGlyphContoursWinding(variantContours);
+      }
+
+      const variantIndex = glyphsList.length;
+      const hex = sub.sourceUnicode.toString(16).toUpperCase().padStart(4, '0');
+      const variantGlyph = new opentype.Glyph({
+        name: `uni${hex}.vert`,
+        advanceWidth: upm,
+        path: contoursToOpenTypePath(variantContours, baselineY),
+      });
+      glyphsList.push(variantGlyph);
+      vertVariantGlyphIndexBySubId.set(sub.id, variantIndex);
+      if (
+        typeof sub.vertAdvanceHeight === 'number' &&
+        Number.isFinite(sub.vertAdvanceHeight) &&
+        sub.vertAdvanceHeight > 0
+      ) {
+        vertAdvanceOverrideByGlyphIndex.set(variantIndex, Math.round(sub.vertAdvanceHeight));
+      }
+      totalAdvanceWidth += upm;
+      countedAdvanceGlyphs += 1;
     }
   }
 
@@ -1116,12 +1211,18 @@ export function compileFont(
         script: string
       ) => void;
       addSingle?: (feature: string, substitution: { sub: number; by: number }, script: string) => void;
+      getLangSysTable?: (
+        script?: string,
+        language?: string,
+        create?: boolean
+      ) => { featureIndexes?: number[] } | undefined;
     };
   }).substitution;
 
   // Configured substitutions that would be lost if the GSUB API is unavailable.
   const hasConfiguredSubstitutions =
     vertSubstPairs.length > 0 ||
+    vertVariantGlyphIndexBySubId.size > 0 ||
     (openTypeFeaturesEnabled &&
       ((featureConfig?.verticalWriting?.substitutions || []).some((sub) => sub.enabled) ||
         (featureConfig?.ligatures || []).some(
@@ -1150,7 +1251,7 @@ export function compileFont(
         }
       }
 
-      const scripts = ['DFLT', 'hani', 'kana', 'latn'];
+      const additionalScripts = ['hani', 'kana', 'latn'];
 
       // Gather consolidated single substitutions for 'vert' and 'vrt2' without duplicates
       const registeredVertKeys = new Set<string>();
@@ -1170,11 +1271,12 @@ export function compileFont(
         }
       }
 
-      if (openTypeFeaturesEnabled) {
+      if (verticalWritingEnabled) {
         for (const sub of featureConfig?.verticalWriting?.substitutions || []) {
           if (!sub.enabled) continue;
           const srcIndex = unicodeToGlyphIndex.get(sub.sourceUnicode);
-          const vertIndex = unicodeToGlyphIndex.get(sub.vertUnicode);
+          const vertIndex =
+            vertVariantGlyphIndexBySubId.get(sub.id) ?? unicodeToGlyphIndex.get(sub.vertUnicode);
           if (
             typeof srcIndex === 'number' &&
             typeof vertIndex === 'number' &&
@@ -1182,7 +1284,11 @@ export function compileFont(
             vertIndex >= 0 &&
             srcIndex !== vertIndex
           ) {
-            vertPairsToRegister.push({ srcIndex, vertIndex, features: ['vert'] });
+            vertPairsToRegister.push({
+              srcIndex,
+              vertIndex,
+              features: vertVariantGlyphIndexBySubId.has(sub.id) ? ['vert', 'vrt2'] : ['vert'],
+            });
           }
         }
       }
@@ -1202,16 +1308,17 @@ export function compileFont(
       // Ligatures are registered before the vertical singles: opentype.js
       // requires features to be created in alphabetical order
       // (getFeatureTable asserts `feature >= last created feature`), and
-      // 'liga' / 'dlig' / 'rlig' sort before 'vert' / 'vrt2'. Registering
-      // ligatures after vert made every ligature throw and be swallowed
-      // by the catch below whenever any vertical pair existed, so the
-      // font was exported with no ligatures and no error. Within the
-      // ligatures, entries are sorted by feature tag for the same reason;
-      // types sorting at or after 'vert' go after the vertical singles.
+      // 'liga' / 'dlig' / 'rlig' sort before 'vert' / 'vrt2'. Within each
+      // feature tag, longer component sequences (e.g. ffi, ffl) MUST be
+      // registered before shorter prefixes (ff) so OpenType shapers do not
+      // match ff before ffi/ffl.
       const enabledLigatures = openTypeFeaturesEnabled
         ? [...(featureConfig?.ligatures || [])]
             .filter((ligature) => ligature.enabled && ligature.inputChars.length >= 2)
-            .sort((a, b) => (a.type < b.type ? -1 : a.type > b.type ? 1 : 0))
+            .sort((a, b) => {
+              if (a.type !== b.type) return a.type < b.type ? -1 : 1;
+              return b.inputChars.length - a.inputChars.length;
+            })
         : [];
       const registerLigature = (
         ligature: NonNullable<typeof featureConfig>['ligatures'][number]
@@ -1221,16 +1328,14 @@ export function compileFont(
           .map((unicode) => (unicode === undefined ? undefined : unicodeToGlyphIndex.get(unicode)));
         const targetIndex = unicodeToGlyphIndex.get(ligature.substituteUnicode);
         if (sourceIndices.some((index) => index === undefined) || targetIndex === undefined) return;
-        for (const script of scripts) {
-          try {
-            substitutionApi.add?.(
-              ligature.type,
-              { sub: sourceIndices as number[], by: targetIndex },
-              script
-            );
-          } catch (err) {
-            recordGsubFailure(`合字 ${ligature.type} (${ligature.inputChars.join('')})`, script, err);
-          }
+        try {
+          substitutionApi.add?.(
+            ligature.type,
+            { sub: sourceIndices as number[], by: targetIndex },
+            'DFLT'
+          );
+        } catch (err) {
+          recordGsubFailure(`合字 ${ligature.type} (${ligature.inputChars.join('')})`, 'DFLT', err);
         }
       };
       if (typeof substitutionApi.add === 'function') {
@@ -1242,21 +1347,19 @@ export function compileFont(
       // Feature tags MUST be registered in alphabetical order in opentype.js ('vert' before 'vrt2')
       if (typeof substitutionApi.addSingle === 'function' && vertPairsToRegister.length > 0) {
         for (const feature of ['vert', 'vrt2'] as const) {
-          for (const script of scripts) {
-            for (const entry of vertPairsToRegister) {
-              if (!entry.features.includes(feature)) continue;
-              const dedupeKey = `${feature}:${script}:${entry.srcIndex}:${entry.vertIndex}`;
-              if (registeredVertKeys.has(dedupeKey)) continue;
-              registeredVertKeys.add(dedupeKey);
-              try {
-                substitutionApi.addSingle(feature, { sub: entry.srcIndex, by: entry.vertIndex }, script);
-              } catch (err) {
-                recordGsubFailure(
-                  `縦書き置換 ${feature} (${entry.srcIndex}→${entry.vertIndex})`,
-                  script,
-                  err
-                );
-              }
+          for (const entry of vertPairsToRegister) {
+            if (!entry.features.includes(feature)) continue;
+            const dedupeKey = `${feature}:${entry.srcIndex}:${entry.vertIndex}`;
+            if (registeredVertKeys.has(dedupeKey)) continue;
+            registeredVertKeys.add(dedupeKey);
+            try {
+              substitutionApi.addSingle(feature, { sub: entry.srcIndex, by: entry.vertIndex }, 'DFLT');
+            } catch (err) {
+              recordGsubFailure(
+                `縦書き置換 ${feature} (${entry.srcIndex}→${entry.vertIndex})`,
+                'DFLT',
+                err
+              );
             }
           }
         }
@@ -1265,6 +1368,18 @@ export function compileFont(
       if (typeof substitutionApi.add === 'function') {
         for (const ligature of enabledLigatures) {
           if (ligature.type >= 'vert') registerLigature(ligature);
+        }
+      }
+
+      // Share the DFLT FeatureRecords & Lookups across hani / kana / latn scripts
+      // instead of creating 4x duplicate FeatureRecords and Lookups.
+      const dfltLangSys = substitutionApi.getLangSysTable?.('DFLT', undefined, false);
+      if (dfltLangSys && Array.isArray(dfltLangSys.featureIndexes) && dfltLangSys.featureIndexes.length > 0) {
+        for (const script of additionalScripts) {
+          const langSys = substitutionApi.getLangSysTable?.(script, undefined, true);
+          if (langSys) {
+            langSys.featureIndexes = [...dfltLangSys.featureIndexes];
+          }
         }
       }
 
@@ -1362,32 +1477,67 @@ export function compileFont(
     rightGlyph: pair.rightIndex,
     value: pair.value,
   }));
-  if (gposEntries.length > 0 || gposKernPairs.length > 0) {
-    const gposBytes = buildGposTableBytes(gposEntries, glyphUnicodeByIndex, gposKernPairs);
+
+  const configuredVertAdvance = featureConfig?.verticalWriting?.defaultVertAdvance;
+  const defaultVertAdvance =
+    typeof configuredVertAdvance === 'number' &&
+    Number.isFinite(configuredVertAdvance) &&
+    configuredVertAdvance > 0
+      ? Math.round(configuredVertAdvance)
+      : upm;
+  const configuredVertOriginY = featureConfig?.verticalWriting?.vertOriginY;
+  const vertOriginY =
+    typeof configuredVertOriginY === 'number' && Number.isFinite(configuredVertOriginY)
+      ? Math.round(configuredVertOriginY)
+      : safeAscender;
+
+  const vpalEntries: GposVpalEntry[] = [];
+  if (verticalWritingEnabled && vpalEnabled && vpalItems.length > 0) {
+    const padding = Math.round(
+      upm * (Math.max(0, Math.min(25, opticalSideBearingPercent)) / 100)
+    );
+    for (const v of vpalItems) {
+      if (!v.enabled) continue;
+      const glyphIndex = glyphIndexByUnicode.get(v.unicode);
+      if (typeof glyphIndex !== 'number') continue;
+      const baseVertAdv =
+        vertAdvanceOverrideByGlyphIndex.get(glyphIndex) ??
+        vertAdvanceOverrideByUnicode.get(v.unicode) ??
+        defaultVertAdvance;
+      const targetAdv = Math.max(100, Math.min(baseVertAdv, Math.round(v.proportionalAdvance)));
+      const yAdvance = targetAdv - baseVertAdv;
+      let yPlacement = 0;
+      const glyph = font.glyphs.get(glyphIndex);
+      if (glyph.path && glyph.path.commands && glyph.path.commands.length > 0) {
+        try {
+          const bbox = glyph.getBoundingBox();
+          if (Number.isFinite(bbox.y2)) {
+            const topSideBearing = vertOriginY - Math.round(bbox.y2);
+            yPlacement = Math.round(topSideBearing - padding);
+          }
+        } catch {
+          // Keep yPlacement 0 if bbox fails
+        }
+      }
+      if (yAdvance !== 0 || yPlacement !== 0) {
+        vpalEntries.push({ glyphIndex, yPlacement, yAdvance });
+      }
+    }
+  }
+
+  if (gposEntries.length > 0 || gposKernPairs.length > 0 || vpalEntries.length > 0) {
+    const gposBytes = buildGposTableBytes(
+      gposEntries,
+      glyphUnicodeByIndex,
+      gposKernPairs,
+      vpalEntries
+    );
     if (gposBytes !== null) {
       extraTables.push({ tag: 'GPOS', data: gposBytes });
     }
   }
 
   if (verticalWritingEnabled) {
-    const configuredVertAdvance = featureConfig?.verticalWriting?.defaultVertAdvance;
-    const defaultVertAdvance =
-      typeof configuredVertAdvance === 'number' &&
-      Number.isFinite(configuredVertAdvance) &&
-      configuredVertAdvance > 0
-        ? Math.round(configuredVertAdvance)
-        : upm;
-    const configuredVertOriginY = featureConfig?.verticalWriting?.vertOriginY;
-    const vertOriginY =
-      typeof configuredVertOriginY === 'number' && Number.isFinite(configuredVertOriginY)
-        ? Math.round(configuredVertOriginY)
-        : safeAscender;
-    const vpalByUnicode = new Map<number, VpalGlyphMetric>();
-    if (vpalEnabled) {
-      for (const v of vpalItems) {
-        if (v.enabled) vpalByUnicode.set(v.unicode, v);
-      }
-    }
     const numGlyphs = font.glyphs.length;
     const vmtxEntries: VmtxEntry[] = [];
     let advanceHeightMax = 0;
@@ -1396,10 +1546,11 @@ export function compileFont(
     let xMaxExtent = 0;
     for (let i = 0; i < numGlyphs; i++) {
       const glyph = font.glyphs.get(i);
-      const vpal = typeof glyph.unicode === 'number' ? vpalByUnicode.get(glyph.unicode) : undefined;
-      const advanceHeight = vpal
-        ? Math.max(1, Math.round(vpal.proportionalAdvance))
-        : defaultVertAdvance;
+      const glyphUnicode = typeof glyph.unicode === 'number' ? glyph.unicode : undefined;
+      const advanceHeight =
+        vertAdvanceOverrideByGlyphIndex.get(i) ??
+        (glyphUnicode !== undefined ? vertAdvanceOverrideByUnicode.get(glyphUnicode) : undefined) ??
+        defaultVertAdvance;
       let topSideBearing = 0;
       let glyphHeight = 0;
       let glyphWidth = 0;
@@ -1434,11 +1585,12 @@ export function compileFont(
       tag: 'vmtx',
       data: buildVmtxTableBytes(vmtxEntries, numGlyphs, defaultVertAdvance),
     });
+    const vertHalfEm = Math.round(upm / 2);
     extraTables.push({
       tag: 'vhea',
       data: buildVheaTableBytes({
-        ascender: safeAscender,
-        descender: safeDescender,
+        ascender: vertHalfEm,
+        descender: -vertHalfEm,
         lineGap,
         advanceHeightMax,
         minTopSideBearing:
@@ -1448,6 +1600,10 @@ export function compileFont(
         xMaxExtent,
         numberOfVMetrics: numGlyphs,
       }),
+    });
+    extraTables.push({
+      tag: 'VORG',
+      data: buildVorgTableBytes(vertOriginY),
     });
   }
 

@@ -189,28 +189,28 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl xl:max-w-3xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl lg:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3 sm:pt-3 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
             <div className="hidden sm:flex w-8 h-8 rounded-lg bg-sky-600 text-white items-center justify-center shrink-0">
               <ArrowRightLeft className="w-4 h-4" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
               <h2 className="text-sm sm:text-base font-bold flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span className="truncate">グリフ重ね合わせ比較 (Overlay Compare)</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-600 text-white font-medium shrink-0">
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-600 text-white font-medium shrink-0">
                     全画面モード
                   </span>
                 )}
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0 ${
+                  className={`text-[10px] px-2 py-0.5 rounded-md font-bold border shrink-0 ${
                     overlaySettings.enabled
                       ? themeClasses.accentBadge
                       : `${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`
@@ -219,7 +219,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                   {overlaySettings.enabled ? 'ON' : 'OFF'}
                 </span>
               </h2>
-              <p className={`text-xs hidden sm:block ${themeClasses.textMuted}`}>
+              <p className={`text-xs hidden sm:block truncate ${themeClasses.textMuted}`}>
                 作成中の文字に他文字を半透明・輪郭で重ね、骨格や太さのバランスを検査
               </p>
             </div>
@@ -258,187 +258,192 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3">
-          {/* Master Enable Switch */}
-          <div
-            className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
-              overlaySettings.enabled
-                ? 'bg-sky-500/10 border-sky-500/40'
-                : themeClasses.subtoolbarBg
-            }`}
-          >
-            <div className="flex items-center space-x-2.5">
-              <Eye className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-              <div>
-                <div className="text-xs font-bold">重ね合わせ比較レイヤーを表示</div>
-                <div className={`text-[10px] ${themeClasses.textMuted}`}>
-                  現在編集中の文字「{activeChar || '未選択'}」の上に半透明で重ねて表示
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          {/* Left Column: Toggle + Character Pickers */}
+          <div className="lg:col-span-6 space-y-3">
+            {/* Master Enable Switch */}
+            <div
+              className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
+                overlaySettings.enabled
+                  ? 'bg-sky-500/10 border-sky-500/40'
+                  : themeClasses.subtoolbarBg
+              }`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <Eye className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <div>
+                  <div className="text-xs font-bold">重ね合わせ比較レイヤーを表示</div>
+                  <div className={`text-[10px] ${themeClasses.textMuted}`}>
+                    現在編集中の文字「{activeChar || '未選択'}」の上に半透明で重ねて表示
+                  </div>
                 </div>
               </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={Boolean(overlaySettings?.enabled)}
-                onChange={(e) =>
-                  onChangeOverlaySettings((prev) => ({ ...prev, enabled: e.target.checked }))
-                }
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-stone-400/50 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-sky-600"></div>
-            </label>
-          </div>
-
-          {/* Quick Recommend Pairs */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>「{activeChar || ''}」の比較対象文字</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(overlaySettings?.enabled)}
+                  onChange={(e) =>
+                    onChangeOverlaySettings((prev) => ({ ...prev, enabled: e.target.checked }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-stone-400/50 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-sky-600"></div>
               </label>
-              <span className={`text-[10px] ${themeClasses.textMuted}`}>ワンクリックで切替</span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {recommendedChars.map((ch) => {
-                const isSelected = overlaySettings.referenceChar === ch;
-                const isDrawn = project.glyphs[ch.codePointAt(0) ?? 0]?.contours?.length > 0;
-                return (
-                  <button
-                    key={ch}
-                    onClick={() => handleSelectRefChar(ch)}
-                    className={`w-10 h-10 rounded-xl border text-base font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-400/40'
-                        : isDrawn
-                        ? 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-300'
-                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
-                    }`}
-                  >
-                    {ch}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Project Drawn Glyphs Selector */}
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <label className="text-xs font-bold opacity-90">
-                プロジェクト内の作成済み文字から選択 ({projectDrawnChars.length}文字)
-              </label>
-              <input
-                type="search"
-                value={glyphSearchQuery}
-                onChange={(e) => setGlyphSearchQuery(e.target.value)}
-                placeholder="文字 / U+"
-                aria-label="作成済み文字を検索"
-                className={`w-24 sm:w-32 px-2 py-1 rounded-md border text-[11px] outline-hidden ${themeClasses.cardBg}`}
-              />
-            </div>
-            <div className={`flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-lg border ${themeClasses.subtoolbarBg}`}>
-              {projectDrawnChars.length === 0 ? (
-                <div className={`text-xs p-2 ${themeClasses.textMuted}`}>まだ作成済みの文字がありません</div>
-              ) : filteredDrawnChars.length === 0 ? (
-                <div className={`text-xs p-2 ${themeClasses.textMuted}`}>一致する作成済み文字がありません</div>
-              ) : (
-                filteredDrawnChars.map((g) => {
-                  const isSelected =
-                    overlaySettings.referenceChar === g.char ||
-                    overlaySettings.referenceUnicode === g.unicode;
+            {/* Quick Recommend Pairs */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span>「{activeChar || ''}」の比較対象文字</span>
+                </label>
+                <span className={`text-[10px] ${themeClasses.textMuted}`}>ワンクリックで切替</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recommendedChars.map((ch) => {
+                  const isSelected = overlaySettings.referenceChar === ch;
+                  const isDrawn = project.glyphs[ch.codePointAt(0) ?? 0]?.contours?.length > 0;
                   return (
                     <button
-                      key={g.unicode}
-                      onClick={() => handleSelectRefChar(g.char, g.unicode)}
-                      className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
+                      key={ch}
+                      onClick={() => handleSelectRefChar(ch)}
+                      className={`w-9 h-9 rounded-xl border text-sm font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-sky-600 text-white border-sky-600'
+                          ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-400/40'
+                          : isDrawn
+                          ? 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-300'
                           : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                       }`}
                     >
-                      {g.char}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-            {filteredDrawnChars.length < projectDrawnChars.length && (
-              <p className={`mt-1 text-[10px] ${themeClasses.textMuted}`}>
-                {filteredDrawnChars.length}件を表示中。検索で絞り込めます。
-              </p>
-            )}
-          </div>
-
-          {/* Render Mode & Color Options */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Render Mode */}
-            <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
-              <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-sky-600" />
-                <span>表示モード</span>
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: 'outline', label: '輪郭線 (破線)', short: '輪郭線' },
-                  { id: 'fill', label: '半透明塗り', short: '塗り' },
-                  { id: 'difference', label: '差分強調', short: '差分' },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() =>
-                      onChangeOverlaySettings((prev) =>
-                        isOverlayRenderMode(m.id) ? { ...prev, renderMode: m.id } : prev
-                      )
-                    }
-                    className={`py-1.5 px-2 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                      overlaySettings.renderMode === m.id
-                        ? 'bg-sky-600 text-white border-sky-600'
-                        : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
-                    }`}
-                  >
-                    <span className="sm:hidden">{m.short}</span>
-                    <span className="hidden sm:inline">{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Palette */}
-            <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
-              <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                <Palette className="w-3.5 h-3.5 text-sky-600" />
-                <span>比較色</span>
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                {COLOR_OPTIONS.map((c) => {
-                  const isSelected = overlaySettings.color === c.hex;
-                  return (
-                    <button
-                      key={c.hex}
-                      onClick={() =>
-                        onChangeOverlaySettings((prev) => ({ ...prev, color: c.hex }))
-                      }
-                      title={c.name}
-                      style={{ backgroundColor: c.hex }}
-                      className={`w-8 h-8 sm:w-7 sm:h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
-                        isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110' : 'hover:scale-105'
-                      }`}
-                    >
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      {ch}
                     </button>
                   );
                 })}
               </div>
             </div>
+
+            {/* Project Drawn Glyphs Selector */}
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label className="text-xs font-bold opacity-90 tabular-nums">
+                  プロジェクト内の作成済み文字から選択 ({projectDrawnChars.length}文字)
+                </label>
+                <input
+                  type="search"
+                  value={glyphSearchQuery}
+                  onChange={(e) => setGlyphSearchQuery(e.target.value)}
+                  placeholder="文字 / U+"
+                  aria-label="作成済み文字を検索"
+                  className={`w-24 sm:w-32 px-2 py-1 rounded-md border text-[11px] outline-hidden ${themeClasses.cardBg}`}
+                />
+              </div>
+              <div className={`flex flex-wrap gap-1 max-h-28 lg:max-h-56 overflow-y-auto p-1.5 rounded-lg border ${themeClasses.subtoolbarBg}`}>
+                {projectDrawnChars.length === 0 ? (
+                  <div className={`text-xs p-2 ${themeClasses.textMuted}`}>まだ作成済みの文字がありません</div>
+                ) : filteredDrawnChars.length === 0 ? (
+                  <div className={`text-xs p-2 ${themeClasses.textMuted}`}>一致する作成済み文字がありません</div>
+                ) : (
+                  filteredDrawnChars.map((g) => {
+                    const isSelected =
+                      overlaySettings.referenceChar === g.char ||
+                      overlaySettings.referenceUnicode === g.unicode;
+                    return (
+                      <button
+                        key={g.unicode}
+                        onClick={() => handleSelectRefChar(g.char, g.unicode)}
+                        className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-sky-600 text-white border-sky-600'
+                            : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+                        }`}
+                      >
+                        {g.char}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+              {filteredDrawnChars.length < projectDrawnChars.length && (
+                <p className={`mt-1 text-[10px] ${themeClasses.textMuted}`}>
+                  {filteredDrawnChars.length}件を表示中。検索で絞り込めます。
+                </p>
+              )}
+            </div>
           </div>
+
+          {/* Right Column: Appearance & Fine Offsets */}
+          <div className="lg:col-span-6 space-y-3">
+            {/* Render Mode & Color Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Render Mode */}
+              <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
+                <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-sky-600" />
+                  <span>表示モード</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'outline', label: '輪郭線', short: '輪郭線' },
+                    { id: 'fill', label: '半透明塗り', short: '塗り' },
+                    { id: 'difference', label: '差分強調', short: '差分' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() =>
+                        onChangeOverlaySettings((prev) =>
+                          isOverlayRenderMode(m.id) ? { ...prev, renderMode: m.id } : prev
+                        )
+                      }
+                      className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-bold transition-colors cursor-pointer ${
+                        overlaySettings.renderMode === m.id
+                          ? 'bg-sky-600 text-white border-sky-600'
+                          : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+                      }`}
+                    >
+                      <span className="sm:hidden">{m.short}</span>
+                      <span className="hidden sm:inline">{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color Palette */}
+              <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
+                <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
+                  <Palette className="w-3.5 h-3.5 text-sky-600" />
+                  <span>比較色</span>
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {COLOR_OPTIONS.map((c) => {
+                    const isSelected = overlaySettings.color === c.hex;
+                    return (
+                      <button
+                        key={c.hex}
+                        onClick={() =>
+                          onChangeOverlaySettings((prev) => ({ ...prev, color: c.hex }))
+                        }
+                        title={c.name}
+                        style={{ backgroundColor: c.hex }}
+                        className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
+                          isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110' : 'hover:scale-105'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
           {/* Opacity & Fine Offset Sliders */}
           <div className={`p-3 rounded-lg border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
             {/* Opacity */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold">不透明度 (Opacity)</label>
-                <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400">
+                <span className="text-xs font-mono tabular-nums font-bold text-sky-600 dark:text-sky-400">
                   {Math.round((overlaySettings.opacity ?? 0.45) * 100)}%
                 </span>
               </div>
@@ -463,7 +468,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               <div>
                 <div className="flex justify-between text-[11px] font-bold mb-1">
                   <span>横位置オフセット (X)</span>
-                  <span className="font-mono">{overlaySettings.offsetX ?? 0}px</span>
+                  <span className="font-mono tabular-nums">{overlaySettings.offsetX ?? 0}px</span>
                 </div>
                 <input
                   type="range"
@@ -484,7 +489,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               <div>
                 <div className="flex justify-between text-[11px] font-bold mb-1">
                   <span>縦位置オフセット (Y)</span>
-                  <span className="font-mono">{overlaySettings.offsetY ?? 0}px</span>
+                  <span className="font-mono tabular-nums">{overlaySettings.offsetY ?? 0}px</span>
                 </div>
                 <input
                   type="range"
@@ -528,6 +533,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                 <span>位置リセット</span>
               </button>
             </div>
+          </div>
           </div>
         </div>
 

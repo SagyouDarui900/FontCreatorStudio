@@ -34,7 +34,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
   }`;
 
   return (
-    <div className={`border-t pt-3 sm:pt-3.5 ${borderCls}`}>
+    <div className={`border-t pt-3 lg:border-t-0 lg:pt-0 lg:border-l lg:pl-4 ${borderCls}`}>
       <div className="flex items-center justify-between mb-2">
         <span
           className={`text-[11px] font-bold uppercase tracking-wider block ${
@@ -43,7 +43,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
         >
           EMメトリクス (単位: FUnit)
         </span>
-        <span className={`text-[10px] ${themeClasses ? themeClasses.textMuted : 'text-stone-500 dark:text-stone-400'}`}>
+        <span className={`text-[10px] font-mono tabular-nums ${themeClasses ? themeClasses.textMuted : 'text-stone-500 dark:text-stone-400'}`}>
           標準UPM: 1000
         </span>
       </div>
@@ -146,7 +146,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
 
       {/* Windows 11 & Japanese OS/2 Compatibility Note */}
       <div
-        className={`p-3 rounded-xl border text-[11px] space-y-1 mt-3.5 ${
+        className={`p-2.5 sm:p-3 rounded-xl border text-[11px] space-y-1 mt-3 ${
           themeClasses
             ? themeClasses.accentBadge
             : isLight
@@ -154,8 +154,7 @@ export const MetricsSettingsSection: React.FC<MetricsSettingsSectionProps> = ({
             : 'bg-emerald-950/60 border-emerald-800 text-emerald-200'
         }`}
       >
-        <div className="font-bold flex items-center space-x-1.5">
-          <span className="w-2 h-2 rounded-full bg-current inline-block shrink-0" />
+        <div className="font-bold">
           <span>Windows 11 / Mac 日本語フォント規格適合設定</span>
         </div>
         <p className="text-[10.5px] opacity-85 leading-relaxed">

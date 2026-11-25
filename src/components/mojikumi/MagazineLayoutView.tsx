@@ -51,7 +51,9 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   const paperBg = isLight ? 'bg-white' : 'bg-[#141d16]';
   const paperBorder = isLight ? 'border-stone-200 shadow-md' : 'border-[#25382b] shadow-md';
   const textColor = isLight ? 'text-stone-900' : 'text-stone-100';
-  const accentBorder = isLight ? 'border-emerald-600' : 'border-emerald-500';
+  const leadCardStyle = isLight
+    ? 'border-emerald-200 bg-emerald-50/40 text-stone-800'
+    : 'border-emerald-800/60 bg-emerald-950/30 text-stone-200';
 
   const emPx = Math.max(13, Math.round(fontSizeQ * MOJIKUMI_Q_TO_PX * zoom));
   const lineGapPx = Math.max(0, Math.round((lineFeedH - fontSizeQ) * MOJIKUMI_Q_TO_PX * zoom));
@@ -261,7 +263,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
   return (
     <div className="w-full flex flex-col items-center justify-start p-2 sm:p-4 select-none">
       <div
-        className={`w-full max-w-5xl rounded-2xl border overflow-hidden p-4 sm:p-8 md:p-12 ${paperBg} ${paperBorder} ${textColor}`}
+        className={`w-full max-w-5xl rounded-2xl border overflow-hidden p-4 sm:p-6 md:p-8 ${paperBg} ${paperBorder} ${textColor}`}
       >
         {/* Magazine Masthead & Kicker */}
         <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-stone-200 dark:border-stone-800 text-xs font-mono">
@@ -294,11 +296,9 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
           </div>
         </div>
 
-        {/* Lead In / Intro Paragraph with drop-border */}
+        {/* Lead In / Intro Paragraph */}
         <div
-          className={`my-3 sm:my-4 p-3.5 sm:p-5 rounded-xl border-l-4 ${accentBorder} bg-stone-50 dark:bg-stone-900/60 text-xs sm:text-sm md:text-base leading-relaxed font-serif ${
-            isLight ? 'text-stone-800' : 'text-stone-200'
-          }`}
+          className={`my-3 sm:my-4 p-3.5 sm:p-4 rounded-xl border ${leadCardStyle} text-xs sm:text-sm md:text-base leading-relaxed font-serif`}
           style={{ fontFamily }}
         >
           <div className="flex items-start space-x-2">

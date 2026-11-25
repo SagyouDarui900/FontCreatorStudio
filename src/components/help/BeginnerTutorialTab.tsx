@@ -71,7 +71,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({
   const subtleText = isLight ? 'text-stone-500' : 'text-stone-400';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Overview */}
       <section className="space-y-2">
         <h3 className={`text-sm font-bold ${headingText}`}>
@@ -81,20 +81,20 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({
           ブラウザ上で文字の輪郭を作成し、OS やデザインソフトにインストールできる OpenType フォント（.otf）として出力します。マウス、スタイラスペン（Apple Pencil 等）、タッチ操作に対応しています。
         </p>
 
-        <dl className={`grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 mt-4 border-t ${dividerClass} text-xs`}>
-          <div className="space-y-1">
+        <dl className={`grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 mt-3 border-t ${dividerClass} text-xs`}>
+          <div className="space-y-0.5">
             <dt className={`font-bold ${headingText}`}>必要な文字だけで出力可能</dt>
             <dd className={`text-[11px] leading-relaxed ${mutedText}`}>
               全文字種を埋める必要はありません。必要な数文字だけを作成した状態でも .otf を書き出せます。
             </dd>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <dt className={`font-bold ${headingText}`}>未作成文字の代替表示</dt>
             <dd className={`text-[11px] leading-relaxed ${mutedText}`}>
               作成していない文字を入力した場合、OS やアプリの標準フォントが代替として表示されます。
             </dd>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <dt className={`font-bold ${headingText}`}>作成したフォントの利用範囲</dt>
             <dd className={`text-[11px] leading-relaxed ${mutedText}`}>
               自分で作成したグリフの権利は制作者に帰属し、商用・非商用を問わず使用・配布できます。
@@ -104,11 +104,11 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({
       </section>
 
       {/* 3 Drawing Methods */}
-      <section className={`pt-6 border-t ${dividerClass} space-y-4`}>
+      <section className={`pt-4 border-t ${dividerClass} space-y-3`}>
         <h4 className={`text-xs font-bold ${headingText}`}>輪郭を作成する 3 つの方法</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {DRAWING_METHODS.map((method) => (
-            <div key={method.title} className="space-y-1.5">
+            <div key={method.title} className="space-y-1">
               <div className="flex items-baseline justify-between gap-2">
                 <h5 className={`text-xs font-bold ${headingText}`}>{method.title}</h5>
                 <kbd
@@ -128,15 +128,15 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({
       </section>
 
       {/* 5 Steps */}
-      <section className={`pt-6 border-t ${dividerClass} space-y-3`}>
+      <section className={`pt-4 border-t ${dividerClass} space-y-2.5`}>
         <h4 className={`text-xs font-bold ${headingText}`}>基本手順（5 ステップ）</h4>
-        <ol className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'}`}>
+        <ol className="grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8">
           {WORKFLOW_STEPS.map((item) => (
-            <li key={item.step} className="py-3.5 first:pt-1 last:pb-1 grid grid-cols-1 sm:grid-cols-[3rem_1fr] gap-1 sm:gap-4">
+            <li key={item.step} className={`py-2.5 border-b ${dividerClass} grid grid-cols-1 sm:grid-cols-[2.5rem_1fr] gap-1 sm:gap-3`}>
               <span className={`font-mono tabular-nums text-xs font-bold ${subtleText}`}>
                 {item.step}.
               </span>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <h5 className={`text-xs font-bold ${headingText}`}>{item.title}</h5>
                 <p className={`text-xs leading-relaxed ${mutedText}`}>{item.body}</p>
                 <p className={`text-[11px] font-mono ${isLight ? 'text-emerald-800' : 'text-emerald-400'}`}>
@@ -149,7 +149,7 @@ export const BeginnerTutorialTab: React.FC<BeginnerTutorialTabProps> = ({
       </section>
 
       {/* Cross Links */}
-      <div className={`pt-4 border-t ${dividerClass} flex flex-wrap items-center gap-4 text-xs`}>
+      <div className="pt-1 flex flex-wrap items-center gap-4 text-xs">
         <button
           type="button"
           onClick={onOpenGlossary}

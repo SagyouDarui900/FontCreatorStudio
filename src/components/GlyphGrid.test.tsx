@@ -466,4 +466,79 @@ describe('GlyphGrid bug fixes', () => {
     expect(latestState!.project.glyphs[0x3044]?.contours.length).toBe(1);
     unmount();
   });
+
+  it('preserves CharacterListTab group and search query across panel tab switches and keeps width presets accessible', () => {
+    const project = createBaseProject();
+    const { container, unmount } = renderWithRoot(
+      <ModalProvider>
+        <GlyphGrid
+          project={project}
+          selectedUnicode={0x3042}
+          onSelectGlyph={vi.fn()}
+          onClearGlyph={vi.fn()}
+          onCopyGlyph={vi.fn()}
+          onPasteGlyph={vi.fn()}
+          hasClipboard={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          theme="light"
+          isOverlay={false}
+        />
+      </ModalProvider>
+    );
+
+    // Width presets should be visible in creation grid
+    const wideBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === '広');
+    expect(wideBtn).toBeDefined();
+
+    // Switch to 見本一覧, choose カタカナ, filter by ア
+    const listTab = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')).find((b) =>
+      b.textContent?.includes('見本一覧')
+    )!;
+    act(() => {
+      listTab.click();
+    });
+
+    // Width presets remain visible in 見本一覧
+    expect(Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === '広')).toBeDefined();
+
+    const katakanaTab = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')).find(
+      (b) => b.textContent?.trim() === 'カタカナ'
+    )!;
+    act(() => {
+      katakanaTab.click();
+    });
+
+    const listSearch = container.querySelector('input[aria-label="文字を検索"]') as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
+    act(() => {
+      setter.call(listSearch, 'ア');
+      listSearch.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(container.textContent).toContain('一致 1件');
+
+    // Switch back to 作字グリッド then return to 見本一覧
+    const createTab = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')).find((b) =>
+      b.textContent?.includes('作字グリッド')
+    )!;
+    act(() => {
+      createTab.click();
+    });
+    const listTabAgain = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')).find((b) =>
+      b.textContent?.includes('見本一覧')
+    )!;
+    act(() => {
+      listTabAgain.click();
+    });
+
+    const restoredKatakana = Array.from(container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')).find(
+      (b) => b.textContent?.trim() === 'カタカナ'
+    )!;
+    expect(restoredKatakana.getAttribute('aria-selected')).toBe('true');
+    const restoredSearch = container.querySelector('input[aria-label="文字を検索"]') as HTMLInputElement;
+    expect(restoredSearch.value).toBe('ア');
+    expect(container.textContent).toContain('一致 1件');
+
+    unmount();
+  });
 });

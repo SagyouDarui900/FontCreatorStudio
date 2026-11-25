@@ -547,6 +547,27 @@ describe('Font Project Validation & Compilation', () => {
   });
 });
 
+function readSfntTable(buffer: ArrayBuffer, tag: string): Uint8Array | null {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  const numTables = view.getUint16(4, false);
+  for (let i = 0; i < numTables; i++) {
+    const recOffset = 12 + i * 16;
+    const foundTag = String.fromCharCode(
+      bytes[recOffset],
+      bytes[recOffset + 1],
+      bytes[recOffset + 2],
+      bytes[recOffset + 3]
+    );
+    if (foundTag === tag) {
+      const offset = view.getUint32(recOffset + 8, false);
+      const length = view.getUint32(recOffset + 12, false);
+      return bytes.slice(offset, offset + length);
+    }
+  }
+  return null;
+}
+
 describe('compileFont with palt / vpal (H1)', () => {
   const rect = (id: string): PathContour => ({
     id,
@@ -558,27 +579,6 @@ describe('compileFont with palt / vpal (H1)', () => {
       { id: `${id}n4`, x: 100, y: 600, type: 'corner' },
     ],
   });
-
-  function readSfntTable(buffer: ArrayBuffer, tag: string): Uint8Array | null {
-    const bytes = new Uint8Array(buffer);
-    const view = new DataView(buffer);
-    const numTables = view.getUint16(4, false);
-    for (let i = 0; i < numTables; i++) {
-      const recOffset = 12 + i * 16;
-      const foundTag = String.fromCharCode(
-        bytes[recOffset],
-        bytes[recOffset + 1],
-        bytes[recOffset + 2],
-        bytes[recOffset + 3]
-      );
-      if (foundTag === tag) {
-        const offset = view.getUint32(recOffset + 8, false);
-        const length = view.getUint32(recOffset + 12, false);
-        return bytes.slice(offset, offset + length);
-      }
-    }
-    return null;
-  }
 
   function paltProject(percent: number, withConfig = true): FontProject {
     const base = createMockProject({
@@ -629,23 +629,39 @@ describe('compileFont with palt / vpal (H1)', () => {
     expect(paltLookup.subtables[0].values.map((v: any) => v.xAdvance)).toEqual([-500]);
   });
 
-  it('writes vmtx/vhea tables with the derived vertical advance', () => {
+  it('writes full-em vmtx, centered vhea, VORG, and GPOS vpal tables without corrupting beta metrics', () => {
     const compiled = compileFont(paltProject(5), { skipBlobUrl: true, scaleFactor: 1.0 });
     const vmtx = readSfntTable(compiled.buffer, 'vmtx');
     const vhea = readSfntTable(compiled.buffer, 'vhea');
+    const vorg = readSfntTable(compiled.buffer, 'VORG');
     expect(vmtx).not.toBeNull();
     expect(vhea).not.toBeNull();
+    expect(vorg).not.toBeNull();
     // Glyph order: .notdef, あ, space, fullwidth space.
     expect(vmtx!.length).toBe(16);
     const vmtxView = new DataView(vmtx!.buffer);
-    // あ: outline 500 high + 5% padding each side -> vertical advance 600;
-    // top side bearing is vertOriginY 800 minus the outline top (700).
-    expect(vmtxView.getUint16(4, false)).toBe(600);
+    // vmtx retains defaultVertAdvance (1000) so beta typesetting never overlaps;
+    // top side bearing is vertOriginY 800 minus the outline top (700) = 100.
+    expect(vmtxView.getUint16(4, false)).toBe(1000);
     expect(vmtxView.getInt16(6, false)).toBe(100);
     const vheaView = new DataView(vhea!.buffer);
     expect(vhea!.length).toBe(36);
+    expect(vheaView.getInt16(4, false)).toBe(500);
+    expect(vheaView.getInt16(6, false)).toBe(-500);
     expect(vheaView.getUint16(10, false)).toBe(1000);
     expect(vheaView.getUint16(34, false)).toBe(4);
+    // VORG v1.0 header: major 1, minor 0, defaultVertOriginY 800, numVertOriginYMetrics 0
+    const vorgView = new DataView(vorg!.buffer);
+    expect(vorg!.length).toBe(8);
+    expect(vorgView.getUint16(0, false)).toBe(1);
+    expect(vorgView.getInt16(4, false)).toBe(800);
+    // GPOS includes vpal with yAdvance -400 and yPlacement +50
+    const reparsed = opentype.parse(compiled.buffer);
+    const gpos = (reparsed as any).tables.gpos;
+    expect(gpos.features.map((f: any) => f.tag)).toContain('vpal');
+    const vpalFeature = gpos.features.find((f: any) => f.tag === 'vpal');
+    const vpalLookup = gpos.lookups[vpalFeature.feature.lookupListIndexes[0]];
+    expect(vpalLookup.subtables[0].values).toEqual([{ yPlacement: 50, yAdvance: -400 }]);
   });
 
   it('applies palt even when the project has no openTypeFeatures config', () => {
@@ -1170,5 +1186,88 @@ describe('compileFont GSUB ligatures with vertical pairs (L40)', () => {
     expect(reparsed.substitution.getLigatures('liga', 'DFLT')).toEqual([
       { sub: [fIndex, iIndex], by: fiIndex },
     ]);
+  });
+
+  it('orders longer ligatures (ffi/ffl) before shorter ones (ff) in GSUB', () => {
+    const project = createMockProject({
+      glyphs: {
+        102: { char: 'f', name: 'f', unicode: 102, advanceWidth: 500, lsb: 0, contours: [rect] },
+        105: { char: 'i', name: 'i', unicode: 105, advanceWidth: 500, lsb: 0, contours: [rect] },
+        0xfb00: { char: 'ﬀ', name: 'ff', unicode: 0xfb00, advanceWidth: 800, lsb: 0, contours: [rect] },
+        0xfb03: { char: 'ﬃ', name: 'ffi', unicode: 0xfb03, advanceWidth: 1000, lsb: 0, contours: [rect] },
+      },
+      openTypeFeatures: {
+        enabled: true,
+        ligatures: [
+          { id: 'ff', type: 'liga', name: 'ff', inputChars: ['f', 'f'], substituteUnicode: 0xfb00, enabled: true },
+          { id: 'ffi', type: 'liga', name: 'ffi', inputChars: ['f', 'f', 'i'], substituteUnicode: 0xfb03, enabled: true },
+        ],
+      } as any,
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.0, balanceSideBearings: false });
+    const reparsed: any = opentype.parse(compiled.buffer);
+    const fIndex = reparsed.charToGlyphIndex('f');
+    const iIndex = reparsed.charToGlyphIndex('i');
+    const ffiIndex = reparsed.charToGlyphIndex('ﬃ');
+    const ffIndex = reparsed.charToGlyphIndex('ﬀ');
+    expect(reparsed.substitution.getLigatures('liga', 'DFLT')).toEqual([
+      { sub: [fIndex, fIndex, iIndex], by: ffiIndex },
+      { sub: [fIndex, fIndex], by: ffIndex },
+    ]);
+  });
+
+  it('generates .vert variant glyphs for small kana same-codepoint rules and shares GSUB across scripts', () => {
+    const pixelData = {
+      width: 4,
+      height: 4,
+      data: [
+        0, 1, 1, 0,
+        0, 1, 1, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+      ],
+    };
+    const project = createMockProject({
+      glyphs: {
+        0x3063: { char: 'っ', name: 'uni3063', unicode: 0x3063, advanceWidth: 1000, lsb: 0, contours: [], pixelData },
+        0x300c: { char: '「', name: 'uni300C', unicode: 0x300c, advanceWidth: 1000, lsb: 0, contours: [rect] },
+      },
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: {
+          enabled: true,
+          defaultVertAdvance: 1000,
+          vertOriginY: 800,
+          substitutions: [
+            { id: 'vsub_tsu', sourceUnicode: 0x3063, vertUnicode: 0x3063, vertAdvanceHeight: 820, enabled: true },
+            { id: 'vsub_kagi', sourceUnicode: 0x300c, vertUnicode: 0xfe41, enabled: true },
+          ],
+        },
+        ligatures: [],
+        customKerningPairs: [],
+      },
+    });
+    const compiled = compileFont(project, { skipBlobUrl: true, scaleFactor: 1.25 });
+    const reparsed: any = opentype.parse(compiled.buffer);
+    // Vertical derivation of 「 works and matches compiled scale
+    expect(reparsed.hasChar('﹁')).toBe(true);
+    // Unencoded uni3063.vert glyph is generated and bound in vert/vrt2
+    const tsuIndex = reparsed.charToGlyphIndex('っ');
+    const vertVariant = Array.from({ length: reparsed.glyphs.length }, (_, idx) => reparsed.glyphs.get(idx))
+      .find((g: any) => g.name === 'uni3063.vert');
+    expect(vertVariant).toBeDefined();
+    expect(reparsed.substitution.getSingle('vert', 'DFLT')).toContainEqual({
+      sub: tsuIndex,
+      by: vertVariant.index,
+    });
+    // Per-sub vertAdvanceHeight overrides vmtx for the .vert glyph
+    const vmtx = readSfntTable(compiled.buffer, 'vmtx')!;
+    const vmtxView = new DataView(vmtx.buffer);
+    expect(vmtxView.getUint16(vertVariant.index * 4, false)).toBe(820);
+    // GSUB shares FeatureRecords cleanly across DFLT, hani, kana, latn without 4x lookup bloat
+    expect(reparsed.tables.gsub.scripts.map((s: any) => s.tag)).toEqual(
+      expect.arrayContaining(['DFLT', 'hani', 'kana', 'latn'])
+    );
+    expect(reparsed.tables.gsub.features.filter((f: any) => f.tag === 'vert')).toHaveLength(1);
   });
 });

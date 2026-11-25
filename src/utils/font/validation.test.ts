@@ -161,4 +161,45 @@ describe('validateFontProject two-node contours and metadata (L44, L45)', () => 
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('メタデータ'))).toBe(true);
   });
+
+  it('validates verticalWriting metrics and ligature code points/glyph availability', () => {
+    const invalidLigProj = makeStoredProject({
+      openTypeFeatures: {
+        enabled: true,
+        verticalWriting: {
+          enabled: true,
+          defaultVertAdvance: -50,
+          vertOriginY: 880,
+          substitutions: [
+            { id: 'bad_v', sourceUnicode: -1, vertUnicode: 0xfe11, enabled: true },
+          ],
+        },
+        ligatures: [
+          {
+            id: 'bad_unicode',
+            type: 'liga',
+            name: 'bad_unicode',
+            inputChars: ['f', 'i'],
+            substituteUnicode: 0x200000,
+            enabled: true,
+          },
+          {
+            id: 'short_input',
+            type: 'liga',
+            name: 'short_input',
+            inputChars: ['f'],
+            substituteUnicode: 0xfb01,
+            enabled: true,
+          },
+        ],
+        customKerningPairs: [],
+      },
+    }) as any;
+    const res = validateFontProject(invalidLigProj);
+    expect(res.valid).toBe(false);
+    expect(res.warnings.some((w) => w.includes('デフォルト縦送り幅'))).toBe(true);
+    expect(res.errors.some((e) => e.includes('縦書き置換ルール'))).toBe(true);
+    expect(res.errors.some((e) => e.includes('変換先Unicode値が無効'))).toBe(true);
+    expect(res.warnings.some((w) => w.includes('2文字未満'))).toBe(true);
+  });
 });

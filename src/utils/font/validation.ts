@@ -404,6 +404,57 @@ export function validateFontProject(project: FontProject): FontValidationResult 
     }
   }
 
+  // OpenType Vertical Writing & Ligatures
+  if (project.openTypeFeatures && project.openTypeFeatures.enabled !== false) {
+    const vw = project.openTypeFeatures.verticalWriting;
+    if (vw && vw.enabled !== false) {
+      if (
+        typeof vw.defaultVertAdvance !== 'number' ||
+        !Number.isFinite(vw.defaultVertAdvance) ||
+        vw.defaultVertAdvance <= 0
+      ) {
+        warnings.push('縦書き設定のデフォルト縦送り幅 (defaultVertAdvance) が無効なため、書き出し時にUPM値が使われます。');
+      }
+      if (typeof vw.vertOriginY !== 'number' || !Number.isFinite(vw.vertOriginY)) {
+        warnings.push('縦書き設定の縦書きY原点 (vertOriginY) が無効なため、書き出し時にアセンダ値が使われます。');
+      }
+      for (const sub of vw.substitutions || []) {
+        if (!sub.enabled) continue;
+        if (!isValidUnicode(sub.sourceUnicode) || !isValidUnicode(sub.vertUnicode)) {
+          errors.push(`縦書き置換ルール（${sub.id}）のUnicode値が無効です（0x1〜0x10FFFFの範囲で指定してください）。`);
+        }
+      }
+    }
+
+    for (const lig of project.openTypeFeatures.ligatures || []) {
+      if (!lig.enabled) continue;
+      const ligLabel = lig.name || lig.inputChars.join('');
+      if (!isValidUnicode(lig.substituteUnicode)) {
+        errors.push(`合字「${ligLabel}」の変換先Unicode値が無効です（0x1〜0x10FFFFの範囲で指定してください）。`);
+        continue;
+      }
+      if (!Array.isArray(lig.inputChars) || lig.inputChars.length < 2) {
+        warnings.push(`合字「${ligLabel}」の入力文字が2文字未満のため、書き出し時に除外されます。`);
+        continue;
+      }
+      const missingInputs = lig.inputChars.filter((ch) => {
+        const code = ch.codePointAt(0);
+        return code === undefined || !existingUnicodes.has(code);
+      });
+      const missingTarget = !existingUnicodes.has(lig.substituteUnicode);
+      if (missingInputs.length > 0 || missingTarget) {
+        const targetCodeStr = `U+${lig.substituteUnicode.toString(16).toUpperCase()}`;
+        warnings.push(
+          `合字「${ligLabel}」の対象グリフ（${
+            missingTarget ? `${targetCodeStr}未作成` : ''
+          }${missingTarget && missingInputs.length > 0 ? '・' : ''}${
+            missingInputs.length > 0 ? `入力「${missingInputs.join('')}」未作成` : ''
+          }）が不足しているため、書き出し時に登録されません。`
+        );
+      }
+    }
+  }
+
   return {
     valid: errors.length === 0,
     glyphCount,

@@ -293,25 +293,25 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
     className="fixed inset-0 bg-black/75 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 z-[60] anim-fade"
   >
     <div
-      className={`w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+      className={`w-full h-[100dvh] sm:h-auto sm:max-w-4xl lg:max-w-6xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
     >
       {/* MODAL HEADER */}
       <div
-        className={`flex items-center justify-between px-4 sm:px-6 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:py-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+        className={`flex items-center justify-between px-4 sm:px-5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:py-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         <div className="flex items-center space-x-2.5 min-w-0">
           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${themeClasses.accentBtn}`}>
             <HardDrive className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
             <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
               <span className="max-sm:truncate">保存・バックアップ管理</span>
-              <span className={`text-[11px] font-normal px-2 py-0.5 rounded-full border font-mono max-sm:shrink-0 ${themeClasses.accentBadge}`}>
+              <span className={`text-[11px] font-normal px-2 py-0.5 rounded-md border font-mono max-sm:shrink-0 ${themeClasses.accentBadge}`}>
                 容量と履歴
               </span>
             </h2>
             <p className={`text-[11px] max-sm:hidden ${themeClasses.textMuted}`}>
-              ブラウザ保存容量の確認、スナップショット履歴の復元、JSON入出力を行います
+              ブラウザ保存容量の確認、スナップショット履歴の復元、JSON入出力
             </p>
           </div>
         </div>
@@ -325,19 +325,19 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
         </button>
       </div>
 
-      {/* TOP STORAGE CAPACITY METRIC HERO CARD */}
-      <div
-        className={`px-4 sm:px-6 py-3 border-b shrink-0 ${themeClasses.cardBg}`}
-      >
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+      {/* COMBINED TOP STORAGE CAPACITY + INSTANT BACKUP STRIP */}
+      <div className={`grid grid-cols-1 lg:grid-cols-12 border-b shrink-0 divide-y lg:divide-y-0 lg:divide-x ${themeClasses.border}`}>
+        {/* Left: Storage Capacity Hero */}
+        <div className={`lg:col-span-7 px-4 sm:px-5 py-2.5 ${themeClasses.cardBg}`}>
+ <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
  <div className="flex items-center space-x-2">
  <span className={`text-xs font-bold ${themeClasses.accentText}`}>
  localStorage 使用量:
  </span>
- <span className={`text-sm font-extrabold font-mono ${themeClasses.textPrimary}`}>
+ <span className={`text-sm font-extrabold font-mono tabular-nums ${themeClasses.textPrimary}`}>
  {formatBytes(breakdown.totalUsedBytes)}
  </span>
- <span className={`text-xs font-mono ${themeClasses.textMuted}`}>
+ <span className={`text-xs font-mono tabular-nums ${themeClasses.textMuted}`}>
  / 約 {formatBytes(breakdown.estimatedLimitBytes)} ({breakdown.usedPercentage.toFixed(1)}%)
  </span>
  </div>
@@ -345,19 +345,19 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* Health status badge */}
  <div className="flex items-center space-x-1.5">
  {breakdown.status === 'safe' && (
- <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+ <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
  保存容量: 良好
  </span>
  )}
  {breakdown.status === 'warning' && (
- <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+ <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
  <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
  保存容量: 要注意 (65%超過)
  </span>
  )}
  {breakdown.status === 'critical' && (
- <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+ <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
  <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
  容量上限リスク (85%超過)
  </span>
@@ -366,9 +366,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  {/* Meter progress bar */}
- <div className="w-full h-2.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden relative">
+ <div className="w-full h-2 rounded-md bg-black/10 dark:bg-white/10 overflow-hidden relative">
  <div
- className={`h-full transition-[width] duration-300 rounded-full ${
+ className={`h-full transition-[width] duration-300 rounded-md ${
  breakdown.status === 'safe'
  ? 'bg-emerald-500'
  : breakdown.status === 'warning'
@@ -380,65 +380,66 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  {/* Breakdown Pills */}
- <div className={`flex flex-wrap gap-2 pt-2 text-[10px] ${themeClasses.textMuted}`}>
- <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${themeClasses.subtoolbarBg}`}>
- <span className="w-2 h-2 rounded-full bg-emerald-500" />
+ <div className={`flex flex-wrap gap-1.5 pt-1.5 text-[10px] tabular-nums ${themeClasses.textMuted}`}>
+ <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border ${themeClasses.subtoolbarBg}`}>
+ <span className="w-2 h-2 rounded-xs bg-emerald-500" />
  作業中フォント: <strong>{formatBytes(breakdown.projectBytes)}</strong>
  </span>
- <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${themeClasses.subtoolbarBg}`}>
- <span className="w-2 h-2 rounded-full bg-cyan-500" />
+ <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border ${themeClasses.subtoolbarBg}`}>
+ <span className="w-2 h-2 rounded-xs bg-cyan-500" />
  スナップショット ({snapshots.length}件): <strong>{formatBytes(breakdown.snapshotsBytes)}</strong>
  </span>
- <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${themeClasses.subtoolbarBg}`}>
- <span className="w-2 h-2 rounded-full bg-indigo-400" />
+ <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border ${themeClasses.subtoolbarBg}`}>
+ <span className="w-2 h-2 rounded-xs bg-indigo-400" />
  カスタム部首部品: <strong>{formatBytes(breakdown.customPartsBytes)}</strong>
  </span>
- <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border ${themeClasses.subtoolbarBg}`}>
- <span className="w-2 h-2 rounded-full bg-stone-400" />
+ <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border ${themeClasses.subtoolbarBg}`}>
+ <span className="w-2 h-2 rounded-xs bg-stone-400" />
  設定・その他: <strong>{formatBytes(breakdown.presetsBytes + breakdown.settingsBytes + breakdown.otherBytes)}</strong>
  </span>
  </div>
- </div>
+        </div>
 
- {/* PRIMARY ACTION CARD: LAST BACKUP STATUS & INSTANT EXPORT */}
- <div
- className={`px-4 sm:px-6 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 ${themeClasses.subtoolbarBg}`}
- >
- <div className="flex items-start space-x-3">
- <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
- <ShieldCheck className="w-5 h-5" />
+        {/* Right: Primary Action Card */}
+        <div
+          className={`lg:col-span-5 px-4 sm:px-5 py-2.5 flex flex-col justify-between gap-2 ${themeClasses.subtoolbarBg}`}
+        >
+ <div className="flex items-start space-x-2.5">
+ <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
+ <ShieldCheck className="w-4 h-4" />
  </div>
- <div>
- <div className="text-xs font-extrabold flex items-center gap-2">
- <span>最終ファイルバックアップ (.json):</span>
+ <div className="min-w-0">
+ <div className="text-xs font-extrabold flex flex-wrap items-center gap-1.5">
+ <span>最終JSONバックアップ:</span>
  {lastBackupTime ? (
- <span className={`font-mono font-bold ${themeClasses.accentText}`}>
+ <span className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>
  {formatDateTime(lastBackupTime)} ({formatRelativeTime(lastBackupTime)})
  </span>
  ) : (
  <span className="text-amber-600 dark:text-amber-400 font-bold bg-amber-500/15 px-1.5 py-0.5 rounded">
- 未実行（ファイルバックアップを推奨）
+ 未実行（推奨）
  </span>
  )}
  </div>
- <p className={`text-[11px] leading-tight mt-0.5 ${themeClasses.textMuted}`}>
- ブラウザのキャッシュ消去や容量制限による消失を防ぐため、PC/スマホのローカル保存ファイルとして手動ダウンロードできます。
+ <p className={`text-[10.5px] leading-snug mt-0.5 ${themeClasses.textMuted}`}>
+ キャッシュ消去による消失防止のためローカルファイルとして保存できます。
  </p>
  </div>
  </div>
 
  <button
  onClick={handleExportJson}
- className={`px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-sm flex items-center justify-center space-x-1.5 transition-[transform,background-color] shrink-0 active:scale-95 cursor-pointer ${themeClasses.accentBtn}`}
+ className={`w-full px-3 py-1.5 rounded-lg text-xs font-extrabold shadow-xs flex items-center justify-center space-x-1.5 transition-[transform,background-color] shrink-0 active:scale-95 cursor-pointer ${themeClasses.accentBtn}`}
  >
- <Download className="w-4 h-4" />
+ <Download className="w-3.5 h-3.5" />
  <span>今すぐJSON保存 (.fontproj.json)</span>
  </button>
- </div>
+        </div>
+      </div>
 
  {/* TABS NAVIGATION */}
  <div
- className={`flex items-center space-x-2 px-3 sm:px-6 pt-2.5 pb-0 border-b shrink-0 overflow-x-auto no-scrollbar whitespace-nowrap ${themeClasses.cardBg}`}
+ className={`flex items-center space-x-2 px-3 sm:px-5 pt-2 pb-0 border-b shrink-0 overflow-x-auto no-scrollbar whitespace-nowrap ${themeClasses.cardBg}`}
  >
  <button
  onClick={() => setActiveTab('snapshots')}
@@ -491,9 +492,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* TAB 1: SNAPSHOTS LIST & MANAGEMENT */}
  {activeTab === 'snapshots' && (
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+ <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3">
  {/* Snapshot Actions Bar */}
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-1">
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-0.5">
  {isCreatingSnapshot ? (
  <div className="flex items-center space-x-2 flex-1 max-w-md">
  <input
@@ -556,48 +557,48 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* Snapshots Grid / List */}
  {snapshots.length === 0 ? (
  <div
- className={`text-center py-12 px-4 rounded-2xl border border-dashed ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+ className={`text-center py-8 px-4 rounded-2xl border border-dashed ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
  >
- <FolderArchive className={`w-10 h-10 mx-auto mb-2 opacity-60 ${themeClasses.textMuted}`} />
+ <FolderArchive className={`w-9 h-9 mx-auto mb-2 opacity-60 ${themeClasses.textMuted}`} />
  <h3 className={`text-sm font-bold ${themeClasses.textPrimary}`}>
  保存されたスナップショットはありません
  </h3>
- <p className={`text-xs max-w-sm mx-auto mt-1 ${themeClasses.textMuted}`}>
+ <p className={`text-xs max-w-md mx-auto mt-1 ${themeClasses.textMuted}`}>
  「現在の状態をスナップショット保存」を押すと、作業の節目で復元可能なバックアップをブラウザ内に保存できます。
  </p>
  <button
  onClick={() => setIsCreatingSnapshot(true)}
- className={`mt-3.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs inline-flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+ className={`mt-3 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs inline-flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.accentBtn}`}
  >
  <Plus className="w-3.5 h-3.5" />
  <span>最初のスナップショットを作成</span>
  </button>
  </div>
  ) : (
- <div className="space-y-2.5">
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
  {snapshots.map((snap) => (
  <div
  key={snap.id}
- className={`p-3.5 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${themeClasses.cardBg}`}
+ className={`p-3 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${themeClasses.cardBg}`}
  >
- <div className="flex items-start space-x-3 min-w-0 flex-1">
+ <div className="flex items-start space-x-2.5 min-w-0 flex-1">
  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
  <FileJson className="w-4 h-4" />
  </div>
  <div className="min-w-0 flex-1">
- <div className="flex items-center space-x-2 flex-wrap">
+ <div className="flex items-center space-x-1.5 flex-wrap">
  <span className={`text-xs font-extrabold truncate ${themeClasses.textPrimary}`}>
  {snap.label || snap.familyName || '手書きフォント'}
  </span>
- <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
+ <span className={`text-[10.5px] px-1.5 py-0.5 rounded border font-mono tabular-nums ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
  {snap.glyphCount} 文字
  </span>
- <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.accentBadge}`}>
+ <span className={`text-[10.5px] px-1.5 py-0.5 rounded border font-mono tabular-nums ${themeClasses.accentBadge}`}>
  {formatBytes(snap.sizeBytes)}
  </span>
  </div>
- <div className={`flex items-center space-x-2 text-[11px] mt-0.5 ${themeClasses.textMuted}`}>
- <Clock className="w-3 h-3" />
+ <div className={`flex items-center space-x-1.5 text-[11px] tabular-nums mt-0.5 ${themeClasses.textMuted}`}>
+ <Clock className="w-3 h-3 shrink-0" />
  <span>{snap.formattedDate}</span>
  <span>({formatRelativeTime(snap.timestamp)})</span>
  </div>
@@ -640,48 +641,48 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* TAB 2: INDEXEDDB AUTOSAVE RECOVERY HISTORY */}
  {activeTab === 'autosave' && (
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
- <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start space-x-3 ${themeClasses.accentBadge}`}>
- <ShieldCheck className="w-5 h-5 shrink-0 mt-0.5" />
- <div>
- <div className="font-bold mb-0.5">IndexedDB オートセーブ履歴</div>
- <p className="text-[11px] opacity-90">
+ <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3">
+ <div className={`p-3 rounded-xl border text-xs leading-relaxed flex items-center space-x-2.5 ${themeClasses.accentBadge}`}>
+ <ShieldCheck className="w-4 h-4 shrink-0" />
+ <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+ <span className="font-bold">IndexedDB オートセーブ履歴:</span>
+ <span className="text-[11px] opacity-90">
  編集データは IndexedDB に自動保存されます。直近の保存時点を選択して復元できます。
- </p>
+ </span>
  </div>
  </div>
 
  {autosaveEntries.length === 0 ? (
- <div className={`py-12 text-center text-xs ${themeClasses.textMuted}`}>
+ <div className={`py-8 text-center text-xs ${themeClasses.textMuted}`}>
  IndexedDB のオートセーブ履歴はまだありません。作図変更を行うと自動保存されます。
  </div>
  ) : (
- <div className="space-y-2.5">
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
  {autosaveEntries.map((entry, idx) => (
  <div
  key={entry.id}
- className={`p-3.5 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${themeClasses.cardBg}`}
+ className={`p-3 rounded-xl border transition-colors duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${themeClasses.cardBg}`}
  >
- <div className="flex items-start space-x-3 min-w-0 flex-1">
- <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs ${themeClasses.accentBadge}`}>
+ <div className="flex items-start space-x-2.5 min-w-0 flex-1">
+ <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs tabular-nums ${themeClasses.accentBadge}`}>
  {idx === 0 ? '最新' : `#${idx + 1}`}
  </div>
  <div className="min-w-0 flex-1">
- <div className="flex items-center space-x-2 flex-wrap">
+ <div className="flex items-center space-x-1.5 flex-wrap">
  <span className={`text-xs font-extrabold truncate ${themeClasses.textPrimary}`}>
  {entry.projectName || '手書きフォント'}
  </span>
- <span className={`text-[11px] px-1.5 py-0.5 rounded border font-mono ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
+ <span className={`text-[10.5px] px-1.5 py-0.5 rounded border font-mono tabular-nums ${themeClasses.subtoolbarBg} ${themeClasses.textMuted}`}>
  {entry.glyphCount} 文字収録
  </span>
  {idx === 0 && (
- <span className={`text-[11px] px-1.5 py-0.5 rounded font-bold border ${themeClasses.accentBadge}`}>
- 直近の自動保護ポイント
+ <span className={`text-[10.5px] px-1.5 py-0.5 rounded font-bold border ${themeClasses.accentBadge}`}>
+ 直近保護
  </span>
  )}
  </div>
- <div className={`flex items-center space-x-2 text-[11px] mt-0.5 ${themeClasses.textMuted}`}>
- <Clock className={`w-3 h-3 ${themeClasses.accentText}`} />
+ <div className={`flex items-center space-x-1.5 text-[11px] tabular-nums mt-0.5 ${themeClasses.textMuted}`}>
+ <Clock className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
  <span>{formatDateTime(entry.timestamp)}</span>
  <span>({formatRelativeTime(entry.timestamp)})</span>
  </div>
@@ -704,27 +705,27 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* TAB 2: DETAILED STORAGE BREAKDOWN */}
  {activeTab === 'breakdown' && (
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+ <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3">
  <div className={`text-xs ${themeClasses.textMuted}`}>
  ブラウザ（localStorage）内に保管されている全データの内訳と専有サイズ一覧です。
  </div>
 
- <div className="space-y-2">
+ <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
  {breakdown.items.map((item) => (
  <div
  key={item.key}
- className={`p-3 rounded-lg border flex items-center justify-between text-xs ${themeClasses.cardBg}`}
+ className={`p-2.5 sm:p-3 rounded-lg border flex items-center justify-between text-xs ${themeClasses.cardBg}`}
  >
- <div className="min-w-0 flex-1 pr-3">
+ <div className="min-w-0 flex-1 pr-2">
  <div className={`font-bold truncate ${themeClasses.textPrimary}`}>
  {item.label}
  </div>
- <div className={`font-mono text-[11px] ${themeClasses.textMuted} truncate`}>
- キー: {item.key}
+ <div className={`font-mono text-[10.5px] ${themeClasses.textMuted} truncate`}>
+ {item.key}
  </div>
  </div>
- <div className="flex items-center space-x-3 shrink-0">
- <span className={`font-mono font-bold ${themeClasses.accentText}`}>
+ <div className="flex items-center space-x-2 shrink-0">
+ <span className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>
  {formatBytes(item.sizeBytes)}
  </span>
  {item.removable && (
@@ -745,9 +746,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* TAB 3: SAFETY & STORAGE GUIDE */}
  {activeTab === 'guide' && (
- <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
+ <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
  <div
- className={`p-4 rounded-xl border space-y-2 ${
+ className={`p-3.5 rounded-xl border space-y-2 ${
  isLight ? 'bg-amber-50/60 border-amber-200 text-amber-950' : 'bg-amber-950/20 border-amber-800/40 text-amber-200'
  }`}
  >
@@ -769,7 +770,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  </div>
 
  <div
- className={`p-4 rounded-xl border space-y-2 ${themeClasses.accentBadge}`}
+ className={`p-3.5 rounded-xl border space-y-2 ${themeClasses.accentBadge}`}
  >
  <div className="font-bold flex items-center gap-1.5">
  <ShieldCheck className="w-4 h-4 shrink-0" />
@@ -795,7 +796,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
 
  {/* MODAL FOOTER */}
  <div
- className={`flex items-center justify-between px-4 sm:px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+ className={`flex items-center justify-between px-4 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-2.5 border-t shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
  >
  <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1.5 max-sm:hidden`}>
  <Clock className="w-3.5 h-3.5" />

@@ -40,11 +40,11 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
       className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-5 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-3xl sm:max-h-[85vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-5xl xl:max-w-6xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="hidden sm:flex p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
@@ -95,14 +95,14 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4">
           {activeTab === 'presets' ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <p className={`text-xs ${themeClasses.textMuted}`}>
                 人名や自治体名などで字形差が問題となる主要な漢字です。該当文字をクリックして直ちにエディタで編集できます。
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {IVS_PRESETS.map((item) => {
                   const isCurrent = item.baseChar === selectedChar;
                   const glyph = glyphs[item.baseUnicode];
@@ -111,7 +111,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                   return (
                     <div
                       key={item.baseChar}
-                      className={`p-4 rounded-xl border flex flex-col justify-between transition-colors ${themeClasses.cardBg} ${
+                      className={`p-3.5 rounded-xl border flex flex-col justify-between transition-colors ${themeClasses.cardBg} ${
                         isCurrent
                           ? `${themeClasses.accentBorder} ring-1 ring-emerald-500/30`
                           : themeClasses.border
@@ -128,7 +128,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                               </span>
                             </div>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold bg-purple-500/10">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md border border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold bg-purple-500/10">
                             {item.category}
                           </span>
                         </div>

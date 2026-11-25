@@ -141,17 +141,17 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
       </div>
 
       {/* Sidebar Scrollable Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-5 custom-scrollbar text-xs">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 space-y-4 custom-scrollbar text-xs">
         {/* TAB 1: 青空文庫 文学作品セレクター */}
         {sidebarTab === 'text' && (
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             <div className="space-y-1.5">
               <label className={`font-bold flex items-center justify-between ${themeClasses.textPrimary}`}>
                 <span>青空文庫 著作権満了名作</span>
                 <Bookmark className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               </label>
 
-              <div className="space-y-1.5 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-1.5 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
                 {AOZORA_TEXTS.map((work) => {
                   // M17: while the text is edited, no work is highlighted.
                   const isSelected = work.id === selectedWorkId && !isCustomText;
@@ -159,7 +159,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     <div
                       key={work.id}
                       onClick={() => onSelectWork(work)}
-                      className={`p-2.5 rounded-lg border cursor-pointer transition-colors duration-150 ${
+                      className={`p-2 rounded-lg border cursor-pointer transition-colors duration-150 ${
                         isSelected
                           ? isLight
                             ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 font-medium ring-1 ring-emerald-500'
@@ -176,10 +176,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                         </span>
                       </div>
                       <div className={`text-[10px] ${themeClasses.textMuted} pt-0.5 line-clamp-1`}>
-                        {work.genreName} · {work.publishedYear}
-                      </div>
-                      <div className={`text-[10px] ${themeClasses.textMuted} italic pt-1 line-clamp-1`}>
-                        {work.summary}
+                        {work.genreName} · {work.publishedYear} · {work.summary}
                       </div>
                     </div>
                   );
@@ -188,10 +185,10 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
             </div>
 
             {/* Custom Text Area */}
-            <div className={`space-y-1.5 pt-2 border-t ${themeClasses.border}`}>
+            <div className={`space-y-1.5 pt-2.5 border-t ${themeClasses.border}`}>
               <label className={`font-bold flex items-center justify-between ${themeClasses.textPrimary}`}>
                 <span>組版テキストの編集</span>
-                <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                <span className={`text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
                   {isCustomText ? 'カスタム編集中 · ' : ''}{customText.length} 文字
                 </span>
               </label>
@@ -204,8 +201,8 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
               <textarea
                 value={customText}
                 onChange={(e) => onChangeCustomText(e.target.value)}
-                rows={5}
-                className={`w-full p-2.5 rounded-lg border text-xs resize-none font-sans leading-relaxed ${
+                rows={6}
+                className={`w-full p-2.5 rounded-lg border text-xs resize-y min-h-[112px] font-sans leading-relaxed ${
                   isLight
                     ? 'bg-white border-stone-300 text-stone-900 focus:ring-1 focus:ring-emerald-500'
                     : `${themeClasses.cardBg} focus:ring-1 focus:ring-emerald-400`
@@ -220,11 +217,29 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
         {sidebarTab === 'dimensions' && (
           <div className="space-y-4">
             <div className="space-y-1">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold">文字サイズ（Q数）</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {fontSizeQ}Q ({dimensions.fontSizePt}pt / {(fontSizeQ * 0.25).toFixed(2)}mm)
-                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="文字サイズを0.5Q下げる"
+                    onClick={() => onChangeFontSizeQ(Math.max(8, Number((fontSizeQ - 0.5).toFixed(1))))}
+                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  >
+                    -
+                  </button>
+                  <span className="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400 text-[11px] min-w-[110px] text-center">
+                    {fontSizeQ}Q ({dimensions.fontSizePt}pt / {(fontSizeQ * 0.25).toFixed(2)}mm)
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="文字サイズを0.5Q上げる"
+                    onClick={() => onChangeFontSizeQ(Math.min(40, Number((fontSizeQ + 0.5).toFixed(1))))}
+                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
               <input
                 type="range"
@@ -243,11 +258,29 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold">行送り（歯数 / H）</span>
-                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  {lineFeedH}H ({dimensions.lineFeedPt}pt / {(lineFeedH * 0.25).toFixed(2)}mm)
-                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label="行送りを0.5H下げる"
+                    onClick={() => onChangeLineFeedH(Math.max(12, Number((lineFeedH - 0.5).toFixed(1))))}
+                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  >
+                    -
+                  </button>
+                  <span className="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400 text-[11px] min-w-[110px] text-center">
+                    {lineFeedH}H ({dimensions.lineFeedPt}pt / {(lineFeedH * 0.25).toFixed(2)}mm)
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="行送りを0.5H上げる"
+                    onClick={() => onChangeLineFeedH(Math.min(60, Number((lineFeedH + 0.5).toFixed(1))))}
+                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
               <input
                 type="range"
@@ -258,12 +291,8 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                 onChange={(e) => onChangeLineFeedH(Number(e.target.value))}
                 className="w-full accent-emerald-600"
               />
-              <div className="text-[10px] text-stone-400 flex justify-between">
+              <div className="text-[10px] text-stone-400 flex justify-between tabular-nums">
                 <span>
-                  {/* L23: clamp the displayed line gap at 0, like
-                      PoetryTanzakuView does, so a line feed below the
-                      font size never shows a negative gap. The warning
-                      below is kept. */}
                   行間: {Math.max(0, dimensions.lineGapH)}H (
                   {(Math.max(0, dimensions.lineGapH) * 0.25).toFixed(2)}mm)
                 </span>
@@ -277,11 +306,33 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold">1行字詰め（字数）</span>
-                <span className="font-mono font-bold">
-                  {isManuscriptMode ? '20 文字 (原稿用紙固定)' : `${charsPerLine} 文字`}
-                </span>
+                <div className="flex items-center gap-1">
+                  {!isManuscriptMode && (
+                    <button
+                      type="button"
+                      aria-label="1行字詰めを1字減らす"
+                      onClick={() => onChangeCharsPerLine(Math.max(10, charsPerLine - 1))}
+                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    >
+                      -
+                    </button>
+                  )}
+                  <span className="font-mono tabular-nums font-bold text-[11px]">
+                    {isManuscriptMode ? '20 文字 (原稿用紙固定)' : `${charsPerLine} 文字`}
+                  </span>
+                  {!isManuscriptMode && (
+                    <button
+                      type="button"
+                      aria-label="1行字詰めを1字増やす"
+                      onClick={() => onChangeCharsPerLine(Math.min(45, charsPerLine + 1))}
+                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
               </div>
               <input
                 type="range"
@@ -296,11 +347,33 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="font-bold">1ページ行数</span>
-                <span className="font-mono font-bold">
-                  {isManuscriptMode ? '20 行 (原稿用紙固定)' : `${lineCount} 行`}
-                </span>
+                <div className="flex items-center gap-1">
+                  {!isManuscriptMode && (
+                    <button
+                      type="button"
+                      aria-label="1ページ行数を1行減らす"
+                      onClick={() => onChangeLineCount(Math.max(4, lineCount - 1))}
+                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    >
+                      -
+                    </button>
+                  )}
+                  <span className="font-mono tabular-nums font-bold text-[11px]">
+                    {isManuscriptMode ? '20 行 (原稿用紙固定)' : `${lineCount} 行`}
+                  </span>
+                  {!isManuscriptMode && (
+                    <button
+                      type="button"
+                      aria-label="1ページ行数を1行増やす"
+                      onClick={() => onChangeLineCount(Math.min(24, lineCount + 1))}
+                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
               </div>
               <input
                 type="range"
@@ -316,7 +389,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
 
             {/* Calculated Box Dimensions Card */}
             <div
-              className={`p-3.5 rounded-xl border space-y-2 ${
+              className={`p-3 rounded-xl border space-y-2 ${
                 isLight
                   ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
                   : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
@@ -326,7 +399,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>JIS X 4051 規範版面寸法計算</span>
               </div>
-              <div className="space-y-1 font-mono text-[11px]">
+              <div className="space-y-1 font-mono tabular-nums text-[11px]">
                 <div>
                   <span className="font-sans text-stone-500">版面幅: </span>
                   <strong>{dimensions.widthMm} mm</strong>

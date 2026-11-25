@@ -52,12 +52,12 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           state.isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-5xl xl:max-w-6xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
       >
         {/* Modal Header */}
         <div
-          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-lg bg-emerald-700 text-white shrink-0">
@@ -67,7 +67,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 truncate">
                 <span>かな自動合成</span>
                 {state.isFullscreen && (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-700 text-white shrink-0">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-emerald-700 text-white shrink-0">
                     全画面
                   </span>
                 )}
@@ -144,7 +144,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4">
           {state.activeTab === 'dakuten' ? (
             <DakutenSynthesisPanel
               isLight={isLight}

@@ -1,4 +1,5 @@
-import React, { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 import { getThemeClasses, type ThemeMode } from '../../utils/theme';
 import type { FontProject, GlyphData } from '../../types';
@@ -20,6 +21,10 @@ export interface CharacterListTabProps {
   selectedUnicode: number;
   onSelectGlyph: (unicode: number, char: string) => void;
   theme: ThemeMode;
+  activeGroup?: CharacterListGroupId;
+  onChangeActiveGroup?: (group: CharacterListGroupId) => void;
+  searchQuery?: string;
+  onChangeSearchQuery?: (query: string) => void;
 }
 
 type ThemeClasses = ReturnType<typeof getThemeClasses>;
@@ -282,10 +287,19 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
   selectedUnicode,
   onSelectGlyph,
   theme,
+  activeGroup: controlledActiveGroup,
+  onChangeActiveGroup,
+  searchQuery: controlledSearchQuery,
+  onChangeSearchQuery,
 }) => {
   const themeClasses = getThemeClasses(theme);
-  const [activeGroup, setActiveGroup] = useState<CharacterListGroupId>('hiragana');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalActiveGroup, setInternalActiveGroup] = useState<CharacterListGroupId>('hiragana');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [isRadicalIndexOpen, setIsRadicalIndexOpen] = useState(true);
+  const activeGroup = controlledActiveGroup ?? internalActiveGroup;
+  const setActiveGroup = onChangeActiveGroup ?? setInternalActiveGroup;
+  const searchQuery = controlledSearchQuery ?? internalSearchQuery;
+  const setSearchQuery = onChangeSearchQuery ?? setInternalSearchQuery;
   const scrollRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -354,13 +368,15 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
   // Measure the list area. The spacer's clientWidth (minus the side
   // insets) is the exact width the grid rows get, so the computed row
   // heights match the rendered cells even with a scrollbar present.
+  const isEmptySearch = isSearching && matchCount === 0;
   const virtualized = containerSize.width > 0 && containerSize.height > 0;
   useLayoutEffect(() => {
     const updateSize = () => {
-      const spacer = spacerRef.current;
       const scroller = scrollRef.current;
-      if (!spacer || !scroller) return;
-      const width = spacer.clientWidth - 2 * CHARACTER_LIST_LIST_PADDING;
+      if (!scroller) return;
+      const spacer = spacerRef.current;
+      const measuredWidth = (spacer ? spacer.clientWidth : scroller.clientWidth) - 2 * CHARACTER_LIST_LIST_PADDING;
+      const width = Math.max(0, measuredWidth);
       const height = scroller.clientHeight;
       setContainerSize((prev) =>
         prev.width === width && prev.height === height ? prev : { width, height }
@@ -368,11 +384,22 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
     };
     updateSize();
     if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(updateSize);
+    let rafId: number | null = null;
+    const scheduleUpdateSize = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateSize();
+      });
+    };
+    const observer = new ResizeObserver(scheduleUpdateSize);
     if (spacerRef.current) observer.observe(spacerRef.current);
     if (scrollRef.current) observer.observe(scrollRef.current);
-    return () => observer.disconnect();
-  }, [virtualized]);
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+  }, [virtualized, isEmptySearch]);
 
   // Switching groups or changing the search starts at the top of the list.
   useLayoutEffect(() => {
@@ -406,7 +433,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
     <div className="flex-1 min-h-0 flex flex-col">
       {/* Group selector */}
       <div
-        className={`flex flex-wrap gap-1 px-2 py-2 border-b shrink-0 ${themeClasses.border}`}
+        className={`flex flex-wrap gap-1 px-2 py-1.5 border-b shrink-0 ${themeClasses.border}`}
         role="tablist"
         aria-label="文字の種類"
       >
@@ -418,7 +445,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
             aria-selected={activeGroup === group.id}
             onClick={() => setActiveGroup(group.id)}
             title={`${group.label}（${group.hint}）`}
-            className={`px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors ${
+            className={`px-1.5 py-0.5 rounded text-[11px] font-bold cursor-pointer border transition-colors ${
               activeGroup === group.id
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -429,14 +456,14 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         ))}
       </div>
 
-      {/* Search */}
-      <div className={`px-2 py-1.5 border-b shrink-0 ${themeClasses.border}`}>
+      {/* Search & Progress */}
+      <div className={`px-2 py-1.5 border-b shrink-0 space-y-1 ${themeClasses.border}`}>
         <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="文字・コード・部首名で検索（例：あ・U+3042・さんずい）"
+            placeholder="検索: あ・U+3042・さんずい"
             aria-label="文字を検索"
             className={`w-full border rounded-md pl-2 pr-7 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
           />
@@ -451,23 +478,22 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
             </button>
           )}
         </div>
-      </div>
 
-      {/* Progress */}
-      <div className={`px-3 py-1.5 border-b shrink-0 ${themeClasses.border}`}>
-        <div className={`flex items-center justify-between text-[11px] ${themeClasses.textMuted}`}>
-          <span>
+        <div className={`flex items-center justify-between gap-2 text-[11px] ${themeClasses.textMuted}`}>
+          <span className="tabular-nums truncate">
             作成済み {writtenCount} / {totalCount}字
           </span>
-          <span className="tabular-nums">{progressPercent}%</span>
-        </div>
-        {isSearching && (
-          <div className={`mt-1 text-[11px] ${themeClasses.textMuted}`}>
-            一致 {matchCount}件
+          <div className="flex items-center gap-2 shrink-0 tabular-nums">
+            {isSearching && (
+              <span className={`font-semibold ${themeClasses.accentText}`}>
+                一致 {matchCount}件
+              </span>
+            )}
+            <span>{progressPercent}%</span>
           </div>
-        )}
+        </div>
         <div
-          className={`mt-1 h-1 rounded-full overflow-hidden ${themeClasses.canvasOuterBg}`}
+          className={`h-[3px] rounded-xs overflow-hidden ${themeClasses.canvasOuterBg}`}
           role="progressbar"
           aria-valuenow={writtenCount}
           aria-valuemin={0}
@@ -481,23 +507,35 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         </div>
       </div>
 
-      {/* Radical index */}
+      {/* Radical index (collapsible) */}
       {activeGroup === 'radical' && (
-        <div
-          className={`flex flex-wrap gap-0.5 px-2 py-1.5 border-b shrink-0 max-h-20 overflow-y-auto ${themeClasses.border}`}
-          aria-label="部首の一覧"
-        >
-          {filteredRadicalSections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => scrollToSection(section.id)}
-              title={`${section.name}（${section.strokes}画）`}
-              className={`w-6 h-6 rounded text-xs leading-none cursor-pointer border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+        <div className={`border-b shrink-0 ${themeClasses.border}`}>
+          <button
+            type="button"
+            onClick={() => setIsRadicalIndexOpen((prev) => !prev)}
+            className={`w-full px-2 py-1 flex items-center justify-between text-[10.5px] font-bold cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+          >
+            <span>部首索引 ({filteredRadicalSections.length}部首)</span>
+            {isRadicalIndexOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          {isRadicalIndexOpen && (
+            <div
+              className="flex flex-wrap gap-0.5 px-2 pb-1.5 max-h-[68px] overflow-y-auto"
+              aria-label="部首の一覧"
             >
-              {section.char}
-            </button>
-          ))}
+              {filteredRadicalSections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => scrollToSection(section.id)}
+                  title={`${section.name}（${section.strokes}画）`}
+                  className={`w-6 h-6 rounded text-xs leading-none cursor-pointer border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                >
+                  {section.char}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -507,7 +545,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
         className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${themeClasses.canvasOuterBg}`}
       >
-        {isSearching && matchCount === 0 ? (
+        {isEmptySearch ? (
           <div
             className={`flex items-center justify-center px-3 py-8 text-sm ${themeClasses.textMuted}`}
           >

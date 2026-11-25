@@ -18,22 +18,21 @@ import {
 } from 'lucide-react';
 import { GridDensity } from './types';
 import { ThemeClasses, getThemeClasses } from '../../utils/theme';
-import { STORAGE_KEYS, setStorageItem } from '../../utils/storageKeys';
 import { useModalContext } from '../../contexts/ModalContext';
 
 export interface GlyphGridToolbarProps {
   themeClasses?: ThemeClasses;
-  charListLength: number;
+  charListLength?: number;
   validPage: number;
   totalPages: number;
-  effectiveIsOverlay: boolean;
+  effectiveIsOverlay?: boolean;
   sidebarWidth: number;
-  setSidebarWidth: (w: number) => void;
+  setSidebarWidth?: (w: number) => void;
   gridDensity: GridDensity;
   setGridDensity: (d: GridDensity) => void;
   isSearchHeaderExpanded: boolean;
   setIsSearchHeaderExpanded: React.Dispatch<React.SetStateAction<boolean>>;
-  onClose: () => void;
+  onClose?: () => void;
   isLight: boolean;
   categoryDropdownRef: React.RefObject<HTMLDivElement | null>;
   isCategoryDropdownOpen: boolean;
@@ -63,17 +62,13 @@ export interface GlyphGridToolbarProps {
 
 export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
   themeClasses: propThemeClasses,
-  charListLength,
   validPage,
   totalPages,
-  effectiveIsOverlay,
   sidebarWidth,
-  setSidebarWidth,
   gridDensity,
   setGridDensity,
   isSearchHeaderExpanded,
   setIsSearchHeaderExpanded,
-  onClose,
   isLight,
   categoryDropdownRef,
   isCategoryDropdownOpen,
@@ -180,15 +175,25 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
     window.addEventListener('mouseup', onMouseUp);
     el.addEventListener('scroll', onScroll, { passive: true });
 
+    let rafId: number | null = null;
+    const scheduleScrollCheck = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        checkQuickTabsScroll();
+      });
+    };
+
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => checkQuickTabsScroll());
+      ro = new ResizeObserver(scheduleScrollCheck);
       ro.observe(el);
     }
 
     checkQuickTabsScroll();
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       el.removeEventListener('wheel', onWheel);
       el.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
@@ -200,311 +205,236 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
   return (
     <>
-      {/* Header with Compact Settings Title, Page Indicator, Width/Density Toggles */}
+      {/* Header Controls: Compact Category + Density + Search Toggle + Quick Tabs + Search */}
       <div
-        className={`p-2 border-b flex flex-col space-y-1.5 shrink-0 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+        className={`px-2 py-1.5 border-b flex flex-col gap-1.5 shrink-0 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
-        {/* Row 1: Compact label / page badge, width & density controls, search fold toggle */}
-        <div className="flex items-center justify-between gap-1.5 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span
-              className={`text-[11px] font-bold tracking-tight whitespace-nowrap truncate ${themeClasses.textMuted}`}
-            >
-              表示設定
-            </span>
-            {totalPages > 1 && (
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 border tabular-nums ${themeClasses.accentBadge}`}
-              >
-                {validPage}/{totalPages}頁
-              </span>
-            )}
-          </div>
-
-          {/* Width Presets, Density switch and search fold toggle */}
-          <div className="flex items-center space-x-1 shrink-0 ml-auto">
-            {/* Width Presets (狭: 244px, 標: 304px, 広: 420px) */}
-            {!effectiveIsOverlay && (
-              <div
-                className={`hidden sm:flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
-                title="サイドバーの幅プリセット（右端を直接ドラッグして任意幅に微調整も可能）"
-              >
-                <button
-                  onClick={() => {
-                    setSidebarWidth(244);
-                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '244');
-                  }}
-                  title="幅: 狭め (244px) - キャンバス重視"
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth <= 270
-                      ? themeClasses.activeTool
-                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                  }`}
-                >
-                  狭
-                </button>
-                <button
-                  onClick={() => {
-                    setSidebarWidth(304);
-                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '304');
-                  }}
-                  title="幅: 標準 (304px)"
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth > 270 && sidebarWidth < 360
-                      ? themeClasses.activeTool
-                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                  }`}
-                >
-                  標
-                </button>
-                <button
-                  onClick={() => {
-                    setSidebarWidth(420);
-                    setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '420');
-                  }}
-                  title="幅: 広め (420px) - 一覧性重視"
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                    sidebarWidth >= 360
-                      ? themeClasses.activeTool
-                      : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                  }`}
-                >
-                  広
-                </button>
-              </div>
-            )}
-
-            {/* Density Segmented Control */}
-            <div
-              className={`flex items-center p-0.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
-            >
-              <button
-                onClick={() => setGridDensity('large')}
-                title="大 (見やすい)"
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                  gridDensity === 'large'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-              >
-                大
-              </button>
-              <button
-                onClick={() => setGridDensity('medium')}
-                title="中 (標準)"
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                  gridDensity === 'medium'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-              >
-                中
-              </button>
-              <button
-                onClick={() => setGridDensity('compact')}
-                title="小 (一覧性重視)"
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors ${
-                  gridDensity === 'compact'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
-                }`}
-              >
-                小
-              </button>
+        {/* Row 1: Category Selector + Density Switch + Search Collapse Toggle */}
+        <div className="flex items-center gap-1 min-w-0 relative" ref={categoryDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+            className={`flex-1 min-w-0 flex items-center justify-between px-2 py-1 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
+              isCategoryDropdownOpen
+                ? `${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.textPrimary} ring-2 ring-emerald-600/30`
+                : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
+            }`}
+            title="カテゴリー一覧メニューを開く（タップで全分類から選択）"
+          >
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <Layers className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
+              <span className="truncate text-[11px]">{activeCategoryDisplayName}</span>
             </div>
+            <div className="flex items-center gap-0.5 shrink-0 ml-1">
+              <span className={`text-[9px] font-bold ${themeClasses.accentText} whitespace-nowrap`}>
+                分類選択
+              </span>
+              {isCategoryDropdownOpen ? (
+                <ChevronUp className={`w-3 h-3 ${themeClasses.textMuted}`} />
+              ) : (
+                <ChevronDown className={`w-3 h-3 ${themeClasses.textMuted}`} />
+              )}
+            </div>
+          </button>
 
+          {/* Density Segmented Control */}
+          <div
+            className={`flex items-center p-0.5 rounded border shrink-0 ${themeClasses.cardBg} ${themeClasses.border}`}
+          >
             <button
               type="button"
-              onClick={() => setIsSearchHeaderExpanded((prev) => !prev)}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
-                isSearchHeaderExpanded
-                  ? `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-                  : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textPrimary} font-bold`
+              onClick={() => setGridDensity('large')}
+              title="大 (見やすい)"
+              className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                gridDensity === 'large'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
               }`}
-              title={isSearchHeaderExpanded ? '分類・検索バーを折りたたんで一覧領域を拡大' : '分類・検索バーを展開'}
             >
-              <Sliders className="w-3 h-3" />
-              <span>検索</span>
-              {isSearchHeaderExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              大
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridDensity('medium')}
+              title="中 (標準)"
+              className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                gridDensity === 'medium'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+              }`}
+            >
+              中
+            </button>
+            <button
+              type="button"
+              onClick={() => setGridDensity('compact')}
+              title="小 (一覧性重視)"
+              className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                gridDensity === 'compact'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+              }`}
+            >
+              小
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSearchHeaderExpanded((prev) => !prev)}
+            className={`px-1.5 py-1 rounded text-[10px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer shrink-0 ${
+              isSearchHeaderExpanded
+                ? `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+                : `${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textPrimary} font-bold`
+            }`}
+            title={isSearchHeaderExpanded ? '分類タブ・検索バーを折りたたんで一覧領域を拡大' : '分類タブ・検索バーを展開'}
+          >
+            <Sliders className="w-3 h-3" />
+            {isSearchHeaderExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {isCategoryDropdownOpen && (
+            <div
+              className={`absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-md shadow-2xl border p-1.5 anim-pop ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+            >
+              {categoryGroups.map((group) => (
+                <div key={group.groupName} className="mb-2 last:mb-0">
+                  <div
+                    className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${themeClasses.accentText}`}
+                  >
+                    {group.groupName}
+                  </div>
+                  <div className="space-y-0.5 mt-0.5">
+                    {group.items.map((item) => {
+                      const isSelected = activeCategoryId === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveCategoryId(item.id);
+                            setSearchQuery('');
+                            setCurrentPage(1);
+                            setIsCategoryDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors text-left ${
+                            isSelected
+                              ? `${themeClasses.activeTool} font-bold`
+                              : `${themeClasses.activeToolHover} ${themeClasses.textPrimary}`
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            {isSelected ? (
+                              <Check className="w-3.5 h-3.5 shrink-0" />
+                            ) : (
+                              <div className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                            <span className="truncate">{item.name}</span>
+                          </div>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-mono tabular-nums shrink-0 ml-1.5 border ${
+                              isSelected
+                                ? 'bg-black/20 text-current'
+                                : `${themeClasses.toolbarBg} ${themeClasses.border} ${themeClasses.textMuted}`
+                            }`}
+                          >
+                            {item.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Collapsible Header Controls */}
-        {isSearchHeaderExpanded ? (
+        {/* Collapsible Quick Category Strip & Search Input */}
+        {isSearchHeaderExpanded && (
           <>
-            {/* Row 2: Custom Category Popover & Category Tabs */}
-            <div className="space-y-1.5 relative min-w-0">
-              <div className="relative" ref={categoryDropdownRef}>
+            {/* Quick 1-Tap Category Tabs (single-elevation slim strip) */}
+            <div className="flex items-center gap-0.5 min-w-0">
+              {tabsCanScrollLeft && (
                 <button
                   type="button"
-                  onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-colors cursor-pointer ${
-                    isCategoryDropdownOpen
-                      ? `${themeClasses.cardBg} ${themeClasses.accentBorder} ${themeClasses.textPrimary} ring-2 ring-emerald-600/30`
-                      : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
-                  }`}
-                  title="カテゴリー一覧メニューを開く（タップで全分類から選択）"
+                  onClick={() => {
+                    quickTabsRef.current?.scrollBy({ left: -120, behavior: 'smooth' });
+                  }}
+                  className={`shrink-0 w-5 h-6 max-sm:min-w-[26px] max-sm:min-h-[26px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                  title="左へスクロール"
                 >
-                  <div className="flex items-center gap-1.5 min-w-0 truncate">
-                    <Layers className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
-                    <span className="truncate">{activeCategoryDisplayName}</span>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0 ml-1">
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${themeClasses.accentBadge}`}
-                    >
-                      分類選択
-                    </span>
-                    {isCategoryDropdownOpen ? (
-                      <ChevronUp className={`w-3.5 h-3.5 ${themeClasses.textMuted}`} />
-                    ) : (
-                      <ChevronDown className={`w-3.5 h-3.5 ${themeClasses.textMuted}`} />
-                    )}
-                  </div>
+                  <ChevronLeft className="w-3 h-3" />
                 </button>
-
-                {isCategoryDropdownOpen && (
-                  <div
-                    className={`absolute top-full left-0 right-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-md shadow-2xl border p-1.5 anim-pop ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
-                  >
-                    {categoryGroups.map((group) => (
-                      <div key={group.groupName} className="mb-2 last:mb-0">
-                        <div
-                          className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${themeClasses.accentText}`}
-                        >
-                          {group.groupName}
-                        </div>
-                        <div className="space-y-0.5 mt-0.5">
-                          {group.items.map((item) => {
-                            const isSelected = activeCategoryId === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  setActiveCategoryId(item.id);
-                                  setSearchQuery('');
-                                  setCurrentPage(1);
-                                  setIsCategoryDropdownOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors text-left ${
-                                  isSelected
-                                    ? `${themeClasses.activeTool} font-bold`
-                                    : `${themeClasses.activeToolHover} ${themeClasses.textPrimary}`
-                                }`}
-                              >
-                                <div className="flex items-center gap-1.5 truncate">
-                                  {isSelected ? (
-                                    <Check className="w-3.5 h-3.5 shrink-0" />
-                                  ) : (
-                                    <div className="w-3.5 h-3.5 shrink-0" />
-                                  )}
-                                  <span className="truncate">{item.name}</span>
-                                </div>
-                                <span
-                                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono tabular-nums shrink-0 ml-1.5 border ${
-                                    isSelected
-                                      ? 'bg-black/20 text-current'
-                                      : `${themeClasses.toolbarBg} ${themeClasses.border} ${themeClasses.textMuted}`
-                                  }`}
-                                >
-                                  {item.count}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Quick 1-Tap Category Tabs */}
+              )}
               <div
-                className={`p-0.5 rounded-md flex items-center gap-0.5 min-w-0 border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+                ref={quickTabsRef}
+                className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto touch-scroll-x no-scrollbar select-none whitespace-nowrap"
               >
-                {tabsCanScrollLeft && (
+                {quickCategoryTabs.map((pill) => (
                   <button
+                    key={pill.id}
                     type="button"
                     onClick={() => {
-                      quickTabsRef.current?.scrollBy({ left: -140, behavior: 'smooth' });
+                      if (suppressTabClickRef.current) return;
+                      setActiveCategoryId(pill.id);
+                      setSearchQuery('');
+                      setCurrentPage(1);
+                      setIsCategoryDropdownOpen(false);
                     }}
-                    className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-                    title="左へスクロール"
+                    title={
+                      pill.id === 'modified'
+                        ? 'プロジェクト全体で作成済みの文字一覧'
+                        : `${pill.label}を表示`
+                    }
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold shrink-0 transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
+                      activeCategoryId === pill.id
+                        ? `${themeClasses.activeTool} shadow-xs border`
+                        : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+                    }`}
                   >
-                    <ChevronLeft className="w-3 h-3" />
+                    {pill.label}
                   </button>
-                )}
-                <div
-                  ref={quickTabsRef}
-                  className="flex-1 min-w-0 flex items-center gap-0.5 overflow-x-auto touch-scroll-x no-scrollbar select-none whitespace-nowrap"
-                >
-                  {quickCategoryTabs.map((pill) => (
-                    <button
-                      key={pill.id}
-                      type="button"
-                      onClick={() => {
-                        if (suppressTabClickRef.current) return;
-                        setActiveCategoryId(pill.id);
-                        setSearchQuery('');
-                        setCurrentPage(1);
-                        setIsCategoryDropdownOpen(false);
-                      }}
-                      title={
-                        pill.id === 'modified'
-                          ? 'プロジェクト全体で作成済みの文字一覧'
-                          : `${pill.label}を表示`
-                      }
-                      className={`px-2 py-0.5 rounded text-[11px] font-bold shrink-0 transition-colors cursor-pointer whitespace-nowrap tabular-nums ${
-                        activeCategoryId === pill.id
-                          ? `${themeClasses.activeTool} shadow-xs border`
-                          : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-                      }`}
-                    >
-                      {pill.label}
-                    </button>
-                  ))}
-                </div>
-                {tabsCanScrollRight && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      quickTabsRef.current?.scrollBy({ left: 140, behavior: 'smooth' });
-                    }}
-                    className={`shrink-0 w-5 h-6 max-sm:min-w-[28px] max-sm:min-h-[28px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-                    title="右へスクロール"
-                  >
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                )}
+                ))}
               </div>
+              {tabsCanScrollRight && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    quickTabsRef.current?.scrollBy({ left: 120, behavior: 'smooth' });
+                  }}
+                  className={`shrink-0 w-5 h-6 max-sm:min-w-[26px] max-sm:min-h-[26px] rounded flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                  title="右へスクロール"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             {/* Row 3: Search input & Direct character input */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 min-w-0">
               <div className="relative flex-1 min-w-0">
                 <Search
-                  className={`w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 ${themeClasses.accentText}`}
+                  className={`w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 ${themeClasses.accentText}`}
                 />
                 <input
                   type="text"
-                  placeholder="文字・Unicode (あ, 3042, 学)..."
+                  placeholder="検索: あ, 3042..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className={`w-full border rounded-md pl-8 pr-7 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                  className={`w-full border rounded-md pl-7 pr-6 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => {
                       setSearchQuery('');
                       setCurrentPage(1);
                     }}
-                    className={`absolute right-2 top-1/2 -translate-y-1/2 ${themeClasses.textMuted} hover:opacity-80 text-xs p-0.5`}
+                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 ${themeClasses.textMuted} hover:opacity-80 text-xs p-0.5 cursor-pointer`}
                   >
                     ×
                   </button>
@@ -516,16 +446,16 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                 <input
                   type="text"
                   maxLength={4}
-                  placeholder="文字直接"
+                  placeholder="直接"
                   value={customCharInput}
                   onChange={(e) => setCustomCharInput(e.target.value)}
-                  className={`w-16 border rounded-md px-1.5 py-1 text-xs text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                  className={`w-12 border rounded-md px-1 py-1 text-xs text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   title="任意の文字を直接入力して即座に開く (例: 龍)"
                 />
                 <button
                   type="submit"
                   disabled={!customCharInput.trim()}
-                  className={`px-2 py-1 rounded-md disabled:opacity-40 text-xs font-bold flex items-center transition-colors shrink-0 ${themeClasses.accentBtn}`}
+                  className={`px-1.5 py-1 rounded-md disabled:opacity-40 text-xs font-bold flex items-center transition-colors shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
                   title="入力文字を開く"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -533,52 +463,38 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               </form>
             </div>
           </>
-        ) : (
-          /* Compact 1-line bar when header is folded */
-          <div
-            onClick={() => setIsSearchHeaderExpanded(true)}
-            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-            title="クリックして検索・分類バーを展開"
-          >
-            <div className="flex items-center gap-1.5 min-w-0 truncate text-[11px] font-bold">
-              <Layers className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
-              <span className="truncate">{activeCategoryDisplayName}</span>
-              {searchQuery && (
-                <span className={`px-1.5 py-0.5 rounded border text-[10px] font-mono truncate ${themeClasses.accentBadge}`}>
-                  「{searchQuery}」
-                </span>
-              )}
-            </div>
-            <div className={`flex items-center gap-1 shrink-0 text-[10px] ${themeClasses.textMuted}`}>
-              <span>展開</span>
-              <ChevronDown className="w-3 h-3" />
-            </div>
-          </div>
         )}
       </div>
 
       {/* Category Progress & Status Filter Bar */}
       <div
-        className={`px-2 py-1.5 border-b flex flex-col gap-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        className={`px-2 py-1 border-b flex flex-col gap-1 shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
       >
-        {/* Progress header + thin bar */}
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="font-bold flex items-center gap-1.5 truncate">
-            <span className={themeClasses.textPrimary}>
+        {/* Progress header + JIS/Tools buttons */}
+        <div className="flex items-center justify-between text-[11px] gap-1 min-w-0">
+          <span className="font-bold flex items-center gap-1 min-w-0 truncate">
+            <span className={`truncate ${themeClasses.textPrimary}`}>
               {activeCategoryName}:
             </span>
             <span className={`font-mono font-bold tabular-nums shrink-0 ${themeClasses.accentText}`}>
               {categoryStats.completed} / {categoryStats.total} 字
             </span>
-            <span className={`font-mono tabular-nums text-[10px] ${themeClasses.textMuted}`}>
+            <span className={`font-mono tabular-nums text-[10px] shrink-0 ${themeClasses.textMuted}`}>
               ({categoryStats.percent}%)
             </span>
           </span>
           <div className="flex items-center gap-1 shrink-0">
+            {totalPages > 1 && (
+              <span
+                className={`text-[9.5px] px-1 py-0.5 rounded font-mono font-bold border tabular-nums ${themeClasses.accentBadge}`}
+              >
+                {validPage}/{totalPages}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => openModal('jisProgress')}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-0.5 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
               title="常用漢字・JIS第1・第2水準の進捗ダッシュボードを開く"
             >
               <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -603,7 +519,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
         </div>
 
         {/* Thin progress track */}
-        <div className={`w-full h-1 rounded-xs overflow-hidden ${themeClasses.toolbarBg}`}>
+        <div className={`w-full h-[3px] rounded-xs overflow-hidden ${themeClasses.toolbarBg}`}>
           <div
             className="h-full bg-emerald-600 rounded-xs transition-[width] duration-300"
             style={{ width: `${categoryStats.percent}%` }}
@@ -612,9 +528,10 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
         {/* Compact Status Filter Segmented Control */}
         <div
-          className={`grid grid-cols-3 gap-0.5 p-0.5 rounded-md text-[11px] font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
+          className={`grid grid-cols-3 gap-0.5 p-0.5 rounded-md text-[10.5px] font-bold border ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <button
+            type="button"
             onClick={() => {
               setStatusFilter('all');
               setCurrentPage(1);
@@ -629,6 +546,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             すべて ({rawCategoryListLength})
           </button>
           <button
+            type="button"
             onClick={() => {
               setStatusFilter('completed');
               setCurrentPage(1);
@@ -644,6 +562,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
             <span className="truncate">済 ({categoryStats.completed})</span>
           </button>
           <button
+            type="button"
             onClick={() => {
               setStatusFilter('pending');
               setCurrentPage(1);
@@ -662,38 +581,44 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
 
         {/* Collapsible Quick Batch Studios Action Buttons */}
         {isFilterExpanded && (onOpenGlyphSynthesisModal || onOpenKerningModal || onOpenQualityModal) && (
-          <div className={`grid grid-cols-2 gap-1 pt-1 border-t ${themeClasses.border}`}>
+          <div
+            className={`grid gap-1 pt-1 border-t ${themeClasses.border} ${
+              sidebarWidth >= 290 ? 'grid-cols-3' : 'grid-cols-2'
+            }`}
+          >
             {onOpenGlyphSynthesisModal && (
               <button
                 type="button"
                 onClick={onOpenGlyphSynthesisModal}
-                className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`py-1 px-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="濁点・半濁点・小書き文字を一括自動生成"
               >
                 <Wand2 className="w-3 h-3 text-amber-500 shrink-0" />
-                <span className="truncate">濁点・小文字生成</span>
+                <span className="truncate">濁点・小文字</span>
               </button>
             )}
             {onOpenKerningModal && (
               <button
                 type="button"
                 onClick={onOpenKerningModal}
-                className={`py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`py-1 px-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="ペアごとの字間・サイドベアリング一括設定"
               >
                 <ArrowLeftRight className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
-                <span className="truncate">カーニング調整</span>
+                <span className="truncate">カーニング</span>
               </button>
             )}
             {onOpenQualityModal && (
               <button
                 type="button"
                 onClick={onOpenQualityModal}
-                className={`col-span-2 py-1 px-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+                className={`${
+                  sidebarWidth >= 290 ? '' : 'col-span-2'
+                } py-1 px-1 rounded text-[10px] font-bold flex items-center justify-center gap-0.5 transition-colors truncate border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
                 title="字形重複・パス交差・過剰ノード・ベースライン逸脱の品質検査"
               >
                 <ShieldCheck className={`w-3 h-3 shrink-0 ${themeClasses.accentText}`} />
-                <span className="truncate">フォント品質チェック</span>
+                <span className="truncate">品質検査</span>
               </button>
             )}
           </div>

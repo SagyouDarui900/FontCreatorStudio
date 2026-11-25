@@ -418,6 +418,27 @@ describe('MojikumiStudioModal (M16 / M17 / M18)', () => {
     const { container } = renderModal();
     expect(container.textContent).toContain('冒頭部分の抜粋');
   });
+
+  it('wraps header bar 2 controls without clipping and provides Q/H stepper buttons', () => {
+    const { container } = renderModal();
+    // Header bar 2 should wrap rather than clip on desktop widths
+    const zoomInBtn = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.getAttribute('title') === '拡大'
+    );
+    expect(zoomInBtn).toBeDefined();
+    const headerBar2 = zoomInBtn!.closest('.flex-wrap');
+    expect(headerBar2).not.toBeNull();
+    expect(headerBar2!.className).not.toContain('overflow-x-auto');
+
+    // Q・H設計 tab exposes +/- steppers for 文字サイズ
+    clickButton(container, 'Q・H設計');
+    const incQBtn = container.querySelector('button[aria-label="文字サイズを0.5Q上げる"]') as HTMLButtonElement | null;
+    expect(incQBtn).not.toBeNull();
+    act(() => {
+      incQBtn!.click();
+    });
+    expect(container.textContent).toContain('14.5Q');
+  });
 });
 
 describe('Low findings L13 / L14 / L15 / L16 / L18 / L21 / L23', () => {

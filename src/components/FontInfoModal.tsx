@@ -296,19 +296,19 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-xl xl:max-w-2xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl lg:max-w-5xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`px-3.5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:p-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-4 sm:py-3 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
             <Settings className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
             <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0">
               <span className="truncate">フォント情報・ライセンス</span>
               {isFullscreen && (
-                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                   全画面
                 </span>
               )}
@@ -408,169 +408,174 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         </div>
 
         {/* Form */}
-        <form id="font-info-form" onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-4 text-xs no-scrollbar">
+        <form id="font-info-form" onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 text-xs no-scrollbar">
           {/* TAB 1: BASIC INFO & METRICS */}
           {activeTab === 'info' && (
-            <div className="space-y-3.5 anim-fade">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
-                    <span>フォント名 (Family Name)</span>
-                    <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.familyName || ''}
-                    onChange={(e) => setFormData({ ...formData, familyName: e.target.value })}
-                    placeholder="例: MyCustomFont"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                </div>
-
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
-                    <span>
-                      スタイル名 (Subfamily){' '}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start anim-fade">
+              {/* Left column: Basic identity + Backup */}
+              <div className="lg:col-span-6 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
+                      <span>フォント名 (Family Name)</span>
                       <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
-                    </span>
-                    <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
-                      Weight: {formData.usWeightClass ?? inferWeightClassFromStyleName(formData.styleName)}
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.styleName || ''}
-                    onChange={(e) => {
-                      // Typing a style name must not overwrite usWeightClass:
-                      // only the preset chips sync the two (an unknown or
-                      // Japanese name would otherwise reset the weight to 400).
-                      setFormData({ ...formData, styleName: e.target.value });
-                    }}
-                    placeholder="Regular, Bold, Medium など"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {STYLE_PRESET_CHIPS.map((preset) => {
-                      const isActive = (formData.styleName || '').trim().toLowerCase() === preset.styleName.toLowerCase();
-                      return (
-                        <button
-                          key={preset.styleName}
-                          type="button"
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              styleName: preset.styleName,
-                              usWeightClass: preset.usWeightClass,
-                            })
-                          }
-                          className={`px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors cursor-pointer ${
-                            isActive
-                              ? themeClasses.activeTool
-                              : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-                          }`}
-                        >
-                          {preset.styleName}
-                        </button>
-                      );
-                    })}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.familyName || ''}
+                      onChange={(e) => setFormData({ ...formData, familyName: e.target.value })}
+                      placeholder="例: MyCustomFont"
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs flex items-center justify-between">
+                      <span>
+                        スタイル名 (Subfamily){' '}
+                        <span className={`text-[10px] font-normal ${themeClasses.accentText}`}>必須</span>
+                      </span>
+                      <span className={`text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
+                        Weight: {formData.usWeightClass ?? inferWeightClassFromStyleName(formData.styleName)}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.styleName || ''}
+                      onChange={(e) => {
+                        setFormData({ ...formData, styleName: e.target.value });
+                      }}
+                      placeholder="Regular, Bold, Medium など"
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
                   </div>
                 </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {STYLE_PRESET_CHIPS.map((preset) => {
+                    const isActive = (formData.styleName || '').trim().toLowerCase() === preset.styleName.toLowerCase();
+                    return (
+                      <button
+                        key={preset.styleName}
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            styleName: preset.styleName,
+                            usWeightClass: preset.usWeightClass,
+                          })
+                        }
+                        className={`px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors cursor-pointer ${
+                          isActive
+                            ? themeClasses.activeTool
+                            : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+                        }`}
+                      >
+                        {preset.styleName}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs">
+                      作者・制作者名 (Designer)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.designer || ''}
+                      onChange={(e) => setFormData({ ...formData, designer: e.target.value })}
+                      placeholder="あなたのペンネーム / 組織名"
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs">
+                      バージョン (Version)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.version || ''}
+                      onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                      placeholder="1.000"
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs">
+                      Webサイト / ポートフォリオ URL
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.designerUrl || ''}
+                      onChange={(e) => setFormData({ ...formData, designerUrl: e.target.value })}
+                      placeholder="https://..."
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <label className="font-bold text-[11px] sm:text-xs">
+                      フォント説明 (Description)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.description || ''}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="自作の日本語手書き風フォントです"
+                      className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
+                    />
+                  </div>
+                </div>
+
+                <JsonBackupSection
+                  isLight={isLight}
+                  themeClasses={themeClasses}
+                  glyphCount={glyphCount}
+                  radicalCount={radicalCount}
+                  handleDownloadJsonBackup={handleDownloadJsonBackup}
+                  isDownloaded={isDownloaded}
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs">
-                    作者・制作者名 (Designer)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.designer || ''}
-                    onChange={(e) => setFormData({ ...formData, designer: e.target.value })}
-                    placeholder="あなたのペンネーム / 組織名"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                </div>
-
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs">
-                    バージョン (Version)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.version || ''}
-                    onChange={(e) => setFormData({ ...formData, version: e.target.value })}
-                    placeholder="1.000"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                </div>
+              {/* Right column: EM Metrics */}
+              <div className="lg:col-span-6">
+                <MetricsSettingsSection
+                  isLight={isLight}
+                  themeClasses={themeClasses}
+                  formData={formData}
+                  setFormData={setFormData}
+                  project={project}
+                  scaleGlyphsOnResize={scaleGlyphsOnResize}
+                  setScaleGlyphsOnResize={setScaleGlyphsOnResize}
+                  handleUpmChange={handleUpmChange}
+                />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs">
-                    Webサイト / ポートフォリオ URL
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.designerUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, designerUrl: e.target.value })}
-                    placeholder="https://..."
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                </div>
-
-                <div className="flex flex-col space-y-1">
-                  <label className="font-bold text-[11px] sm:text-xs">
-                    フォント説明 (Description)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="自作の日本語手書き風フォントです"
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg}`}
-                  />
-                </div>
-              </div>
-
-              <MetricsSettingsSection
-                isLight={isLight}
-                themeClasses={themeClasses}
-                formData={formData}
-                setFormData={setFormData}
-                project={project}
-                scaleGlyphsOnResize={scaleGlyphsOnResize}
-                setScaleGlyphsOnResize={setScaleGlyphsOnResize}
-                handleUpmChange={handleUpmChange}
-              />
-
-              {/* Project JSON Backup & Export Section */}
-              <JsonBackupSection
-                isLight={isLight}
-                themeClasses={themeClasses}
-                glyphCount={glyphCount}
-                radicalCount={radicalCount}
-                handleDownloadJsonBackup={handleDownloadJsonBackup}
-                isDownloaded={isDownloaded}
-              />
             </div>
           )}
 
           {/* TAB 2: LICENSE & COPYRIGHT SETTINGS */}
           {activeTab === 'license' && (
-            <div className="space-y-4 anim-fade">
-              <LicensePresetSection
-                isLight={isLight}
-                themeClasses={themeClasses}
-                formData={formData}
-                onApplyPreset={handleApplyPreset}
-                onOpenBundledFontsModal={() => setIsBundledFontsModalOpen(true)}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start anim-fade">
+              <div className="lg:col-span-7">
+                <LicensePresetSection
+                  isLight={isLight}
+                  themeClasses={themeClasses}
+                  formData={formData}
+                  onApplyPreset={handleApplyPreset}
+                  onOpenBundledFontsModal={() => setIsBundledFontsModalOpen(true)}
+                />
+              </div>
 
               {/* Editable License Fields */}
-              <div className="space-y-3.5">
+              <div className="lg:col-span-5 space-y-3">
                 <div className="flex flex-col space-y-1">
                   <label className="font-bold text-[11px] sm:text-xs">
                     著作権表記 (Copyright String - Name ID 0)
@@ -580,7 +585,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.copyright || ''}
                     onChange={(e) => setFormData({ ...formData, copyright: e.target.value })}
                     placeholder={`Copyright (c) ${new Date().getFullYear()} by ${formData.designer || 'Your Name'}. All rights reserved.`}
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
                   />
                 </div>
 
@@ -589,11 +594,11 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     ライセンス規約文 (License Description - Name ID 13)
                   </label>
                   <textarea
-                    rows={5}
+                    rows={6}
                     value={formData.license || ''}
                     onChange={(e) => setFormData({ ...formData, license: e.target.value })}
                     placeholder="フォントの利用規約文・配布条件を入力..."
-                    className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 font-mono text-[11px] sm:text-xs leading-relaxed break-all resize-y min-h-[110px] ${themeClasses.cardBg}`}
+                    className={`w-full border rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 font-mono text-[11px] sm:text-xs leading-relaxed break-all resize-y min-h-[120px] ${themeClasses.cardBg}`}
                   />
                 </div>
 
@@ -606,7 +611,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     value={formData.licenseUrl || ''}
                     onChange={(e) => setFormData({ ...formData, licenseUrl: e.target.value })}
                     placeholder="https://..."
-                    className={`w-full border rounded-lg px-3 py-2 sm:py-2 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
+                    className={`w-full border rounded-lg px-3 py-2 sm:py-1.5 text-sm sm:text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 break-all ${themeClasses.cardBg}`}
                   />
                 </div>
               </div>
@@ -625,8 +630,8 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
 
           {/* TAB 3: COPYRIGHT & COMMERCIAL USE FAQ GUIDE */}
           {activeTab === 'guide' && (
-            <div className="space-y-3.5 anim-fade text-[11px]">
-              <div className={`p-3 sm:p-3.5 rounded-xl border ${themeClasses.accentBadge}`}>
+            <div className="space-y-3 anim-fade text-[11px]">
+              <div className={`p-3 rounded-xl border ${themeClasses.accentBadge}`}>
                 <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
                   <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>作成フォントの著作権・商用利用についての保証</span>
@@ -636,13 +641,13 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                 </p>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className={`p-3 rounded-xl border ${themeClasses.cardBg}`}>
                   <h4 className={`font-bold flex items-center gap-1 text-xs ${themeClasses.accentText}`}>
                     <Check className="w-3.5 h-3.5 shrink-0" />
                     <span>Q. 作成したフォントは商用利用できますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-85 leading-relaxed">
+                  <p className="mt-1.5 opacity-85 leading-relaxed">
                     <strong>A. はい、商用利用可能です。</strong>
                     同人誌や商業出版、ポスター・チラシ、WebサイトでのWebフォント利用、YouTubeやTV番組のテロップ、ゲームやスマートフォンアプリ、LINEスタンプ、グッズ販売、社名・ブランドロゴなど、あらゆる用途で自由に無制限にご活用いただけます。
                   </p>
@@ -653,7 +658,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     <Check className="w-3.5 h-3.5 shrink-0" />
                     <span>Q. 作成したフォントを有料で販売・無償配布できますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-85 leading-relaxed">
+                  <p className="mt-1.5 opacity-85 leading-relaxed">
                     <strong>A. はい、Boothや自サイト等での有料販売・無償配布も自由に行えます。</strong>
                     当ツール運営側がロイヤリティや利用料を請求することは一切ございません。
                   </p>
@@ -664,7 +669,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
                     <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>Q. 下絵（トレース機能）を使う場合の注意点はありますか？</span>
                   </h4>
-                  <p className="mt-1 opacity-85 leading-relaxed">
+                  <p className="mt-1.5 opacity-85 leading-relaxed">
                     <strong>A. ご自身の手書き文字・スケッチ、または権利のクリアな素材をご利用ください。</strong>
                     他者が制作した著作権のあるフォントをトレースして再配布する行為は権利侵害となります。独自の手書き原稿またはパブリックドメイン資料から作成してください。
                   </p>
@@ -676,7 +681,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         </form>
 
         {/* Sticky Footer */}
-        <div className={`px-3.5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
+        <div className={`px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-4 sm:py-2.5 border-t flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
           <div className={`text-[11px] text-center sm:text-left ${themeClasses.textMuted}`}>
             {activeTab === 'info' && 'フォント名やEMメトリクスを設定'}
             {activeTab === 'license' && 'ライセンス・著作権情報を埋め込み'}

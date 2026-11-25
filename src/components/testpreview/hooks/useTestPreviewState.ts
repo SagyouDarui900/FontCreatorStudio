@@ -115,10 +115,21 @@ export const VERTICAL_DERIVATION_PAIRS: ReadonlyArray<{
   { sourceUnicode: 0xff09, targetUnicode: 0xfe36 }, // 丸括弧 ） -> ︶
   { sourceUnicode: 0x3010, targetUnicode: 0xfe3b }, // 隅付き括弧 【 -> ︻
   { sourceUnicode: 0x3011, targetUnicode: 0xfe3c }, // 隅付き括弧 】 -> ︼
+  { sourceUnicode: 0x3014, targetUnicode: 0xfe39 }, // 亀甲括弧 〔 -> ︹
+  { sourceUnicode: 0x3015, targetUnicode: 0xfe3a }, // 亀甲括弧 〕 -> ︺
+  { sourceUnicode: 0x3008, targetUnicode: 0xfe3f }, // 山括弧 〈 -> ︿
+  { sourceUnicode: 0x3009, targetUnicode: 0xfe40 }, // 山括弧 〉 -> ﹀
+  { sourceUnicode: 0x300a, targetUnicode: 0xfe3d }, // 二重山括弧 《 -> ︽
+  { sourceUnicode: 0x300b, targetUnicode: 0xfe3e }, // 二重山括弧 》 -> ︾
+  { sourceUnicode: 0xff5b, targetUnicode: 0xfe37 }, // 全角波括弧 ｛ -> ︷
+  { sourceUnicode: 0xff5d, targetUnicode: 0xfe38 }, // 全角波括弧 ｝ -> ︸
+  { sourceUnicode: 0x007b, targetUnicode: 0xfe37 }, // 半角波括弧 { -> ︷
+  { sourceUnicode: 0x007d, targetUnicode: 0xfe38 }, // 半角波括弧 } -> ︸
   { sourceUnicode: 0x3001, targetUnicode: 0xfe11 }, // 読点 、 -> ︑
   { sourceUnicode: 0x3002, targetUnicode: 0xfe12 }, // 句点 。 -> ︒
   { sourceUnicode: 0x2026, targetUnicode: 0xfe19 }, // 三点リーダー … -> ︙
-  { sourceUnicode: 0x301c, targetUnicode: 0xfe4f }, // 波ダッシュ 〜 -> ︴
+  { sourceUnicode: 0x2025, targetUnicode: 0xfe30 }, // 二点リーダー ‥ -> ︰
+  { sourceUnicode: 0x301c, targetUnicode: 0xfe4f }, // 波ダッシュ 〜 -> ﹏
 ];
 
 /** Code points in a string, as a set (surrogate pairs count as one). */

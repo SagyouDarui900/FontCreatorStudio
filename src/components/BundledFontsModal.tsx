@@ -73,11 +73,11 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
       className="fixed inset-0 z-[70] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade"
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-2xl sm:max-h-[90vh] flex flex-col rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl border-0 sm:border overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-6xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl border-0 sm:border overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-3.5 sm:px-5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 sm:px-5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:py-3 sm:pt-3 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
             <div className={`p-1.5 rounded-lg shrink-0 ${themeClasses.accentBtn}`}>
@@ -155,11 +155,11 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
         </div>
 
         {/* Scrollable Font Cards List */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-3 no-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-2 gap-3 content-start no-scrollbar">
           {filtered.map((font) => (
             <div
               key={font.id}
-              className={`p-3 sm:p-3.5 rounded-xl border transition-colors ${themeClasses.cardBg} ${themeClasses.border}`}
+              className={`p-3 rounded-xl border transition-colors ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               {/* Card Header */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
@@ -171,7 +171,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
                     >
                       {font.nameJa}
                     </h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${themeClasses.accentBadge}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${themeClasses.accentBadge}`}>
                       {font.category}
                     </span>
                   </div>
@@ -243,7 +243,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
           ))}
 
           {filtered.length === 0 && (
-            <div className={`py-8 text-center text-xs ${themeClasses.textMuted}`}>
+            <div className={`col-span-full py-8 text-center text-xs ${themeClasses.textMuted}`}>
               該当するフォント情報が見つかりませんでした。
             </div>
           )}

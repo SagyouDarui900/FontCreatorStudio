@@ -96,9 +96,21 @@ export const PixelDrawingCanvas: React.FC<PixelDrawingCanvasProps> = ({
     };
 
     updateSize();
-    const ro = new ResizeObserver(updateSize);
+    if (typeof ResizeObserver === 'undefined') return;
+    let rafId: number | null = null;
+    const scheduleUpdateSize = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateSize();
+      });
+    };
+    const ro = new ResizeObserver(scheduleUpdateSize);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
   }, [gridWidth, gridHeight]);
 
   const maxDim = Math.max(gridWidth, gridHeight);

@@ -19,6 +19,7 @@ import {
   useGlyphGridFilter,
 } from './glyphgrid/index';
 import { CharacterListTab } from './glyphgrid/CharacterListTab';
+import type { CharacterListGroupId } from './glyphgrid/characterListData';
 
 export type { GlyphGridProps };
 
@@ -56,6 +57,9 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   // Panel tab: the creation grid (boxes with editing actions) or the
   // plain character list (specimen view, unwritten glyphs as faint text).
   const [panelTab, setPanelTab] = useState<'create' | 'list'>('create');
+  // Preserve CharacterListTab group & search query across panel tab switches.
+  const [listActiveGroup, setListActiveGroup] = useState<CharacterListGroupId>('hiragana');
+  const [listSearchQuery, setListSearchQuery] = useState('');
 
   // Close context menu on outside pointerdown / touch, on Escape, and on
   // scroll or resize (the menu position is not updated, so it closes).
@@ -271,9 +275,9 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           </div>
         )}
 
-        {/* Panel Tabs: creation grid / plain specimen list + Collapse */}
+        {/* Panel Tabs: creation grid / plain specimen list + Width Presets + Collapse */}
         <div
-          className={`flex items-center gap-1 px-2 pt-1.5 pb-1.5 shrink-0 border-b ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center gap-1 px-2 py-1.5 shrink-0 border-b min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
           role="tablist"
           aria-label="文字パネルの表示切り替え"
         >
@@ -282,7 +286,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             role="tab"
             aria-selected={panelTab === 'create'}
             onClick={() => setPanelTab('create')}
-            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors whitespace-nowrap ${
+            className={`flex-1 min-w-0 px-1.5 py-1 rounded text-[11px] font-bold cursor-pointer border transition-colors whitespace-nowrap truncate ${
               panelTab === 'create'
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -295,7 +299,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             role="tab"
             aria-selected={panelTab === 'list'}
             onClick={() => setPanelTab('list')}
-            className={`flex-1 px-2 py-1 rounded text-xs font-bold cursor-pointer border transition-colors whitespace-nowrap ${
+            className={`flex-1 min-w-0 px-1.5 py-1 rounded text-[11px] font-bold cursor-pointer border transition-colors whitespace-nowrap truncate ${
               panelTab === 'list'
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -303,13 +307,65 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
           >
             見本一覧
           </button>
+          {!effectiveIsOverlay && (
+            <div
+              className={`hidden sm:flex items-center p-0.5 rounded border shrink-0 ${themeClasses.cardBg} ${themeClasses.border}`}
+              title="サイドバーの幅プリセット（右端を直接ドラッグして任意幅に微調整も可能）"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setSidebarWidth(244);
+                  setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '244');
+                }}
+                title="幅: 狭め (244px) - キャンバス重視"
+                className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                  sidebarWidth <= 270
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                狭
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSidebarWidth(304);
+                  setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '304');
+                }}
+                title="幅: 標準 (304px)"
+                className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                  sidebarWidth > 270 && sidebarWidth < 360
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                標
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSidebarWidth(420);
+                  setStorageItem(STORAGE_KEYS.SIDEBAR_WIDTH, '420');
+                }}
+                title="幅: 広め (420px) - 一覧性重視"
+                className={`px-1 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                  sidebarWidth >= 360
+                    ? themeClasses.activeTool
+                    : `${themeClasses.textMuted} hover:bg-black/5 dark:hover:bg-white/10`
+                }`}
+              >
+                広
+              </button>
+            </div>
+          )}
           <button
             type="button"
             onClick={onClose}
-            className={`px-2 py-1 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors max-sm:hidden shrink-0 cursor-pointer ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            className={`px-1.5 py-1 rounded text-[11px] font-semibold flex items-center gap-0.5 transition-colors max-sm:hidden shrink-0 cursor-pointer ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             title="文字一覧を収納して作図キャンバスを広げる"
           >
-            <span>収納</span>
+            {sidebarWidth > 265 && <span>収納</span>}
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
           <button
@@ -416,6 +472,10 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             selectedUnicode={selectedUnicode}
             onSelectGlyph={handleCardSelect}
             theme={theme}
+            activeGroup={listActiveGroup}
+            onChangeActiveGroup={setListActiveGroup}
+            searchQuery={listSearchQuery}
+            onChangeSearchQuery={setListSearchQuery}
           />
         )}
 

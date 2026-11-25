@@ -436,22 +436,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl lg:max-w-5xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
+          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`hidden sm:flex p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
+            <div className={`hidden sm:flex p-1.5 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
               <Download className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm sm:text-base font-bold tracking-wide flex items-center gap-2">
                 <span className="truncate">フォント出力</span>
                 {isFullscreen && (
-                  <span className={`hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${themeClasses.accentBtn}`}>
+                  <span className={`hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面
                   </span>
                 )}
@@ -501,7 +501,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 px-3.5 py-3 sm:p-5 overflow-y-auto overscroll-contain space-y-3 sm:space-y-4 text-xs">
+        <div className="flex-1 min-h-0 px-3.5 py-3 sm:p-4 overflow-y-auto overscroll-contain space-y-3 text-xs">
           {!validation.valid && (
             <div
               className={`p-3 rounded-xl border flex items-start space-x-2 ${
@@ -542,119 +542,127 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
           )}
 
-          <ExportFormatSection
-            isLight={isLight}
-            format={format}
-            setFormat={setFormat}
-            sizePreset={sizePreset}
-            setSizePreset={setSizePreset}
-            customScale={customScale}
-            setCustomScale={setCustomScale}
-            effectiveScale={effectiveScale}
-            balanceSideBearings={balanceSideBearings}
-            setBalanceSideBearings={setBalanceSideBearings}
-            mergeOverlaps={mergeOverlaps}
-            setMergeOverlaps={setMergeOverlaps}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            {/* Left Column: Format, Scale & Export Options */}
+            <div className="lg:col-span-5 space-y-3">
+              <ExportFormatSection
+                isLight={isLight}
+                format={format}
+                setFormat={setFormat}
+                sizePreset={sizePreset}
+                setSizePreset={setSizePreset}
+                customScale={customScale}
+                setCustomScale={setCustomScale}
+                effectiveScale={effectiveScale}
+                balanceSideBearings={balanceSideBearings}
+                setBalanceSideBearings={setBalanceSideBearings}
+                mergeOverlaps={mergeOverlaps}
+                setMergeOverlaps={setMergeOverlaps}
+              />
 
-          {isPixelProject && (
-            <div
-              className={`p-3 rounded-xl border text-[11px] leading-relaxed ${
-                isLight
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                  : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
-              }`}
-            >
-              ピクセルプロジェクトのため、倍率は 1.0 倍、センタリングと重なり結合は無効で書き出します。
+              {isPixelProject && (
+                <div
+                  className={`p-3 rounded-xl border text-[11px] leading-relaxed ${
+                    isLight
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
+                  }`}
+                >
+                  ピクセルプロジェクトのため、倍率は 1.0 倍、センタリングと重なり結合は無効で書き出します。
+                </div>
+              )}
             </div>
-          )}
 
-          {/* Live Render & Size Preview in Modal with Custom Text Input & Presets */}
-          {previewError && (
-            <div
-              className={`p-3 rounded-xl border flex items-start space-x-2 ${
-                isLight
-                  ? 'bg-red-50 border-red-200 text-red-900'
-                  : 'bg-red-950/40 border-red-800 text-red-200'
-              }`}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
-                <div className="font-bold">プレビューの生成に失敗しました</div>
-                <div>{previewError}</div>
-              </div>
-            </div>
-          )}
-
-          <FontPreviewSection
-            isLight={isLight}
-            previewText={previewText}
-            setPreviewText={setPreviewText}
-            previewFontSize={previewFontSize}
-            setPreviewFontSize={setPreviewFontSize}
-            previewFontFamily={previewFontFamily}
-            project={project}
-          />
-
-          {/* Quality Check Recommendation Banner */}
-          {onOpenQualityModal && (
-            <div
-              className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 ${
-                isLight
-                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                  : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-100'
-              }`}
-            >
-              <div className="flex items-start space-x-2.5 min-w-0">
-                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold">フォント品質チェック</div>
-                  <div className="text-[11px] text-stone-600 dark:text-emerald-300/80 leading-relaxed break-words mt-0.5">
-                    出力前に字形の重複・交差やベースライン逸脱を自動検査できます
+            {/* Right Column: Live Preview, Quality Check & CSS Snippet */}
+            <div className="lg:col-span-7 space-y-3">
+              {/* Live Render & Size Preview in Modal with Custom Text Input & Presets */}
+              {previewError && (
+                <div
+                  className={`p-3 rounded-xl border flex items-start space-x-2 ${
+                    isLight
+                      ? 'bg-red-50 border-red-200 text-red-900'
+                      : 'bg-red-950/40 border-red-800 text-red-200'
+                  }`}
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                  <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
+                    <div className="font-bold">プレビューの生成に失敗しました</div>
+                    <div>{previewError}</div>
                   </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenQualityModal();
-                }}
-                className={`w-full sm:w-auto min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border shrink-0 text-center cursor-pointer ${
-                  isLight
-                    ? 'bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50'
-                    : 'bg-[#1a271f] border-emerald-700 text-emerald-200 hover:bg-[#23342a]'
-                }`}
-              >
-                品質を検査
-              </button>
-            </div>
-          )}
+              )}
 
-          {/* Apple Touch Device Specific Advice */}
-          {isAppleTouch && (
-            <div
-              className={`p-3 rounded-xl border flex items-start space-x-2.5 ${
-                isLight ? 'bg-amber-50/70 border-amber-200 text-amber-900' : 'bg-amber-950/30 border-amber-800 text-amber-200'
-              }`}
-            >
-              <Smartphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              <div className="text-[11px] leading-relaxed jp-wrap">
-                <strong>{isIPad ? 'iPad' : 'iPhone / iPad'}をご利用中:</strong> 下の「{primaryActionLabel}」を押すと、標準の共有メニューから「ファイル」アプリやiCloud Driveに直接保存できます。
-              </div>
-            </div>
-          )}
+              <FontPreviewSection
+                isLight={isLight}
+                previewText={previewText}
+                setPreviewText={setPreviewText}
+                previewFontSize={previewFontSize}
+                setPreviewFontSize={setPreviewFontSize}
+                previewFontFamily={previewFontFamily}
+                project={project}
+              />
 
-          <ExportCssSection
-            isLight={isLight}
-            cssSnippet={cssSnippet}
-            copiedCss={copiedCss}
-            handleCopyCss={handleCopyCss}
-          />
+              {/* Quality Check Recommendation Banner */}
+              {onOpenQualityModal && (
+                <div
+                  className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 ${
+                    isLight
+                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                      : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-100'
+                  }`}
+                >
+                  <div className="flex items-start space-x-2.5 min-w-0">
+                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold">フォント品質チェック</div>
+                      <div className="text-[11px] text-stone-600 dark:text-emerald-300/80 leading-relaxed break-words mt-0.5">
+                        出力前に字形の重複・交差やベースライン逸脱を自動検査できます
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenQualityModal();
+                    }}
+                    className={`w-full sm:w-auto min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border shrink-0 text-center cursor-pointer ${
+                      isLight
+                        ? 'bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50'
+                        : 'bg-[#1a271f] border-emerald-700 text-emerald-200 hover:bg-[#23342a]'
+                    }`}
+                  >
+                    品質を検査
+                  </button>
+                </div>
+              )}
+
+              {/* Apple Touch Device Specific Advice */}
+              {isAppleTouch && (
+                <div
+                  className={`p-3 rounded-xl border flex items-start space-x-2.5 ${
+                    isLight ? 'bg-amber-50/70 border-amber-200 text-amber-900' : 'bg-amber-950/30 border-amber-800 text-amber-200'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div className="text-[11px] leading-relaxed jp-wrap">
+                    <strong>{isIPad ? 'iPad' : 'iPhone / iPad'}をご利用中:</strong> 下の「{primaryActionLabel}」を押すと、標準の共有メニューから「ファイル」アプリやiCloud Driveに直接保存できます。
+                  </div>
+                </div>
+              )}
+
+              <ExportCssSection
+                isLight={isLight}
+                cssSnippet={cssSnippet}
+                copiedCss={copiedCss}
+                handleCopyCss={handleCopyCss}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Footer Actions */}
         <div
-          className={`px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3.5 sm:pb-3.5 border-t flex items-center justify-between gap-2.5 shrink-0 ${themeClasses.headerBg}`}
+          className={`px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3 sm:pb-3 border-t flex items-center justify-between gap-2.5 shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="hidden sm:block text-[11px] opacity-85 tabular-nums whitespace-nowrap">
             収録文字: <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>{glyphCount}</strong> 文字 / 倍率:{' '}

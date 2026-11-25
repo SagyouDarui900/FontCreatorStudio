@@ -275,14 +275,14 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full max-w-4xl border ${themeClasses.border} rounded-xl shadow-2xl max-h-[92dvh]`
+            : `w-full max-w-5xl xl:max-w-6xl border ${themeClasses.border} rounded-xl shadow-2xl max-h-[92dvh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-4 sm:px-6 py-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
+          className={`flex items-center justify-between px-4 sm:px-5 py-2.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
-          <div className="min-w-0 flex-1 pr-3">
+          <div className="min-w-0 flex-1 pr-3 flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <h2 className={`text-sm sm:text-base font-bold truncate ${headingText}`}>
               操作ガイド・ショートカット
             </h2>
@@ -328,7 +328,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         {/* Tab Navigation */}
         <nav
           aria-label="ガイド項目"
-          className={`flex items-center px-4 sm:px-6 border-b shrink-0 gap-4 sm:gap-6 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs ${themeClasses.subtoolbarBg}`}
+          className={`flex items-center px-4 sm:px-5 border-b shrink-0 gap-4 sm:gap-6 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 text-xs ${themeClasses.subtoolbarBg}`}
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -337,7 +337,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3 border-b-2 shrink-0 transition-colors whitespace-nowrap cursor-pointer ${
+                className={`py-2.5 border-b-2 shrink-0 transition-colors whitespace-nowrap cursor-pointer ${
                   isActive
                     ? `${themeClasses.accentBorder} ${themeClasses.accentText} font-bold`
                     : `border-transparent ${themeClasses.textMuted} hover:text-stone-900 dark:hover:text-stone-100 font-medium`
@@ -350,7 +350,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         </nav>
 
         {/* Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5">
           {activeTab === 'tutorial' && (
             <BeginnerTutorialTab
               isLight={isLight}
@@ -362,19 +362,19 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
           {activeTab === 'glossary' && <GlossaryTab isLight={isLight} />}
 
           {activeTab === 'features' && (
-            <div className="space-y-6">
-              <div className="space-y-1">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
                 <h3 className={`text-sm font-bold ${headingText}`}>主な機能</h3>
                 <p className={`text-xs ${mutedText}`}>
                   文字の描画から品質検査・書き出しまでに利用する機能の一覧です。
                 </p>
               </div>
 
-              <div className={`grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 pt-4 border-t ${dividerClass}`}>
+              <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-3 pt-3 border-t ${dividerClass}`}>
                 {FEATURE_ITEMS.map((item) => (
                   <div
                     key={item.title}
-                    className={`pt-4 border-t first:border-t-0 md:[&:nth-child(2)]:border-t-0 ${dividerClass} space-y-1`}
+                    className={`pb-3 border-b ${dividerClass} space-y-1`}
                   >
                     <h4 className={`text-xs font-bold ${headingText}`}>{item.title}</h4>
                     <p className={`text-xs leading-relaxed ${mutedText}`}>{item.body}</p>
@@ -382,7 +382,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                 ))}
               </div>
 
-              <div className={`pt-5 border-t ${dividerClass} space-y-1.5`}>
+              <div className="pt-1 space-y-1">
                 <h4 className={`text-xs font-bold ${headingText}`}>
                   字面枠と余白（サイドベアリング）の目安
                 </h4>
@@ -394,9 +394,9 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
           )}
 
           {activeTab === 'shortcuts' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Search & Filter */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                 <div className="relative flex-1">
                   <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${subtleText}`} />
                   <input
@@ -404,7 +404,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="操作名やキーで検索（例: 単純化, ズーム, Ctrl, Shift）"
-                    className={`w-full pl-9 pr-3 py-2 rounded-md border text-xs outline-none transition-colors ${
+                    className={`w-full pl-9 pr-3 py-1.5 rounded-md border text-xs outline-none transition-colors ${
                       isLight
                         ? 'bg-white border-stone-300 text-stone-900 focus:border-emerald-600'
                         : 'bg-[#121c16] border-[#2c3d31] text-stone-100 focus:border-emerald-500'
@@ -424,7 +424,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className={`px-3 py-1.5 rounded-md font-medium shrink-0 whitespace-nowrap transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-md font-medium shrink-0 whitespace-nowrap transition-colors cursor-pointer ${
                         isActive
                           ? 'bg-emerald-700 text-white'
                           : isLight
@@ -440,13 +440,13 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
               {/* Shortcut Table */}
               {filteredShortcuts.length > 0 ? (
-                <div className={`border-t border-b ${dividerClass} divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'}`}>
+                <div className={`border-t ${dividerClass} grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8`}>
                   {filteredShortcuts.map((item, idx) => (
                     <div
                       key={`${item.category}-${idx}`}
-                      className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      className={`py-2 border-b ${dividerClass} flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs`}
                     >
-                      <span className={`jp-wrap leading-relaxed ${isLight ? 'text-stone-800' : 'text-stone-200'}`}>
+                      <span className={`jp-wrap leading-snug ${isLight ? 'text-stone-800' : 'text-stone-200'}`}>
                         {item.description}
                       </span>
                       <div className="flex items-center flex-wrap gap-1 shrink-0">
@@ -458,7 +458,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                           ) : (
                             <kbd
                               key={kIdx}
-                              className={`px-2 py-0.5 rounded font-mono font-semibold text-[11px] border ${
+                              className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[11px] border ${
                                 isLight
                                   ? 'bg-stone-50 border-stone-300 text-stone-800'
                                   : 'bg-[#121c16] border-[#2c3d31] text-stone-200'
@@ -481,16 +481,16 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
           )}
 
           {activeTab === 'faq' && (
-            <div className="space-y-4">
-              <div className="space-y-1">
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
                 <h3 className={`text-sm font-bold ${headingText}`}>よくある質問</h3>
                 <p className={`text-xs ${mutedText}`}>
                   フォントの利用範囲、OS への導入手順、バックアップに関する質問と回答です。
                 </p>
               </div>
-              <dl className={`divide-y ${isLight ? 'divide-stone-200' : 'divide-[#25362b]'} border-t ${dividerClass}`}>
+              <dl className={`grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 border-t ${dividerClass}`}>
                 {FAQ_ITEMS.map((item) => (
-                  <div key={item.question} className="py-4 space-y-1.5">
+                  <div key={item.question} className={`py-3 border-b ${dividerClass} space-y-1`}>
                     <dt className={`text-xs font-bold ${headingText}`}>{item.question}</dt>
                     <dd className={`text-xs leading-relaxed ${mutedText}`}>{item.answer}</dd>
                   </div>
@@ -504,7 +504,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
         {/* Footer */}
         <div
-          className={`flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
+          className={`flex items-center justify-between px-4 sm:px-5 py-2.5 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
         >
           <div className={`flex items-center gap-1.5 max-sm:hidden ${themeClasses.textMuted}`}>
             <kbd className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${themeClasses.cardBg}`}>

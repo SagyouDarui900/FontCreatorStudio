@@ -30,7 +30,7 @@ export interface VertPresetInfo {
 export interface LigaturePresetInfo {
   id: string;
   name: string;
-  type: 'liga' | 'dlig';
+  type: 'liga' | 'dlig' | 'rlig';
   inputChars: string[];
   substituteUnicode: number;
 }

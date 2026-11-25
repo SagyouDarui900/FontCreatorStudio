@@ -38,10 +38,13 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     activeTab,
     setActiveTab,
     config,
+    existingUnicodes,
     opticalSideBearingPercent,
     setOpticalSideBearingPercent,
     newLigName,
     setNewLigName,
+    newLigType,
+    setNewLigType,
     newLigInputs,
     setNewLigInputs,
     newLigTargetUnicode,
@@ -50,8 +53,11 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     setPreviewText,
     previewWritingMode,
     togglePreviewWritingMode,
+    previewUsePalt,
+    togglePreviewPalt,
     toggleFeaturesGlobal,
     toggleVerticalWriting,
+    commitVerticalMetricHistory,
     updateVerticalMetricField,
     toggleVertSub,
     handleAutoDetectVerticalGlyphs,
@@ -61,6 +67,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     togglePaltGlobal,
     handleAutoDerivePalt,
     togglePaltItem,
+    toggleVpalItem,
   } = useOpenTypeFeaturesState({
     project,
     setProject,
@@ -118,25 +125,25 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
       className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] flex flex-col overflow-hidden transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-7xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] flex flex-col overflow-hidden transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar */}
         <div
-          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 gap-2 sm:gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 gap-2 sm:gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
             <div
-              className={`hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
+              className={`hidden sm:flex w-8 h-8 rounded-xl items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
             >
-              <AlignVerticalJustifyCenter className="w-5 h-5" />
+              <AlignVerticalJustifyCenter className="w-4 h-4" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
               <div className="flex items-center space-x-2">
-                <h2 className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
+                <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
                   縦書き・合字スタジオ
                 </h2>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
                     config.enabled
                       ? themeClasses.accentBadge
                       : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
@@ -145,7 +152,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                   {config.enabled ? 'ON' : 'OFF'}
                 </span>
               </div>
-              <p className={`hidden sm:block text-xs mt-0.5 truncate ${themeClasses.textMuted}`}>
+              <p className={`hidden sm:block text-xs truncate ${themeClasses.textMuted}`}>
                 日本語縦書き・合字・ペア調整のビジュアル設計と検証
               </p>
             </div>
@@ -166,7 +173,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
             <button
               onClick={onClose}
-              className={`p-2 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -175,7 +182,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
         {/* Tab Navigation */}
         <div
-          className={`flex items-center px-3 sm:px-5 py-2 border-b shrink-0 text-xs font-bold gap-1 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+          className={`flex items-center px-3 sm:px-5 py-1.5 border-b shrink-0 text-xs font-bold gap-1 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -200,7 +207,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 {tab.count !== undefined && (
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
                       isSelected ? 'bg-white/20 text-white' : 'bg-black/10 dark:bg-white/10'
                     }`}
                   >
@@ -218,13 +225,15 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
         </div>
 
         {/* Tab Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-5 sm:space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4">
           {activeTab === 'vert' && (
             <VertFeaturesPanel
               verticalWriting={config.verticalWriting}
+              existingUnicodes={existingUnicodes}
               themeClasses={themeClasses}
               onAutoDetectVerticalGlyphs={handleAutoDetectVerticalGlyphs}
               onToggleVerticalWriting={toggleVerticalWriting}
+              onCommitHistory={commitVerticalMetricHistory}
               onUpdateVerticalMetricField={updateVerticalMetricField}
               onToggleVertSub={toggleVertSub}
             />
@@ -233,11 +242,14 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
           {activeTab === 'liga' && (
             <LigaturesPanel
               ligatures={config.ligatures}
+              existingUnicodes={existingUnicodes}
               themeClasses={themeClasses}
               newLigName={newLigName}
+              newLigType={newLigType}
               newLigInputs={newLigInputs}
               newLigTargetUnicode={newLigTargetUnicode}
               onChangeNewLigName={setNewLigName}
+              onChangeNewLigType={setNewLigType}
               onChangeNewLigInputs={setNewLigInputs}
               onChangeNewLigTargetUnicode={setNewLigTargetUnicode}
               onAddCustomLigature={handleAddCustomLigature}
@@ -262,17 +274,20 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
               onAutoDerivePalt={handleAutoDerivePalt}
               onTogglePaltGlobal={togglePaltGlobal}
               onTogglePaltItem={togglePaltItem}
+              onToggleVpalItem={toggleVpalItem}
             />
           )}
 
           {activeTab === 'preview' && (
             <OpenTypePreviewPanel
-              projectName={project.name}
+              project={project}
               previewText={previewText}
               previewWritingMode={previewWritingMode}
+              previewUsePalt={previewUsePalt}
               themeClasses={themeClasses}
               onChangePreviewText={setPreviewText}
               onToggleWritingMode={togglePreviewWritingMode}
+              onTogglePreviewPalt={togglePreviewPalt}
             />
           )}
         </div>
@@ -285,7 +300,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
         >
           <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400 max-sm:hidden">
             <Sparkles className="w-4 h-4 text-emerald-500" />
-            <span>フォント出力（TTF/OTF/WOFF/WOFF2）時に OpenType 機能テーブルが自動バインドされます</span>
+            <span>フォント出力（OTF/TTF/WOFF/WOFF2）時に縦書き・合字・GPOSテーブルが自動バインドされます</span>
           </div>
 
           <button

@@ -255,12 +255,29 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
-    const update = () => setViewportSize({ width: el.clientWidth, height: el.clientHeight });
+    const update = () => {
+      const width = el.clientWidth;
+      const height = el.clientHeight;
+      setViewportSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      );
+    };
     update();
     if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(update);
+    let rafId: number | null = null;
+    const scheduleUpdate = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        update();
+      });
+    };
+    const observer = new ResizeObserver(scheduleUpdate);
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
   }, []);
 
   return (

@@ -286,8 +286,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     chapterLabel: string,
     isSecondPage: boolean
   ) => (
-    <div className="p-4 sm:p-8 md:p-10 flex flex-col justify-between border-b md:border-b-0 border-amber-900/10 dark:border-emerald-950/30 relative min-h-[380px] sm:min-h-[460px] min-w-0">
-      <div className="flex-1 flex items-start justify-start overflow-hidden min-w-0">
+    <div className="p-4 sm:p-6 md:p-7 flex flex-col justify-between border-b md:border-b-0 border-amber-900/10 dark:border-emerald-950/30 relative min-h-[380px] sm:min-h-[460px] min-w-0">
+      <div className="flex-1 min-h-0 flex items-start justify-start overflow-hidden min-w-0">
         {renderPageLines(pageLines)}
       </div>
 
@@ -328,7 +328,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     <div className="w-full flex flex-col items-center justify-start p-2 sm:p-4 select-none">
       {/* Book Spread Frame */}
       <div
-        className={`w-full max-w-5xl rounded-2xl border overflow-hidden flex flex-col ${paperBg} ${paperBorder} ${textColor}`}
+        className={`w-full max-w-6xl rounded-2xl border overflow-hidden flex flex-col ${paperBg} ${paperBorder} ${textColor}`}
       >
         {/* Book Running Head (柱) */}
         <div className="px-4 sm:px-12 py-2.5 sm:py-3 border-b border-amber-900/10 dark:border-emerald-950/40 flex flex-wrap items-center justify-between gap-2 text-xs tracking-widest font-serif opacity-75">

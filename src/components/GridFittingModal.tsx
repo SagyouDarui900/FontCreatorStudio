@@ -80,11 +80,11 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
       className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl sm:max-h-[94vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-7xl sm:max-h-[94vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         {/* Header Bar */}
         <div
-          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-6 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <div
@@ -135,7 +135,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
         {/* Toolbar: PPEM Selector & View Controls */}
         <div
-          className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-1.5 sm:py-2.5 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap no-scrollbar max-sm:flex-wrap ${themeClasses.subtoolbarBg}`}
+          className={`flex items-center justify-between gap-2 px-3 sm:px-5 py-1.5 sm:py-2 border-b shrink-0 text-xs font-bold overflow-x-auto whitespace-nowrap no-scrollbar max-sm:flex-wrap ${themeClasses.subtoolbarBg}`}
         >
           <div className="flex items-center space-x-1.5 shrink-0">
             <span className={`shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs ${themeClasses.textMuted}`}>
@@ -298,7 +298,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
         {/* Modal Footer (Desktop) */}
         <div
-          className={`hidden sm:flex items-center justify-between px-4 sm:px-6 py-3 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
+          className={`hidden sm:flex items-center justify-between px-4 sm:px-5 py-2.5 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
         >
           <div className={`flex items-center space-x-2 ${themeClasses.textMuted}`}>
             <Info className="w-4 h-4 text-amber-500 shrink-0" />
