@@ -139,6 +139,8 @@ export const KANA_PAIRS: { [char: string]: { smallChar: string; smallUnicode: nu
   'ゆ': { smallChar: 'ゅ', smallUnicode: 0x3085 },
   'よ': { smallChar: 'ょ', smallUnicode: 0x3087 },
   'わ': { smallChar: 'ゎ', smallUnicode: 0x308e },
+  'か': { smallChar: 'ゕ', smallUnicode: 0x3095 },
+  'け': { smallChar: 'ゖ', smallUnicode: 0x3096 },
 
   // 片仮名 小文字対応
   'ア': { smallChar: 'ァ', smallUnicode: 0x30a1 },

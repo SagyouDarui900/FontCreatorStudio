@@ -1,6 +1,8 @@
 import { PathContour, GlyphData } from '../types';
 import { generateId } from './path/id';
-import { normalizeGlyphContoursWinding } from './path/bounds';
+import { getContoursBoundingBox, normalizeGlyphContoursWinding } from './path/bounds';
+import { pixelGridToContours, normalizePixelGrid } from './pixelFontUtils';
+import { DEFAULT_UPM } from './font/constants';
 
 /**
  * 日本語の清音・濁音・半濁音の対応マップ
@@ -150,8 +152,10 @@ export function createDakutenContours(
   const anchorY = 220 * emScale;
 
   const transformPt = (x: number, y: number) => ({
-    x: Math.round((anchorX + (x * emScale - anchorX) * safeScale + customOffsetX) * 100) / 100,
-    y: Math.round((anchorY + (y * emScale - anchorY) * safeScale + customOffsetY) * 100) / 100,
+    // customOffsetX / customOffsetY は 1000 UPM 基準の値として扱い、
+    // 形状と同じ emScale で換算して加算する。
+    x: Math.round((anchorX + (x * emScale - anchorX) * safeScale + customOffsetX * emScale) * 100) / 100,
+    y: Math.round((anchorY + (y * emScale - anchorY) * safeScale + customOffsetY * emScale) * 100) / 100,
   });
 
   if (style === 'round') {
@@ -280,8 +284,24 @@ export function createHandakutenContours(
   const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
   const upm = Number.isFinite(unitsPerEm) && unitsPerEm > 0 ? unitsPerEm : 1000;
   const emScale = upm / 1000;
-  const cx = 835 * emScale + customOffsetX;
-  const cy = 215 * emScale + customOffsetY;
+  // customOffsetX / customOffsetY は 1000 UPM 基準の値として扱い、
+  // 形状と同じ emScale で換算して加算する。
+  // 濁点のアンカー y 220 と同じ値にする。従来の 215 との 5 ユニットの
+  // 差に意図を示す記録はなく、濁点と半濁点で位置を揃える。
+  const cx = Math.round((835 * emScale + customOffsetX * emScale) * 100) / 100;
+  const cy = Math.round((220 * emScale + customOffsetY * emScale) * 100) / 100;
+  // 濁点と同じく節点座標を小数第 2 位に丸める。
+  const round2 = (v: number): number => Math.round(v * 100) / 100;
+  const roundContour = (c: PathContour): PathContour => ({
+    ...c,
+    nodes: c.nodes.map((n) => ({
+      ...n,
+      x: round2(n.x),
+      y: round2(n.y),
+      handleIn: n.handleIn ? { x: round2(n.handleIn.x), y: round2(n.handleIn.y) } : null,
+      handleOut: n.handleOut ? { x: round2(n.handleOut.x), y: round2(n.handleOut.y) } : null,
+    })),
+  });
 
   const outerRx = Math.round((style === 'brush' ? 64 : 60) * safeScale * emScale);
   const outerRy = Math.round((style === 'brush' ? 56 : 60) * safeScale * emScale);
@@ -331,7 +351,7 @@ export function createHandakutenContours(
   };
 
   if (style === 'solid') {
-    return [outerCircle];
+    return [roundContour(outerCircle)];
   }
 
   // 内側楕円 (中抜き用・反時計回り)
@@ -374,7 +394,7 @@ export function createHandakutenContours(
     ],
   };
 
-  return [outerCircle, innerCircle];
+  return [roundContour(outerCircle), roundContour(innerCircle)];
 }
 
 /**
@@ -396,6 +416,129 @@ export function cloneContours(contours: PathContour[]): PathContour[] {
 }
 
 /**
+ * 輪郭を平行移動する。節点とハンドルを小数第 2 位に丸める。
+ */
+function translateContours(contours: PathContour[], dx: number, dy: number): PathContour[] {
+  if (dx === 0 && dy === 0) return contours;
+  const round2 = (v: number): number => Math.round(v * 100) / 100;
+  return contours.map((c) => ({
+    ...c,
+    nodes: c.nodes.map((n) => ({
+      ...n,
+      x: round2(n.x + dx),
+      y: round2(n.y + dy),
+      handleIn: n.handleIn ? { x: round2(n.handleIn.x + dx), y: round2(n.handleIn.y + dy) } : null,
+      handleOut: n.handleOut ? { x: round2(n.handleOut.x + dx), y: round2(n.handleOut.y + dy) } : null,
+    })),
+  }));
+}
+
+/**
+ * 輪郭が em ボックス内に収まるよう平行移動する。em ボックスより大きい
+ * 場合は左端・上端に合わせる。
+ */
+function clampToEmBox(accent: PathContour[], upm: number): PathContour[] {
+  const bbox = getContoursBoundingBox(accent);
+  if (bbox.width <= 0 || bbox.height <= 0) return accent;
+  let dx = 0;
+  let dy = 0;
+  if (bbox.width > upm) {
+    dx = -bbox.minX;
+  } else {
+    if (bbox.minX < 0) dx = -bbox.minX;
+    if (bbox.maxX + dx > upm) dx -= bbox.maxX + dx - upm;
+  }
+  if (bbox.height > upm) {
+    dy = -bbox.minY;
+  } else {
+    if (bbox.minY < 0) dy = -bbox.minY;
+    if (bbox.maxY + dy > upm) dy -= bbox.maxY + dy - upm;
+  }
+  return translateContours(accent, dx, dy);
+}
+
+/**
+ * 濁点・半濁点の輪郭を親文字の右上付近に配置する。濁点の bounding box の
+ * 右端を親文字の右端に、濁点の上端を親文字の上端 + 50 emScale に合わせる。
+ * 標準的な全角仮名（親文字が x 100-900、y 100-800 付近）では従来の固定
+ * 位置（x 745-900、y 155-285 付近）とほぼ同じになる。em ボックス内に
+ * 収まるようクランプする。
+ */
+function placeAccentNearParentTopRight(
+  accent: PathContour[],
+  baseBbox: ReturnType<typeof getContoursBoundingBox>,
+  upm: number
+): PathContour[] {
+  const accentBbox = getContoursBoundingBox(accent);
+  if (accentBbox.width <= 0 || accentBbox.height <= 0) return accent;
+  const emScale = upm / 1000;
+  const targetRight = baseBbox.maxX;
+  const targetTop = baseBbox.minY + 50 * emScale;
+  const dx = targetRight - accentBbox.maxX;
+  const dy = targetTop - accentBbox.minY;
+  return clampToEmBox(translateContours(accent, dx, dy), upm);
+}
+
+/**
+ * pixelData のみを持つグリフの輪郭を返す。contours がある場合はそれを
+ * そのまま返す。品質チェック（checker.ts）とコンパイラと同じ方法で
+ * pixelGridToContours により変換する。upm / ascender / descender は
+ * 正規化した値を渡す（未指定時は upm の 80% / -20% を既定値とする）。
+ */
+export function resolveSourceContours(
+  glyph: GlyphData,
+  upm: number,
+  ascender?: number,
+  descender?: number
+): PathContour[] {
+  const contours = glyph.contours || [];
+  if (contours.length > 0) return contours;
+  const pixelData = glyph.pixelData;
+  if (!pixelData || !pixelData.width || !pixelData.height) return [];
+  if (!Array.isArray(pixelData.data) || !pixelData.data.some((d) => d !== 0)) return [];
+  const normalizedUpm = Number.isFinite(upm) && upm > 0 ? upm : DEFAULT_UPM;
+  const normalizedAscender =
+    typeof ascender === 'number' && Number.isFinite(ascender) && ascender > 0
+      ? ascender
+      : Math.round(normalizedUpm * 0.8);
+  const normalizedDescender =
+    typeof descender === 'number' && Number.isFinite(descender)
+      ? descender
+      : Math.round(-normalizedUpm * 0.2);
+  const advWidth = Math.round(
+    Number.isFinite(glyph.advanceWidth) && (glyph.advanceWidth ?? 0) > 0
+      ? (glyph.advanceWidth ?? DEFAULT_UPM)
+      : glyph.unicode > 255
+        ? normalizedUpm
+        : Math.round(normalizedUpm / 2)
+  );
+  const pGrid = normalizePixelGrid(pixelData.data);
+  if (!pGrid.some((val) => val === 1)) return [];
+  return pixelGridToContours(
+    pGrid,
+    pixelData.width,
+    pixelData.height,
+    normalizedUpm,
+    normalizedAscender,
+    normalizedDescender,
+    advWidth,
+    pixelData.shape || 'square',
+    true
+  );
+}
+
+/**
+ * 生成先グリフから補助データを除く。contours を置き換えるときに古い
+ * pixelData と vectorContoursBackup が残らないようにする。
+ */
+function withoutAuxData(existing: GlyphData | undefined): Omit<GlyphData, 'pixelData' | 'vectorContoursBackup'> {
+  const rest = { ...(existing || {}) } as Partial<GlyphData>;
+  delete rest.pixelData;
+  delete rest.vectorContoursBackup;
+  return rest as Omit<GlyphData, 'pixelData' | 'vectorContoursBackup'>;
+}
+
+/**
  * 親文字の輪郭と濁点・半濁点を合成
  */
 export function synthesizeDakutenContours(
@@ -408,19 +551,47 @@ export function synthesizeDakutenContours(
     dakuStyle?: DakutenStyle;
     handakuStyle?: HandakutenStyle;
     unitsPerEm?: number;
+    /** プロジェクト内の standalone 濁点・半濁点グリフ（U+309B / U+309C）の輪郭。ある場合は手続き生成の代わりに使う。 */
+    standaloneAccentContours?: PathContour[];
   }
 ): PathContour[] {
-  const cloned = cloneContours(baseContours);
+  // 空の親文字輪郭には濁点だけを付けない。呼び出し元はすべて空の場合を
+  // 事前に防いでいる（batchSynthesizeDakuten、プレビュー、
+  // handleGenerateDakutenTarget）が、関数単体でも誤用を防ぐ。
+  if (!baseContours || baseContours.length === 0) return [];
   const ox = options?.offsetX ?? 0;
   const oy = options?.offsetY ?? 0;
   const scale = options?.scale ?? 1;
   const unitsPerEm = options?.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
 
-  const accent = isHandakuten
-    ? createHandakutenContours(ox, oy, options?.handakuStyle ?? 'standard', scale, unitsPerEm)
-    : createDakutenContours(ox, oy, options?.dakuStyle ?? 'standard', scale, unitsPerEm);
+  // 親文字と濁点・半濁点をそれぞれ単独で正規化してから結合する。
+  // 全体をまとめて正規化すると、親文字の輪郭が半濁点の中心を囲む場合に
+  // 半濁点の外側円・内側円の巻き方向が反転し、リングが円盤になる。
+  // 単独で正規化すれば、親文字に囲まれても濁点・半濁点の巻き方向は
+  // 保たれ、nonzero 塗りでは囲まれた内側の穴が親文字で塗られる
+  // （親文字と濁点の和集合として正しい描画になる）。
+  const normalizedBase = normalizeGlyphContoursWinding(cloneContours(baseContours));
+  const baseBbox = getContoursBoundingBox(normalizedBase);
 
-  return normalizeGlyphContoursWinding([...cloned, ...accent]);
+  // オフセットは親文字から決めた配置位置に対する調整として、配置の
+  // 後に適用する。生成時に加えると配置の計算で打ち消されてしまうため、
+  // ここではオフセット 0 で生成する。
+  const standalone = options?.standaloneAccentContours;
+  const accent =
+    standalone && standalone.length > 0
+      ? normalizeGlyphContoursWinding(cloneContours(standalone))
+      : isHandakuten
+        ? createHandakutenContours(0, 0, options?.handakuStyle ?? 'standard', scale, unitsPerEm)
+        : createDakutenContours(0, 0, options?.dakuStyle ?? 'standard', scale, unitsPerEm);
+
+  const placedAccent = placeAccentNearParentTopRight(accent, baseBbox, unitsPerEm);
+  const emScale = unitsPerEm / 1000;
+  const offsetAccent = clampToEmBox(
+    translateContours(placedAccent, ox * emScale, oy * emScale),
+    unitsPerEm
+  );
+
+  return [...normalizedBase, ...offsetAccent];
 }
 
 /**
@@ -437,6 +608,8 @@ export function batchSynthesizeDakuten(
     dakuStyle?: DakutenStyle;
     handakuStyle?: HandakutenStyle;
     unitsPerEm?: number;
+    ascender?: number;
+    descender?: number;
   }
 ): {
   updatedGlyphs: Record<number, GlyphData>;
@@ -450,7 +623,59 @@ export function batchSynthesizeDakuten(
   const overwrite = options?.overwriteExisting ?? false;
   const scope = options?.scope ?? 'all';
   const upm = options?.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
-  const defaultLsb = Math.round(50 * (upm / 1000));
+
+  // standalone の濁点・半濁点グリフ（U+309B / U+309C）。輪郭がある場合
+  // はその輪郭を濁点・半濁点の形状として使う。ない場合は手続き生成を使う。
+  const standaloneDakuten = glyphs[0x309b];
+  const standaloneHandakuten = glyphs[0x309c];
+  const standaloneDakutenContours =
+    standaloneDakuten?.contours && standaloneDakuten.contours.length > 0
+      ? standaloneDakuten.contours
+      : undefined;
+  const standaloneHandakutenContours =
+    standaloneHandakuten?.contours && standaloneHandakuten.contours.length > 0
+      ? standaloneHandakuten.contours
+      : undefined;
+
+  const buildTarget = (
+    sourceChar: string,
+    sourceGlyph: GlyphData,
+    sourceContours: PathContour[],
+    targetChar: string,
+    targetCode: number,
+    isHandakuten: boolean
+  ): void => {
+    const existing = glyphs[targetCode];
+    if (existing?.locked) return;
+    const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
+    if (hasExistingContours && !overwrite) return;
+    const combined = synthesizeDakutenContours(sourceContours, isHandakuten, {
+      ...options,
+      standaloneAccentContours: isHandakuten
+        ? standaloneHandakutenContours
+        : standaloneDakutenContours,
+    });
+    // 合成後の輪郭の bounding box から lsb を再計算する。小書きの
+    // batchGenerateSmallKana と同じ方式。
+    const combinedBbox = getContoursBoundingBox(combined);
+    const lsb = Math.max(0, Math.round(combinedBbox.minX));
+    // advanceWidth は親文字の値を維持し、合成後の右端がそれを超える
+    // 場合だけ広げる。
+    const baseAdvance = sourceGlyph.advanceWidth || existing?.advanceWidth || upm;
+    const advanceWidth = Math.max(baseAdvance, Math.round(combinedBbox.maxX - lsb));
+    updatedGlyphs[targetCode] = {
+      ...withoutAuxData(existing),
+      unicode: targetCode,
+      char: targetChar,
+      name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
+      advanceWidth,
+      lsb,
+      contours: combined,
+      modified: true,
+    };
+    generatedCount++;
+    details.push({ sourceChar, targetChar, isHandakuten });
+  };
 
   for (const [char, mapping] of Object.entries(DAKUTEN_MAPPINGS)) {
     if (mapping.type !== 'seion') continue;
@@ -465,7 +690,15 @@ export function batchSynthesizeDakuten(
     if (scope === 'katakana' && !isKatakana) continue;
 
     const sourceGlyph = glyphs[sourceCode];
-    if (!sourceGlyph || !sourceGlyph.contours || sourceGlyph.contours.length === 0) {
+    if (!sourceGlyph) continue;
+    // contours が空でも pixelData がある親文字は対象に含める。
+    const sourceContours = resolveSourceContours(
+      sourceGlyph,
+      upm,
+      options?.ascender,
+      options?.descender
+    );
+    if (sourceContours.length === 0) {
       // 親文字が未作成ならスキップ
       continue;
     }
@@ -475,25 +708,7 @@ export function batchSynthesizeDakuten(
       const targetChar = mapping.daku;
       const targetCode = targetChar.codePointAt(0);
       if (targetCode) {
-        const existing = glyphs[targetCode];
-        if (!existing?.locked) {
-          const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
-          if (!hasExistingContours || overwrite) {
-            const combined = synthesizeDakutenContours(sourceGlyph.contours, false, options);
-            updatedGlyphs[targetCode] = {
-              ...(existing || {}),
-              unicode: targetCode,
-              char: targetChar,
-              name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || upm,
-              lsb: sourceGlyph.lsb ?? existing?.lsb ?? defaultLsb,
-              contours: combined,
-              modified: true,
-            };
-            generatedCount++;
-            details.push({ sourceChar: char, targetChar, isHandakuten: false });
-          }
-        }
+        buildTarget(char, sourceGlyph, sourceContours, targetChar, targetCode, false);
       }
     }
 
@@ -502,25 +717,7 @@ export function batchSynthesizeDakuten(
       const targetChar = mapping.handaku;
       const targetCode = targetChar.codePointAt(0);
       if (targetCode) {
-        const existing = glyphs[targetCode];
-        if (!existing?.locked) {
-          const hasExistingContours = existing && existing.contours && existing.contours.length > 0;
-          if (!hasExistingContours || overwrite) {
-            const combined = synthesizeDakutenContours(sourceGlyph.contours, true, options);
-            updatedGlyphs[targetCode] = {
-              ...(existing || {}),
-              unicode: targetCode,
-              char: targetChar,
-              name: `uni${targetCode.toString(16).toUpperCase().padStart(4, '0')}`,
-              advanceWidth: sourceGlyph.advanceWidth || existing?.advanceWidth || upm,
-              lsb: sourceGlyph.lsb ?? existing?.lsb ?? defaultLsb,
-              contours: combined,
-              modified: true,
-            };
-            generatedCount++;
-            details.push({ sourceChar: char, targetChar, isHandakuten: true });
-          }
-        }
+        buildTarget(char, sourceGlyph, sourceContours, targetChar, targetCode, true);
       }
     }
   }

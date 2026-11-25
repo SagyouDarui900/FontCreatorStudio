@@ -34,6 +34,7 @@ interface DakutenSynthesisPanelProps {
   dakutenPreviewSvgPath: string;
   dakutenTargetCount: number;
   onExecuteBatch: () => void;
+  isExecuting?: boolean;
   unitsPerEm?: number;
 }
 
@@ -42,6 +43,12 @@ const SCOPE_OPTIONS: { id: KanaScope; label: string }[] = [
   { id: 'hiragana', label: 'ひらがな' },
   { id: 'katakana', label: 'カタカナ' },
 ];
+
+// Larger slider thumb below the lg breakpoint, so the thumb is easier to
+// grab on touch screens. The trailing ! is needed because the global
+// range-thumb rules in index.css have higher specificity.
+const MOBILE_THUMB_CLASSES =
+  'max-lg:[&::-webkit-slider-thumb]:h-6! max-lg:[&::-webkit-slider-thumb]:w-6! max-lg:[&::-webkit-slider-thumb]:-mt-2! max-lg:[&::-moz-range-thumb]:h-6! max-lg:[&::-moz-range-thumb]:w-6!';
 
 const DAKUTEN_STYLES: { id: DakutenStyle; name: string }[] = [
   { id: 'standard', name: '標準' },
@@ -82,6 +89,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
   dakutenPreviewSvgPath,
   dakutenTargetCount,
   onExecuteBatch,
+  isExecuting = false,
   unitsPerEm = 1000,
 }) => {
   const previewMapping = DAKUTEN_MAPPINGS[dakuPreviewChar];
@@ -195,7 +203,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>左右位置 (X):</span>
                 <span className="font-mono font-bold">
-                  {dakuOffsetX > 0 ? `+${dakuOffsetX}` : dakuOffsetX}px
+                  {dakuOffsetX > 0 ? `+${dakuOffsetX}` : dakuOffsetX}U
                 </span>
               </div>
               <input
@@ -205,7 +213,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
                 step="5"
                 value={dakuOffsetX}
                 onChange={(e) => onChangeDakuOffsetX(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
             </div>
 
@@ -213,7 +221,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>上下位置 (Y):</span>
                 <span className="font-mono font-bold">
-                  {dakuOffsetY > 0 ? `+${dakuOffsetY}` : dakuOffsetY}px
+                  {dakuOffsetY > 0 ? `+${dakuOffsetY}` : dakuOffsetY}U
                 </span>
               </div>
               <input
@@ -223,7 +231,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
                 step="5"
                 value={dakuOffsetY}
                 onChange={(e) => onChangeDakuOffsetY(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
             </div>
 
@@ -239,7 +247,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
                 step="0.05"
                 value={dakuScale}
                 onChange={(e) => onChangeDakuScale(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
             </div>
           </div>
@@ -251,7 +259,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
               className={`text-[11px] py-1 px-2 rounded flex items-center gap-1 cursor-pointer ${themeClasses.textMuted} hover:opacity-80`}
             >
               <RotateCcw className="w-3 h-3" />
-              <span>位置リセット</span>
+              <span>設定リセット</span>
             </button>
           </div>
         </div>
@@ -371,7 +379,8 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
         <button
           type="button"
           onClick={onExecuteBatch}
-          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+          disabled={dakutenTargetCount === 0 || isExecuting}
+          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
         >
           <Wand2 className="w-4 h-4 shrink-0" />
           <span>濁音・半濁点を一括合成 ({dakutenTargetCount}字)</span>

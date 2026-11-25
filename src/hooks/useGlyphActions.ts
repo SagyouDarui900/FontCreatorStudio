@@ -459,6 +459,12 @@ export function useGlyphActions({
         onShowToast(`小文字「${pair.smallChar}」は編集ロックされています`, 'warning');
         return;
       }
+      const existingTarget = project.glyphs[targetUnicode];
+      if (existingTarget?.contours && existingTarget.contours.length > 0) {
+        if (!window.confirm(`「${pair.smallChar}」には既に字形があります。上書きしますか？`)) {
+          return;
+        }
+      }
       const upm = project.metadata?.unitsPerEm || 1000;
       const smallContours = createSmallKanaContours(sourceGlyph.contours, {
         scale: 0.72,
@@ -487,6 +493,10 @@ export function useGlyphActions({
               advanceWidth: sourceGlyph.advanceWidth || existing.advanceWidth || upm,
               lsb: Math.max(0, Math.round(bbox.minX)),
               contours: smallContours,
+              // The new contours replace any pixel-only drawing, so the
+              // old pixel data and its vector backup must not survive.
+              pixelData: undefined,
+              vectorContoursBackup: undefined,
               modified: true,
             },
           },
@@ -514,6 +524,12 @@ export function useGlyphActions({
       if (project.glyphs[targetUnicode]?.locked) {
         onShowToast(`生成先「${targetChar}」は編集ロックされています`, 'warning');
         return;
+      }
+      const existingTarget = project.glyphs[targetUnicode];
+      if (existingTarget?.contours && existingTarget.contours.length > 0) {
+        if (!window.confirm(`「${targetChar}」には既に字形があります。上書きしますか？`)) {
+          return;
+        }
       }
 
       const sourceGlyph = sourceChar
@@ -553,6 +569,10 @@ export function useGlyphActions({
               contours: combinedContours,
               advanceWidth: baseGlyph.advanceWidth || existing.advanceWidth || currentUpm,
               lsb: baseGlyph.lsb ?? existing.lsb ?? defaultLsb,
+              // The new contours replace any pixel-only drawing, so the
+              // old pixel data and its vector backup must not survive.
+              pixelData: undefined,
+              vectorContoursBackup: undefined,
               modified: true,
             },
           },

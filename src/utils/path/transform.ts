@@ -15,7 +15,7 @@ import {
   isPrecomputedContourContained,
 } from "./bounds";
 import { optimizeContourNodes } from "./stroke";
-import { SCREEN_BASELINE_Y } from "../font/constants";
+import { SCREEN_BASELINE_Y, resolveBaselineY } from "../font/constants";
 
 export interface PlacementTransformOptions {
   /** Baseline Y in screen coordinates. Placed contours never extend below it. Defaults to 800. */
@@ -443,6 +443,8 @@ export interface SmallKanaOptions {
   offsetY?: number;
   weightDelta?: number; // 光学補正（線の太さ加減算）
   unitsPerEm?: number;
+  /** プロジェクトの ascender。渡された場合は小書き文字の下端を resolveBaselineY(ascender, upm) に合わせる。 */
+  ascender?: number;
 }
 
 /**
@@ -469,15 +471,21 @@ export function createSmallKanaContours(
   working = scaleContours(working, scale, scale);
 
   // Optional optical weight boost to prevent small kana strokes from looking too thin
+  // weightDelta は 1000 UPM 基準の値として扱い、emScale で換算する。
   if (weightDelta !== 0) {
-    working = adjustContoursWeight(working, weightDelta);
+    working = adjustContoursWeight(working, weightDelta * emScale);
   }
 
   const newBbox = getContoursBoundingBox(working);
 
   let dx = 0;
   let dy = 0;
-  const targetBaselineY = 780 * emScale;
+  // ascender が渡された場合はプロジェクトのベースラインに合わせる。
+  // 渡されない場合は従来の 780 * emScale を維持する。
+  const targetBaselineY =
+    options?.ascender !== undefined
+      ? resolveBaselineY(options.ascender, upm)
+      : 780 * emScale;
 
   switch (placement) {
     case 'bottom-left':
@@ -501,8 +509,25 @@ export function createSmallKanaContours(
       break;
   }
 
-  dx += offsetX;
-  dy += offsetY;
+  // offsetX / offsetY は 1000 UPM 基準の値として扱い、emScale で換算する。
+  dx += offsetX * emScale;
+  dy += offsetY * emScale;
+
+  // 結果が em ボックス（minX >= 0、maxX <= upm）やベースライン
+  // （maxY <= targetBaselineY）をはみ出さないよう dx / dy をクランプする。
+  // 幅・高さが収まる範囲より大きい場合は左端・上端に合わせる。
+  const clampShift = (
+    shift: number,
+    min: number,
+    max: number,
+    lo: number,
+    hi: number
+  ): number => {
+    if (max - min > hi - lo) return lo - min;
+    return Math.min(Math.max(shift, lo - min), hi - max);
+  };
+  dx = clampShift(dx, newBbox.minX, newBbox.maxX, 0, upm);
+  dy = clampShift(dy, newBbox.minY, newBbox.maxY, 0, targetBaselineY);
 
   const shifted = transformContours(working, (p) => ({
     x: Math.round(p.x + dx),

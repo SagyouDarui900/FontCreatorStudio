@@ -12,6 +12,7 @@ export interface GlyphSynthesisModalProps {
   setProject?: React.Dispatch<React.SetStateAction<FontProject>>;
   onUpdateProject?: (updater: (prev: FontProject) => FontProject) => void;
   commitHistory?: (targetUnicode?: number) => void;
+  commitProjectHistory?: () => void;
   showToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   onShowToast?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   theme: ThemeMode;

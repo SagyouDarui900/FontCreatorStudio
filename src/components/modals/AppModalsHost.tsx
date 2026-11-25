@@ -412,6 +412,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             setProject={setProject}
             onUpdateProject={setProject}
             commitHistory={commitHistory}
+            commitProjectHistory={commitProjectHistory}
             theme={theme}
             onShowToast={showToast}
             showToast={showToast}

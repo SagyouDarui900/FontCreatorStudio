@@ -17,6 +17,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
   setProject,
   onUpdateProject,
   commitHistory,
+  commitProjectHistory,
   showToast,
   onShowToast,
   theme,
@@ -31,6 +32,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
     setProject,
     onUpdateProject,
     commitHistory,
+    commitProjectHistory,
     showToast,
     onShowToast,
   });
@@ -173,6 +175,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               dakutenPreviewSvgPath={state.dakutenPreviewSvgPath}
               dakutenTargetCount={state.dakutenTargetCount}
               onExecuteBatch={state.handleExecuteDakutenBatch}
+              isExecuting={state.isExecuting}
             />
           ) : (
             <SmallKanaSynthesisPanel
@@ -200,6 +203,7 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
               smallKanaPreviewPaths={state.smallKanaPreviewPaths}
               smallKanaTargetCount={state.smallKanaTargetCount}
               onExecuteBatch={state.handleExecuteSmallKanaBatch}
+              isExecuting={state.isExecuting}
             />
           )}
         </div>
@@ -212,7 +216,8 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <button
               type="button"
               onClick={state.handleExecuteDakutenBatch}
-              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+              disabled={state.dakutenTargetCount === 0 || state.isExecuting}
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
             >
               <Wand2 className="w-4 h-4 shrink-0" />
               <span>濁音・半濁点を一括合成 ({state.dakutenTargetCount}字)</span>
@@ -221,7 +226,8 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
             <button
               type="button"
               onClick={state.handleExecuteSmallKanaBatch}
-              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+              disabled={state.smallKanaTargetCount === 0 || state.isExecuting}
+              className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
             >
               <Wand2 className="w-4 h-4 shrink-0" />
               <span>小書き文字を一括生成 ({state.smallKanaTargetCount}字)</span>

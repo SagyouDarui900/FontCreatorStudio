@@ -78,20 +78,19 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
         </button>
       )}
 
-      {/* Quick Dakuten / Handakuten / Small Kana buttons */}
-      {(dInfo || smallPair) && (
+      {/* Quick Dakuten / Handakuten / Small Kana buttons. The batch
+          button is shown regardless of the selected character; only the
+          single-generation buttons depend on it. */}
+      {(dInfo || smallPair || onOpenGlyphSynthesisModal) && (
         <div className="flex items-center space-x-1 ml-1">
           {dInfo?.type === 'seion' && dInfo.daku && onGenerateDakutenTarget && (
             <button
               type="button"
+              disabled={!hasContours}
               onClick={() => {
-                if (!hasContours) {
-                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
-                  return;
-                }
                 onGenerateDakutenTarget(dInfo.daku!, false);
               }}
-              className={`px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 cursor-pointer ${
+              className={`px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-amber-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 !hasContours ? 'opacity-50' : ''
               }`}
               title={`濁音「${dInfo.daku}」を自動合成`}
@@ -102,14 +101,11 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           {dInfo?.type === 'seion' && dInfo.handaku && onGenerateDakutenTarget && (
             <button
               type="button"
+              disabled={!hasContours}
               onClick={() => {
-                if (!hasContours) {
-                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
-                  return;
-                }
                 onGenerateDakutenTarget(dInfo.handaku!, true);
               }}
-              className={`px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 cursor-pointer ${
+              className={`px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-rose-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 !hasContours ? 'opacity-50' : ''
               }`}
               title={`半濁音「${dInfo.handaku}」を自動合成`}
@@ -120,14 +116,11 @@ export const ViewControlsSubToolbar: React.FC<ViewControlsSubToolbarProps> = ({
           {smallPair && onDuplicateAsSmallKana && selectedUnicode !== undefined && (
             <button
               type="button"
+              disabled={!hasContours}
               onClick={() => {
-                if (!hasContours) {
-                  showCanvasToast(`「${activeChar}」にはまだ字形が作図されていません`);
-                  return;
-                }
                 onDuplicateAsSmallKana(selectedUnicode);
               }}
-              className={`px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-indigo-200 flex items-center gap-0.5 cursor-pointer ${
+              className={`px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 border border-indigo-300 dark:border-indigo-700 text-indigo-900 dark:text-indigo-200 text-[10.5px] font-bold whitespace-nowrap hover:bg-indigo-200 flex items-center gap-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 !hasContours ? 'opacity-50' : ''
               }`}
               title={`小書き文字「${smallPair.smallChar}」を自動生成`}

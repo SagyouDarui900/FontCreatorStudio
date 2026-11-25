@@ -29,6 +29,7 @@ interface SmallKanaSynthesisPanelProps {
   smallKanaPreviewPaths: { basePath: string; smallPath: string };
   smallKanaTargetCount: number;
   onExecuteBatch: () => void;
+  isExecuting?: boolean;
   unitsPerEm?: number;
 }
 
@@ -44,6 +45,12 @@ const PLACEMENT_OPTIONS: { id: NonNullable<SmallKanaOptions['placement']>; name:
   { id: 'bottom-center', name: '下中央' },
   { id: 'baseline', name: 'ベースライン' },
 ];
+
+// Larger slider thumb below the lg breakpoint, so the thumb is easier to
+// grab on touch screens. The trailing ! is needed because the global
+// range-thumb rules in index.css have higher specificity.
+const MOBILE_THUMB_CLASSES =
+  'max-lg:[&::-webkit-slider-thumb]:h-6! max-lg:[&::-webkit-slider-thumb]:w-6! max-lg:[&::-webkit-slider-thumb]:-mt-2! max-lg:[&::-moz-range-thumb]:h-6! max-lg:[&::-moz-range-thumb]:w-6!';
 
 export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = ({
   isLight,
@@ -69,6 +76,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
   smallKanaPreviewPaths,
   smallKanaTargetCount,
   onExecuteBatch,
+  isExecuting = false,
   unitsPerEm = 1000,
 }) => {
   return (
@@ -137,7 +145,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
                 step="0.02"
                 value={smallScale}
                 onChange={(e) => onChangeSmallScale(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
               <div className={`flex justify-between text-[9px] mt-0.5 ${themeClasses.textMuted}`}>
                 <span>60% (小さめ)</span>
@@ -150,7 +158,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={`${themeClasses.textMuted} font-bold`}>太さ補正:</span>
                 <span className={`font-mono font-bold ${themeClasses.accentText}`}>
-                  +{smallWeightBoost}px
+                  +{smallWeightBoost}U
                 </span>
               </div>
               <input
@@ -160,12 +168,12 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
                 step="1"
                 value={smallWeightBoost}
                 onChange={(e) => onChangeSmallWeightBoost(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
               <div className={`flex justify-between text-[9px] mt-0.5 ${themeClasses.textMuted}`}>
-                <span>0px</span>
-                <span>+4px (標準)</span>
-                <span>+12px</span>
+                <span>0U</span>
+                <span>+4U (標準)</span>
+                <span>+12U</span>
               </div>
             </div>
           </div>
@@ -199,7 +207,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>左右オフセット (X):</span>
                 <span className="font-mono font-bold">
-                  {smallOffsetX > 0 ? `+${smallOffsetX}` : smallOffsetX}px
+                  {smallOffsetX > 0 ? `+${smallOffsetX}` : smallOffsetX}U
                 </span>
               </div>
               <input
@@ -209,7 +217,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
                 step="5"
                 value={smallOffsetX}
                 onChange={(e) => onChangeSmallOffsetX(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
             </div>
 
@@ -217,7 +225,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>上下オフセット (Y):</span>
                 <span className="font-mono font-bold">
-                  {smallOffsetY > 0 ? `+${smallOffsetY}` : smallOffsetY}px
+                  {smallOffsetY > 0 ? `+${smallOffsetY}` : smallOffsetY}U
                 </span>
               </div>
               <input
@@ -227,7 +235,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
                 step="5"
                 value={smallOffsetY}
                 onChange={(e) => onChangeSmallOffsetY(Number(e.target.value))}
-                className="w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+                className={`w-full h-2 sm:h-1.5 touch-pan-x accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer ${MOBILE_THUMB_CLASSES}`}
               />
             </div>
           </div>
@@ -334,7 +342,8 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
         <button
           type="button"
           onClick={onExecuteBatch}
-          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer ${themeClasses.accentBtn}`}
+          disabled={smallKanaTargetCount === 0 || isExecuting}
+          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
         >
           <Wand2 className="w-4 h-4 shrink-0" />
           <span>小書き文字を一括生成 ({smallKanaTargetCount}字)</span>
