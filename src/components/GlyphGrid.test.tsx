@@ -127,7 +127,7 @@ describe('GlyphGrid bug fixes', () => {
     unmount();
   });
 
-  it('filters out empty-contour glyphs from modified category and displays accurate counts for symbols (85) and vertical_forms (23)', () => {
+  it('filters out empty-contour glyphs from modified category and displays accurate counts for symbols (85) and vertical_forms (27)', () => {
     const project = createBaseProject({
       0x3042: {
         unicode: 0x3042,
@@ -186,7 +186,7 @@ describe('GlyphGrid bug fixes', () => {
     expect(cards.length).toBe(1);
     expect(cards[0].textContent).toContain('3042');
 
-    // Open category dropdown and verify accurate counts for symbols (85) and vertical_forms (23)
+    // Open category dropdown and verify accurate counts for symbols (85) and vertical_forms (27)
     const dropdownBtn = Array.from(container.querySelectorAll('button')).find((b) =>
       b.textContent?.includes('分類選択')
     )!;
@@ -195,9 +195,9 @@ describe('GlyphGrid bug fixes', () => {
     });
 
     expect(container.textContent).toContain('和文約物・全角記号85字');
-    expect(container.textContent).toContain('縦書き約物・記号23字');
+    expect(container.textContent).toContain('縦書き約物・記号27字');
     expect(container.textContent).not.toContain('和文約物・全角記号65字');
-    expect(container.textContent).not.toContain('縦書き約物・記号22字');
+    expect(container.textContent).not.toContain('縦書き約物・記号23字');
 
     unmount();
   });
