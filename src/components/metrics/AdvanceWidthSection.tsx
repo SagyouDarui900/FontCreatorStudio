@@ -341,7 +341,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                         : 'bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800'
                     }`}
                   >
-                    {isBalanced ? '✓ 左右均等' : isLeftLeaning ? `左寄り (${Math.abs(Math.round(diff / 2))}px)` : `右寄り (${Math.round(diff / 2)}px)`}
+                    {isBalanced ? '左右均等' : isLeftLeaning ? `左寄り (${Math.abs(Math.round(diff / 2))}px)` : `右寄り (${Math.round(diff / 2)}px)`}
                   </span>
                 </div>
 

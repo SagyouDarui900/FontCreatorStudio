@@ -85,7 +85,7 @@ export const AutoSpaceSection: React.FC<AutoSpaceSectionProps> = ({
                   </div>
                   {isSelected && (
                     <span className="text-[10px] font-bold shrink-0 mt-0.5">
-                      ✓ 適用中
+                      適用中
                     </span>
                   )}
                 </button>

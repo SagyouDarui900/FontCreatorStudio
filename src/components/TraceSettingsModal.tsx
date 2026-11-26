@@ -317,7 +317,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 {currentImageSrc && (
                   <div className={`flex items-center justify-between pt-1.5 border-t text-[11px] font-medium ${themeClasses.border} ${themeClasses.accentText}`}>
                     <span className="flex items-center space-x-1">
-                      <span>✓ 画像を読み込みました</span>
+                      <span>画像を読み込みました</span>
                     </span>
                     <button
                       onClick={() => {

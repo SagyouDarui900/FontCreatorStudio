@@ -172,7 +172,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
             <span>メインキャンバス連動型マイパーツ</span>
           </div>
           <p className="text-[10px] text-stone-600 dark:text-stone-300">
-            キャンバスで輪郭を選択し、上部ツールバーの<strong>「★ 部首パーツに登録」</strong>を押すと1クリックで即時保存されます。
+            キャンバスで輪郭を選択し、上部ツールバーの<strong>「部首パーツに登録」</strong>を押すと1クリックで即時保存されます。
           </p>
         </div>
       ) : (
@@ -184,7 +184,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
           }`}
         >
           <Sparkles className="w-3 h-3 text-emerald-600 shrink-0" />
-          <span className="truncate">ツールバーの「★ 部首パーツに登録」からも即時追加可能</span>
+          <span className="truncate">ツールバーの「部首パーツに登録」からも即時追加可能</span>
         </div>
       )}
 
@@ -383,7 +383,7 @@ export const CustomPartsTab: React.FC<CustomPartsTabProps> = ({
           <BookmarkPlus className="w-10 h-10 opacity-30 text-emerald-600" />
           <p className="text-xs font-bold text-stone-700 dark:text-stone-300">マイパーツはまだありません</p>
           <p className="text-[10px] leading-relaxed max-w-xs text-stone-500">
-            キャンバス上で偏や旁のパスを選択し、上部ツールバーの「★ 部首パーツに登録」をクリックすると、ここに1クリックで保存されます。
+            キャンバス上で偏や旁のパスを選択し、上部ツールバーの「部首パーツに登録」をクリックすると、ここに1クリックで保存されます。
           </p>
         </div>
       ) : filteredParts.length === 0 ? (
