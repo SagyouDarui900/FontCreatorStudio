@@ -157,6 +157,9 @@ export function usePixelDrawing({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (typeof e.button === 'number' && e.button !== 0 && e.button !== 2) {
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     // A second finger starting while a stroke is in progress is ignored.
@@ -350,6 +353,7 @@ export function usePixelDrawing({
     }
     isDrawingRef.current = false;
     setIsDrawing(false);
+    isErasingStrokeRef.current = false;
     drawStartPosRef.current = null;
     setDrawStartPos(null);
     previewGridRef.current = null;

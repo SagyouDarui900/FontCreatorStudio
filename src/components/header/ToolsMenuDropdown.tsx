@@ -198,7 +198,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   onToggleMetricsDrawer();
                   onClose();
                 }}
-                className={`w-full sm:hidden p-2 rounded-xl border text-left flex items-center justify-between cursor-pointer ${
+                className={`w-full md:hidden p-2 rounded-xl border text-left flex items-center justify-between cursor-pointer ${
                   showMetricsDrawer
                     ? themeClasses.activeTool
                     : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`

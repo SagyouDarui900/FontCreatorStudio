@@ -84,20 +84,25 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
   isGlyphLocked = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const openedAtRef = useRef<number>(0);
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
   useEffect(() => {
     if (!isOpen) return;
+    openedAtRef.current = Date.now();
 
     const handlePointerDownOutside = (e: MouseEvent | TouchEvent | PointerEvent) => {
+      if (Date.now() - openedAtRef.current < 80) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
       }
     };
@@ -490,7 +495,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             <ArrowLeft className="w-3.5 h-3.5 text-stone-500" />
             <span>前のグリフへ</span>
           </div>
-          <span className="font-mono text-[10px] opacity-60">[ または Alt+←</span>
+          <span className="font-mono text-[10px] opacity-60">Alt+←</span>
         </button>
       )}
 
@@ -506,7 +511,7 @@ export const CanvasContextMenu: React.FC<CanvasContextMenuProps> = ({
             <ArrowRight className="w-3.5 h-3.5 text-stone-500" />
             <span>次のグリフへ</span>
           </div>
-          <span className="font-mono text-[10px] opacity-60">] または Alt+→</span>
+          <span className="font-mono text-[10px] opacity-60">Alt+→</span>
         </button>
       )}
     </div>

@@ -732,6 +732,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   // Canvas right-click context menu state
   const [contextMenuState, setContextMenuState] = useState<{ x: number; y: number } | null>(null);
+  const canvasLongPressOpenedAtRef = useRef(0);
 
   // C2: right-click hit-tests the cursor position before opening the menu.
   // A hit contour becomes the selection; when several contours are already
@@ -740,9 +741,20 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   const handleCanvasContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      if (
+        e.nativeEvent instanceof Event &&
+        canvasLongPressOpenedAtRef.current > 0 &&
+        Date.now() - canvasLongPressOpenedAtRef.current < 1000
+      ) {
+        canvasLongPressOpenedAtRef.current = 0;
+        return;
+      }
       handleNodeDragCancel();
       cancelTransformSession();
       setMarqueeSelection(null);
+      if (activePenContour) {
+        handleResetPenContour();
+      }
 
       const pos = screenToCanvas(e.clientX, e.clientY);
 
@@ -771,13 +783,28 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
       const hitId = hitTestContours(contours, pos, Math.max(6, 10 / zoom));
       if (hitId) {
-        setSelectedContourIds((prev) =>
-          prev.length > 1 && prev.includes(hitId) ? prev : [hitId]
-        );
+        const keptContourIds =
+          selectedContourIds.length > 1 && selectedContourIds.includes(hitId)
+            ? selectedContourIds
+            : [hitId];
+        setSelectedContourIds(keptContourIds);
         setSelectedContourId(hitId);
-        if (toolMode !== 'node' || !selectedContourIds.includes(hitId) || selectedNodeIds.length === 0) {
+        const keptSet = new Set(keptContourIds);
+        const validNodeIdsInSelection = new Set(
+          contours.filter((c) => keptSet.has(c.id)).flatMap((c) => c.nodes.map((n) => n.id))
+        );
+        const nextNodeIds =
+          toolMode === 'node' && selectedContourIds.includes(hitId)
+            ? selectedNodeIds.filter((id) => validNodeIdsInSelection.has(id))
+            : [];
+        if (nextNodeIds.length === 0) {
           setSelectedNodeId(null);
           setSelectedNodeIds([]);
+        } else {
+          setSelectedNodeIds(nextNodeIds);
+          if (selectedNodeId && !validNodeIdsInSelection.has(selectedNodeId)) {
+            setSelectedNodeId(nextNodeIds[0]);
+          }
         }
         setSelectedHandleType(null);
       } else {
@@ -794,10 +821,13 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
       contours,
       zoom,
       toolMode,
+      activePenContour,
       selectedContourIds,
+      selectedNodeId,
       selectedNodeIds,
       handleNodeDragCancel,
       cancelTransformSession,
+      handleResetPenContour,
       setMarqueeSelection,
       setSelectedContourIds,
       setSelectedContourId,
@@ -808,67 +838,6 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   );
 
   const handleCloseContextMenu = useCallback(() => setContextMenuState(null), []);
-
-  // Canvas long-press context menu (touch equivalent of right-click).
-  // Mirrors the glyph grid card (GlyphGridCard): 480ms hold, cancelled
-  // when the finger moves more than 10px. Restricted to select/node
-  // tools: other tools start drawing or erasing on pointerdown, so a
-  // hold there must not open a menu instead.
-  const canvasLongPressTimerRef = useRef<number | null>(null);
-  const canvasTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
-
-  const clearCanvasLongPress = useCallback(() => {
-    if (canvasLongPressTimerRef.current !== null) {
-      window.clearTimeout(canvasLongPressTimerRef.current);
-      canvasLongPressTimerRef.current = null;
-    }
-    canvasTouchStartPosRef.current = null;
-  }, []);
-
-  useEffect(() => clearCanvasLongPress, [clearCanvasLongPress]);
-
-  const handleCanvasTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
-      if (e.touches.length !== 1) {
-        clearCanvasLongPress();
-        return;
-      }
-      if (toolMode !== 'select' && toolMode !== 'node') return;
-      const targetEl = e.target as HTMLElement;
-      if (targetEl.closest('button, a, input, select, textarea, [role="button"]')) return;
-      const touch = e.touches[0];
-      const clientX = touch.clientX;
-      const clientY = touch.clientY;
-      canvasTouchStartPosRef.current = { x: clientX, y: clientY };
-      clearCanvasLongPress();
-      canvasLongPressTimerRef.current = window.setTimeout(() => {
-        const syntheticEvent = {
-          preventDefault: () => {},
-          stopPropagation: () => {},
-          clientX,
-          clientY,
-        } as unknown as React.MouseEvent;
-        handleCanvasContextMenu(syntheticEvent);
-      }, CANVAS_LONG_PRESS_MS);
-    },
-    [clearCanvasLongPress, toolMode, handleCanvasContextMenu]
-  );
-
-  const handleCanvasTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
-      if (!canvasTouchStartPosRef.current || e.touches.length !== 1) return;
-      const touch = e.touches[0];
-      if (
-        isLongPressMoveCancelled(canvasTouchStartPosRef.current, {
-          x: touch.clientX,
-          y: touch.clientY,
-        })
-      ) {
-        clearCanvasLongPress();
-      }
-    },
-    [clearCanvasLongPress]
-  );
   const handleTraceImageError = useCallback(
     () => showCanvasToast('下絵画像を読み込めませんでした', '画像ファイルを確認してください'),
     [showCanvasToast]
@@ -1000,6 +969,81 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isContextMenuOpen: contextMenuState !== null,
     onCloseContextMenu: handleCloseContextMenu,
   });
+
+  // Canvas long-press context menu (touch equivalent of right-click).
+  // Mirrors the glyph grid card (GlyphGridCard): 480ms hold, cancelled
+  // when the finger moves more than 10px, or when palm rejection / active
+  // stylus / drag / modal is active.
+  const canvasLongPressTimerRef = useRef<number | null>(null);
+  const canvasTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clearCanvasLongPress = useCallback(() => {
+    if (canvasLongPressTimerRef.current !== null) {
+      window.clearTimeout(canvasLongPressTimerRef.current);
+      canvasLongPressTimerRef.current = null;
+    }
+    canvasTouchStartPosRef.current = null;
+  }, []);
+
+  useEffect(() => clearCanvasLongPress, [clearCanvasLongPress]);
+
+  const handleCanvasTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length !== 1 || isAnyModalOpenRef.current) {
+        clearCanvasLongPress();
+        return;
+      }
+      if (toolMode !== 'select' && toolMode !== 'node') return;
+      if (isTwoFingerGestureRef.current || nodeDragSessionRef.current) {
+        clearCanvasLongPress();
+        return;
+      }
+      const isPenRecentlyActive = Date.now() - lastPenActiveTimeRef.current < 1500;
+      const isPalmBlocked =
+        palmRejectionMode === 'strict_pen_only' ||
+        (palmRejectionMode === 'auto' && (isPenDrawingRef.current || isPenRecentlyActive));
+      if (isPalmBlocked) return;
+
+      const targetEl = e.target as HTMLElement;
+      if (targetEl.closest('button, a, input, select, textarea, [role="button"]')) return;
+      const touch = e.touches[0];
+      const clientX = touch.clientX;
+      const clientY = touch.clientY;
+      canvasLongPressOpenedAtRef.current = 0;
+      canvasTouchStartPosRef.current = { x: clientX, y: clientY };
+      clearCanvasLongPress();
+      canvasLongPressTimerRef.current = window.setTimeout(() => {
+        if (isTwoFingerGestureRef.current || nodeDragSessionRef.current || isAnyModalOpenRef.current) {
+          return;
+        }
+        canvasLongPressOpenedAtRef.current = Date.now();
+        const syntheticEvent = {
+          preventDefault: () => {},
+          stopPropagation: () => {},
+          clientX,
+          clientY,
+        } as unknown as React.MouseEvent;
+        handleCanvasContextMenu(syntheticEvent);
+      }, CANVAS_LONG_PRESS_MS);
+    },
+    [clearCanvasLongPress, toolMode, palmRejectionMode, handleCanvasContextMenu, isTwoFingerGestureRef, nodeDragSessionRef, isPenDrawingRef, lastPenActiveTimeRef]
+  );
+
+  const handleCanvasTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!canvasTouchStartPosRef.current || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      if (
+        isLongPressMoveCancelled(canvasTouchStartPosRef.current, {
+          x: touch.clientX,
+          y: touch.clientY,
+        })
+      ) {
+        clearCanvasLongPress();
+      }
+    },
+    [clearCanvasLongPress]
+  );
 
   const handleCopySelectedContextMenu = useMemo(
     () =>
@@ -1522,6 +1566,13 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           handleDistributeSelected={handleDistributeSelected}
           handleSmoothStrokeSelected={handleSmoothStrokeSelected}
           handleSimplifySelected={handleSimplifySelected}
+          handleSubtractSelectedContours={handleSubtractSelectedContours}
+          handleIntersectSelectedContours={handleIntersectSelectedContours}
+          handleConvertToCornersSelected={handleConvertToCornersSelected}
+          handleConvertToSmoothSelected={handleConvertToSmoothSelected}
+          handleExpandStrokeSelected={handleExpandStrokeSelected}
+          handleReverseWindingSelected={handleReverseWindingSelected}
+          handleRegisterSelectedAsCustomPart={handleRegisterSelectedAsCustomPart}
           showMobileBrushSheet={showMobileBrushSheet}
           setShowMobileBrushSheet={setShowMobileBrushSheet}
           brushWidth={brushWidth}
@@ -1548,6 +1599,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
           onGenerateDakutenTarget={onGenerateDakutenTarget}
           onDuplicateAsSmallKana={onDuplicateAsSmallKana}
           onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
+          onSelectPrevUncompletedGlyph={onSelectPrevUncompletedGlyph}
+          onSelectNextUncompletedGlyph={onSelectNextUncompletedGlyph}
         />
 
         {/* Canvas Right-Click Context Menu */}
@@ -1669,8 +1722,29 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.onSetToolMode !== next.onSetToolMode) return false;
   if (prev.onSelectPrevGlyph !== next.onSelectPrevGlyph) return false;
   if (prev.onSelectNextGlyph !== next.onSelectNextGlyph) return false;
+  if (prev.onSelectPrevUncompletedGlyph !== next.onSelectPrevUncompletedGlyph) return false;
+  if (prev.onSelectNextUncompletedGlyph !== next.onSelectNextUncompletedGlyph) return false;
+  if (prev.onGenerateDakutenTarget !== next.onGenerateDakutenTarget) return false;
+  if (prev.onDuplicateAsSmallKana !== next.onDuplicateAsSmallKana) return false;
+  if (prev.onOpenGlyphSynthesisModal !== next.onOpenGlyphSynthesisModal) return false;
+  if (prev.onSelectionChange !== next.onSelectionChange) return false;
+  if (prev.onChangeGridSettings !== next.onChangeGridSettings) return false;
+  if (prev.onChangeTraceSettings !== next.onChangeTraceSettings) return false;
+  if (prev.onToggleZenMode !== next.onToggleZenMode) return false;
+  if (prev.onToggleGridDrawer !== next.onToggleGridDrawer) return false;
+  if (prev.onToggleMetricsDrawer !== next.onToggleMetricsDrawer) return false;
+  if (prev.onToggleRadicals !== next.onToggleRadicals) return false;
+  if (prev.onOpenPenPresetsModal !== next.onOpenPenPresetsModal) return false;
+  if (prev.onOpenGlyphCompareModal !== next.onOpenGlyphCompareModal) return false;
+  if (prev.onChangeBrushStyle !== next.onChangeBrushStyle) return false;
+  if (prev.onChangeBrushWidth !== next.onChangeBrushWidth) return false;
+  if (prev.onAdjustBrushSize !== next.onAdjustBrushSize) return false;
+  if (prev.onChangePressureSensitivity !== next.onChangePressureSensitivity) return false;
+  if (prev.onChangeSmoothingIntensity !== next.onChangeSmoothingIntensity) return false;
+  if (prev.onChangeOutlineOnly !== next.onChangeOutlineOnly) return false;
   if (prev.onChangeAdvanceWidth !== next.onChangeAdvanceWidth) return false;
   if (prev.onChangeLsb !== next.onChangeLsb) return false;
+  if ((prev.overlaySettings?.enabled || next.overlaySettings?.enabled) && prev.project?.glyphs !== next.project?.glyphs) return false;
   if (prev.project?.metadata?.unitsPerEm !== next.project?.metadata?.unitsPerEm) return false;
   if (prev.project?.metadata?.ascender !== next.project?.metadata?.ascender) return false;
   if (prev.project?.metadata?.descender !== next.project?.metadata?.descender) return false;

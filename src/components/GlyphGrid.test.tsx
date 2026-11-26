@@ -541,4 +541,71 @@ describe('GlyphGrid bug fixes', () => {
 
     unmount();
   });
+
+  it('positions GlyphGrid context menu near the trigger button when activated via keyboard (clientX=0, clientY=0)', () => {
+    const project = createBaseProject({
+      0x3042: {
+        unicode: 0x3042,
+        char: 'あ',
+        name: 'uni3042',
+        advanceWidth: 1000,
+        lsb: 50,
+        contours: [sampleContour],
+      },
+    });
+
+    const { container, unmount } = renderWithRoot(
+      <ModalProvider>
+        <GlyphGrid
+          project={project}
+          selectedUnicode={0x3042}
+          onSelectGlyph={vi.fn()}
+          onClearGlyph={vi.fn()}
+          onCopyGlyph={vi.fn()}
+          onPasteGlyph={vi.fn()}
+          hasClipboard={false}
+          isOpen={true}
+          onClose={vi.fn()}
+          theme="light"
+          isOverlay={false}
+        />
+      </ModalProvider>
+    );
+
+    const menuButton = container.querySelector<HTMLButtonElement>('button[aria-label="「あ」のメニューを開く"]');
+    expect(menuButton).not.toBeNull();
+    vi.spyOn(menuButton!, 'getBoundingClientRect').mockReturnValue({
+      left: 120,
+      top: 200,
+      right: 140,
+      bottom: 220,
+      width: 20,
+      height: 20,
+      x: 120,
+      y: 200,
+      toJSON: () => ({}),
+    });
+
+    act(() => {
+      menuButton!.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 0,
+          clientY: 0,
+        })
+      );
+    });
+
+    const copyBtn = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('形をコピー')
+    );
+    expect(copyBtn).toBeDefined();
+    const menuRoot = copyBtn!.closest('div.fixed') as HTMLElement | null;
+    expect(menuRoot).not.toBeNull();
+    expect(parseFloat(menuRoot!.style.left)).toBeGreaterThan(0);
+    expect(parseFloat(menuRoot!.style.top)).toBeGreaterThan(0);
+
+    unmount();
+  });
 });

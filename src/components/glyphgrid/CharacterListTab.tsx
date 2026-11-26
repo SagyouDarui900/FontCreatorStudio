@@ -1,5 +1,5 @@
 import React, { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { GlyphPreviewSvg } from '../GlyphPreviewSvg';
 import { getThemeClasses, type ThemeMode } from '../../utils/theme';
 import type { FontProject, GlyphData } from '../../types';
@@ -20,6 +20,7 @@ export interface CharacterListTabProps {
   project: FontProject;
   selectedUnicode: number;
   onSelectGlyph: (unicode: number, char: string) => void;
+  onContextMenu?: (e: React.MouseEvent, item: CharacterListItem) => void;
   theme: ThemeMode;
   activeGroup?: CharacterListGroupId;
   onChangeActiveGroup?: (group: CharacterListGroupId) => void;
@@ -35,6 +36,7 @@ interface CharacterCellProps {
   unitsPerEm: number;
   isSelected: boolean;
   onSelect: (code: number, char: string) => void;
+  onContextMenu?: (e: React.MouseEvent, item: CharacterListItem) => void;
   themeClasses: ThemeClasses;
 }
 
@@ -44,22 +46,34 @@ interface CharacterCellProps {
  * semi-transparent system font, so missing characters stay visible.
  */
 const CharacterCell = memo(
-  ({ item, glyph, unitsPerEm, isSelected, onSelect, themeClasses }: CharacterCellProps) => {
+  ({ item, glyph, unitsPerEm, isSelected, onSelect, onContextMenu, themeClasses }: CharacterCellProps) => {
     const written = isGlyphWritten(glyph);
     const codeLabel = `U+${item.code.toString(16).toUpperCase().padStart(4, '0')}`;
     return (
       <button
         type="button"
         onClick={() => onSelect(item.code, item.char)}
+        onContextMenu={(e) => {
+          if (onContextMenu) {
+            e.stopPropagation();
+            onContextMenu(e, item);
+          }
+        }}
         title={written ? `${item.char} ${codeLabel}` : `${item.char} ${codeLabel}（未作成）`}
         aria-label={written ? `${item.char} ${codeLabel}` : `${item.char} ${codeLabel} 未作成`}
         aria-pressed={isSelected}
-        className={`w-full aspect-square min-w-0 rounded flex items-center justify-center cursor-pointer border transition-colors ${
+        className={`relative w-full aspect-square min-w-0 rounded flex items-center justify-center cursor-pointer border transition-colors ${
           isSelected
             ? `${themeClasses.accentBadge} border-current`
             : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
         }`}
       >
+        {glyph?.locked && (
+          <Lock
+            className="w-2.5 h-2.5 text-amber-500 absolute top-0.5 right-0.5 pointer-events-none"
+            aria-hidden="true"
+          />
+        )}
         {written && glyph ? (
           <GlyphPreviewSvg
             contours={glyph.contours}
@@ -82,6 +96,7 @@ function CharacterCells({
   unitsPerEm,
   selectedUnicode,
   onSelect,
+  onContextMenu,
   themeClasses,
 }: {
   chars: CharacterListItem[];
@@ -89,6 +104,7 @@ function CharacterCells({
   unitsPerEm: number;
   selectedUnicode: number;
   onSelect: (code: number, char: string) => void;
+  onContextMenu?: (e: React.MouseEvent, item: CharacterListItem) => void;
   themeClasses: ThemeClasses;
 }) {
   return (
@@ -104,6 +120,7 @@ function CharacterCells({
           unitsPerEm={unitsPerEm}
           isSelected={selectedUnicode === item.code}
           onSelect={onSelect}
+          onContextMenu={onContextMenu}
           themeClasses={themeClasses}
         />
       ))}
@@ -286,6 +303,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
   project,
   selectedUnicode,
   onSelectGlyph,
+  onContextMenu,
   theme,
   activeGroup: controlledActiveGroup,
   onChangeActiveGroup,
@@ -295,7 +313,9 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
   const themeClasses = getThemeClasses(theme);
   const [internalActiveGroup, setInternalActiveGroup] = useState<CharacterListGroupId>('hiragana');
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
-  const [isRadicalIndexOpen, setIsRadicalIndexOpen] = useState(true);
+  const [isRadicalIndexOpen, setIsRadicalIndexOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 640 && window.innerHeight >= 760 : true
+  );
   const activeGroup = controlledActiveGroup ?? internalActiveGroup;
   const setActiveGroup = onChangeActiveGroup ?? setInternalActiveGroup;
   const searchQuery = controlledSearchQuery ?? internalSearchQuery;
@@ -598,6 +618,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
                       unitsPerEm={unitsPerEm}
                       isSelected={selectedUnicode === item.code}
                       onSelect={onSelectGlyph}
+                      onContextMenu={onContextMenu}
                       themeClasses={themeClasses}
                     />
                   ))}
@@ -624,6 +645,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
                     unitsPerEm={unitsPerEm}
                     selectedUnicode={selectedUnicode}
                     onSelect={onSelectGlyph}
+                    onContextMenu={onContextMenu}
                     themeClasses={themeClasses}
                   />
                 </div>
@@ -635,6 +657,7 @@ export const CharacterListTab: React.FC<CharacterListTabProps> = ({
                 unitsPerEm={unitsPerEm}
                 selectedUnicode={selectedUnicode}
                 onSelect={onSelectGlyph}
+                onContextMenu={onContextMenu}
                 themeClasses={themeClasses}
               />
             )}

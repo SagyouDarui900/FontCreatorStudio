@@ -173,6 +173,10 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
 
   const calculateAnchor = useCallback(
     (rect: DOMRect): { top: number; left?: number; right?: number } => {
+      const safeVerticalTop = Math.max(
+        48,
+        Math.min(rect.top - 16, Math.max(48, window.innerHeight - 360))
+      );
       if (effectivePosition === 'top') {
         return {
           top: Math.max(40, rect.bottom + 4),
@@ -180,12 +184,12 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
         };
       } else if (effectivePosition === 'left') {
         return {
-          top: Math.max(12, Math.min(rect.top - 16, window.innerHeight - 460)),
+          top: safeVerticalTop,
           left: rect.right + 6,
         };
       } else {
         return {
-          top: Math.max(12, Math.min(rect.top - 16, window.innerHeight - 460)),
+          top: safeVerticalTop,
           right: Math.max(8, window.innerWidth - rect.left + 6),
         };
       }

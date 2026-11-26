@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useViewportWidth, getResponsiveOverlayFlags } from '../utils/viewportLayout';
 
 export type ModalId =
@@ -88,6 +88,7 @@ export interface ModalContextType {
   // Helper flags and actions
   isAnyModalOpen: boolean;
   closeAllModals: () => void;
+  registerExternalModal: () => () => void;
 }
 
 const ModalContext = createContext<ModalContextType | null>(null);
@@ -103,6 +104,14 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     return typeof window !== 'undefined' ? window.innerWidth >= 1280 : false;
   });
   const [showMetricsDrawer, setShowMetricsDrawer] = useState(false);
+  const [externalModalCount, setExternalModalCount] = useState(0);
+
+  const registerExternalModal = useCallback(() => {
+    setExternalModalCount((c) => c + 1);
+    return () => {
+      setExternalModalCount((c) => Math.max(0, c - 1));
+    };
+  }, []);
 
   const viewportWidth = useViewportWidth();
 
@@ -187,6 +196,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
 
   const isAnyModalOpen =
     modalStack.length > 0 ||
+    externalModalCount > 0 ||
     (showRadicals && isRadicalsOverlay) ||
     (showGridDrawer && isGridOverlay) ||
     (showMetricsDrawer && isMetricsOverlay);
@@ -229,6 +239,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       ...modalSetters,
       isAnyModalOpen,
       closeAllModals,
+      registerExternalModal,
     }),
     [
       modalStack,
@@ -243,6 +254,7 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
       modalSetters,
       isAnyModalOpen,
       closeAllModals,
+      registerExternalModal,
     ]
   );
 
@@ -255,4 +267,18 @@ export function useModalContext() {
     throw new Error('useModalContext must be used within a ModalProvider');
   }
   return ctx;
+}
+
+/**
+ * Registers an externally-controlled modal (outside AppModalsHost) so global
+ * canvas and app shortcuts pause while it is open. Safe to call when no
+ * ModalProvider is mounted (e.g. standalone unit tests).
+ */
+export function useExternalModalPresence(isOpen: boolean): void {
+  const ctx = useContext(ModalContext);
+  const register = ctx?.registerExternalModal;
+  useEffect(() => {
+    if (!isOpen || !register) return;
+    return register();
+  }, [isOpen, register]);
 }

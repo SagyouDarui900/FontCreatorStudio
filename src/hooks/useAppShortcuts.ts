@@ -69,6 +69,7 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
       // src/utils/platform.ts).
       const isMac = isMacDevice();
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+      const hasAnyCtrlOrMeta = e.ctrlKey || e.metaKey;
 
       if (ctrlOrCmd && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -92,7 +93,7 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
         return;
       }
 
-      if (!ctrlOrCmd && e.altKey && (e.key.toLowerCase() === 's' || e.code === 'KeyS')) {
+      if (!hasAnyCtrlOrMeta && e.altKey && (e.key.toLowerCase() === 's' || e.code === 'KeyS')) {
         e.preventDefault();
         if (e.shiftKey) {
           handleAutoSpaceCurrentGlyph?.();
@@ -120,30 +121,28 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
         return;
       }
 
-      if (e.key === 'ArrowLeft' && e.altKey) {
+      if (!hasAnyCtrlOrMeta && !e.shiftKey && e.altKey && e.key === 'ArrowLeft') {
         e.preventDefault();
         handleSelectPrevGlyph();
         return;
       }
 
-      if (e.key === 'ArrowRight' && e.altKey) {
+      if (!hasAnyCtrlOrMeta && !e.shiftKey && e.altKey && e.key === 'ArrowRight') {
         e.preventDefault();
         handleSelectNextGlyph();
         return;
       }
 
-      if (e.key === 'f' || e.key === 'F') {
-        if (!e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault();
-          toggleZenMode();
-          return;
-        }
+      if ((e.key === 'f' || e.key === 'F') && !hasAnyCtrlOrMeta && !e.altKey && !e.shiftKey && !e.repeat) {
+        e.preventDefault();
+        toggleZenMode();
+        return;
       }
 
       // H10: '?' (Shift+/) opens the shortcuts/help modal, matching the
       // help text and the modal footer. Ignored while a modal is open
       // (checked above) or while typing.
-      if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.key === '?' && !hasAnyCtrlOrMeta && !e.altKey && !e.repeat) {
         e.preventDefault();
         onOpenShortcutsHelp?.();
         return;
@@ -153,20 +152,25 @@ export function useAppShortcuts(options: UseAppShortcutsOptions) {
       // combinations belong to other shortcuts (for example Shift+O / Alt+O
       // toggles the outline-only display in useCanvasShortcuts), and
       // Ctrl/Cmd + letter combinations belong to edit shortcuts above.
-      if (e.key === 'v' || e.key === 'V') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('select');
-      } else if (e.key === 'p' || e.key === 'P') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('pen');
-      } else if (e.key === 'b' || e.key === 'B') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('brush');
-      } else if (e.key === 'e' || e.key === 'E') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('eraser');
-      } else if (e.key === 'r' || e.key === 'R') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('rect');
-      } else if (e.key === 'o' || e.key === 'O') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('ellipse');
-      } else if (e.key === 'm' || e.key === 'M') {
-        if (!ctrlOrCmd && !e.altKey && !e.shiftKey) setToolMode('ruler');
+      if (!hasAnyCtrlOrMeta && !e.altKey && !e.shiftKey && !e.repeat) {
+        const keyLower = e.key.toLowerCase();
+        if (keyLower === 'v') {
+          setToolMode('select');
+        } else if (keyLower === 'a') {
+          setToolMode('node');
+        } else if (keyLower === 'p') {
+          setToolMode('pen');
+        } else if (keyLower === 'b') {
+          setToolMode('brush');
+        } else if (keyLower === 'e') {
+          setToolMode('eraser');
+        } else if (keyLower === 'r') {
+          setToolMode('rect');
+        } else if (keyLower === 'o') {
+          setToolMode('ellipse');
+        } else if (keyLower === 'm') {
+          setToolMode('ruler');
+        }
       }
     };
 

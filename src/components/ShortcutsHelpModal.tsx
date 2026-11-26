@@ -38,6 +38,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['B'], description: '筆ツールに切り替え', category: 'tools' },
   { keys: ['P'], description: 'ペンツール（ベジェ曲線）に切り替え', category: 'tools' },
   { keys: ['V'], description: '選択ツール（輪郭移動・ノード編集）に切り替え', category: 'tools' },
+  { keys: ['A'], description: 'パス・頂点編集ツールに切り替え', category: 'tools' },
   { keys: ['E'], description: '消しゴムツールに切り替え', category: 'tools' },
   { keys: ['R'], description: '長方形ツールに切り替え（下絵調整中は位置リセット）', category: 'tools' },
   { keys: ['O'], description: '楕円ツールに切り替え', category: 'tools' },
@@ -55,7 +56,8 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: [']'], description: 'ブラシサイズを拡大（+4px、筆ツール時）', category: 'drawing' },
   { keys: ['Shift', '+', '['], description: '消しゴムサイズを縮小（消しゴムツール時）', category: 'drawing' },
   { keys: ['Shift', '+', ']'], description: '消しゴムサイズを拡大（消しゴムツール時）', category: 'drawing' },
-  { keys: ['Enter'], description: 'ペン描画中は開いたパスとして確定 / 定規計測中は計測線をストローク化', category: 'drawing' },
+  { keys: ['Enter'], description: 'ペン描画中は開いたパスとして確定 / 定規計測中は計測線をストローク化 / 通常時は次の文字へ移動', category: 'drawing' },
+  { keys: ['Shift', '+', 'Enter'], description: '前の文字に移動（通常時）', category: 'nav' },
   { keys: ['Backspace', '/', 'Delete'], description: 'ペン描画中は直前の 1 点を削除 / 通常時は選択要素を削除', category: 'drawing' },
 
   // 表示・ズーム
@@ -84,6 +86,7 @@ const SHORTCUTS: ShortcutItem[] = [
 
   // 各モーダル内ショートカット
   { keys: ['R'], description: '品質診断: 再スキャンを実行 / ストレージ管理: 一覧を再読込', category: 'modal' },
+  { keys: ['D'], description: '品質診断: 品質問題一覧とプロジェクト診断を切り替え', category: 'modal' },
   { keys: ['H'], description: '品質診断・密度ヒートマップ: 密度ヒートマップの表示を切り替え', category: 'modal' },
   { keys: ['/'], description: '品質診断: 検索入力欄にフォーカス', category: 'modal' },
   { keys: ['1 ~ 7'], description: '品質診断: 検査カテゴリを切り替え', category: 'modal' },

@@ -144,6 +144,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   type="text"
                   inputMode="numeric"
                   aria-label="送り幅 (Advance)"
+                  readOnly={isGlyphLocked}
                   value={advDraft}
                   onChange={(e) => setAdvDraft(e.target.value)}
                   onBlur={commitAdvanceDraft}
@@ -244,6 +245,7 @@ export const AdvanceWidthSection: React.FC<AdvanceWidthSectionProps> = ({
                   type="text"
                   inputMode="numeric"
                   aria-label="左余白 (LSB)"
+                  readOnly={isGlyphLocked}
                   value={lsbDraft}
                   onChange={(e) => setLsbDraft(e.target.value)}
                   onBlur={commitLsbDraft}

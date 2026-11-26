@@ -69,6 +69,7 @@ export const GlyphGridCard = memo(
 
     const longPressTimerRef = useRef<number | null>(null);
     const longPressTriggeredRef = useRef(false);
+    const longPressOpenedAtRef = useRef(0);
     const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
     const clearLongPress = useCallback(() => {
@@ -95,6 +96,7 @@ export const GlyphGridCard = memo(
         clearLongPress();
         longPressTimerRef.current = window.setTimeout(() => {
           longPressTriggeredRef.current = true;
+          longPressOpenedAtRef.current = Date.now();
           const syntheticEvent = {
             preventDefault: () => {},
             stopPropagation: () => {},
@@ -142,6 +144,12 @@ export const GlyphGridCard = memo(
         }}
         onContextMenu={(e) => {
           e.stopPropagation();
+          if (longPressOpenedAtRef.current > 0 && Date.now() - longPressOpenedAtRef.current < 1000) {
+            e.preventDefault();
+            longPressOpenedAtRef.current = 0;
+            return;
+          }
+          longPressOpenedAtRef.current = 0;
           onContextMenu(e, item);
         }}
         onTouchStart={handleTouchStart}
@@ -329,7 +337,7 @@ export const GlyphGridCard = memo(
             }}
             title="メニューを開く"
             aria-label={`「${item.char}」のメニューを開く`}
-            className="opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 p-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
+            className="opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 min-w-[26px] min-h-[26px] -mr-1 -mb-1 sm:min-w-0 sm:min-h-0 sm:m-0 flex items-center justify-center p-0.5 rounded hover:bg-stone-300/40 dark:hover:bg-stone-700/40 text-stone-500 dark:text-stone-400 transition-opacity cursor-pointer"
           >
             <MoreHorizontal className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
           </button>

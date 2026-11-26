@@ -6,6 +6,8 @@ import {
   Lock,
   ChevronLeft,
   X,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
 import { STORAGE_KEYS, setStorageItem } from '../utils/storageKeys';
@@ -40,6 +42,8 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   onClose,
   theme,
   isOverlay,
+  isPinned = false,
+  onTogglePin,
 }) => {
   const effectiveIsOverlay = isOverlay !== undefined ? isOverlay : false;
   const isLight = isLightTheme(theme);
@@ -140,6 +144,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
     onSelectGlyph,
     onClose,
     isOverlay: effectiveIsOverlay,
+    isPinned,
   });
 
   const handleOpenContextMenu = useCallback(
@@ -149,9 +154,12 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
     ) => {
       e.preventDefault();
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const hasPointerCoords = e.clientX !== 0 || e.clientY !== 0;
+      const x = hasPointerCoords ? e.clientX : Math.round(rect.left + rect.width / 2);
+      const y = hasPointerCoords ? e.clientY : Math.round(rect.bottom + 4);
       setContextMenu({
-        x: e.clientX,
-        y: e.clientY,
+        x,
+        y,
         anchorTop: rect.top - 4,
         item,
       });
@@ -188,20 +196,30 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   // Keyboard paging shortcuts (PageUp / PageDown or Alt+Arrow)
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      ) {
         return;
       }
-      if (e.key === 'PageDown' || (e.altKey && e.key === 'ArrowRight')) {
+      if (e.key === 'PageDown' || (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowRight')) {
         e.preventDefault();
-        // Always stop the event here (even on the last page) so window
-        // keydown listeners do not change the active canvas glyph.
+        // Always stop both React and native window propagation here (even on
+        // the last page) so window keydown listeners do not change the active
+        // canvas glyph.
         e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
         if (validPage < totalPages) {
           setCurrentPage(Math.min(totalPages, validPage + 1));
         }
-      } else if (e.key === 'PageUp' || (e.altKey && e.key === 'ArrowLeft')) {
+      } else if (e.key === 'PageUp' || (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key === 'ArrowLeft')) {
         e.preventDefault();
         e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
         if (validPage > 1) {
           setCurrentPage(Math.max(1, validPage - 1));
         }
@@ -359,6 +377,22 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
               </button>
             </div>
           )}
+          {effectiveIsOverlay && onTogglePin && (
+            <button
+              type="button"
+              onClick={onTogglePin}
+              aria-pressed={isPinned}
+              className={`hidden sm:inline-flex items-center justify-center p-1 rounded text-[11px] font-semibold transition-colors shrink-0 cursor-pointer border ${
+                isPinned
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+              }`}
+              title={isPinned ? '文字選択後も一覧を開いたままにする（ピン留め中）' : '文字選択後も一覧を開いたままにする（ピン留め）'}
+              aria-label={isPinned ? 'ピン留め解除' : '一覧をピン留め'}
+            >
+              {isPinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -423,23 +457,12 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
 
         {/* Glyphs Grid Matrix */}
         <div
-          className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 pb-24 sm:pb-8 grid gap-2 content-start ${
-            effectiveIsOverlay
-              ? gridDensity === 'large'
-                ? 'grid-cols-3'
-                : gridDensity === 'medium'
-                ? 'grid-cols-4'
-                : 'grid-cols-5'
-              : ''
-          } ${themeClasses.canvasOuterBg}`}
+          className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 sm:p-2.5 pb-3 grid gap-2 content-start ${themeClasses.canvasOuterBg}`}
           style={{
-            gridTemplateColumns: !effectiveIsOverlay
-              ? `repeat(auto-fill, minmax(${
-                  gridDensity === 'large' ? 82 : gridDensity === 'medium' ? 62 : 48
-                }px, 1fr))`
-              : undefined,
+            gridTemplateColumns: `repeat(auto-fill, minmax(${
+              gridDensity === 'large' ? 82 : gridDensity === 'medium' ? 64 : 50
+            }px, 1fr))`,
             gridAutoRows: gridDensity === 'large' ? '92px' : gridDensity === 'medium' ? '76px' : '62px',
-            paddingBottom: effectiveIsOverlay ? 'max(env(safe-area-inset-bottom, 0px) + 40px, 40px)' : undefined,
           }}
         >
           {charList.length === 0 ? (
@@ -471,6 +494,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
             project={project}
             selectedUnicode={selectedUnicode}
             onSelectGlyph={handleCardSelect}
+            onContextMenu={handleOpenContextMenu}
             theme={theme}
             activeGroup={listActiveGroup}
             onChangeActiveGroup={setListActiveGroup}

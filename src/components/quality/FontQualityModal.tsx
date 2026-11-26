@@ -13,6 +13,7 @@ import { FontQualityModalProps, TabFilter } from './types';
 import { useQualityState } from './hooks/useQualityState';
 import { useQualityActions } from './hooks/useQualityActions';
 import { getThemeClasses } from '../../utils/theme';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 
 export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
   const {
@@ -115,9 +116,12 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
     handleGoToGlyph,
   } = actions;
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcuts: Escape, F (fullscreen), R (rescan), H (heatmap), D (diagnostics toggle), / (search focus), 1-7 (tabs)
   const shortcutsRef = useRef({
     isFullscreen,
+    heatmapModalUnicode,
     onClose,
     runScan,
     runDiagnostics,
@@ -132,6 +136,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
   });
   shortcutsRef.current = {
     isFullscreen,
+    heatmapModalUnicode,
     onClose,
     runScan,
     runDiagnostics,
@@ -146,11 +151,13 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
   };
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
       const {
         isFullscreen: fullscreen,
+        heatmapModalUnicode: activeHeatmapUnicode,
         onClose: closeModal,
         runScan: triggerScan,
         runDiagnostics: triggerDiagnostics,
@@ -164,10 +171,13 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
         setActiveTab: updateActiveTab,
       } = shortcutsRef.current;
 
+      if (activeHeatmapUnicode !== null) return;
+
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
 
       if (e.key === 'Escape') {
+        if (e.repeat) return;
         e.preventDefault();
         if (fullscreen) {
           updateFullscreen(false);
@@ -224,7 +234,7 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, isTopModal]);
 
   useEffect(() => {
     if (!isOpen) {

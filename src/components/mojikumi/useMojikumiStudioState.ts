@@ -272,6 +272,7 @@ export function useMojikumiStudioState({
   useEffect(() => {
     if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented || e.repeat) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();

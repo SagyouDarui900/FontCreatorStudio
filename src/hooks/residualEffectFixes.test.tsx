@@ -6,6 +6,8 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { useAppShortcuts, UseAppShortcutsOptions } from './useAppShortcuts';
 import { useCanvasShortcuts, UseCanvasShortcutsProps } from '../components/canvas/hooks/useCanvasShortcuts';
 import { FontInfoModal } from '../components/FontInfoModal';
+import { NewProjectModal } from '../components/header/NewProjectModal';
+import { ModalProvider, useModalContext } from '../contexts/ModalContext';
 import { FontProject, GridSettings } from '../types';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -371,6 +373,83 @@ describe('Residual useEffect fixes (R2 & R4)', () => {
       getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(onClose).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it("useAppShortcuts maps 'A' to node tool, ignores Ctrl+V without meta, and pauses while NewProjectModal is open", () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const setToolMode = vi.fn();
+
+    function Harness({ modalOpen }: { modalOpen: boolean }) {
+      const { isAnyModalOpen } = useModalContext();
+      useAppShortcuts({
+        isAnyModalOpen,
+        handleUndo: vi.fn(),
+        handleRedo: vi.fn(),
+        handleQuickSaveCurrentGlyph: vi.fn(),
+        handleCopyGlyph: vi.fn(),
+        handlePasteGlyph: vi.fn(),
+        selectedUnicode: 0x3042,
+        currentGlyph: { unicode: 0x3042, char: 'あ', name: 'uni3042', contours: [], advanceWidth: 1000, lsb: 0 },
+        clipboardContours: null,
+        handleSelectPrevGlyph: vi.fn(),
+        handleSelectNextGlyph: vi.fn(),
+        toggleZenMode: vi.fn(),
+        setToolMode,
+      });
+
+      return (
+        <NewProjectModal
+          isOpen={modalOpen}
+          onClose={vi.fn()}
+          isLight={false}
+          project={makeProject('Sample')}
+          glyphCount={1}
+          newProjectName=""
+          setNewProjectName={vi.fn()}
+          onSaveAndReset={vi.fn()}
+          onResetWithoutSave={vi.fn()}
+        />
+      );
+    }
+
+    act(() => {
+      root.render(
+        <ModalProvider>
+          <Harness modalOpen={false} />
+        </ModalProvider>
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    });
+    expect(setToolMode).toHaveBeenCalledWith('node');
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true }));
+    });
+    expect(setToolMode).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <ModalProvider>
+          <Harness modalOpen={true} />
+        </ModalProvider>
+      );
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', bubbles: true }));
+    });
+    expect(setToolMode).toHaveBeenCalledTimes(1);
 
     act(() => {
       root.unmount();

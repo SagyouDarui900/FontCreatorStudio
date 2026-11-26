@@ -449,9 +449,10 @@ export function useRadicalCanvas({
  }
  };
 
- // Pointer event handlers on Part Canvas
- const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
- if (!activePart) return;
+  // Pointer event handlers on Part Canvas
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!activePart) return;
+    if (typeof e.button === 'number' && e.button !== 0 && e.button !== 1) return;
 
  // Multi-touch tracking for pinch-to-zoom and two-finger pan
  if (e.pointerType === 'touch') {
@@ -484,8 +485,12 @@ export function useRadicalCanvas({
  const nextPanStart = { x: e.clientX - pan.x, y: e.clientY - pan.y };
  panStartRef.current = nextPanStart;
  setPanStart(nextPanStart);
- return;
- }
+      return;
+    }
+
+    if (typeof e.button === 'number' && e.button !== 0) {
+      return;
+    }
 
  // Brush Tool
  if (toolMode === 'brush') {

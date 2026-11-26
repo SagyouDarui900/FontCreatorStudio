@@ -12,6 +12,7 @@ import {
   detectGlyphStems,
   renderRasterPreviewToCanvas,
 } from './gridFittingEngine';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 
 export const TARGET_PPEM_SIZES = [9, 10, 12, 14, 16, 18, 20, 24, 32, 48] as const;
 
@@ -66,10 +67,13 @@ export function useGridFittingState({
     }
   }, [isOpen, project.glyphs, selectedUnicode]);
 
+  const isTopModal = useIsTopModal();
+
   // Close on Escape key
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented || e.repeat) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -77,7 +81,7 @@ export function useGridFittingState({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isTopModal, onClose]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const upm = project.metadata.unitsPerEm || 1000;

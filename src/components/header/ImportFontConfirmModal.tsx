@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, FileUp, PlusCircle, Replace, X } from 'lucide-react';
 import { ThemeMode, getThemeClasses } from '../../utils/theme';
 import { useDialogFocusTrap } from '../modals/ModalStackFrame';
+import { useExternalModalPresence } from '../../contexts/ModalContext';
 
 export interface PendingFontImportSummary {
   fileName: string;
@@ -37,9 +38,12 @@ export const ImportFontConfirmModal: React.FC<ImportFontConfirmModalProps> = ({
   onConfirmAddOnly,
   onCancel,
 }) => {
+  useExternalModalPresence(Boolean(pendingImport));
+
   useEffect(() => {
     if (!pendingImport) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
@@ -64,6 +68,7 @@ export const ImportFontConfirmModal: React.FC<ImportFontConfirmModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="フォント読み込み方法の確認"
+        tabIndex={-1}
         className={`w-full max-w-md rounded-2xl p-5 border shadow-xl space-y-4 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         <div className={`flex items-center justify-between border-b pb-3 ${themeClasses.border}`}>

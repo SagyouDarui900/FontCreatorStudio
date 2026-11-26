@@ -9,6 +9,7 @@ export interface UseGlyphGridFilterProps {
   onSelectGlyph: (unicode: number, char: string) => void;
   onClose: () => void;
   isOverlay?: boolean;
+  isPinned?: boolean;
 }
 
 const CATEGORY_COUNT_MAP: Record<string, number> = (() => {
@@ -51,6 +52,7 @@ export function useGlyphGridFilter({
   onSelectGlyph,
   onClose,
   isOverlay = false,
+  isPinned = false,
 }: UseGlyphGridFilterProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string>('hiragana');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -330,7 +332,7 @@ export function useGlyphGridFilter({
       onSelectGlyph(code, char);
     }
     setCustomCharInput('');
-    if (isOverlay || window.innerWidth < 640) {
+    if ((isOverlay && !isPinned) || window.innerWidth < 640) {
       onClose();
     }
   };
@@ -426,6 +428,7 @@ export function useGlyphGridFilter({
     { id: 'katakana', label: 'カタカナ' },
     { id: 'basic_latin_alnum', label: '半角英数' },
     { id: 'symbols', label: '記号' },
+    { id: 'vertical_forms', label: '縦書記号' },
     { id: 'grade1', label: '小1' },
     { id: 'grade2', label: '小2' },
     { id: 'grade3', label: '小3' },

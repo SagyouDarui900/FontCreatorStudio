@@ -195,7 +195,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         {/* Brand & Project Info (Single-line compact CAD header) */}
         <div className="flex items-center gap-1.5 shrink min-w-0">
           <span
-            className="text-xs font-bold tracking-tight truncate max-w-[100px] xs:max-w-[130px] sm:max-w-[140px] md:max-w-[170px] whitespace-nowrap"
+            className="text-xs font-bold tracking-tight truncate max-w-[90px] xs:max-w-[110px] sm:max-w-[100px] md:max-w-[160px] whitespace-nowrap"
             title={project.metadata.familyName || 'FontCreator'}
           >
             {project.metadata.familyName && project.metadata.familyName !== 'OTEdit-Style Font' && project.metadata.familyName !== '新規フォント'
@@ -237,12 +237,12 @@ export const Header: React.FC<HeaderProps> = React.memo(({
               {isGlyphLocked ? (
                 <>
                   <Lock className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span className="hidden sm:inline text-amber-800 dark:text-amber-300 leading-none whitespace-nowrap">ロック中</span>
+                  <span className="hidden md:inline text-amber-800 dark:text-amber-300 leading-none whitespace-nowrap">ロック中</span>
                 </>
               ) : (
                 <>
                   <Unlock className="w-2.5 h-2.5 opacity-60 shrink-0" />
-                  <span className="hidden sm:inline leading-none whitespace-nowrap">ロック</span>
+                  <span className="hidden md:inline leading-none whitespace-nowrap">ロック</span>
                 </>
               )}
             </button>
@@ -330,7 +330,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
           <button
             id="btn-header-metrics"
             onClick={onToggleMetricsDrawer}
-            className={`px-2 h-7 rounded-md text-xs font-bold hidden md:inline-flex items-center gap-1 border cursor-pointer shrink-0 ${
+            className={`px-2 h-7 rounded-md text-xs font-bold hidden sm:inline-flex items-center gap-1 border cursor-pointer shrink-0 ${
               showMetricsDrawer
                 ? themeClasses.activeTool
                 : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -418,7 +418,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
         >
           <Download className="w-3.5 h-3.5 shrink-0" />
           <span className="leading-none whitespace-nowrap">
-            <span className="hidden sm:inline">フォント</span>出力
+            <span className="hidden md:inline">フォント</span>出力
           </span>
         </button>
       </div>

@@ -4,6 +4,7 @@ import { RotateCcw, X, Type, Save } from 'lucide-react';
 import { FontProject } from '../../types';
 import { ThemeMode, getThemeClasses } from '../../utils/theme';
 import { useDialogFocusTrap } from '../modals/ModalStackFrame';
+import { useExternalModalPresence } from '../../contexts/ModalContext';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   onResetWithoutSave,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useExternalModalPresence(isOpen);
   useDialogFocusTrap(dialogRef, isOpen, onClose);
 
   if (!isOpen || typeof document === 'undefined') return null;
@@ -44,6 +46,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="新規プロジェクト作成・リセット"
+        tabIndex={-1}
         className={`w-full max-w-md rounded-2xl p-5 border shadow-xl space-y-4 ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         <div className={`flex items-center justify-between border-b pb-3 ${themeClasses.border}`}>

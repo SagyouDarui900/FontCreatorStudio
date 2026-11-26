@@ -103,7 +103,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     simplify: false,
     autospace: false,
     metrics: true,
-    transform: true,
+    transform: typeof window !== 'undefined' ? window.innerWidth >= 640 : true,
     outline: false,
   });
 
@@ -602,6 +602,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
             isExpanded={expandedSections.simplify}
             onToggle={() => toggleSection('simplify')}
             themeClasses={themeClasses}
+            isGlyphLocked={isGlyphLocked}
           />
 
           {/* 5. Transform Tools & Outline & Clear */}

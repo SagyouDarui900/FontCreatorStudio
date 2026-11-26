@@ -312,7 +312,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
       onPointerLeave={handlePointerLeave}
       onLostPointerCapture={handleLostPointerCapture}
       onDoubleClick={(e) => {
-        if (isAnyModalOpen || e.button !== 0) return;
+        if (isAnyModalOpen || e.button !== 0 || toolMode !== 'select') return;
         const clickPos = screenToCanvas(e.clientX, e.clientY);
         const hitContour = contours.find((c) => isPointNearContour(clickPos, c, 24 / zoom));
         if (hitContour) {

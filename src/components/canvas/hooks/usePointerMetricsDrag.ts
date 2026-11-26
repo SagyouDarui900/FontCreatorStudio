@@ -70,12 +70,13 @@ export function usePointerMetricsDrag({
     (pos: Point): boolean => {
       const roundedX = Math.round(pos.x);
       const maxAdv = Math.max(2000, upm * 3);
+      const minLsb = -Math.round(upm * 0.5);
       if (draggingMetric === 'lsb') {
         if (!hasCommittedMetricHistoryRef.current) {
           onCommitHistory?.();
           hasCommittedMetricHistoryRef.current = true;
         }
-        onChangeLsb(Math.max(0, Math.min(roundedX, advanceWidth - 50)), { skipHistory: true });
+        onChangeLsb(Math.max(minLsb, Math.min(roundedX, advanceWidth - 50)), { skipHistory: true });
         return true;
       }
       if (draggingMetric === 'rsb') {
@@ -83,7 +84,7 @@ export function usePointerMetricsDrag({
           onCommitHistory?.();
           hasCommittedMetricHistoryRef.current = true;
         }
-        onChangeAdvanceWidth(Math.max(lsb + 50, Math.min(maxAdv, roundedX)), { skipHistory: true });
+        onChangeAdvanceWidth(Math.max(50, Math.max(lsb + 50, Math.min(maxAdv, roundedX))), { skipHistory: true });
         return true;
       }
       return false;

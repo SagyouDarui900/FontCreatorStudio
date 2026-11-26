@@ -33,4 +33,6 @@ export interface GlyphGridProps {
   onClose: () => void;
   theme: ThemeMode;
   isOverlay?: boolean;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
 }

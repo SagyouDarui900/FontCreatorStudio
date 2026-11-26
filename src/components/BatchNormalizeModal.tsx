@@ -77,16 +77,18 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   useEffect(() => {
     if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
       if (e.key === 'Escape') {
+        if (e.repeat) return;
         e.preventDefault();
         if (isFullscreen) {
           setIsFullscreen(false);
         } else {
           onClose();
         }
-      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setIsFullscreen((prev) => !prev);
       }

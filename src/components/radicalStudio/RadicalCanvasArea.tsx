@@ -526,6 +526,7 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  onPointerLeave={() => {
  setEraserHoverPos(null);
  }}
+ onContextMenu={(e) => e.preventDefault()}
  onWheel={handleWheel}
  >
  <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>

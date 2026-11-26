@@ -66,7 +66,7 @@ export function useAppLayout({
   const toggleGridDrawer = useCallback(() => {
     setShowGridDrawer((prev) => {
       const next = !prev;
-      if (next && viewportWidth < 640) {
+      if (next && viewportWidth < 1280) {
         setShowMetricsDrawer(false);
         setShowRadicals(false);
       }
@@ -80,7 +80,7 @@ export function useAppLayout({
     if (next && showRadicals) {
       setShowRadicals(false);
     }
-    if (next && viewportWidth < 640 && showGridDrawer) {
+    if (next && viewportWidth < 1280 && showGridDrawer) {
       setShowGridDrawer(false);
     }
     setShowMetricsDrawer(next);
@@ -92,7 +92,7 @@ export function useAppLayout({
     if (next && showMetricsDrawer) {
       setShowMetricsDrawer(false);
     }
-    if (next && viewportWidth < 640 && showGridDrawer) {
+    if (next && viewportWidth < 1280 && showGridDrawer) {
       setShowGridDrawer(false);
     }
     setShowRadicals(next);

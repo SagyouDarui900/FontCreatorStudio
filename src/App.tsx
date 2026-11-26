@@ -459,6 +459,8 @@ function AppMain({
     showToast,
   });
 
+  const [isGridPinned, setIsGridPinned] = useState(false);
+
   // Canvas selection state for precision inspector sync
   const [canvasSelection, setCanvasSelection] = useState<{
     contourIds: string[];
@@ -535,7 +537,7 @@ function AppMain({
   const handleOpenGlyphCompareModal = useCallback(() => setIsGlyphCompareModalOpen(true), [setIsGlyphCompareModalOpen]);
   const handleOpenRadicalStudio = useCallback(() => {
     setShowMetricsDrawer(false);
-    if (viewportWidth < 640) {
+    if (viewportWidth < 1280) {
       setShowGridDrawer(false);
     }
     setShowRadicals(true);
@@ -560,7 +562,7 @@ function AppMain({
   }, [closeModal]);
   const handleOpenRadicalStudioFromDrawer = useCallback(() => {
     setShowMetricsDrawer(false);
-    if (viewportWidth < 640) {
+    if (viewportWidth < 1280) {
       setShowGridDrawer(false);
     }
     setShowRadicals(true);
@@ -673,7 +675,9 @@ function AppMain({
             selectedUnicode={selectedUnicode}
             onSelectGlyph={(u, c) => {
               handleSelectGlyph(u, c);
-              if (isGridOverlay) handleCloseGridDrawer();
+              if (isGridOverlay && !(viewportWidth >= 640 && isGridPinned)) {
+                handleCloseGridDrawer();
+              }
             }}
             onClearGlyph={handleClearGlyph}
             onCopyGlyph={handleCopyGlyph}
@@ -688,6 +692,8 @@ function AppMain({
             onClose={handleCloseGridDrawer}
             theme={theme}
             isOverlay={isGridOverlay}
+            isPinned={isGridPinned}
+            onTogglePin={() => setIsGridPinned((prev) => !prev)}
           />
         )}
 
@@ -828,7 +834,7 @@ function AppMain({
           <div
             className={`${
               isMetricsOverlay
-                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 shadow-2xl w-72 sm:w-80 max-w-[85vw] border-l flex flex-col min-h-0'
+                ? 'fixed top-[calc(2.5rem+env(safe-area-inset-top,0px))] bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-0 right-0 z-40 shadow-2xl w-full sm:w-80 sm:max-w-[85vw] border-l flex flex-col min-h-0'
                 : 'w-64 xl:w-72 border-l flex flex-col shrink-0 min-h-0'
             } ${themeClasses.sidebarBg} ${themeClasses.border}`}
           >

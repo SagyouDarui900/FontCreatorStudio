@@ -36,6 +36,7 @@ export const BundledFontsModal: React.FC<BundledFontsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented || e.repeat) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();

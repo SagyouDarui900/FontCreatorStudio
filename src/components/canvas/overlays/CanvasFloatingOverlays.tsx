@@ -85,6 +85,13 @@ export interface CanvasFloatingOverlaysProps {
   handleDistributeSelected?: (direction: DistributeDirection) => void;
   handleSmoothStrokeSelected: () => void;
   handleSimplifySelected: () => void;
+  handleSubtractSelectedContours?: () => void;
+  handleIntersectSelectedContours?: () => void;
+  handleConvertToCornersSelected?: () => void;
+  handleConvertToSmoothSelected?: () => void;
+  handleExpandStrokeSelected?: () => void;
+  handleReverseWindingSelected?: () => void;
+  handleRegisterSelectedAsCustomPart?: () => void;
   showMobileBrushSheet: boolean;
   setShowMobileBrushSheet: (val: boolean) => void;
   brushWidth: number;
@@ -113,6 +120,8 @@ export interface CanvasFloatingOverlaysProps {
   onGenerateDakutenTarget?: (targetChar: string, isHandakuten?: boolean) => void;
   onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
   onOpenGlyphSynthesisModal?: () => void;
+  onSelectPrevUncompletedGlyph?: () => void;
+  onSelectNextUncompletedGlyph?: () => void;
 }
 
 export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = React.memo(({
@@ -179,6 +188,13 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   handleDistributeSelected,
   handleSmoothStrokeSelected,
   handleSimplifySelected,
+  handleSubtractSelectedContours,
+  handleIntersectSelectedContours,
+  handleConvertToCornersSelected,
+  handleConvertToSmoothSelected,
+  handleExpandStrokeSelected,
+  handleReverseWindingSelected,
+  handleRegisterSelectedAsCustomPart,
   showMobileBrushSheet,
   setShowMobileBrushSheet,
   brushWidth,
@@ -205,6 +221,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
   onGenerateDakutenTarget,
   onDuplicateAsSmallKana,
   onOpenGlyphSynthesisModal,
+  onSelectPrevUncompletedGlyph,
+  onSelectNextUncompletedGlyph,
 }) => {
   const effectiveTraceSettings: TraceSettings = traceSettings || {
     enabled: false,
@@ -293,6 +311,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         contours={contours}
         theme={theme}
         isOutlineMode={isOutlineMode}
+        selectedContourIds={selectedContourIds}
+        selectedNodeId={selectedNodeId}
       />
 
       {/* Toast Notification */}
@@ -336,6 +356,8 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         onGenerateDakutenTarget={onGenerateDakutenTarget}
         onDuplicateAsSmallKana={onDuplicateAsSmallKana}
         onOpenGlyphSynthesisModal={onOpenGlyphSynthesisModal}
+        onSelectPrevUncompletedGlyph={onSelectPrevUncompletedGlyph}
+        onSelectNextUncompletedGlyph={onSelectNextUncompletedGlyph}
       />
 
       {/* Mobile Selected Contour Quick Action Bar */}
@@ -371,6 +393,13 @@ export const CanvasFloatingOverlays: React.FC<CanvasFloatingOverlaysProps> = Rea
         handleDuplicateSelected={handleDuplicateSelected}
         handleSmoothStrokeSelected={handleSmoothStrokeSelected}
         handleSimplifySelected={handleSimplifySelected}
+        handleSubtractSelectedContours={handleSubtractSelectedContours}
+        handleIntersectSelectedContours={handleIntersectSelectedContours}
+        handleConvertToCornersSelected={handleConvertToCornersSelected}
+        handleConvertToSmoothSelected={handleConvertToSmoothSelected}
+        handleExpandStrokeSelected={handleExpandStrokeSelected}
+        handleReverseWindingSelected={handleReverseWindingSelected}
+        handleRegisterSelectedAsCustomPart={handleRegisterSelectedAsCustomPart}
         handleDeleteSelected={handleDeleteSelected}
         isGlyphLocked={isGlyphLocked}
       />

@@ -853,7 +853,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
 
       const firstNode = currentContour.nodes[0];
       const distToStart = Math.hypot(penPos.x - firstNode.x, penPos.y - firstNode.y);
-      const closeThreshold = 18 / zoomRef.current;
+      const closeThreshold = (e.pointerType === 'touch' ? 28 : 18) / zoomRef.current;
 
       if (currentContour.nodes.length >= 2 && distToStart <= closeThreshold) {
         const nodes = [...currentContour.nodes];

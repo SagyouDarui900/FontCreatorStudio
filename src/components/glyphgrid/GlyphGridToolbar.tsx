@@ -449,7 +449,7 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
                   placeholder="直接"
                   value={customCharInput}
                   onChange={(e) => setCustomCharInput(e.target.value)}
-                  className={`w-12 border rounded-md px-1 py-1 text-xs text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+                  className={`w-14 min-w-[56px] border rounded-md px-1 py-1 text-xs text-center focus:outline-hidden focus:ring-1 focus:ring-emerald-500/40 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                   title="任意の文字を直接入力して即座に開く (例: 龍)"
                 />
                 <button
@@ -497,7 +497,8 @@ export const GlyphGridToolbar: React.FC<GlyphGridToolbarProps> = React.memo(({
               className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors flex items-center gap-0.5 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
               title="常用漢字・JIS第1・第2水準の進捗ダッシュボードを開く"
             >
-              <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <Award className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="sm:hidden">進捗</span>
               <span className="hidden sm:inline">JIS進捗</span>
             </button>
             {(onOpenGlyphSynthesisModal || onOpenKerningModal || onOpenQualityModal) && (

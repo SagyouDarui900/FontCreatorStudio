@@ -488,11 +488,11 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         </div>
 
         {/* Alignment Grid */}
-        <div className="grid grid-cols-6 gap-1 mb-2.5">
+        <div className="grid grid-cols-3 gap-1.5 mb-2.5">
           <button
             type="button"
             onClick={() => handleAlign('left')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="左揃え"
@@ -502,7 +502,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('centerH')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="水平方向中央揃え"
@@ -512,7 +512,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('right')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="右揃え"
@@ -522,7 +522,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('top')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="上揃え"
@@ -532,7 +532,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('centerV')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="垂直方向中央揃え"
@@ -542,7 +542,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('bottom')}
-            className={`p-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
             title="下揃え"
@@ -658,7 +658,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           骨格のパスから指定した太さの均一な輪郭を自動生成します（ゴシック体・幾何学フォント制作に最適）。
         </p>
 
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 min-w-0">
           <label className="text-[10px] text-stone-500 font-mono shrink-0">太さ:</label>
           <input
             type="range"
@@ -667,19 +667,19 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             step={5}
             value={offsetStrokeWidth}
             onChange={(e) => setOffsetStrokeWidth(Number(e.target.value))}
-            className="flex-1 accent-emerald-600 touch-pan-x"
+            className="flex-1 min-w-0 accent-emerald-600 touch-pan-x"
           />
-          <span className="font-mono text-xs font-bold w-12 text-right">{offsetStrokeWidth}px</span>
+          <span className="font-mono tabular-nums text-xs font-bold w-12 text-right shrink-0">{offsetStrokeWidth}px</span>
         </div>
 
         {/* Quick Presets */}
-        <div className="flex gap-1 mb-2">
+        <div className="flex gap-1 mb-2 min-w-0">
           {[20, 40, 60, 80, 100].map((w) => (
             <button
               key={w}
               type="button"
               onClick={() => setOffsetStrokeWidth(w)}
-              className={`flex-1 py-1 rounded text-[10px] font-mono border cursor-pointer ${
+              className={`flex-1 min-w-0 py-1.5 rounded text-[10px] font-mono tabular-nums border cursor-pointer ${
                 offsetStrokeWidth === w
                   ? 'bg-emerald-600 text-white border-transparent'
                   : isLight
@@ -693,9 +693,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         </div>
 
         {/* Cap Style Selector */}
-        <div className="flex items-center justify-between gap-2 mb-2.5">
+        <div className="flex items-center justify-between gap-2 mb-2.5 min-w-0">
           <span className="text-[10px] text-stone-500 shrink-0">端点の形状:</span>
-          <div className="flex gap-1 flex-1">
+          <div className="flex gap-1 flex-1 min-w-0">
             {([
               { id: 'round', label: '丸 (Round)' },
               { id: 'butt', label: '平 (Butt)' },
@@ -705,7 +705,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 key={cap.id}
                 type="button"
                 onClick={() => setOffsetCapStyle(cap.id)}
-                className={`flex-1 py-1 rounded text-[10px] font-medium border cursor-pointer ${
+                className={`flex-1 min-w-0 py-1.5 px-1 rounded text-[10px] font-medium border cursor-pointer truncate ${
                   offsetCapStyle === cap.id
                     ? 'bg-emerald-600 text-white border-transparent'
                     : isLight

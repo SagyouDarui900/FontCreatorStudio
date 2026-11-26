@@ -17,6 +17,8 @@ import {
   ArrowRightLeft,
   Sparkles,
   Wand2,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import { TraceSettings, GlyphOverlaySettings, PathContour, ToolMode } from '../../../types';
 import { ThemeMode, getThemeClasses } from '../../../utils/theme';
@@ -57,6 +59,8 @@ export interface MobileAuxMenuDrawerProps {
   onGenerateDakutenTarget?: (targetChar: string, isHandakuten?: boolean) => void;
   onDuplicateAsSmallKana?: (sourceUnicode: number) => void;
   onOpenGlyphSynthesisModal?: () => void;
+  onSelectPrevUncompletedGlyph?: () => void;
+  onSelectNextUncompletedGlyph?: () => void;
 }
 
 export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.memo(
@@ -94,6 +98,8 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
     onGenerateDakutenTarget,
     onDuplicateAsSmallKana,
     onOpenGlyphSynthesisModal,
+    onSelectPrevUncompletedGlyph,
+    onSelectNextUncompletedGlyph,
   }) => {
     if (!isOpen || typeof document === 'undefined') return null;
 
@@ -383,6 +389,38 @@ export const MobileAuxMenuDrawer: React.FC<MobileAuxMenuDrawerProps> = React.mem
                   <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
                   <span className="max-sm:hidden">全パス消去 (Ctrl+Z可)</span>
                   <span className="hidden max-sm:inline">全パス消去</span>
+                </button>
+              )}
+
+              {/* Prev / Next Uncompleted Glyph Navigation */}
+              {onSelectPrevUncompletedGlyph && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectPrevUncompletedGlyph();
+                    onClose();
+                  }}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 ${
+                    isLight ? 'bg-white border-stone-200 text-stone-800' : 'bg-[#1a2b20] border-[#2a4030] text-emerald-200'
+                  }`}
+                >
+                  <SkipBack className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>前の未作成へ</span>
+                </button>
+              )}
+              {onSelectNextUncompletedGlyph && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectNextUncompletedGlyph();
+                    onClose();
+                  }}
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 ${
+                    isLight ? 'bg-white border-stone-200 text-stone-800' : 'bg-[#1a2b20] border-[#2a4030] text-emerald-200'
+                  }`}
+                >
+                  <SkipForward className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>次の未作成へ</span>
                 </button>
               )}
             </div>

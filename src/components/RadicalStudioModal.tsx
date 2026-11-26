@@ -409,6 +409,9 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     notify,
     pendingDeletePart,
     cancelDeletePart,
+    showPenShortcutsHelp,
+    showExtractModal,
+    isLicenseModalOpen,
   });
   shortcutsRef.current = {
     activePenContour,
@@ -431,13 +434,16 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
     notify,
     pendingDeletePart,
     cancelDeletePart,
+    showPenShortcutsHelp,
+    showExtractModal,
+    isLicenseModalOpen,
   };
 
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.isComposing || e.keyCode === 229) return;
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
       const {
         activePenContour: penContour,
         selectedNodeId: nodeId,
@@ -459,13 +465,19 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         notify: showNotice,
         pendingDeletePart: pendingDelete,
         cancelDeletePart: cancelPendingDelete,
+        showPenShortcutsHelp: penHelpOpen,
+        showExtractModal: extractModalOpen,
+        isLicenseModalOpen: licenseModalOpen,
       } = shortcutsRef.current;
+
+      if (penHelpOpen || extractModalOpen || licenseModalOpen) return;
 
       const target = e.target as HTMLElement;
       if (
         target &&
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
           target.isContentEditable)
       ) {
         return;
@@ -506,13 +518,13 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         return;
       }
 
-      if (e.code === 'Space' && !e.repeat) {
+      if (e.code === 'Space' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setSpacePressed(true);
         return;
       }
 
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;
         let dx = 0;
@@ -577,11 +589,17 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
       }
     };
 
+    const handleWindowBlur = () => {
+      shortcutsRef.current.setIsSpacePressed(false);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleWindowBlur);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleWindowBlur);
     };
   }, [isOpen]);
 

@@ -225,7 +225,7 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
               ? themeClasses.activeTool
               : themeClasses.activeToolHover
           }`}
-          title={`幾何学図形ツール (${currentShapeTool.label}) (U) - クリックで全20種類の図形パレットを開閉 (右クリックでも開閉可能)`}
+          title={`幾何学図形ツール (${currentShapeTool.label}) (R: 長方形 / O: 楕円) - クリックで全20種類の図形パレットを開閉 (右クリックでも開閉可能)`}
         >
           <CurrentShapeIcon className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
           <span className="absolute bottom-0.5 right-0.5 text-[7px] font-mono opacity-70 leading-none pointer-events-none">
@@ -259,28 +259,25 @@ export const PrimaryToolButtons: React.FC<PrimaryToolButtonsProps> = React.memo(
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
         }`}
-        title="定規・寸法計測ツール (R) - ドラッグして距離・字幅・角度を計測 (Shiftで水平/垂直固定)"
+        title="定規・寸法計測ツール (M) - ドラッグして距離・字幅・角度を計測 (Shiftで水平/垂直固定)"
       >
         <Ruler className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
         <span className="hidden sm:block absolute bottom-0.5 right-0.5 text-[6.5px] font-mono font-bold opacity-60 leading-none pointer-events-none">
-          R
+          M
         </span>
       </button>
 
-      {/* Hand Tool (Desktop only in main toolbar) */}
+      {/* Hand Tool */}
       <button
         onClick={() => setToolMode('hand')}
-        className={`hidden sm:flex group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg items-center justify-center relative shrink-0 cursor-pointer ${
+        className={`flex group w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg items-center justify-center relative shrink-0 cursor-pointer ${
           toolMode === 'hand'
             ? themeClasses.activeTool
             : themeClasses.activeToolHover
         }`}
-        title="手のひら・画面移動 (H) / Spaceドラッグでも移動可能"
+        title="手のひら・画面移動 (Space+ドラッグ / 中ボタンドラッグでも移動可能)"
       >
         <Hand className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
-        <span className="hidden sm:block absolute bottom-0.5 right-0.5 text-[6.5px] font-mono font-bold opacity-60 leading-none pointer-events-none">
-          H
-        </span>
       </button>
 
       {/* Mobile Unified Grid & Guides Bottom Sheet Trigger */}

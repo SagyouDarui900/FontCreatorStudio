@@ -184,7 +184,15 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       }
 
       // Toggle Grid with 'G' key
-      if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey && !(toolMode === 'pen' && activePenContour)) {
+      if (
+        e.key.toLowerCase() === 'g' &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !(toolMode === 'pen' && activePenContour)
+      ) {
         e.preventDefault();
         if (onChangeGridSettings) {
           onChangeGridSettings((prev) => {
@@ -200,7 +208,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       // B5: preventDefault stops a focused button from also being activated
       // by Space while panning starts. Input focus already returns early
       // above, so typing in inputs is unaffected.
-      if (e.code === 'Space' || e.key === ' ') {
+      if ((e.code === 'Space' || e.key === ' ') && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         if (!e.repeat) {
           setIsSpacePressed(true);
@@ -210,30 +218,35 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
 
       // View & Zoom Navigation shortcuts
       // Ctrl/Meta/Alt + 0/1 is left to the browser (zoom reset, tab switch, etc.).
-      if ((e.key === '0' || (e.shiftKey && e.key === '!')) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === '0' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         resetView('fit');
         showCanvasToast('画面にフィット (Fit to Screen)');
         return;
       }
-      if (e.key === '1' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === '1' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         resetView('100%');
         showCanvasToast('等倍表示 (100%)');
         return;
       }
-      if ((e.key === 'w' || e.key === 'W') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if ((e.key === 'w' || e.key === 'W') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         resetView('width');
         showCanvasToast('幅いっぱいに拡大 (Fit Width)');
         return;
       }
-      if ((e.key === '+' || e.key === '=') && !e.ctrlKey && !e.metaKey) {
+      if ((e.key === '+' || (!e.shiftKey && e.key === '=')) && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         handleZoomStep(1.25);
         return;
       }
-      if ((e.key === '-' || e.key === '_') && !e.ctrlKey && !e.metaKey) {
+      if (
+        (e.key === '-' || e.key === '_' || (e.shiftKey && e.code === 'Minus')) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
         e.preventDefault();
         handleZoomStep(1 / 1.25);
         return;
@@ -242,7 +255,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
       // Trace Reset shortcut in trace_adjust mode
       // stopImmediatePropagation() keeps the app-level tool switch (R -> rect)
       // in useAppShortcuts from running as well.
-      if (toolMode === 'trace_adjust' && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
+      if (toolMode === 'trace_adjust' && (e.key === 'r' || e.key === 'R') && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         e.stopImmediatePropagation();
         handleResetTracePosition();
@@ -307,7 +320,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           e.preventDefault();
           handleDeleteSelected();
         }
-      } else if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.key.toLowerCase() === 'h' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         if (onChangeGridSettings) {
           const next = !gridSettings.showCursorCrosshair;
@@ -321,20 +334,30 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
             next ? '高視認性照準リング＆十字線ガイドを表示' : 'OS標準の軽量カーソルのみ表示'
           );
         }
-      } else if (e.shiftKey && (e.key === '{' || e.key === '}')) {
+      } else if (
+        e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        (e.key === '{' || e.key === '}' || e.key === '[' || e.key === ']' || e.key === '「' || e.key === '」')
+      ) {
         if (toolMode === 'eraser') {
           e.preventDefault();
+          const isGrow = e.key === '}' || e.key === ']' || e.key === '」';
           setEraserSize((prev) => {
-            const delta = e.key === '}' ? (prev >= 60 ? 10 : 4) : (prev > 60 ? -10 : -4);
+            const delta = isGrow ? (prev >= 60 ? 10 : 4) : (prev > 60 ? -10 : -4);
             const next = Math.max(8, Math.min(160, prev + delta));
             return next;
           });
         }
-      } else if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.key.toLowerCase() === 'n' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         setShowNodes((prev) => !prev);
       } else if (
-        ((e.key === 'o' || e.key === 'O') && (e.shiftKey || e.altKey)) ||
-        ((e.key === 'w' || e.key === 'W') && e.altKey)
+        (((e.key === 'o' || e.key === 'O') && (e.shiftKey || e.altKey)) ||
+          ((e.key === 'w' || e.key === 'W') && e.altKey)) &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.repeat
       ) {
         e.preventDefault();
         // Stop the app-level tool switch (O -> ellipse) in useAppShortcuts so
@@ -349,7 +372,7 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           );
           return next;
         });
-      } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.key.toLowerCase() === 'c' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         if (toolMode === 'pen' && activePenContour) {
           e.preventDefault();
           if (isGlyphLocked) {
@@ -365,16 +388,16 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           }
           handleToggleNodeType?.();
         }
-      } else if (e.shiftKey && e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if (e.shiftKey && e.key.toLowerCase() === 's' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         e.preventDefault();
         if (isGlyphLocked) {
           showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
           return;
         }
         handleSmoothStrokeSelected();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
+      } else if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
         if (toolMode === 'ruler' && rulerMeasurement) {
+          e.preventDefault();
           if (isGlyphLocked) {
             showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             return;
@@ -383,12 +406,23 @@ export function useCanvasShortcuts(props: UseCanvasShortcutsProps) {
           return;
         }
         if (toolMode === 'pen' && activePenContour) {
+          e.preventDefault();
           if (isGlyphLocked) {
             showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
             return;
           }
           handleFinishPenContour(false);
-        } else if (e.shiftKey) {
+          return;
+        }
+        const isInteractiveButtonFocused = Boolean(
+          activeEl instanceof HTMLElement &&
+            activeEl.closest('button, a[href], [role="button"], [role="menuitem"], [role="tab"]')
+        );
+        if (isInteractiveButtonFocused) {
+          return;
+        }
+        e.preventDefault();
+        if (e.shiftKey) {
           onSelectPrevGlyph?.();
         } else {
           onSelectNextGlyph?.();

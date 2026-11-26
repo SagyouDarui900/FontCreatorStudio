@@ -190,6 +190,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
     if (!isOpen || !isTopModal) return;
 
     const handleStudioKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
       const activeEl = document.activeElement;
       const isInputActive =
         activeEl &&
@@ -201,6 +202,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       if (isInputActive) return;
 
       if (e.key === 'Escape') {
+        if (e.repeat) return;
         e.preventDefault();
         e.stopPropagation();
         // Commit an in-progress stroke first so it is not lost.

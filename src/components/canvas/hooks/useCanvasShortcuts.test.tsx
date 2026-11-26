@@ -159,4 +159,66 @@ describe('useCanvasShortcuts (Round 3, L14)', () => {
       cleanup();
     }
   });
+
+  it('handles JIS zoom out (Shift + Minus => =) without zooming in and ignores Shift+1 (!) for fit view', () => {
+    const handleZoomStep = vi.fn();
+    const resetView = vi.fn();
+    const { cleanup } = renderShortcuts(
+      baseProps({
+        handleZoomStep,
+        resetView,
+      })
+    );
+    try {
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', { key: '=', code: 'Minus', shiftKey: true, bubbles: true, cancelable: true })
+        );
+      });
+      expect(handleZoomStep).toHaveBeenCalledWith(1 / 1.25);
+
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', { key: '!', code: 'Digit1', shiftKey: true, bubbles: true, cancelable: true })
+        );
+      });
+      expect(resetView).not.toHaveBeenCalled();
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('does not hijack Enter when an interactive button has focus, but navigates on canvas/body focus', () => {
+    const onSelectNextGlyph = vi.fn();
+    const onSelectPrevGlyph = vi.fn();
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+
+    const { cleanup } = renderShortcuts(
+      baseProps({
+        onSelectNextGlyph,
+        onSelectPrevGlyph,
+      })
+    );
+    try {
+      act(() => {
+        button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      });
+      expect(onSelectNextGlyph).not.toHaveBeenCalled();
+
+      button.blur();
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true })
+        );
+      });
+      expect(onSelectNextGlyph).toHaveBeenCalledTimes(1);
+      expect(onSelectPrevGlyph).toHaveBeenCalledTimes(1);
+    } finally {
+      button.remove();
+      cleanup();
+    }
+  });
 });

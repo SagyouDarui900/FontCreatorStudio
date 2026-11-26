@@ -72,7 +72,7 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
               d={pathD}
               fill="transparent"
               stroke="transparent"
-              strokeWidth={Math.max(14, 18 / zoom)}
+              strokeWidth={Math.max(20, 22 / zoom)}
               className={toolMode === 'select' || toolMode === 'node' ? 'cursor-pointer' : 'pointer-events-none'}
               pointerEvents={toolMode === 'select' ? 'stroke fill' : toolMode === 'node' ? 'stroke' : 'none'}
               onPointerDown={(e) => {
@@ -154,7 +154,7 @@ export const InteractiveContourHitLayer: React.FC<InteractiveContourHitLayerProp
                 }
               }}
               onDoubleClick={(e) => {
-                if (e.button !== 0) return;
+                if (toolMode !== 'select' || e.button !== 0) return;
                 e.stopPropagation();
                 if (onSetToolMode) {
                   onSetToolMode('node');

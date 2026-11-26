@@ -11,6 +11,7 @@ export interface SimplifySectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   themeClasses: ThemeClasses;
+  isGlyphLocked?: boolean;
 }
 
 export const SimplifySection: React.FC<SimplifySectionProps> = ({
@@ -22,6 +23,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
   isExpanded,
   onToggle,
   themeClasses,
+  isGlyphLocked = false,
 }) => {
   return (
     <div
@@ -46,7 +48,7 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
       </div>
 
       {isExpanded && (
-        <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border}`}>
+        <div className={`p-3 pt-0 space-y-2.5 border-t ${themeClasses.border} ${isGlyphLocked ? 'opacity-65' : ''}`}>
           <p className={`text-[11px] leading-relaxed pt-1 ${themeClasses.textMuted}`}>
             不要なアンカーポイント（重複・共線点）を自動削除し、字形を保ちながらファイル容量を削減します。
           </p>
@@ -95,9 +97,13 @@ export const SimplifySection: React.FC<SimplifySectionProps> = ({
           <button
             type="button"
             onClick={onExecuteSimplify}
-            disabled={contours.length === 0 || totalNodes === 0}
-            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer ${themeClasses.accentBtn}`}
-            title="現在のグリフの全輪郭を単純化 (ショートカット: Alt+S)"
+            disabled={contours.length === 0 || totalNodes === 0 || isGlyphLocked}
+            className={`w-full min-h-[42px] py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition-colors active:scale-95 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
+            title={
+              isGlyphLocked
+                ? '編集ロック中のため単純化できません'
+                : '現在のグリフの全輪郭を単純化 (ショートカット: Alt+S)'
+            }
           >
             <Zap className="w-4 h-4 fill-current shrink-0" />
             <span>輪郭を単純化 (Simplify)</span>

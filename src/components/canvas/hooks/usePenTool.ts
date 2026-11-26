@@ -300,8 +300,9 @@ export function usePenTool({
       let newX = e.clientX - penHudDragOffsetRef.current.x;
       let newY = e.clientY - penHudDragOffsetRef.current.y;
 
-      newX = Math.max(8, Math.min(containerRect.width - 400, newX));
-      newY = Math.max(8, Math.min(containerRect.height - 44, newY));
+      const hudWidth = Math.min(340, Math.max(220, containerRect.width - 16));
+      newX = Math.max(8, Math.min(Math.max(8, containerRect.width - hudWidth - 8), newX));
+      newY = Math.max(8, Math.min(Math.max(8, containerRect.height - 44), newY));
 
       setPenHudPos({ x: newX, y: newY });
     },

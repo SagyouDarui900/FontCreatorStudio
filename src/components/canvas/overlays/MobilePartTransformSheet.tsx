@@ -19,6 +19,13 @@ import {
   AlignStartVertical,
   AlignCenterVertical,
   AlignEndVertical,
+  Scissors,
+  Combine,
+  CornerDownRight,
+  Spline,
+  Expand,
+  RefreshCw,
+  BookmarkPlus,
 } from 'lucide-react';
 import type { AlignDirection, DistributeDirection } from '../../../utils/geometry/alignment';
 
@@ -38,6 +45,13 @@ export interface MobilePartTransformSheetProps {
   handleDuplicateSelected: () => void;
   handleSmoothStrokeSelected: (strength?: 'mild' | 'standard' | 'strong', keepShape?: boolean) => void;
   handleSimplifySelected: (tol?: number) => void;
+  handleSubtractSelectedContours?: () => void;
+  handleIntersectSelectedContours?: () => void;
+  handleConvertToCornersSelected?: () => void;
+  handleConvertToSmoothSelected?: () => void;
+  handleExpandStrokeSelected?: () => void;
+  handleReverseWindingSelected?: () => void;
+  handleRegisterSelectedAsCustomPart?: () => void;
   handleDeleteSelected: () => void;
   isGlyphLocked?: boolean;
 }
@@ -59,6 +73,13 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
     handleDuplicateSelected,
     handleSmoothStrokeSelected,
     handleSimplifySelected,
+    handleSubtractSelectedContours,
+    handleIntersectSelectedContours,
+    handleConvertToCornersSelected,
+    handleConvertToSmoothSelected,
+    handleExpandStrokeSelected,
+    handleReverseWindingSelected,
+    handleRegisterSelectedAsCustomPart,
     handleDeleteSelected,
     isGlyphLocked = false,
   }) => {
@@ -95,11 +116,11 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] space-y-3 text-xs">
-            {/* Merge paths or resolve cursive loops */}
+            {/* Merge paths or boolean ops */}
             {selectedContourIds.length >= 1 && (
-              <div>
-                <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">
-                  {selectedContourIds.length === 1 ? '一筆書き重なり白抜きの解消' : 'パスの合体・白抜き解消'}
+              <div className="space-y-1.5">
+                <div className="font-bold text-stone-500 dark:text-stone-400">
+                  {selectedContourIds.length === 1 ? '一筆書き重なり白抜きの解消' : 'パスの結合・論理演算'}
                 </div>
                 <button
                   disabled={isGlyphLocked}
@@ -116,6 +137,36 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                       : '選択した全パーツをベクター結合'}
                   </span>
                 </button>
+                {selectedContourIds.length >= 2 && (handleSubtractSelectedContours || handleIntersectSelectedContours) && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {handleSubtractSelectedContours && (
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => {
+                          handleSubtractSelectedContours();
+                          onClose();
+                        }}
+                        className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-medium ${disabledCls}`}
+                      >
+                        <Scissors className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>型抜き (差分)</span>
+                      </button>
+                    )}
+                    {handleIntersectSelectedContours && (
+                      <button
+                        disabled={isGlyphLocked}
+                        onClick={() => {
+                          handleIntersectSelectedContours();
+                          onClose();
+                        }}
+                        className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-medium ${disabledCls}`}
+                      >
+                        <Combine className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>交差 (重なり)</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -291,7 +342,7 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
 
             {/* Smoothing and Optimization */}
             <div>
-              <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">ストローク最適化</div>
+              <div className="font-bold text-stone-500 dark:text-stone-400 mb-1.5">ストローク最適化・パス変換</div>
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   disabled={isGlyphLocked}
@@ -309,6 +360,59 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                   <Wand2 className="w-3.5 h-3.5 text-emerald-500" />
                   <span>アンカー点削減</span>
                 </button>
+                {handleConvertToCornersSelected && (
+                  <button
+                    disabled={isGlyphLocked}
+                    onClick={handleConvertToCornersSelected}
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                  >
+                    <CornerDownRight className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    <span>全点角化</span>
+                  </button>
+                )}
+                {handleConvertToSmoothSelected && (
+                  <button
+                    disabled={isGlyphLocked}
+                    onClick={handleConvertToSmoothSelected}
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                  >
+                    <Spline className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    <span>全点曲線化</span>
+                  </button>
+                )}
+                {handleExpandStrokeSelected && (
+                  <button
+                    disabled={isGlyphLocked}
+                    onClick={handleExpandStrokeSelected}
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                  >
+                    <Expand className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>線輪郭化</span>
+                  </button>
+                )}
+                {handleReverseWindingSelected && (
+                  <button
+                    disabled={isGlyphLocked}
+                    onClick={handleReverseWindingSelected}
+                    className={`p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-stone-50 dark:bg-stone-900/60 hover:bg-emerald-50 dark:hover:bg-[#1f2f24] font-medium ${disabledCls}`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>向き反転 (中抜き)</span>
+                  </button>
+                )}
+                {handleRegisterSelectedAsCustomPart && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleRegisterSelectedAsCustomPart();
+                      onClose();
+                    }}
+                    className="col-span-2 p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 font-bold"
+                  >
+                    <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>部首パーツとして登録</span>
+                  </button>
+                )}
               </div>
             </div>
 

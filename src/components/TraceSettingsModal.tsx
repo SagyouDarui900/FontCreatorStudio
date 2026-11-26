@@ -20,6 +20,7 @@ import {
 import { TraceSettings } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BundledFontsModal } from './BundledFontsModal';
+import { useIsTopModal } from './modals/ModalStackFrame';
 import {
   TRACE_DEFAULT_OPACITY,
   TRACE_FONT_OPTIONS,
@@ -57,28 +58,31 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
+  const isTopModal = useIsTopModal();
+
   // Keyboard shortcut listener: Escape and F
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isLicenseModalOpen) return;
+      if (isLicenseModalOpen || e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
       if (e.key === 'Escape') {
+        if (e.repeat) return;
         e.preventDefault();
         if (isFullscreen) {
           setIsFullscreen(false);
         } else {
           onClose();
         }
-      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setIsFullscreen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFullscreen, isLicenseModalOpen, onClose]);
+  }, [isOpen, isTopModal, isFullscreen, isLicenseModalOpen, onClose]);
 
   // Current active image source (either per-char or global)
   const currentImageSrc =

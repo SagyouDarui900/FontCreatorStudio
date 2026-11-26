@@ -190,7 +190,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
         {/* Left: Uncompleted Glyph Skip, Contour Count, Lock Badge */}
         <div className="flex items-center gap-1 shrink-0">
           {(onSelectPrevUncompletedGlyph || onSelectNextUncompletedGlyph) && (
-            <div className="hidden md:flex items-center gap-0.5">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={onSelectPrevUncompletedGlyph}
@@ -359,7 +359,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
                 }`
               );
             }}
-            className={`hidden lg:inline-flex h-6 px-1.5 rounded text-[10px] font-bold items-center gap-1 border transition-colors ${
+            className={`inline-flex h-6 px-1.5 rounded text-[10px] font-bold items-center gap-1 border transition-colors ${
               palmRejectionMode === 'strict_pen_only'
                 ? isLight
                   ? 'bg-amber-100 text-amber-900 border-amber-300'
@@ -379,7 +379,7 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             ) : (
               <Shield className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
             )}
-            <span>
+            <span className="hidden md:inline">
               {palmRejectionMode === 'strict_pen_only'
                 ? 'ペン専用'
                 : palmRejectionMode === 'auto'
@@ -391,14 +391,14 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
           {/* Stylus Active Indicator */}
           {isStylusActive && (
             <div
-              className={`hidden xl:flex h-6 px-1.5 rounded text-[10px] font-bold items-center gap-1 border ${
+              className={`flex h-6 px-1.5 rounded text-[10px] font-bold items-center gap-1 border ${
                 isLight
                   ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                   : 'bg-[#16251b] text-emerald-300 border-emerald-700'
               }`}
               title="Apple Pencil / スタイラス入力検知中"
             >
-              <span>Pencil</span>
+              <span className="hidden md:inline">Pencil</span>
               {liveStylusPressure !== null && (
                 <span className="font-mono tabular-nums text-[9.5px] bg-emerald-200/60 dark:bg-emerald-900/60 px-1 rounded">
                   {liveStylusPressure}%
@@ -565,11 +565,11 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
 
       {/* ==================== MOBILE DOCKED STATUS BAR ==================== */}
       <div className="flex sm:hidden items-center justify-between w-full min-w-0 gap-1">
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setIsMobileAuxMenuOpen(true)}
-            className={`h-6 px-2 rounded text-[10.5px] font-bold flex items-center gap-1 border ${
+            className={`h-6 px-2 rounded text-[10.5px] font-bold flex items-center gap-1 border shrink-0 ${
               isLight
                 ? 'bg-white border-emerald-200 text-emerald-800'
                 : 'bg-[#17261c] border-emerald-800 text-emerald-300'
@@ -578,6 +578,78 @@ export const CanvasStatusBar: React.FC<CanvasStatusBarProps> = React.memo(({
             <SlidersHorizontal className="w-3 h-3" />
             <span>補助</span>
           </button>
+
+          {rulerMeasurement ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDrawRulerAsStroke?.();
+                }}
+                disabled={isGlyphLocked}
+                className={`h-6 px-1.5 rounded bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-0.5 ${
+                  isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                }`}
+                title="定規を直線として作成"
+              >
+                <PenTool className="w-2.5 h-2.5" />
+                <span>直線</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleConvertRulerToGuideline?.();
+                }}
+                className="h-6 px-1.5 rounded bg-sky-600 text-white text-[10px] font-bold flex items-center gap-0.5"
+                title="ガイド線を作成"
+              >
+                <Ruler className="w-2.5 h-2.5" />
+                <span>ガイド</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRulerMeasurement?.(null);
+                }}
+                className="h-6 w-6 rounded bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center justify-center"
+                title="定規計測をクリア"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ) : toolMode === 'node' && selectedNodeCount > 0 ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                disabled={isGlyphLocked}
+                onClick={() =>
+                  handleToggleNodeType?.(
+                    selectedNodeCount > 1 ? undefined : selectedContourId || undefined,
+                    selectedNodeCount > 1 ? undefined : selectedNodeId || undefined
+                  )
+                }
+                className={`h-6 px-1.5 rounded text-[10px] bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700 font-bold ${
+                  isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                }`}
+              >
+                角⇄曲
+              </button>
+              <button
+                type="button"
+                disabled={isGlyphLocked}
+                onClick={() => handleDeleteSelectedNode?.()}
+                className={`h-6 px-1.5 rounded text-[10px] bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700 font-bold flex items-center gap-0.5 ${
+                  isGlyphLocked ? 'opacity-45 cursor-not-allowed' : ''
+                }`}
+              >
+                <Trash2 className="w-2.5 h-2.5" />
+                <span>削除</span>
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">

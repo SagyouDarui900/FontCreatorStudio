@@ -362,4 +362,84 @@ describe('useRadicalCanvas bug & leak fixes', () => {
     expect(cancelSpy).toHaveBeenCalledWith(4242);
     container.remove();
   });
+
+  it('ignores right-click pointerdown so it never draws or alters contours', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    let api!: ReturnType<typeof useRadicalCanvas>;
+    const commitPartChange = vi.fn();
+
+    function Harness() {
+      const [parts] = React.useState<CustomPart[]>([createRectPart()]);
+      const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
+      const [selectedContourId, setSelectedContourId] = React.useState<string | null>(null);
+      const [zoom, setZoom] = React.useState(1);
+      const [pan, setPan] = React.useState({ x: 0, y: 0 });
+      const [activeSnapLines, setActiveSnapLines] = React.useState<{ x: number | null; y: number | null }>({ x: null, y: null });
+
+      api = useRadicalCanvas({
+        activePart: parts[0],
+        commitPartChange,
+        toolMode: 'brush',
+        setToolMode: vi.fn(),
+        brushStyle: 'marumoji',
+        brushWidth: 40,
+        isStraightMode: false,
+        pressureSensitivity: 'off',
+        eraserMode: 'stroke',
+        eraserRadius: 20,
+        isAutoUnionMode: false,
+        notify: vi.fn(),
+        zoom,
+        setZoom,
+        pan,
+        setPan,
+        isSpacePressed: false,
+        selectedNodeId,
+        setSelectedNodeId,
+        selectedContourId,
+        setSelectedContourId,
+        activeSnapLines,
+        setActiveSnapLines,
+        setParts: vi.fn(),
+        isSnapEnabled: false,
+        showGrid: false,
+        setUndoStack: vi.fn(),
+        setRedoStack: vi.fn(),
+      });
+
+      return <svg ref={api.svgCanvasRef} />;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    vi.spyOn(api.svgCanvasRef.current!, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 1000,
+      right: 1000,
+      bottom: 1000,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    act(() => {
+      api.handlePointerDown(makePointerEvent('pointerdown', 150, 150, { button: 2 }));
+      api.handlePointerMove(makePointerEvent('pointermove', 250, 250, { button: 2 }));
+      api.handlePointerUp(makePointerEvent('pointerup', 250, 250, { button: 2 }));
+    });
+
+    expect(commitPartChange).not.toHaveBeenCalled();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
