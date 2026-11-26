@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Sparkles, Type } from 'lucide-react';
 import { ProportionalMetricsConfig } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
+import { SliderRow } from '../modals/SliderRow';
 
 interface PaltMetricsPanelProps {
   paltConfig?: ProportionalMetricsConfig;
@@ -64,7 +65,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
               onClick={onAutoDerivePalt}
               className={`flex-1 sm:flex-none justify-center px-3 py-2 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>全グリフの字面から一括自動算出</span>
             </button>
 
@@ -82,31 +83,18 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
         </div>
 
         {/* Optical Padding slider */}
-        <div
-          className={`pt-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${themeClasses.border}`}
-        >
-          <div className="space-y-0.5">
-            <span className="font-bold">
-              光学サイドベアリング余白比率（字面の上下左右に確保する最小余白）
-            </span>
-            <p className={`text-[11px] ${themeClasses.textMuted}`}>
-              字面輪郭（インク領域）の外側に付与する均等マージン率（横 `palt`・縦 `vpal` 共通）
-            </p>
-          </div>
-          <div className="flex items-center space-x-3 shrink-0">
-            <input
-              type="range"
-              min="1"
-              max="15"
-              step="1"
-              value={safePercent}
-              onChange={(e) => onChangeOpticalSideBearingPercent(Number(e.target.value))}
-              className="w-32 accent-emerald-600"
-            />
-            <span className={`font-mono font-bold w-12 text-right ${themeClasses.accentText}`}>
-              {safePercent}%
-            </span>
-          </div>
+        <div className={`pt-3 border-t ${themeClasses.border}`}>
+          <SliderRow
+            label="光学サイドベアリング余白比率"
+            value={safePercent}
+            min={1}
+            max={15}
+            step={1}
+            unit="%"
+            onChange={onChangeOpticalSideBearingPercent}
+            hint="字面の上下左右に確保する最小余白。字面輪郭（インク領域）の外側に付与する均等マージン率（横 `palt`・縦 `vpal` 共通）"
+            themeClasses={themeClasses}
+          />
         </div>
       </div>
 
@@ -152,7 +140,7 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
           <div
             className={`p-8 rounded-xl border text-center space-y-3 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
-            <Sparkles className="w-8 h-8 text-amber-500 mx-auto" />
+            <Sparkles className={`w-8 h-8 mx-auto ${themeClasses.accentText}`} />
             <div className="space-y-1">
               <p className="font-bold text-sm">
                 {metricsView === 'palt'
@@ -184,13 +172,13 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
                 <div className="flex items-center space-x-2.5 min-w-0">
                   <button
                     onClick={() => onTogglePaltItem(metric.unicode)}
-                    className={`w-6 h-6 sm:w-4 sm:h-4 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                    className={`w-8 h-8 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                       metric.enabled
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        ? `${themeClasses.accentBtn} border-transparent`
                         : themeClasses.border
                     }`}
                   >
-                    {metric.enabled && <Check className="w-3 h-3" />}
+                    {metric.enabled && <Check className="w-3.5 h-3.5" />}
                   </button>
 
                   <div
@@ -235,13 +223,13 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
                   <button
                     onClick={() => onToggleVpalItem?.(metric.unicode)}
                     disabled={!onToggleVpalItem}
-                    className={`w-6 h-6 sm:w-4 sm:h-4 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                    className={`w-8 h-8 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                       metric.enabled
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        ? `${themeClasses.accentBtn} border-transparent`
                         : themeClasses.border
                     }`}
                   >
-                    {metric.enabled && <Check className="w-3 h-3" />}
+                    {metric.enabled && <Check className="w-3.5 h-3.5" />}
                   </button>
 
                   <div

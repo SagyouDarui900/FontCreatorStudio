@@ -62,7 +62,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
         {/* Add Custom Ligature Form */}
         <div className={`pt-3 border-t space-y-3 ${themeClasses.border}`}>
           <h4 className="text-xs font-bold">新しい合字ルールの定義・追加</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-2.5">
             <input
               type="text"
               placeholder="合字名称 (例: トモダチ合字)"
@@ -127,7 +127,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
           </h4>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
           {ligatures.map((lig) => {
             const targetChar = safeFromCodePoint(lig.substituteUnicode);
             const hasTarget = existingUnicodes
@@ -158,9 +158,9 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
                 <div className="flex items-center space-x-3 min-w-0">
                   <button
                     onClick={() => onToggleLigature(lig.id)}
-                    className={`w-6 h-6 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                    className={`w-8 h-8 sm:w-5 sm:h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                       lig.enabled
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        ? `${themeClasses.accentBtn} border-transparent`
                         : themeClasses.border
                     }`}
                   >
@@ -211,7 +211,7 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
 
                 <button
                   onClick={() => onRemoveLigature(lig.id)}
-                  className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
+                  className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
                   title="削除"
                 >
                   <Trash2 className="w-4 h-4" />

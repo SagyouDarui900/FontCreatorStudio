@@ -22,6 +22,9 @@ interface UseOpenTypeFeaturesStateParams {
   onClose: () => void;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   commitProjectHistory?: () => void;
+  /** Fullscreen state (M-11): Escape exits fullscreen first instead of closing. */
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export function useOpenTypeFeaturesState({
@@ -31,6 +34,8 @@ export function useOpenTypeFeaturesState({
   onClose,
   onShowToast,
   commitProjectHistory,
+  isFullscreen = false,
+  onToggleFullscreen,
 }: UseOpenTypeFeaturesStateParams) {
   const [activeTab, setActiveTab] = useState<OpenTypeTab>('vert');
   const [opticalSideBearingPercent, setOpticalSideBearingPercent] = useState<number>(
@@ -60,19 +65,29 @@ export function useOpenTypeFeaturesState({
 
   const isTopModal = useIsTopModal();
 
-  // Close on Escape
+  // Close on Escape (exits fullscreen first, like WeightInterpolationModal);
+  // 'F' toggles fullscreen. Both mirror the Weight modal's key handling.
   useEffect(() => {
     if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.isComposing || e.keyCode === 229 || e.defaultPrevented || e.repeat) return;
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        if (isFullscreen) {
+          onToggleFullscreen?.();
+        } else {
+          onClose();
+        }
+      } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeTag = document.activeElement?.tagName.toLowerCase();
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+        e.preventDefault();
+        onToggleFullscreen?.();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isTopModal, onClose]);
+  }, [isOpen, isTopModal, onClose, isFullscreen, onToggleFullscreen]);
 
   const existingUnicodes = useMemo(
     () => new Set(Object.keys(project.glyphs || {}).map(Number)),

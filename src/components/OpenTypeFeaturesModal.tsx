@@ -1,14 +1,13 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   AlignVerticalJustifyCenter,
-  ArrowUpDown,
-  Eye,
-  Layers,
   Sparkles,
-  X,
   Zap,
 } from 'lucide-react';
 import { getThemeClasses } from '../utils/theme';
+import { ModalShell } from './modals/ModalShell';
+import { ModalTabs, type ModalTabItem } from './modals/ModalTabs';
+import { ModalFooter } from './modals/ModalFooter';
 import {
   GposKerningPanel,
   LigaturesPanel,
@@ -33,6 +32,11 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
   commitProjectHistory,
 }) => {
   const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
+  const resolvedTheme = theme ?? (isLight ? 'light' : 'dark');
+
+  // Fullscreen mode (M-11): same toggle as the other studio modals.
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const toggleFullscreen = useCallback(() => setIsFullscreen((v) => !v), []);
 
   const {
     activeTab,
@@ -75,242 +79,186 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     onClose,
     onShowToast,
     commitProjectHistory,
+    isFullscreen,
+    onToggleFullscreen: toggleFullscreen,
   });
 
   if (!isOpen) return null;
 
-  const tabs = [
+  const tabs: ModalTabItem[] = [
     {
       id: 'vert',
       label: '縦書き設定 (`vert`/`vhea`)',
       shortLabel: '縦書き',
-      icon: AlignVerticalJustifyCenter,
       count: config.verticalWriting.substitutions.filter((s) => s.enabled).length,
     },
     {
       id: 'liga',
       label: '合字・リガチャー (`liga`/`dlig`)',
       shortLabel: '合字',
-      icon: Layers,
       count: config.ligatures.filter((l) => l.enabled).length,
     },
     {
       id: 'gpos',
       label: 'カーニング・ペア調整 (GPOS)',
       shortLabel: 'カーニング',
-      icon: ArrowUpDown,
       count: Object.keys(project.kerning || {}).length,
     },
     {
       id: 'palt',
       label: 'プロポーショナルメトリクス (`palt`/`vpal`)',
       shortLabel: '文字ツメ(palt)',
-      icon: Sparkles,
       count: (config.palt?.paltList || []).filter((p) => p.enabled).length,
     },
     {
       id: 'preview',
       label: 'リアルタイム縦書き・合字プレビュー',
       shortLabel: 'プレビュー',
-      icon: Eye,
-      badge: 'LIVE',
+      badge: (
+        <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${themeClasses.accentBadge}`}>
+          LIVE
+        </span>
+      ),
     },
   ];
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="縦書き・合字スタジオ"
-      className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
-    >
-      <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-7xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] flex flex-col overflow-hidden transition-colors ${themeClasses.modalBg} ${themeClasses.border}`}
-      >
-        {/* Header Bar */}
-        <div
-          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 gap-2 sm:gap-3 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1">
-            <div
-              className={`hidden sm:flex w-8 h-8 rounded-xl items-center justify-center border shrink-0 ${themeClasses.accentBadge}`}
-            >
-              <AlignVerticalJustifyCenter className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
-                  縦書き・合字スタジオ
-                </h2>
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
-                    config.enabled
-                      ? themeClasses.accentBadge
-                      : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
-                  }`}
-                >
-                  {config.enabled ? 'ON' : 'OFF'}
-                </span>
-              </div>
-              <p className={`hidden sm:block text-xs truncate ${themeClasses.textMuted}`}>
-                日本語縦書き・合字・ペア調整のビジュアル設計と検証
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end space-x-1.5 sm:space-x-2 shrink-0">
-            <button
-              onClick={toggleFeaturesGlobal}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
-                config.enabled
-                  ? `${themeClasses.accentBtn} border-transparent`
-                  : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>{config.enabled ? '有効' : '無効'}</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div
-          className={`flex items-center px-3 sm:px-5 py-1.5 border-b shrink-0 text-xs font-bold gap-1 overflow-x-auto custom-scrollbar touch-scroll-x min-w-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (isOpenTypeTab(tab.id)) {
-                    setActiveTab(tab.id);
-                  }
-                }}
-                className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg flex items-center space-x-1.5 sm:space-x-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  isSelected
-                    ? themeClasses.accentBtn
-                    : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.shortLabel}</span>
-                {tab.count !== undefined && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-black/10 dark:bg-white/10'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-                {tab.badge && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500 text-white">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tab Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4">
-          {activeTab === 'vert' && (
-            <VertFeaturesPanel
-              verticalWriting={config.verticalWriting}
-              existingUnicodes={existingUnicodes}
-              themeClasses={themeClasses}
-              onAutoDetectVerticalGlyphs={handleAutoDetectVerticalGlyphs}
-              onToggleVerticalWriting={toggleVerticalWriting}
-              onCommitHistory={commitVerticalMetricHistory}
-              onUpdateVerticalMetricField={updateVerticalMetricField}
-              onToggleVertSub={toggleVertSub}
-            />
-          )}
-
-          {activeTab === 'liga' && (
-            <LigaturesPanel
-              ligatures={config.ligatures}
-              existingUnicodes={existingUnicodes}
-              themeClasses={themeClasses}
-              newLigName={newLigName}
-              newLigType={newLigType}
-              newLigInputs={newLigInputs}
-              newLigTargetUnicode={newLigTargetUnicode}
-              onChangeNewLigName={setNewLigName}
-              onChangeNewLigType={setNewLigType}
-              onChangeNewLigInputs={setNewLigInputs}
-              onChangeNewLigTargetUnicode={setNewLigTargetUnicode}
-              onAddCustomLigature={handleAddCustomLigature}
-              onToggleLigature={toggleLigature}
-              onRemoveLigature={handleRemoveLigature}
-            />
-          )}
-
-          {activeTab === 'gpos' && (
-            <GposKerningPanel
-              kerningPairCount={Object.keys(project.kerning || {}).length}
-              themeClasses={themeClasses}
-            />
-          )}
-
-          {activeTab === 'palt' && (
-            <PaltMetricsPanel
-              paltConfig={config.palt}
-              opticalSideBearingPercent={opticalSideBearingPercent}
-              themeClasses={themeClasses}
-              onChangeOpticalSideBearingPercent={setOpticalSideBearingPercent}
-              onAutoDerivePalt={handleAutoDerivePalt}
-              onTogglePaltGlobal={togglePaltGlobal}
-              onTogglePaltItem={togglePaltItem}
-              onToggleVpalItem={toggleVpalItem}
-            />
-          )}
-
-          {activeTab === 'preview' && (
-            <OpenTypePreviewPanel
-              project={project}
-              previewText={previewText}
-              previewWritingMode={previewWritingMode}
-              previewUsePalt={previewUsePalt}
-              themeClasses={themeClasses}
-              onChangePreviewText={setPreviewText}
-              onToggleWritingMode={togglePreviewWritingMode}
-              onTogglePreviewPalt={togglePreviewPalt}
-            />
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div
-          className={`flex items-center justify-end sm:justify-between px-3.5 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t shrink-0 text-xs ${
-            isLight ? 'bg-stone-50 border-stone-200' : 'bg-[#141e17] border-[#223326]'
-          }`}
-        >
-          <div className="flex items-center space-x-2 text-stone-500 dark:text-stone-400 max-sm:hidden">
-            <Sparkles className="w-4 h-4 text-emerald-500" />
-            <span>フォント出力（OTF/TTF/WOFF/WOFF2）時に縦書き・合字・GPOSテーブルが自動バインドされます</span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full sm:w-auto min-h-[42px] sm:min-h-0 px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer"
+    <ModalShell
+      title="縦書き・合字スタジオ"
+      subtitle="日本語縦書き・合字・ペア調整のビジュアル設計と検証"
+      icon={<AlignVerticalJustifyCenter className="w-4 h-4 sm:w-5 sm:h-5" />}
+      theme={resolvedTheme}
+      themeClasses={themeClasses}
+      maxWidth="6xl"
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={toggleFullscreen}
+      onClose={onClose}
+      headerExtra={
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span
+            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${
+              config.enabled
+                ? themeClasses.accentBadge
+                : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border}`
+            }`}
           >
-            完了・閉じる
+            {config.enabled ? 'ON' : 'OFF'}
+          </span>
+          <button
+            type="button"
+            onClick={toggleFeaturesGlobal}
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer ${
+              config.enabled
+                ? `${themeClasses.accentBtn} border-transparent`
+                : `${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.border} ${themeClasses.activeToolHover}`
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>{config.enabled ? '有効' : '無効'}</span>
           </button>
         </div>
+      }
+      footer={
+        <ModalFooter
+          primaryLabel="完了・閉じる"
+          onPrimary={onClose}
+          onCancel={onClose}
+          theme={resolvedTheme}
+          themeClasses={themeClasses}
+          leftInfo={
+            <div className={`hidden sm:flex items-center gap-2 min-w-0 ${themeClasses.textMuted}`}>
+              <Sparkles className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
+              <span className="truncate text-xs">
+                フォント出力（OTF/TTF/WOFF/WOFF2）時に縦書き・合字・GPOSテーブルが自動バインドされます
+              </span>
+            </div>
+          }
+        />
+      }
+    >
+      {/* Tab bar: sticky so it stays visible while the body scrolls.
+          The negative margins cancel the ModalShell body padding (p-3.5
+          sm:p-4) so the bar spans the full modal width like before. */}
+      <div className="sticky top-0 z-10 -mx-3.5 -mt-3.5 sm:-mx-4 sm:-mt-4 mb-3.5 sm:mb-4">
+        <ModalTabs
+          tabs={tabs}
+          activeId={activeTab}
+          onChange={(id) => {
+            if (isOpenTypeTab(id)) {
+              setActiveTab(id);
+            }
+          }}
+          theme={resolvedTheme}
+          themeClasses={themeClasses}
+          ariaLabel="縦書き・合字スタジオのタブ"
+        />
       </div>
-    </div>
+
+      {activeTab === 'vert' && (
+        <VertFeaturesPanel
+          verticalWriting={config.verticalWriting}
+          existingUnicodes={existingUnicodes}
+          themeClasses={themeClasses}
+          onAutoDetectVerticalGlyphs={handleAutoDetectVerticalGlyphs}
+          onToggleVerticalWriting={toggleVerticalWriting}
+          onCommitHistory={commitVerticalMetricHistory}
+          onUpdateVerticalMetricField={updateVerticalMetricField}
+          onToggleVertSub={toggleVertSub}
+        />
+      )}
+
+      {activeTab === 'liga' && (
+        <LigaturesPanel
+          ligatures={config.ligatures}
+          existingUnicodes={existingUnicodes}
+          themeClasses={themeClasses}
+          newLigName={newLigName}
+          newLigType={newLigType}
+          newLigInputs={newLigInputs}
+          newLigTargetUnicode={newLigTargetUnicode}
+          onChangeNewLigName={setNewLigName}
+          onChangeNewLigType={setNewLigType}
+          onChangeNewLigInputs={setNewLigInputs}
+          onChangeNewLigTargetUnicode={setNewLigTargetUnicode}
+          onAddCustomLigature={handleAddCustomLigature}
+          onToggleLigature={toggleLigature}
+          onRemoveLigature={handleRemoveLigature}
+        />
+      )}
+
+      {activeTab === 'gpos' && (
+        <GposKerningPanel
+          kerningPairCount={Object.keys(project.kerning || {}).length}
+          themeClasses={themeClasses}
+        />
+      )}
+
+      {activeTab === 'palt' && (
+        <PaltMetricsPanel
+          paltConfig={config.palt}
+          opticalSideBearingPercent={opticalSideBearingPercent}
+          themeClasses={themeClasses}
+          onChangeOpticalSideBearingPercent={setOpticalSideBearingPercent}
+          onAutoDerivePalt={handleAutoDerivePalt}
+          onTogglePaltGlobal={togglePaltGlobal}
+          onTogglePaltItem={togglePaltItem}
+          onToggleVpalItem={toggleVpalItem}
+        />
+      )}
+
+      {activeTab === 'preview' && (
+        <OpenTypePreviewPanel
+          project={project}
+          previewText={previewText}
+          previewWritingMode={previewWritingMode}
+          previewUsePalt={previewUsePalt}
+          themeClasses={themeClasses}
+          theme={resolvedTheme}
+          onChangePreviewText={setPreviewText}
+          onToggleWritingMode={togglePreviewWritingMode}
+          onTogglePreviewPalt={togglePreviewPalt}
+        />
+      )}
+    </ModalShell>
   );
 };

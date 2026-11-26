@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Eye, Info } from 'lucide-react';
 import { FontProject } from '../../types';
 import { compileFont, stripInvalidPixelData, validateFontProject } from '../../utils/font';
-import { ThemeClasses } from '../../utils/theme';
+import { ThemeClasses, type ThemeMode } from '../../utils/theme';
+import { ModalAlert } from '../modals/ModalAlert';
 
 interface OpenTypePreviewPanelProps {
   project: FontProject;
@@ -10,6 +11,7 @@ interface OpenTypePreviewPanelProps {
   previewWritingMode: 'vertical-rl' | 'horizontal-tb';
   previewUsePalt: boolean;
   themeClasses: ThemeClasses;
+  theme?: ThemeMode;
   onChangePreviewText: (text: string) => void;
   onToggleWritingMode: () => void;
   onTogglePreviewPalt: () => void;
@@ -21,6 +23,7 @@ export const OpenTypePreviewPanel: React.FC<OpenTypePreviewPanelProps> = ({
   previewWritingMode,
   previewUsePalt,
   themeClasses,
+  theme = 'light',
   onChangePreviewText,
   onToggleWritingMode,
   onTogglePreviewPalt,
@@ -184,9 +187,7 @@ export const OpenTypePreviewPanel: React.FC<OpenTypePreviewPanelProps> = ({
             className={`lg:col-span-8 p-5 rounded-xl border min-h-[260px] flex items-center justify-center overflow-auto transition-colors shadow-inner ${themeClasses.cardBg} ${themeClasses.border}`}
           >
             {compileError ? (
-              <div className="text-xs text-rose-500 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 max-w-md text-center">
-                {compileError}
-              </div>
+              <ModalAlert tone="error" title={compileError} theme={theme} />
             ) : (
               <div
                 style={{
