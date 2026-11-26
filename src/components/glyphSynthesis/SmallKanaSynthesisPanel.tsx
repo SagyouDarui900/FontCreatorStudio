@@ -1,5 +1,6 @@
 import React from 'react';
-import { Eye, Info, Layers, RotateCcw, Sliders, Wand2 } from 'lucide-react';
+import { Eye, Info, Layers, RotateCcw, Sliders } from 'lucide-react';
+import { ModalSection } from '../modals/ModalSection';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { SmallKanaOptions } from '../../utils/path';
 import { ThemeClasses } from '../../utils/theme';
@@ -27,9 +28,6 @@ interface SmallKanaSynthesisPanelProps {
   smallPreviewChar: string;
   onSelectPreviewChar: (char: string) => void;
   smallKanaPreviewPaths: { basePath: string; smallPath: string };
-  smallKanaTargetCount: number;
-  onExecuteBatch: () => void;
-  isExecuting?: boolean;
   unitsPerEm?: number;
 }
 
@@ -74,9 +72,6 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
   smallPreviewChar,
   onSelectPreviewChar,
   smallKanaPreviewPaths,
-  smallKanaTargetCount,
-  onExecuteBatch,
-  isExecuting = false,
   unitsPerEm = 1000,
 }) => {
   return (
@@ -84,14 +79,13 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
       {/* Left Controls */}
       <div className="lg:col-span-7 flex flex-col gap-2.5 order-last lg:order-first">
         {/* Scope & Overwrite Card */}
-        <div
-          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        <ModalSection
+          title="対象範囲"
+          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          themeClasses={themeClasses}
         >
+          <div className="flex flex-col gap-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-            <span className="font-bold flex items-center gap-1.5">
-              <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>対象範囲</span>
-            </span>
             <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5 sm:pb-0">
               {SCOPE_OPTIONS.map((option) => (
                 <button
@@ -110,8 +104,8 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             </div>
           </div>
 
-          <label className="flex items-center justify-between text-xs cursor-pointer pt-2 border-t border-stone-200 dark:border-stone-800">
-            <span className="text-stone-600 dark:text-emerald-400">作成済みの小書き文字を上書き</span>
+          <label className={`flex items-center justify-between text-xs cursor-pointer pt-2 border-t ${themeClasses.border}`}>
+            <span className={themeClasses.textMuted}>作成済みの小書き文字を上書き</span>
             <input
               type="checkbox"
               checked={smallOverwrite}
@@ -119,22 +113,21 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
               className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 focus:ring-emerald-500"
             />
           </label>
-        </div>
+          </div>
+        </ModalSection>
 
         {/* Scale & Placement Options */}
-        <div
-          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        <ModalSection
+          title="スケール・配置・太さ補正"
+          icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          themeClasses={themeClasses}
         >
-          <span className="text-xs font-bold flex items-center gap-1.5">
-            <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-            <span>スケール・配置・太さ補正</span>
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-3 text-xs">
+          <div className="flex flex-col gap-2.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={`${themeClasses.textMuted} font-bold`}>縮小倍率:</span>
-                <span className={`font-mono font-bold ${themeClasses.accentText}`}>
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   {Math.round(smallScale * 100)}%
                 </span>
               </div>
@@ -157,7 +150,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={`${themeClasses.textMuted} font-bold`}>太さ補正:</span>
-                <span className={`font-mono font-bold ${themeClasses.accentText}`}>
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   +{smallWeightBoost}U
                 </span>
               </div>
@@ -202,11 +195,11 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
           </div>
 
           {/* Position Fine Tuning */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
+          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>左右オフセット (X):</span>
-                <span className="font-mono font-bold">
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   {smallOffsetX > 0 ? `+${smallOffsetX}` : smallOffsetX}U
                 </span>
               </div>
@@ -224,7 +217,7 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>上下オフセット (Y):</span>
-                <span className="font-mono font-bold">
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   {smallOffsetY > 0 ? `+${smallOffsetY}` : smallOffsetY}U
                 </span>
               </div>
@@ -244,23 +237,26 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             <button
               type="button"
               onClick={onResetOffsets}
-              className={`text-[11px] py-1 px-2 rounded flex items-center gap-1 cursor-pointer ${themeClasses.textMuted} hover:opacity-80`}
+              className={`min-h-[44px] px-3 py-2 text-[11px] rounded-lg border flex items-center gap-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <RotateCcw className="w-3 h-3" />
               <span>設定リセット</span>
             </button>
           </div>
-        </div>
+          </div>
+        </ModalSection>
 
         {/* Source Kana Grid */}
-        <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <div className={`flex items-center justify-between text-[11px] mb-2 font-bold ${themeClasses.textMuted}`}>
-            <span>対象文字プレビュー:</span>
-            <span className={themeClasses.accentText}>
+        <ModalSection
+          title="対象文字プレビュー"
+          badge={
+            <span className={`text-[11px] font-bold ${themeClasses.accentText}`}>
               作成済: {availableSmallSources.filter((s) => s.hasContours).length} /{' '}
               {availableSmallSources.length}字
             </span>
-          </div>
+          }
+          themeClasses={themeClasses}
+        >
           <div
             className={`flex flex-wrap gap-1.5 sm:gap-1 max-h-36 sm:max-h-24 overflow-y-auto p-1.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
           >
@@ -271,10 +267,10 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
                 onClick={() => onSelectPreviewChar(item.char)}
                 className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:w-8 sm:h-8 rounded text-xs font-bold transition-colors flex items-center justify-center cursor-pointer ${
                   smallPreviewChar === item.char
-                    ? `${themeClasses.accentBtn} ring-2 ring-emerald-500`
+                    ? themeClasses.accentBtn
                     : item.hasContours
                     ? `${themeClasses.accentBadge} hover:opacity-90`
-                    : 'bg-black/5 dark:bg-white/5 text-stone-400 dark:text-stone-600 hover:opacity-80'
+                    : `${themeClasses.cardBg} ${themeClasses.textMuted} hover:opacity-80`
                 }`}
                 title={`「${item.char}」⇒ 小文字「${item.smallChar}」${
                   item.hasContours ? ' (作図済)' : ' (未作図)'
@@ -284,24 +280,22 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
               </button>
             ))}
           </div>
-        </div>
+        </ModalSection>
       </div>
 
       {/* Right Live Preview Box */}
       <div className="lg:col-span-5 flex flex-col gap-3 order-first lg:order-last">
-        <div
-          className={`p-3 sm:p-4 rounded-xl border flex flex-col items-center justify-center shadow-xs ${themeClasses.cardBg} ${themeClasses.border}`}
-        >
-          <div className={`w-full flex items-center justify-between text-xs font-bold mb-2 pb-1.5 border-b ${themeClasses.border}`}>
-            <span className="flex items-center gap-1.5">
-              <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>配置プレビュー</span>
-            </span>
+        <ModalSection
+          title="配置プレビュー"
+          icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          badge={
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border font-bold ${themeClasses.accentBadge}`}>
               「{smallPreviewChar}」⇒「{KANA_PAIRS[smallPreviewChar]?.smallChar || ''}」
             </span>
-          </div>
-
+          }
+          themeClasses={themeClasses}
+        >
+          <div className="flex flex-col items-center justify-center">
           <div
             className={`w-44 h-44 sm:w-56 sm:h-56 lg:w-full lg:h-auto lg:aspect-square lg:max-w-[250px] relative rounded-xl border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
@@ -337,17 +331,9 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
             <Info className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
             <span>薄い点線背景は原字（通常サイズ）です</span>
           </div>
-        </div>
+          </div>
+        </ModalSection>
 
-        <button
-          type="button"
-          onClick={onExecuteBatch}
-          disabled={smallKanaTargetCount === 0 || isExecuting}
-          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
-        >
-          <Wand2 className="w-4 h-4 shrink-0" />
-          <span>小書き文字を一括生成 ({smallKanaTargetCount}字)</span>
-        </button>
       </div>
     </div>
   );

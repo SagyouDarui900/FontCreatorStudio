@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  X,
   Upload,
   FileCode,
   Wand2,
@@ -14,8 +13,6 @@ import {
   RotateCw,
   Plus,
   Info,
-  Maximize2,
-  Minimize2,
 } from 'lucide-react';
 import { PathContour } from '../types';
 import { parseSvgStringToContours, SvgFitMode } from '../utils/svgParser';
@@ -23,6 +20,9 @@ import { vectorizeImage, VectorizeOptions } from '../utils/imageVectorizer';
 import { contoursToSvgPath, getSafeGlyphViewBox } from '../utils/path';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalAlert } from './modals/ModalAlert';
+import { ModalShell } from './modals/ModalShell';
+import { SliderRow } from './modals/SliderRow';
 
 /** Maximum SVG text size accepted for parsing (1 MB). */
 const SVG_TEXT_MAX_BYTES = 1024 * 1024;
@@ -287,81 +287,19 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="SVGインポート & 画像ベクター化スタジオ"
-      className={`fixed inset-0 z-[60] anim-fade ${
-        isFullscreen
-          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
-      }`}
+    <ModalShell
+      title="SVGインポート & 画像ベクター化"
+      subtitle="手書きスキャン画像からの自動ベクター変換・SVGパスの直接取り込み"
+      icon={<Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+      theme={theme}
+      themeClasses={themeClasses}
+      maxWidth="5xl"
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+      onClose={onClose}
+      ariaLabel="SVGインポート & 画像ベクター化スタジオ"
     >
-      <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
-          isFullscreen
-            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
-        }`}
-      >
-        {/* Header */}
-        <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${themeClasses.accentBadge}`}>
-              <Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
-                <span className="truncate">SVGインポート & 画像ベクター化</span>
-                {isFullscreen && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
-                    全画面
-                  </span>
-                )}
-              </h2>
-              <p className={`hidden sm:block text-[11px] truncate ${themeClasses.textMuted}`}>
-                手書きスキャン画像からの自動ベクター変換・SVGパスの直接取り込み
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1.5 shrink-0">
-            {/* Fullscreen Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
-                isFullscreen
-                  ? themeClasses.activeTool
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span>通常</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>全画面</span>
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`p-1.5 rounded-lg min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title="閉じる (Esc)"
-              aria-label="閉じる"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </div>
-
+      <div className="space-y-3">
         {/* Tab Selection */}
         <div
           className={`grid grid-cols-2 p-2 gap-1.5 border-b text-xs font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
@@ -397,7 +335,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 1: IMAGE VECTORIZER */}
         {activeTab === 'vectorizer' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-4 space-y-3 text-xs">
+          <div className="space-y-3">
             {/* Upload Toolbar */}
             <div className="flex flex-wrap gap-2 items-center">
               <input
@@ -494,7 +432,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                 {/* Vectorizer Preview */}
                 <div
                   className={`relative aspect-square w-full max-h-[380px] mx-auto rounded-2xl border overflow-hidden flex items-center justify-center ${
@@ -555,64 +493,50 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                     </div>
 
                     {vectorizeEmpty && !isProcessing && (
-                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2.5 py-2">
-                        輪郭が見つかりませんでした。閾値を調整してください。
-                      </p>
+                      <ModalAlert
+                        tone="warning"
+                        title="輪郭が見つかりませんでした"
+                        theme={theme}
+                      >
+                        閾値を調整してください。
+                      </ModalAlert>
                     )}
 
-                    {/* Threshold */}
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span>二値化の閾値 (しきい値):</span>
-                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>{threshold}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="20"
-                        max="240"
-                        value={threshold}
-                        onChange={(e) => setThreshold(Number(e.target.value))}
-                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
-                      />
-                    </div>
+                    <SliderRow
+                      label="二値化の閾値 (しきい値)"
+                      value={threshold}
+                      min={20}
+                      max={240}
+                      step={1}
+                      onChange={setThreshold}
+                      theme={theme}
+                      themeClasses={themeClasses}
+                    />
 
-                    {/* Smoothing */}
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span>スムージング (滑らかさ / ノイズ除去):</span>
-                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
-                          {smoothing.toFixed(1)}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="8.0"
-                        step="0.5"
-                        value={smoothing}
-                        onChange={(e) => setSmoothing(Number(e.target.value))}
-                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
-                      />
-                    </div>
+                    <SliderRow
+                      label="スムージング (滑らかさ / ノイズ除去)"
+                      value={smoothing}
+                      min={0.5}
+                      max={8.0}
+                      step={0.5}
+                      formatValue={(v) => v.toFixed(1)}
+                      onChange={setSmoothing}
+                      theme={theme}
+                      themeClasses={themeClasses}
+                    />
 
-                    {/* Contrast */}
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span>コントラスト強調:</span>
-                        <span className={`font-mono font-bold ${themeClasses.accentText}`}>
-                          {contrast.toFixed(1)}x
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2.5"
-                        step="0.1"
-                        value={contrast}
-                        onChange={(e) => setContrast(Number(e.target.value))}
-                        className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-lg accent-emerald-600 cursor-pointer"
-                      />
-                    </div>
+                    <SliderRow
+                      label="コントラスト強調"
+                      value={contrast}
+                      min={0.5}
+                      max={2.5}
+                      step={0.1}
+                      unit="x"
+                      formatValue={(v) => v.toFixed(1)}
+                      onChange={setContrast}
+                      theme={theme}
+                      themeClasses={themeClasses}
+                    />
 
                     {/* Invert */}
                     <label className="flex items-center justify-between pt-1 cursor-pointer select-none min-h-[36px]">
@@ -674,7 +598,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
 
         {/* CONTENT 2: DIRECT SVG IMPORT */}
         {activeTab === 'svg_import' && (
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-4 space-y-3 text-xs">
+          <div className="space-y-3">
             {/* SVG file upload toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <input
@@ -738,7 +662,7 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Textarea for SVG code */}
               <div className="space-y-1.5 flex flex-col">
                 <span className="text-[11px] font-bold">SVG XMLコード貼り付け:</span>
@@ -749,19 +673,13 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   className={`flex-1 min-h-[200px] sm:min-h-[220px] p-3 rounded-xl border font-mono text-[11px] leading-relaxed resize-none outline-hidden ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                 />
                 {svgParseError && (
-                  <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold">{svgParseError}</p>
+                  <ModalAlert tone="error" title={svgParseError} theme={theme} />
                 )}
                 {svgFileWarning && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">{svgFileWarning}</p>
+                  <ModalAlert tone="warning" title={svgFileWarning} theme={theme} />
                 )}
                 {svgWarnings.length > 0 && (
-                  <div className="space-y-0.5">
-                    {svgWarnings.map((warning, i) => (
-                      <p key={i} className="text-[11px] text-amber-600 dark:text-amber-400">
-                        {warning}
-                      </p>
-                    ))}
-                  </div>
+                  <ModalAlert tone="warning" title="SVGの読み込み時の注意" items={svgWarnings} theme={theme} />
                 )}
               </div>
 
@@ -821,6 +739,6 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </ModalShell>
   );
 };

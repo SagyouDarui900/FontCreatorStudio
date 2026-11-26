@@ -335,7 +335,7 @@ export const RadicalCanvasArea: React.FC<RadicalCanvasAreaProps> = React.memo(({
  step={2}
  value={penStrokeWidth}
  onChange={(e) => setPenStrokeWidth(parseInt(e.target.value, 10))}
- className="flex-1 h-2 accent-sky-600 dark:accent-sky-500 cursor-pointer"
+ className="flex-1 h-2 accent-emerald-600 cursor-pointer"
  />
  <button
  type="button"

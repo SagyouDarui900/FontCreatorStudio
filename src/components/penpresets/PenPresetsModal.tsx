@@ -491,17 +491,17 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="ブラシ・ペン設定"
-      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center bg-black/75 anim-fade p-0 sm:p-3"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center bg-black/75 anim-fade select-none p-0 sm:p-4"
     >
       <div
         className={`relative flex flex-col min-h-0 overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full ${showPresetDrawer ? 'sm:max-w-5xl xl:max-w-7xl' : 'sm:max-w-4xl xl:max-w-6xl'} h-[100dvh] sm:h-[88vh] sm:max-h-[880px] rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl`
+            : `w-full ${showPresetDrawer ? 'sm:max-w-5xl xl:max-w-7xl' : 'sm:max-w-4xl xl:max-w-6xl'} h-[100dvh] sm:h-[88vh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl`
         }`}
       >
         {/* Header */}
-        <div className={`px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:py-1.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
+        <div className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <button
               type="button"
@@ -513,7 +513,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showPresetDrawer ? 'rotate-90' : ''}`} />
             </button>
 
-            <div className="h-4 w-px bg-stone-300 dark:bg-stone-700 shrink-0" />
+            <div className={`h-4 border-l shrink-0 ${themeClasses.border}`} />
 
             {/* Editable Brush Name */}
             {isRenaming ? (
@@ -522,7 +522,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                   type="text"
                   value={renameInput ?? ''}
                   onChange={(e) => setRenameInput(e.target.value)}
-                  className={`px-2 py-0.5 text-xs border border-emerald-500 rounded-md font-bold focus:outline-none min-w-0 max-w-[140px] sm:max-w-none ${themeClasses.cardBg} ${themeClasses.textPrimary}`}
+                  className={`px-2 py-0.5 text-xs border rounded-md font-bold focus:outline-none min-w-0 max-w-[140px] sm:max-w-none ${themeClasses.cardBg} ${themeClasses.textPrimary} ${themeClasses.accentBorder}`}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -533,7 +533,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
                 <button
                   type="button"
                   onClick={() => applyRename(renameInput)}
-                  className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer shrink-0"
+                  className={`p-1 rounded-md cursor-pointer shrink-0 ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
                 >
                   <Check className="w-3.5 h-3.5" />
                 </button>
@@ -590,10 +590,24 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen((prev) => !prev)}
-              className={`hidden sm:flex p-1.5 rounded-lg transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title={isFullscreen ? '元に戻す' : '最大化'}
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
+                isFullscreen
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
+              }`}
+              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>通常</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>全画面</span>
+                </>
+              )}
             </button>
 
             {/* Close button */}
@@ -601,7 +615,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="閉じる"
-              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer ${themeClasses.textMuted}`}
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg border hover:bg-rose-100 dark:hover:bg-rose-950/60 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -667,7 +681,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
           )}
 
           {/* Left: Tab Control Panels */}
-          <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 p-2.5 sm:p-3 space-y-2.5 overscroll-contain ${mobileView === 'scratchpad' ? 'hidden md:block' : 'block'}`}>
+          <div className={`flex-1 overflow-y-auto min-h-0 min-w-0 p-3.5 sm:p-4 space-y-3 overscroll-contain ${mobileView === 'scratchpad' ? 'hidden md:block' : 'block'}`}>
             {activeTab === 'basic' && (
               <BasicTab
                 workingPreset={workingPreset}
@@ -728,7 +742,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className={`px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] sm:pb-2 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
+        <div className={`px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3 sm:pb-3 border-t flex flex-wrap items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
           <button
             type="button"
             onClick={() => {
@@ -755,7 +769,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               }
               showToast('ペン設定を完全な初期状態（標準筆）にリセットしました');
             }}
-            className={`px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+            className={`px-3 py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
             初期値に戻す
           </button>
@@ -765,7 +779,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
               <button
                 type="button"
                 onClick={handleOverwritePreset}
-                className="px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors flex items-center space-x-1 cursor-pointer border border-emerald-600"
+                className={`px-3 py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-1 cursor-pointer ${themeClasses.accentBtn}`}
                 title="選択中のプリセットに現在の設定を上書き保存します"
               >
                 <span>上書き保存</span>
@@ -774,14 +788,14 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
             <button
               type="button"
               onClick={handleSaveAsNewPreset}
-              className={`px-3 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
+              className={`px-3 py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
             >
               {isExistingCustomPreset ? '別名で新規保存' : '新規保存'}
             </button>
             <button
               type="button"
               onClick={handleApplyCurrentAndClose}
-              className={`px-4 py-1.5 max-sm:min-h-[38px] rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer ${themeClasses.accentBtn}`}
+              className={`px-4 py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer ${themeClasses.accentBtn}`}
             >
               <Check className="w-3.5 h-3.5" />
               <span>このペンを適用して閉じる</span>
@@ -798,7 +812,7 @@ export const PenPresetsModal: React.FC<PenPresetsModalProps> = ({
 
         {/* Delete confirmation dialog */}
         {pendingDeletePreset && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
             <div
               role="alertdialog"
               aria-modal="true"

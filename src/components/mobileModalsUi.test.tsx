@@ -192,8 +192,8 @@ describe('SVG Import UI & Mobile-Optimized Studio Modals', () => {
     const dialog = container.querySelector('[role="dialog"]')!;
     expect(dialog).not.toBeNull();
 
-    // Inner modal panel must have rounded-2xl (at sm+) and light theme modalBg (bg-white)
-    const panel = dialog.firstElementChild as HTMLElement;
+    // Modal panel (role="dialog" itself, via ModalShell) must have rounded-2xl (at sm+) and light theme modalBg (bg-white)
+    const panel = dialog as HTMLElement;
     expect(panel.className).toContain('sm:rounded-2xl');
     expect(panel.className).toContain('h-[100dvh]');
     expect(panel.className).toContain('bg-white');
@@ -208,7 +208,7 @@ describe('SVG Import UI & Mobile-Optimized Studio Modals', () => {
         theme="dark"
       />
     );
-    expect((dialog.firstElementChild as HTMLElement).className).not.toContain('bg-white');
+    expect((dialog as HTMLElement).className).not.toContain('bg-white');
 
     // Switch to SVG import tab
     const buttons = Array.from(container.querySelectorAll('button'));

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Eye, Info, Layers, RotateCcw, Sliders, Wand2 } from 'lucide-react';
+import { Eye, Info, Layers, RotateCcw, Sliders } from 'lucide-react';
+import { ModalSection } from '../modals/ModalSection';
 import {
   DAKUTEN_MAPPINGS,
   DakutenStyle,
@@ -32,9 +33,6 @@ interface DakutenSynthesisPanelProps {
   dakuPreviewKind: 'daku' | 'handaku';
   onChangeDakuPreviewKind: (kind: 'daku' | 'handaku') => void;
   dakutenPreviewSvgPath: string;
-  dakutenTargetCount: number;
-  onExecuteBatch: () => void;
-  isExecuting?: boolean;
   unitsPerEm?: number;
 }
 
@@ -87,9 +85,6 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
   dakuPreviewKind,
   onChangeDakuPreviewKind,
   dakutenPreviewSvgPath,
-  dakutenTargetCount,
-  onExecuteBatch,
-  isExecuting = false,
   unitsPerEm = 1000,
 }) => {
   const previewMapping = DAKUTEN_MAPPINGS[dakuPreviewChar];
@@ -105,14 +100,13 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
       {/* Left Controls */}
       <div className="lg:col-span-7 flex flex-col gap-2.5 order-last lg:order-first">
         {/* Scope & Overwrite Card */}
-        <div
-          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        <ModalSection
+          title="対象範囲"
+          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          themeClasses={themeClasses}
         >
+          <div className="flex flex-col gap-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
-            <span className="font-bold flex items-center gap-1.5">
-              <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>対象範囲</span>
-            </span>
             <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5 sm:pb-0">
               {SCOPE_OPTIONS.map((option) => (
                 <button
@@ -131,8 +125,8 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             </div>
           </div>
 
-          <label className="flex items-center justify-between text-xs cursor-pointer pt-2 border-t border-stone-200 dark:border-stone-800">
-            <span className="text-stone-600 dark:text-emerald-400">作成済みの濁音・半濁音を上書き</span>
+          <label className={`flex items-center justify-between text-xs cursor-pointer pt-2 border-t ${themeClasses.border}`}>
+            <span className={themeClasses.textMuted}>作成済みの濁音・半濁音を上書き</span>
             <input
               type="checkbox"
               checked={dakuOverwrite}
@@ -140,18 +134,17 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
               className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 focus:ring-emerald-500"
             />
           </label>
-        </div>
+          </div>
+        </ModalSection>
 
         {/* Style Options */}
-        <div
-          className={`p-3 rounded-lg border flex flex-col gap-2.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
+        <ModalSection
+          title="濁点・半濁点のスタイル"
+          icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          themeClasses={themeClasses}
         >
-          <span className="text-xs font-bold flex items-center gap-1.5">
-            <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-            <span>濁点・半濁点のスタイル</span>
-          </span>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="flex flex-col gap-2.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs">
             <div>
               <label className={`block text-[11px] font-bold mb-1 ${themeClasses.textMuted}`}>
                 濁点「゛」スタイル
@@ -198,11 +191,11 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
           </div>
 
           {/* Position Fine Tuning */}
-          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
+          <div className={`grid grid-cols-1 lg:grid-cols-3 gap-3 pt-2 border-t text-xs ${themeClasses.border}`}>
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>左右位置 (X):</span>
-                <span className="font-mono font-bold">
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   {dakuOffsetX > 0 ? `+${dakuOffsetX}` : dakuOffsetX}U
                 </span>
               </div>
@@ -220,7 +213,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>上下位置 (Y):</span>
-                <span className="font-mono font-bold">
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>
                   {dakuOffsetY > 0 ? `+${dakuOffsetY}` : dakuOffsetY}U
                 </span>
               </div>
@@ -238,7 +231,7 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             <div>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className={themeClasses.textMuted}>濁点サイズ:</span>
-                <span className="font-mono font-bold">{Math.round(dakuScale * 100)}%</span>
+                <span className={`min-w-[64px] px-2 py-0.5 rounded-md border text-center font-mono tabular-nums text-[11px] font-bold ${themeClasses.accentBadge}`}>{Math.round(dakuScale * 100)}%</span>
               </div>
               <input
                 type="range"
@@ -256,23 +249,26 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             <button
               type="button"
               onClick={onResetOffsets}
-              className={`text-[11px] py-1 px-2 rounded flex items-center gap-1 cursor-pointer ${themeClasses.textMuted} hover:opacity-80`}
+              className={`min-h-[44px] px-3 py-2 text-[11px] rounded-lg border flex items-center gap-1 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
             >
               <RotateCcw className="w-3 h-3" />
               <span>設定リセット</span>
             </button>
           </div>
-        </div>
+          </div>
+        </ModalSection>
 
         {/* Parent Char Quick Selectors */}
-        <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <div className={`flex items-center justify-between text-[11px] mb-2 font-bold ${themeClasses.textMuted}`}>
-            <span>対象文字プレビュー:</span>
-            <span className={themeClasses.accentText}>
+        <ModalSection
+          title="対象文字プレビュー"
+          badge={
+            <span className={`text-[11px] font-bold ${themeClasses.accentText}`}>
               作成済: {availableDakutenSources.filter((s) => s.hasContours).length} /{' '}
               {availableDakutenSources.length}字
             </span>
-          </div>
+          }
+          themeClasses={themeClasses}
+        >
           <div
             className={`flex flex-wrap gap-1.5 sm:gap-1 max-h-36 sm:max-h-24 overflow-y-auto p-1.5 rounded border ${themeClasses.cardBg} ${themeClasses.border}`}
           >
@@ -283,10 +279,10 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
                 onClick={() => onSelectPreviewChar(item.char)}
                 className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 sm:w-8 sm:h-8 rounded text-xs font-bold transition-colors flex items-center justify-center cursor-pointer ${
                   dakuPreviewChar === item.char
-                    ? `${themeClasses.accentBtn} ring-2 ring-emerald-500`
+                    ? themeClasses.accentBtn
                     : item.hasContours
                     ? `${themeClasses.accentBadge} hover:opacity-90`
-                    : 'bg-black/5 dark:bg-white/5 text-stone-400 dark:text-stone-600 hover:opacity-80'
+                    : `${themeClasses.cardBg} ${themeClasses.textMuted} hover:opacity-80`
                 }`}
                 title={`「${item.char}」→ 濁音:「${item.daku || ''}」${
                   item.handaku ? ` 半濁音:「${item.handaku}」` : ''
@@ -296,23 +292,18 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </ModalSection>
       </div>
 
       {/* Right Live Preview Box (shown first on mobile for immediate feedback) */}
       <div className="lg:col-span-5 flex flex-col gap-3 order-first lg:order-last">
-        <div
-          className={`p-3 sm:p-4 rounded-xl border flex flex-col items-center justify-center ${themeClasses.cardBg} ${themeClasses.border}`}
-        >
-          <div className={`w-full flex flex-wrap items-center justify-between gap-1.5 text-xs font-bold mb-2 pb-1.5 border-b ${themeClasses.border}`}>
+        <ModalSection
+          title="合成プレビュー"
+          icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          badge={
             <span className="flex items-center gap-1.5">
-              <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>合成プレビュー</span>
-            </span>
-
-            <div className="flex items-center gap-1.5">
               {previewMapping?.daku && previewMapping?.handaku && (
-                <div className="flex items-center rounded-md border overflow-hidden text-[10px]">
+                <span className="flex items-center rounded-md border overflow-hidden text-[10px]">
                   <button
                     type="button"
                     onClick={() => onChangeDakuPreviewKind('daku')}
@@ -337,15 +328,16 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
                   >
                     ゜{previewMapping.handaku}
                   </button>
-                </div>
+                </span>
               )}
-
               <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border font-bold ${themeClasses.accentBadge}`}>
                 「{dakuPreviewChar}」⇒「{previewTargetChar}」
               </span>
-            </div>
-          </div>
-
+            </span>
+          }
+          themeClasses={themeClasses}
+        >
+          <div className="flex flex-col items-center justify-center">
           <div
             className={`w-44 h-44 sm:w-56 sm:h-56 lg:w-full lg:h-auto lg:aspect-square lg:max-w-[250px] relative rounded-xl border flex items-center justify-center overflow-hidden ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
           >
@@ -374,17 +366,8 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
             <Info className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
             <span>親文字に選択した濁点・半濁点を合成します</span>
           </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onExecuteBatch}
-          disabled={dakutenTargetCount === 0 || isExecuting}
-          className={`hidden lg:flex w-full py-3 px-4 rounded-xl font-bold text-sm items-center justify-center gap-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
-        >
-          <Wand2 className="w-4 h-4 shrink-0" />
-          <span>濁音・半濁点を一括合成 ({dakutenTargetCount}字)</span>
-        </button>
+          </div>
+        </ModalSection>
       </div>
     </div>
   );

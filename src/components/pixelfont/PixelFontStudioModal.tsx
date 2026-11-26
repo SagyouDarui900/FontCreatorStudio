@@ -756,7 +756,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="ピクセルフォント・クリエイター"
-      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-2 bg-black/75 anim-fade pointer-events-auto"
+      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -772,7 +772,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
         className={`w-full ${
           isFullscreen
             ? 'h-[100dvh] max-h-none rounded-none border-0'
-            : 'sm:max-w-7xl h-[100dvh] sm:h-[95vh] sm:max-h-[920px] rounded-none shadow-none sm:shadow-2xl border-0 sm:border'
+            : 'sm:max-w-7xl h-[100dvh] sm:h-[92vh] sm:max-h-[92vh] rounded-none shadow-none sm:shadow-2xl border-0 sm:border'
         } flex flex-col overflow-hidden select-none ${themeClasses.modalBg} ${themeClasses.border}`}
       >
         <input
@@ -785,15 +785,15 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
         {/* DESKTOP TOP HEADER */}
         <div
-          className={`hidden md:flex items-center justify-between px-3 sm:px-4 py-2 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`hidden md:flex items-center justify-between px-3.5 sm:px-5 py-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-none bg-emerald-600 text-white flex items-center justify-center font-mono font-bold text-sm border border-emerald-400">
+            <div className={`w-8 h-8 rounded-none flex items-center justify-center font-mono font-bold text-sm border ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}>
               <Grid className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="font-extrabold text-sm sm:text-base leading-none tracking-tight">
+                <h2 className="font-bold text-sm sm:text-base leading-none tracking-tight">
                   ピクセルフォント・クリエイター
                 </h2>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 bg-emerald-700/20 text-emerald-600 dark:text-emerald-400 font-extrabold border border-emerald-500/30">
@@ -825,7 +825,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           <div className="flex items-center space-x-1.5 sm:space-x-2">
             <button
               onClick={() => handleExportFontFile('otf')}
-              className="px-2.5 py-1 text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-1.5 border border-emerald-400 transition-colors cursor-pointer"
+              className={`px-2.5 py-1 text-xs font-black flex items-center space-x-1.5 border transition-colors cursor-pointer ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}
               title="作成したピクセルフォントを直接OTF形式でダウンロード (.otf)"
             >
               <Download className="w-3.5 h-3.5" />
@@ -836,7 +836,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               onClick={() => setShowGlyphDrawer(!showGlyphDrawer)}
               className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${
                 showGlyphDrawer
-                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  ? themeClasses.activeTool
                   : isLight
                   ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                   : 'bg-[#18261f] border-stone-700 text-stone-300 hover:bg-[#203429]'
@@ -857,7 +857,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               }}
               className={`px-2.5 py-1 text-xs font-bold border flex items-center space-x-1 transition-colors cursor-pointer ${
                 showTracePanel
-                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  ? themeClasses.activeTool
                   : isLight
                   ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                   : 'bg-[#18261f] border-stone-700 text-stone-300 hover:bg-[#203429]'
@@ -888,7 +888,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+              className={`p-1.5 border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
               title={isFullscreen ? 'ウィンドウサイズに戻す' : 'フルスクリーン表示'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -896,7 +896,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-stone-400 hover:text-stone-800 dark:hover:text-stone-100 hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+              className={`p-1.5 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="スタジオを閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -909,7 +909,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           className={`flex md:hidden items-center justify-between px-2.5 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
-            <div className="w-7 h-7 bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-400">
+            <div className={`w-7 h-7 rounded-none flex items-center justify-center font-bold text-xs shrink-0 border ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}>
               <Grid className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="flex items-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]">
@@ -961,7 +961,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 min-w-[36px] min-h-[36px] flex items-center justify-center text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
+              className="p-1.5 min-w-[40px] min-h-[40px] flex items-center justify-center text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
               title="閉じる"
             >
               <X className="w-5 h-5" />
@@ -1311,7 +1311,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               }`}
             >
               <div className="flex items-center justify-between border-b border-stone-300 dark:border-stone-800 pb-2">
-                <span className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                <span className={`flex items-center gap-1.5 text-xs font-extrabold ${themeClasses.accentText}`}>
                   <ImageIcon className="w-4 h-4" />
                   <span>下絵・トレース設定</span>
                 </span>
@@ -1339,7 +1339,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                   onClick={() => setTraceSource('font')}
                   className={`flex-1 py-1.5 px-2 text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
                     traceSource === 'font'
-                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      ? themeClasses.activeTool
                       : isLight
                       ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
                       : 'bg-[#142018] border-stone-700 text-stone-300 hover:bg-[#1e2f24]'
@@ -1357,7 +1357,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                   }}
                   className={`flex-1 py-1.5 px-2 text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${
                     traceSource === 'image'
-                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      ? themeClasses.activeTool
                       : isLight
                       ? 'bg-white border-stone-300 text-stone-700 hover:bg-stone-100'
                       : 'bg-[#142018] border-stone-700 text-stone-300 hover:bg-[#1e2f24]'
@@ -1395,14 +1395,14 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                 <div className="space-y-2 p-2 border border-stone-300 dark:border-stone-800 bg-white dark:bg-[#142018]">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-bold opacity-75">画像ファイル:</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className={`font-bold ${themeClasses.accentText}`}>
                       {traceImageSrc ? '読込済み' : '未選択'}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 py-1.5 px-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500 flex items-center justify-center gap-1 cursor-pointer"
+                      className={`flex-1 py-1.5 px-2 text-xs font-bold border flex items-center justify-center gap-1 cursor-pointer ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>画像選択</span>
@@ -1426,7 +1426,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="font-bold opacity-75">透明度:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{traceOpacity}%</span>
+                  <span className={`font-mono font-bold ${themeClasses.accentText}`}>{traceOpacity}%</span>
                 </div>
                 <input
                   type="range"
@@ -1441,7 +1441,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="font-bold opacity-75">拡大率:</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{traceScale}%</span>
+                  <span className={`font-mono font-bold ${themeClasses.accentText}`}>{traceScale}%</span>
                 </div>
                 <input
                   type="range"
@@ -1509,7 +1509,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="font-bold opacity-75">抽出感度 (閾値):</span>
-                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className={`font-mono font-bold ${themeClasses.accentText}`}>
                     {traceThreshold} / 255
                   </span>
                 </div>
@@ -1525,7 +1525,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
 
               <button
                 onClick={handleAutoBinarizeTrace}
-                className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 border border-emerald-400 cursor-pointer"
+                className={`w-full py-2 px-3 font-black text-xs flex items-center justify-center gap-1.5 border cursor-pointer ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}
               >
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span>下絵から自動ドット化</span>
@@ -1678,7 +1678,7 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
                 <div className="relative">
                   <Icon className={`w-4 h-4 ${isActive ? 'scale-110' : ''}`} />
                   {tab.badge && parseInt(tab.badge, 10) > 0 && (
-                    <span className="absolute -top-1.5 -right-3 text-[8.5px] font-mono px-1 rounded-full bg-emerald-600 text-white font-bold leading-tight">
+                    <span className={`absolute -top-1.5 -right-3 text-[8.5px] font-mono px-1 rounded-full font-bold leading-tight ${themeClasses.accentBtn}`}>
                       {tab.badge}
                     </span>
                   )}

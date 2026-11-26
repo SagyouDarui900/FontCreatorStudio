@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
 import { useDialogFocusTrap } from '../modals/ModalStackFrame';
+import { getThemeClasses } from '../../utils/theme';
 
 interface RadicalShortcutsHelpModalProps {
   isOpen: boolean;
@@ -27,37 +28,36 @@ export const RadicalShortcutsHelpModal: React.FC<RadicalShortcutsHelpModalProps>
 
   if (!isOpen) return null;
 
-  const dividerClass = isLight ? 'border-stone-200' : 'border-[#25362b]';
-  const headingText = isLight ? 'text-stone-900' : 'text-stone-100';
-  const mutedText = isLight ? 'text-stone-600' : 'text-stone-300';
+  const themeClasses = getThemeClasses(isLight ? 'light' : 'dark');
+  const dividerClass = themeClasses.border;
+  const headingText = themeClasses.textPrimary;
+  const mutedText = themeClasses.textMuted;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 anim-fade select-none">
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="部首工房 ショートカット・操作ガイド"
         tabIndex={-1}
-        className={`w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden ${
-          isLight ? 'bg-white border-stone-200' : 'bg-[#16221a] border-[#25362b]'
-        }`}
+        className={`w-full max-w-md rounded-xl border shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
       >
-        <div className={`px-4 py-3 border-b flex items-center justify-between ${dividerClass}`}>
-          <h3 className={`text-sm font-bold ${headingText}`}>
+        <div className={`px-3.5 py-2.5 sm:px-5 sm:py-2.5 border-b flex items-center justify-between ${dividerClass} ${themeClasses.headerBg}`}>
+          <h2 className={`text-sm sm:text-base font-bold ${headingText}`}>
             部首工房 操作ガイド
-          </h3>
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="閉じる"
-            className="p-1.5 rounded-md text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 cursor-pointer"
+            className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
-        <div className={`p-5 space-y-5 text-xs ${mutedText}`}>
+        <div className={`p-3.5 sm:p-4 space-y-3 text-xs ${mutedText}`}>
           <section className="space-y-1.5">
             <h4 className={`font-bold ${headingText}`}>ペンツール (P)</h4>
             <ul className="space-y-1 list-disc list-inside leading-relaxed">
@@ -86,11 +86,7 @@ export const RadicalShortcutsHelpModal: React.FC<RadicalShortcutsHelpModalProps>
                   <dt className={mutedText}>{item.label}</dt>
                   <dd>
                     <kbd
-                      className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold border ${
-                        isLight
-                          ? 'bg-stone-50 border-stone-300 text-stone-800'
-                          : 'bg-[#121c16] border-[#2c3d31] text-stone-200'
-                      }`}
+                      className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold border ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
                     >
                       {item.key}
                     </kbd>
@@ -101,11 +97,11 @@ export const RadicalShortcutsHelpModal: React.FC<RadicalShortcutsHelpModalProps>
           </section>
         </div>
 
-        <div className={`px-4 py-3 border-t ${dividerClass} flex justify-end`}>
+        <div className={`px-3.5 py-2.5 sm:px-5 sm:py-3 border-t ${dividerClass} ${themeClasses.headerBg} flex justify-end`}>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs cursor-pointer"
+            className={`min-h-[44px] sm:min-h-0 px-4 py-1.5 rounded-lg font-bold text-xs cursor-pointer ${themeClasses.accentBtn}`}
           >
             閉じる
           </button>

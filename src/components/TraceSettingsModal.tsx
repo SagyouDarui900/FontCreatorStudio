@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  X,
   Layers,
   Image as ImageIcon,
   Type,
@@ -8,19 +7,19 @@ import {
   Camera,
   RotateCw,
   Sliders,
-  Maximize2,
-  Minimize2,
   RefreshCw,
-  Move,
   Eye,
   Sparkles,
-  Info,
   ShieldCheck,
 } from 'lucide-react';
 import { TraceSettings } from '../types';
-import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
+import { ThemeMode, getThemeClasses } from '../utils/theme';
 import { BundledFontsModal } from './BundledFontsModal';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalAlert } from './modals/ModalAlert';
+import { ModalFooter } from './modals/ModalFooter';
+import { ModalShell } from './modals/ModalShell';
+import { SliderRow } from './modals/SliderRow';
 import {
   TRACE_DEFAULT_OPACITY,
   TRACE_FONT_OPTIONS,
@@ -55,7 +54,6 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState<boolean>(false);
 
-  const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
 
   const isTopModal = useIsTopModal();
@@ -163,82 +161,37 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="下絵・レタリングトレース設定"
-      className={`fixed inset-0 z-[60] anim-fade ${
-        isFullscreen
-          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
-      }`}
-    >
-      <div
-        className={`flex flex-col overflow-hidden ${
-          isFullscreen
-            ? `w-screen h-[100dvh] rounded-none border-none shadow-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-2xl lg:max-w-4xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
-        }`}
+    <>
+      <ModalShell
+        title="下絵・レタリングトレース設定"
+        icon={<Layers className="w-4 h-4 sm:w-5 sm:h-5" />}
+        theme={theme}
+        themeClasses={themeClasses}
+        maxWidth="4xl"
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+        onClose={onClose}
+        ariaLabel="下絵・レタリングトレース設定"
+        footer={
+          <ModalFooter
+            primaryLabel="完了"
+            onPrimary={onClose}
+            leftInfo={
+              <span className={`text-[11px] ${themeClasses.textMuted}`}>
+                ※キャンバス上で「下絵移動」モードでも直接ドラッグ移動できます
+              </span>
+            }
+            theme={theme}
+            themeClasses={themeClasses}
+          />
+        }
       >
-        {/* Header */}
-        <div
-          className={`p-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
-            <Layers className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
-            <h2
-              className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 min-w-0 ${themeClasses.textPrimary}`}
-            >
-              <span className="truncate">下絵・レタリングトレース設定</span>
-              {isFullscreen && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
-                  全画面
-                </span>
-              )}
-            </h2>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            {/* Fullscreen Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`hidden sm:flex p-1 px-2 rounded-lg border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
-                isFullscreen
-                  ? themeClasses.accentBadge
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">通常</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">全画面</span>
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="閉じる"
-              className={`p-1 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title="閉じる (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3 text-xs">
+        <div className="space-y-3">
           {/* Top Bar: Enable Toggle + Source Type Selector */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-stretch">
             <label
-              className={`sm:col-span-5 flex items-center justify-between p-2.5 rounded-xl border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border}`}
+              className={`lg:col-span-5 flex items-center justify-between p-2.5 rounded-xl border cursor-pointer ${themeClasses.cardBg} ${themeClasses.border}`}
             >
               <div className="flex items-center space-x-2">
                 <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
@@ -250,12 +203,12 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 type="checkbox"
                 checked={Boolean(traceSettings?.enabled)}
                 onChange={(e) => setTraceSettings((s) => ({ ...s, enabled: e.target.checked }))}
-                className="w-4 h-4 accent-emerald-700 rounded-sm"
+                className="w-4 h-4 accent-emerald-600 rounded-sm"
               />
             </label>
 
             {/* Source Type Selector */}
-            <div className="sm:col-span-7 grid grid-cols-2 gap-2">
+            <div className="lg:col-span-7 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setTraceSettings((s) => ({ ...s, type: 'image' }))}
@@ -308,7 +261,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 />
 
                 {/* Image scope: this character only, or all characters */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setApplyMode('char')}
@@ -335,7 +288,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className={`py-2 px-2.5 rounded-lg border flex items-center justify-center space-x-1.5 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
@@ -386,19 +339,13 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                 )}
 
                 {/* Recommended Image Specification Guide */}
-                <div
-                  className={`p-2.5 rounded-lg border text-[10.5px] space-y-1 ${themeClasses.accentBadge}`}
-                >
-                  <div className="flex items-center space-x-1 font-bold">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    <span>推奨画像仕様（フォント下絵・トレース用）</span>
-                  </div>
-                  <ul className="space-y-0.5 opacity-90 pl-0.5 leading-snug">
+                <ModalAlert tone="info" title="推奨画像仕様（フォント下絵・トレース用）" theme={theme}>
+                  <ul className="space-y-0.5">
                     <li>・<strong>推奨サイズ:</strong> 1000 × 1000 px 〜 2048 × 2048 px （1:1 正方形 / FontForge規格適合）</li>
                     <li>・<strong>背景・輪郭:</strong> 白背景に濃い黒文字（高コントラストなモノクロ）</li>
                     <li>・<strong>余白:</strong> 周囲に10〜15%の適度な余白</li>
                   </ul>
-                </div>
+                </ModalAlert>
               </div>
 
               {/* Right Col: Photo Positioning & Adjustments */}
@@ -414,28 +361,27 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </div>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                    className={`min-h-[44px] px-3 py-2 rounded-lg border flex items-center space-x-1 text-[11px] transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                   >
-                    <RefreshCw className="w-2.5 h-2.5" />
+                    <RefreshCw className="w-3.5 h-3.5" />
                     <span>位置リセット</span>
                   </button>
                 </div>
 
                 {/* Sliders: Scale & Position */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className={themeClasses.textMuted}>拡大・縮小倍率</span>
-                      <span className="font-mono">{Math.round((traceSettings.scale ?? 1) * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={TRACE_SCALE_MIN}
-                      max={TRACE_SCALE_MAX}
-                      step={0.05}
-                      value={traceSettings.scale ?? 1}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, scale: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                    <SliderRow
+                      label="拡大・縮小倍率"
+                      value={Math.round((traceSettings.scale ?? 1) * 100)}
+                      min={Math.round(TRACE_SCALE_MIN * 100)}
+                      max={Math.round(TRACE_SCALE_MAX * 100)}
+                      step={5}
+                      unit="%"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, scale: v / 100 }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                     {/* Quick Fit Presets */}
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
@@ -445,8 +391,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.78 }))}
                         className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 0.78) < 0.02
-                            ? 'bg-amber-600 border-amber-600 text-white'
-                            : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         仮名 78%
@@ -456,8 +402,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.85 }))}
                         className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 0.85) < 0.02
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         漢字 85%
@@ -467,8 +413,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
                         className={`px-2 py-0.5 rounded-md border text-[10px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
-                            ? 'bg-sky-600 border-sky-600 text-white'
-                            : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                       >
                         100%
@@ -477,64 +423,61 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className={themeClasses.textMuted}>回転角度</span>
-                      <span className="font-mono">{traceSettings.rotation || 0}°</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="回転角度"
+                      value={traceSettings.rotation ?? 0}
                       min={-180}
                       max={180}
                       step={1}
-                      value={traceSettings.rotation ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, rotation: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="°"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, rotation: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className={themeClasses.textMuted}>X位置 (左右移動)</span>
-                      <span className="font-mono">{Math.round(traceSettings.offsetX ?? 0)}px</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="X位置 (左右移動)"
+                      value={Math.round(traceSettings.offsetX ?? 0)}
                       min={-800}
                       max={800}
                       step={5}
-                      value={traceSettings.offsetX ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, offsetX: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="px"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, offsetX: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex justify-between text-[11px]">
-                      <span className={themeClasses.textMuted}>Y位置 (上下移動)</span>
-                      <span className="font-mono">{Math.round(traceSettings.offsetY ?? 0)}px</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="Y位置 (上下移動)"
+                      value={Math.round(traceSettings.offsetY ?? 0)}
                       min={-800}
                       max={800}
                       step={5}
-                      value={traceSettings.offsetY ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, offsetY: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="px"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, offsetY: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
                 </div>
 
                 {/* Photo Enhancements: Contrast, Grayscale, Invert */}
-                <div className={`pt-2 border-t grid grid-cols-2 sm:grid-cols-4 gap-2 ${themeClasses.border}`}>
+                <div className={`pt-2 border-t grid grid-cols-1 lg:grid-cols-4 gap-2 ${themeClasses.border}`}>
                   <label className="flex items-center space-x-1.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={Boolean(traceSettings.grayscale)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, grayscale: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
+                      className="w-3.5 h-3.5 accent-emerald-600 rounded-sm"
                     />
                     <span className="text-[11px]">白黒化 (Monochrome)</span>
                   </label>
@@ -544,7 +487,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.invert)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, invert: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
+                      className="w-3.5 h-3.5 accent-emerald-600 rounded-sm"
                     />
                     <span className="text-[11px]">ネガ反転 (白黒逆転)</span>
                   </label>
@@ -554,7 +497,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.flipH)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, flipH: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
+                      className="w-3.5 h-3.5 accent-emerald-600 rounded-sm"
                     />
                     <span className="text-[11px]">左右反転</span>
                   </label>
@@ -564,7 +507,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       type="checkbox"
                       checked={Boolean(traceSettings.flipV)}
                       onChange={(e) => setTraceSettings((s) => ({ ...s, flipV: e.target.checked }))}
-                      className="w-3.5 h-3.5 accent-emerald-700 rounded-sm"
+                      className="w-3.5 h-3.5 accent-emerald-600 rounded-sm"
                     />
                     <span className="text-[11px]">上下反転</span>
                   </label>
@@ -576,7 +519,7 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         rotation: ((s.rotation || 0) + 90) % 360,
                       }))
                     }
-                    className={`py-1 px-2 rounded-lg border text-[10px] font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    className={`min-h-[44px] py-1 px-2 rounded-lg border text-[11px] font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     <RotateCw className="w-3 h-3" />
                     <span>90°回転</span>
@@ -585,37 +528,33 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 
                 {/* Contrast Slider */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span className={themeClasses.textMuted}>
-                      コントラスト強調 (看板の文字輪郭をくっきり化)
-                    </span>
-                    <span className="font-mono">{Math.round((traceSettings.contrast || 1) * 100)}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0.5}
-                    max={3.0}
-                    step={0.1}
-                    value={traceSettings.contrast || 1}
-                    onChange={(e) => setTraceSettings((s) => ({ ...s, contrast: Number(e.target.value) }))}
-                    className="w-full accent-emerald-700"
+                  <SliderRow
+                    label="コントラスト強調 (看板の文字輪郭をくっきり化)"
+                    value={Math.round((traceSettings.contrast || 1) * 100)}
+                    min={50}
+                    max={300}
+                    step={10}
+                    unit="%"
+                    showNumberInput
+                    onChange={(v) => setTraceSettings((s) => ({ ...s, contrast: v / 100 }))}
+                    theme={theme}
+                    themeClasses={themeClasses}
                   />
                 </div>
 
                 {/* Brightness Slider */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[11px]">
-                    <span className={themeClasses.textMuted}>明るさ</span>
-                    <span className="font-mono">{Math.round((traceSettings.brightness ?? 1) * 100)}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0.5}
-                    max={2.0}
-                    step={0.1}
-                    value={traceSettings.brightness ?? 1}
-                    onChange={(e) => setTraceSettings((s) => ({ ...s, brightness: Number(e.target.value) }))}
-                    className="w-full accent-emerald-700"
+                  <SliderRow
+                    label="明るさ"
+                    value={Math.round((traceSettings.brightness ?? 1) * 100)}
+                    min={50}
+                    max={200}
+                    step={10}
+                    unit="%"
+                    showNumberInput
+                    onChange={(v) => setTraceSettings((s) => ({ ...s, brightness: v / 100 }))}
+                    theme={theme}
+                    themeClasses={themeClasses}
                   />
                 </div>
               </div>
@@ -676,27 +615,26 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </span>
                   <button
                     onClick={handleResetPosition}
-                    className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                    className={`min-h-[44px] px-3 py-2 rounded-lg border flex items-center space-x-1 text-[11px] transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                   >
-                    <RefreshCw className="w-2.5 h-2.5" />
+                    <RefreshCw className="w-3.5 h-3.5" />
                     <span>位置リセット</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                   <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span>倍率</span>
-                      <span className="font-mono">{Math.round((traceSettings.scale ?? 1) * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={TRACE_SCALE_MIN}
-                      max={TRACE_SCALE_MAX}
-                      step={0.05}
-                      value={traceSettings.scale ?? 1}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, scale: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                    <SliderRow
+                      label="倍率"
+                      value={Math.round((traceSettings.scale ?? 1) * 100)}
+                      min={Math.round(TRACE_SCALE_MIN * 100)}
+                      max={Math.round(TRACE_SCALE_MAX * 100)}
+                      step={5}
+                      unit="%"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, scale: v / 100 }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                     {/* Quick Fit Presets */}
                     <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -705,8 +643,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 0.9 }))}
                         className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 0.9) < 0.02
-                            ? 'bg-amber-600 border-amber-600 text-white'
-                            : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                         title="余白を広めに取る控えめサイズ (90%)"
                       >
@@ -717,8 +655,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.0 }))}
                         className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 1.0) < 0.02
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'bg-emerald-100 border-emerald-300 text-emerald-900 hover:bg-emerald-200 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                         title="字面枠（かな78%・漢字85%）にそのまま適合する標準倍率"
                       >
@@ -729,8 +667,8 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                         onClick={() => setTraceSettings((s) => ({ ...s, scale: 1.1 }))}
                         className={`px-1.5 py-0.5 rounded border text-[9.5px] font-bold transition-colors cursor-pointer ${
                           Math.abs((traceSettings.scale ?? 1) - 1.1) < 0.02
-                            ? 'bg-sky-600 border-sky-600 text-white'
-                            : 'bg-sky-100 border-sky-300 text-sky-900 hover:bg-sky-200 dark:bg-sky-950 dark:border-sky-800 dark:text-sky-300'
+                            ? themeClasses.accentBtn
+                            : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
                         }`}
                         title="存在感のある大きめサイズ (110%)"
                       >
@@ -740,68 +678,63 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                   </div>
 
                   <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span>X移動</span>
-                      <span className="font-mono">{Math.round(traceSettings.offsetX ?? 0)}</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="X移動"
+                      value={Math.round(traceSettings.offsetX ?? 0)}
                       min={-400}
                       max={400}
                       step={5}
-                      value={traceSettings.offsetX ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, offsetX: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="px"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, offsetX: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
 
                   <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span>Y移動</span>
-                      <span className="font-mono">{Math.round(traceSettings.offsetY ?? 0)}</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="Y移動"
+                      value={Math.round(traceSettings.offsetY ?? 0)}
                       min={-400}
                       max={400}
                       step={5}
-                      value={traceSettings.offsetY ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, offsetY: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="px"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, offsetY: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                   <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span>回転角度</span>
-                      <span className="font-mono">{traceSettings.rotation || 0}°</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="回転角度"
+                      value={traceSettings.rotation ?? 0}
                       min={-180}
                       max={180}
                       step={1}
-                      value={traceSettings.rotation ?? 0}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, rotation: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      unit="°"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, rotation: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
 
                   <div className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span>フォントサイズ</span>
-                      <span className="font-mono">{traceSettings.fontSize ?? 1000}</span>
-                    </div>
-                    <input
-                      type="range"
+                    <SliderRow
+                      label="フォントサイズ"
+                      value={traceSettings.fontSize ?? 1000}
                       min={200}
                       max={2000}
                       step={10}
-                      value={traceSettings.fontSize ?? 1000}
-                      onChange={(e) => setTraceSettings((s) => ({ ...s, fontSize: Number(e.target.value) }))}
-                      className="w-full accent-emerald-700"
+                      showNumberInput
+                      onChange={(v) => setTraceSettings((s) => ({ ...s, fontSize: v }))}
+                      theme={theme}
+                      themeClasses={themeClasses}
                     />
                   </div>
                 </div>
@@ -813,43 +746,28 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
           <div
             className={`p-3 rounded-xl border space-y-1 ${themeClasses.cardBg} ${themeClasses.border}`}
           >
-            <div className={`flex justify-between ${themeClasses.textMuted}`}>
-              <span className="font-semibold">下絵の透明度 (不透明度)</span>
-              <span className="font-mono">{Math.round((traceSettings.opacity ?? TRACE_DEFAULT_OPACITY) * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min={0.05}
-              max={1.0}
-              step={0.05}
-              value={traceSettings.opacity ?? TRACE_DEFAULT_OPACITY}
-              onChange={(e) => setTraceSettings((s) => ({ ...s, opacity: Number(e.target.value) }))}
-              className="w-full accent-emerald-700"
+            <SliderRow
+              label="下絵の透明度 (不透明度)"
+              value={Math.round((traceSettings.opacity ?? TRACE_DEFAULT_OPACITY) * 100)}
+              min={5}
+              max={100}
+              step={5}
+              unit="%"
+              showNumberInput
+              onChange={(v) => setTraceSettings((s) => ({ ...s, opacity: v / 100 }))}
+              theme={theme}
+              themeClasses={themeClasses}
             />
           </div>
         </div>
 
-        {/* Footer */}
-        <div
-          className={`p-3 pb-[max(env(safe-area-inset-bottom),12px)] border-t flex items-center justify-between max-sm:flex-col max-sm:items-stretch max-sm:gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <span className={`text-[11px] ${themeClasses.textMuted}`}>
-            ※キャンバス上で「下絵移動」モードでも直接ドラッグ移動できます
-          </span>
-          <button
-            onClick={onClose}
-            className={`px-4 py-1.5 max-sm:min-h-[40px] rounded-lg text-xs font-semibold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
-          >
-            完了
-          </button>
-        </div>
-      </div>
+      </ModalShell>
 
       <BundledFontsModal
         isOpen={isLicenseModalOpen}
         onClose={() => setIsLicenseModalOpen(false)}
         theme={theme}
       />
-    </div>
+    </>
   );
 };

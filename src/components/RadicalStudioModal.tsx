@@ -673,31 +673,29 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         className={`w-full h-full flex flex-col overflow-hidden transition-[width,height] ${
           isFullscreen
             ? `fixed inset-0 z-[60] w-screen h-[100dvh] ${themeClasses.modalBg}`
-            : `w-full sm:w-[98vw] h-[100dvh] sm:h-[94vh] max-w-[1720px] rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`
+            : `w-full sm:w-[98vw] h-[100dvh] sm:h-[92vh] sm:max-h-[92vh] max-w-[1720px] rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`
         }`}
       >
         {/* MODAL TOP HEADER */}
         <div
-          className={`px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] sm:py-2 border-b flex items-center justify-between shrink-0 gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
+          className={`px-3.5 sm:px-5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:py-2.5 border-b flex items-center justify-between shrink-0 gap-2 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0">
             <div
-              className={`p-1.5 rounded-lg shrink-0 ${
-                isLight ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-950/80 text-emerald-300'
-              }`}
+              className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}
             >
-              <Shapes className="w-5 h-5" />
+              <Shapes className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-2">
-                <h2 className="text-sm font-bold tracking-wide truncate">
+                <h2 className="text-sm sm:text-base font-bold tracking-wide truncate">
                   部首・作字パーツ工房
                 </h2>
-                <span className="text-xs text-stone-500 font-mono font-medium truncate shrink-0">
+                <span className={`text-xs font-mono font-medium truncate shrink-0 ${themeClasses.textMuted}`}>
                   パーツ数 {parts.length}
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate hidden md:block">
+              <p className={`text-[11px] truncate hidden md:block ${themeClasses.textMuted}`}>
                 偏旁・冠脚・筆画を設計し、漢字や文字へワンクリック合成
               </p>
             </div>
@@ -734,7 +732,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
           <div className="flex items-center space-x-1.5 shrink-0">
             <button
               onClick={handleExportLibraryJson}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+              className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-1.5 px-2 rounded-md border text-xs font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               title="全パーツライブラリをJSONセーブデータとして書き出し"
             >
               <Download className="w-3.5 h-3.5" />
@@ -742,7 +740,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             </button>
             <button
               onClick={() => jsonFileInputRef.current?.click()}
-              className={`p-1.5 px-2 rounded-md border text-xs font-semibold hidden sm:flex items-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+              className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-1.5 px-2 rounded-md border text-xs font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
               title="JSONセーブデータからパーツライブラリを読み込み"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -752,7 +750,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`hidden sm:flex p-1.5 px-2 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-md border text-xs font-semibold items-center space-x-1 transition-colors cursor-pointer ${
                 isFullscreen
                   ? themeClasses.activeTool
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -776,9 +774,7 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
               type="button"
               onClick={handleCloseStudio}
               aria-label="工房を閉じる"
-              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isLight ? 'text-stone-600 hover:bg-emerald-100' : 'text-stone-400 hover:bg-[#223126]'
-              }`}
+              className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="工房を閉じる"
             >
               <X className="w-5 h-5" />
@@ -1074,28 +1070,28 @@ export const RadicalStudioModal: React.FC<RadicalStudioModalProps> = ({
         isLight={isLight}
       />
       {pendingDeletePart && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4">
           <div
             className={`w-full max-w-xs rounded-xl border p-4 shadow-2xl ${themeClasses.modalBg} ${themeClasses.border}`}
             role="alertdialog"
             aria-label="パーツの削除確認"
           >
             <p className="text-sm font-bold">「{pendingDeletePart.name}」を削除しますか？</p>
-            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+            <p className={`mt-1 text-xs ${themeClasses.textMuted}`}>
               削除後はトーストの「取り消す」ボタンで復元できます。
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={cancelDeletePart}
-                className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer"
+                className={`min-h-[44px] sm:min-h-0 px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
               >
                 キャンセル
               </button>
               <button
                 type="button"
                 onClick={confirmDeletePart}
-                className="px-3 py-1.5 rounded-lg bg-rose-700 text-white text-xs font-bold hover:bg-rose-800 cursor-pointer"
+                className="min-h-[44px] sm:min-h-0 px-3 py-1.5 rounded-lg bg-rose-700 text-white text-xs font-bold hover:bg-rose-800 cursor-pointer"
               >
                 削除する
               </button>
