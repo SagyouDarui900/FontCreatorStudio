@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Search, Maximize2, Minimize2, HelpCircle } from 'lucide-react';
+import { X, Search, Maximize2, Minimize2 } from 'lucide-react';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BeginnerTutorialTab } from './help/BeginnerTutorialTab';
 import { GlossaryTab } from './help/GlossaryTab';
@@ -286,9 +286,6 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         <div
           className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
-          <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 mr-2.5 ${themeClasses.accentBadge}`}>
-            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
           <div className="min-w-0 flex-1 pr-3 flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <h2 className={`text-sm sm:text-base font-bold truncate ${headingText}`}>
               操作ガイド・ショートカット

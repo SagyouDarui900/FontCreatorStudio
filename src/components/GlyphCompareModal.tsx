@@ -1,14 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   X,
-  Eye,
   Sliders,
   RotateCcw,
-  Sparkles,
-  Layers,
-  ArrowRightLeft,
   Check,
-  Palette,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -200,9 +195,6 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3 sm:pt-3 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
-              <ArrowRightLeft className="w-4 h-4" />
-            </div>
             <div className="min-w-0 flex-1 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
               <h2 className="text-sm sm:text-base font-bold flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span className="truncate">グリフ重ね合わせ比較 (Overlay Compare)</span>
@@ -272,7 +264,6 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               }`}
             >
               <div className="flex items-center space-x-2.5">
-                <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
                 <div>
                   <div className="text-xs font-bold">重ね合わせ比較レイヤーを表示</div>
                   <div className={`text-[10px] ${themeClasses.textMuted}`}>
@@ -297,7 +288,6 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>「{activeChar || ''}」の比較対象文字</span>
                 </label>
                 <span className={`text-[10px] ${themeClasses.textMuted}`}>ワンクリックで切替</span>
@@ -381,7 +371,6 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               {/* Render Mode */}
               <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
                 <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                  <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>表示モード</span>
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -413,7 +402,6 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               {/* Color Palette */}
               <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
                 <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                  <Palette className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>比較色</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-1.5">

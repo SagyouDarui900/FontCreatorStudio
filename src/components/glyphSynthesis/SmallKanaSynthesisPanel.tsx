@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Info, Layers, RotateCcw, Sliders } from 'lucide-react';
+import { Info, RotateCcw } from 'lucide-react';
 import { ModalSection } from '../modals/ModalSection';
 import { KANA_PAIRS } from '../../data/unicodeTables';
 import { SmallKanaOptions } from '../../utils/path';
@@ -81,7 +81,6 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
         {/* Scope & Overwrite Card */}
         <ModalSection
           title="対象範囲"
-          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           themeClasses={themeClasses}
         >
           <div className="flex flex-col gap-2.5">
@@ -119,7 +118,6 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
         {/* Scale & Placement Options */}
         <ModalSection
           title="スケール・配置・太さ補正"
-          icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           themeClasses={themeClasses}
         >
           <div className="flex flex-col gap-2.5">
@@ -287,7 +285,6 @@ export const SmallKanaSynthesisPanel: React.FC<SmallKanaSynthesisPanelProps> = (
       <div className="lg:col-span-5 flex flex-col gap-3 order-first lg:order-last">
         <ModalSection
           title="配置プレビュー"
-          icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           badge={
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border font-bold ${themeClasses.accentBadge}`}>
               「{smallPreviewChar}」⇒「{KANA_PAIRS[smallPreviewChar]?.smallChar || ''}」

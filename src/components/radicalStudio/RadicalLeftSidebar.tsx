@@ -11,7 +11,6 @@ import {
   Scissors,
   Copy,
   Trash2,
-  Database,
   ChevronDown,
   RefreshCw,
   ShieldCheck,
@@ -406,7 +405,6 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  }`}
  >
  <div className="flex items-center space-x-1.5">
- <Shapes className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
  <span className="text-xs font-bold">部首・パーツライブラリ</span>
  </div>
  <button
@@ -433,7 +431,6 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
  }`}
  >
- <Shapes className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
  <span className="truncate">標準部首</span>
  </button>
 
@@ -449,7 +446,6 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  }`}
  title="部首に紐づく常用・JIS漢字一覧データベース"
  >
- <BookOpen className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
  <span className="truncate">部首別漢字</span>
  </button>
 
@@ -464,7 +460,6 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
  }`}
  >
- <Shapes className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
  <span className="truncate">マイパーツ</span>
  </button>
  </div>
@@ -530,7 +525,6 @@ export const RadicalLeftSidebar: React.FC<RadicalLeftSidebarProps> = React.memo(
  <div className="space-y-1.5">
  <div className="flex items-center justify-between text-[11px]">
  <span className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center space-x-1">
- <Database className="w-3.5 h-3.5 text-emerald-600" />
  <span>部首別 漢字データベース</span>
  </span>
  <button

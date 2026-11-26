@@ -1,16 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  Layers,
   Image as ImageIcon,
   Type,
   Upload,
   Camera,
   RotateCw,
-  Sliders,
   RefreshCw,
   Eye,
   Sparkles,
-  ShieldCheck,
 } from 'lucide-react';
 import { TraceSettings } from '../types';
 import { ThemeMode, getThemeClasses } from '../utils/theme';
@@ -164,7 +161,6 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
     <>
       <ModalShell
         title="下絵・レタリングトレース設定"
-        icon={<Layers className="w-4 h-4 sm:w-5 sm:h-5" />}
         theme={theme}
         themeClasses={themeClasses}
         maxWidth="4xl"
@@ -354,7 +350,6 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 font-semibold">
-                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span className={themeClasses.textPrimary}>
                       写真の位置・サイズ・補正調整
                     </span>
@@ -588,7 +583,6 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       onClick={() => setIsLicenseModalOpen(true)}
                       className={`inline-flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer ${themeClasses.accentText}`}
                     >
-                      <ShieldCheck className="w-3.5 h-3.5" />
                       <span>フォントとライセンス一覧</span>
                     </button>
                   </div>
@@ -610,7 +604,6 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
               <div className={`lg:col-span-7 p-3 rounded-xl border space-y-2.5 ${themeClasses.cardBg} ${themeClasses.border}`}>
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs flex items-center space-x-1">
-                    <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                     <span>お手本文字の位置・サイズ調整</span>
                   </span>
                   <button

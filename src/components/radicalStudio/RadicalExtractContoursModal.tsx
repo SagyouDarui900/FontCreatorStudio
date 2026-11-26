@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Scissors, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { GlyphData, PathContour } from '../../types';
 import { getThemeClasses } from '../../utils/theme';
 
@@ -42,9 +42,6 @@ export const RadicalExtractContoursModal: React.FC<RadicalExtractContoursModalPr
       >
         <div className={`px-3.5 py-2.5 sm:px-5 sm:py-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}>
           <div className="flex items-center space-x-2.5 min-w-0">
-            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
-              <Scissors className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
             <h2 className="text-sm sm:text-base font-bold">文字データからパーツを抽出</h2>
           </div>
           <button

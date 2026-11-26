@@ -2,9 +2,7 @@ import React, { useRef } from 'react';
 import { DEFAULT_GRID_OPACITY, DEFAULT_GRID_SIZE } from '../../../utils/gridDefaults';
 import { createPortal } from 'react-dom';
 import {
-  Grid,
   X,
-  Magnet,
   Square,
   Trash2,
 } from 'lucide-react';
@@ -94,7 +92,6 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
       >
         <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
           <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-            <Grid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>ガイド枠・方眼グリッド設定</span>
           </div>
           <button
@@ -160,7 +157,6 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
           >
             <div className="flex items-center justify-between mb-2">
               <div className="font-bold text-stone-800 dark:text-stone-100 flex items-center gap-1.5 text-[12.5px]">
-                <Grid className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>方眼グリッド & 吸着</span>
               </div>
               {/* Alt Shortcut Info Badge */}
@@ -193,7 +189,6 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <Grid className="w-3.5 h-3.5" />
                   <span>方眼線を表示</span>
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">
@@ -216,7 +211,6 @@ export const GuidesAndGridModal: React.FC<GuidesAndGridModalProps> = React.memo(
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <Magnet className="w-3.5 h-3.5" />
                   <span>グリッド吸着</span>
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 font-mono font-bold">

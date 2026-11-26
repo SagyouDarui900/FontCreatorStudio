@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Layers, Sparkles, BookOpen, ExternalLink, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Sparkles, BookOpen, ExternalLink, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
 import { IVS_PRESETS, IvsPresetEntry, IvsVariant } from '../../data/ivsPresets';
 import { isLightTheme, getThemeClasses, ThemeMode } from '../../utils/theme';
 import { GlyphData } from '../../types';
@@ -87,9 +87,6 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
           className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
-              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
             <div className="min-w-0">
               <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 truncate ${themeClasses.textPrimary}`}>
                 IVS 異体字セレクタ（Ideographic Variation Sequence）管理

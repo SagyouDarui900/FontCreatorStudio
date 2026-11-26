@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, Check, ShieldCheck } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { FontMetadata } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 
@@ -83,7 +83,6 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
       }`}
     >
       <div className="flex items-center gap-1.5 font-bold text-xs mb-1">
-        <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
         <span>ライセンス プリセットから選択</span>
       </div>
       <p className="text-[11px] opacity-85 leading-relaxed mb-3">
@@ -148,7 +147,6 @@ export const LicensePresetSection: React.FC<LicensePresetSectionProps> = ({
           onClick={onOpenBundledFontsModal}
           className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:underline cursor-pointer"
         >
-          <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
           <span>内蔵フォント一覧 &amp; ライセンス (OFL 1.1)</span>
         </button>
       </div>

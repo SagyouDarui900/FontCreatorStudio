@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, Type, X } from 'lucide-react';
+import { Type, X } from 'lucide-react';
 import { FontProject } from '../../types';
 import { getThemeClasses, ThemeClasses } from '../../utils/theme';
 import { ModalSection } from '../modals/ModalSection';
@@ -54,7 +54,6 @@ export const FontPreviewSection: React.FC<FontPreviewSectionProps> = ({
   return (
     <ModalSection
       title="ライブプレビュー"
-      icon={<Video className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
       themeClasses={themeClasses}
     >
       <div className="space-y-2.5 sm:space-y-3">

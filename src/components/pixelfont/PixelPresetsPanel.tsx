@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid,
   Check,
   Minus,
   Plus,
-  ImageIcon,
   Type,
   Upload,
   RotateCcw,
@@ -240,7 +238,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
           >
             <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400">
               <span className="flex items-center gap-1.5">
-                <Grid className="w-4 h-4 shrink-0" />
                 <span>制作グリッド規格プリセット</span>
               </span>
               <span className="font-mono text-[11px] shrink-0 font-bold">
@@ -413,7 +410,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
             >
               <div className="flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400">
                 <span className="flex items-center gap-1.5 min-w-0">
-                  <ImageIcon className="w-4 h-4 shrink-0" />
                   <span className="truncate">下絵・トレース参照レイヤー</span>
                 </span>
                 <label className="flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-none border border-emerald-200 dark:border-emerald-800">
@@ -734,7 +730,6 @@ export const PixelPresetsPanel: React.FC<PixelPresetsPanelProps> = ({
     >
       <div className="flex items-center gap-1 shrink-0">
         <span className="font-bold text-[11px] opacity-70 mr-1 flex items-center gap-1">
-          <Grid className="w-3.5 h-3.5 text-emerald-600" />
           <span>制作グリッド規格:</span>
         </span>
         {PRESET_SIZES.map((p) => {

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Diamond, Circle, Flame } from 'lucide-react';
 import { UserPenPreset } from '../../../types';
 import { SliderControl, ToggleControl } from '../Controls';
 
@@ -16,7 +15,6 @@ export const TaperTab: React.FC<TaperTabProps> = ({
     <div className="space-y-2.5">
       <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
-          <Diamond className="w-3.5 h-3.5 text-emerald-500" />
           <span>入り抜きの長さ・太さ設定</span>
         </span>
 
@@ -93,7 +91,6 @@ export const TaperTab: React.FC<TaperTabProps> = ({
                   : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
               }`}
             >
-              <Circle className="w-3.5 h-3.5" />
               <span>丸まり (ラウンド)</span>
             </button>
             <button
@@ -105,7 +102,6 @@ export const TaperTab: React.FC<TaperTabProps> = ({
                   : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
               }`}
             >
-              <Flame className="w-3.5 h-3.5" />
               <span>尖り (シャープ)</span>
             </button>
           </div>

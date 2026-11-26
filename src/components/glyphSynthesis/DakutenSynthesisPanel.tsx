@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Info, Layers, RotateCcw, Sliders } from 'lucide-react';
+import { Info, RotateCcw } from 'lucide-react';
 import { ModalSection } from '../modals/ModalSection';
 import {
   DAKUTEN_MAPPINGS,
@@ -102,7 +102,6 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
         {/* Scope & Overwrite Card */}
         <ModalSection
           title="対象範囲"
-          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           themeClasses={themeClasses}
         >
           <div className="flex flex-col gap-2.5">
@@ -140,7 +139,6 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
         {/* Style Options */}
         <ModalSection
           title="濁点・半濁点のスタイル"
-          icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           themeClasses={themeClasses}
         >
           <div className="flex flex-col gap-2.5">
@@ -299,7 +297,6 @@ export const DakutenSynthesisPanel: React.FC<DakutenSynthesisPanelProps> = ({
       <div className="lg:col-span-5 flex flex-col gap-3 order-first lg:order-last">
         <ModalSection
           title="合成プレビュー"
-          icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           badge={
             <span className="flex items-center gap-1.5">
               {previewMapping?.daku && previewMapping?.handaku && (

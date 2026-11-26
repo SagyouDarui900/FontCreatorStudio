@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDialogFocusTrap } from './modals/ModalStackFrame';
 import {
   X,
-  Flame,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -432,9 +431,6 @@ export const GlyphDensityHeatmapModal: React.FC<GlyphDensityHeatmapModalProps> =
           className={`px-3.5 sm:px-5 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:pt-3.5 sm:py-3.5 border-b flex items-center justify-between gap-2 sm:gap-3 shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-            <div className="hidden sm:flex w-10 h-10 rounded-xl bg-amber-600 items-center justify-center text-white shadow-md shrink-0">
-              <Flame className="w-5 h-5" />
-            </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-2">
                 <h3 className="text-sm sm:text-base font-bold truncate">輪郭密度ヒートマップ診断 & 単純化</h3>

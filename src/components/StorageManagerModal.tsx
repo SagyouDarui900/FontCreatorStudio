@@ -32,7 +32,6 @@ import {
  preservePreRestoreSnapshot,
 } from '../utils/storageManager';
 import {
- HardDrive,
  Download,
  Trash2,
  RotateCcw,
@@ -319,9 +318,6 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
         className={`flex items-center justify-between px-4 sm:px-5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:py-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         <div className="flex items-center space-x-2.5 min-w-0">
-          <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
-      <HardDrive className="w-4 h-4 sm:w-5 sm:h-5" />
-    </div>
           <div className="min-w-0 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
             <h2 className="text-sm sm:text-base font-bold flex items-center gap-2">
               <span className="max-sm:truncate">保存・バックアップ管理</span>
@@ -799,7 +795,6 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  className={`p-3.5 rounded-xl border space-y-2 ${themeClasses.accentBadge}`}
  >
  <div className="font-bold flex items-center gap-1.5">
- <ShieldCheck className="w-4 h-4 shrink-0" />
  <span>制作データのバックアップ手順</span>
  </div>
  <ul className="list-disc list-inside space-y-1.5 text-[11px] opacity-90 pl-1">

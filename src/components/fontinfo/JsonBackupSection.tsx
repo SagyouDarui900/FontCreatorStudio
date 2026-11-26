@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileJson, HardDriveDownload, Check } from 'lucide-react';
+import { HardDriveDownload, Check } from 'lucide-react';
 import { ThemeClasses } from '../../utils/theme';
 
 export interface JsonBackupSectionProps {
@@ -30,17 +30,6 @@ export const JsonBackupSection: React.FC<JsonBackupSectionProps> = React.memo(({
       }`}
     >
       <div className="flex items-start space-x-2.5">
-        <div
-          className={`p-2 rounded-lg shrink-0 mt-0.5 ${
-            themeClasses
-              ? themeClasses.accentBadge
-              : isLight
-              ? 'bg-amber-200/80 text-amber-900'
-              : 'bg-emerald-950 text-emerald-300'
-          }`}
-        >
-          <FileJson className="w-4 h-4" />
-        </div>
         <div className="min-w-0 flex-1">
           <h4 className="text-xs font-bold flex flex-wrap items-center gap-1.5">
             <span>プロジェクトバックアップ (JSON形式)</span>

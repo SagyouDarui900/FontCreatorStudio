@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, FileUp, PlusCircle, Replace, X } from 'lucide-react';
+import { AlertTriangle, PlusCircle, Replace, X } from 'lucide-react';
 import { ThemeMode, getThemeClasses } from '../../utils/theme';
 import { useDialogFocusTrap } from '../modals/ModalStackFrame';
 import { useExternalModalPresence } from '../../contexts/ModalContext';
@@ -73,7 +73,6 @@ export const ImportFontConfirmModal: React.FC<ImportFontConfirmModalProps> = ({
       >
         <div className={`flex items-center justify-between border-b pb-3 ${themeClasses.border}`}>
           <div className={`flex items-center space-x-2 ${themeClasses.accentText}`}>
-            <FileUp className="w-5 h-5" />
             <h3 className="text-base font-extrabold">フォント読み込み方法の確認</h3>
           </div>
           <button

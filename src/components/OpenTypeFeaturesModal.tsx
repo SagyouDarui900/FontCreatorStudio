@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  AlignVerticalJustifyCenter,
   Sparkles,
   Zap,
 } from 'lucide-react';
@@ -126,7 +125,6 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
     <ModalShell
       title="縦書き・合字スタジオ"
       subtitle="日本語縦書き・合字・ペア調整のビジュアル設計と検証"
-      icon={<AlignVerticalJustifyCenter className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={resolvedTheme}
       themeClasses={themeClasses}
       maxWidth="6xl"

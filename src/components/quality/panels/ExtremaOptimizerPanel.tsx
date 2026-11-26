@@ -3,9 +3,6 @@ import {
   Compass,
   ShieldCheck,
   X,
-  SlidersHorizontal,
-  Sliders,
-  Layers,
   Check,
   RefreshCw,
 } from 'lucide-react';
@@ -61,15 +58,6 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
     >
       <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3">
         <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
-          <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${
-              isLight
-                ? 'bg-cyan-700 text-white border-cyan-800'
-                : 'bg-cyan-500 text-black border-cyan-400'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-          </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h3 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-white">
@@ -114,7 +102,6 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
           }`}
         >
           <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-            <SlidersHorizontal className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
             <span>ハンドル軸整列</span>
           </div>
           <div className="space-y-1">
@@ -163,7 +150,6 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
           }`}
         >
           <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-            <Sliders className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
             <span>検出感度（最小ノード間隔）</span>
           </div>
           <div className="space-y-1">
@@ -218,7 +204,6 @@ export const ExtremaOptimizerPanel: React.FC<ExtremaOptimizerPanelProps> = ({
         >
           <div>
             <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-              <Layers className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
               <span>対象文字の範囲</span>
             </div>
             <div className="space-y-1">

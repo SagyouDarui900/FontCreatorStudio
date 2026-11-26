@@ -420,9 +420,6 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         className={`flex items-center justify-between gap-1.5 px-2.5 py-2 border-b shrink-0 z-10 min-w-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <div className={`p-1 rounded-md shrink-0 ${themeClasses.toolbarBg} ${themeClasses.accentText}`}>
-            <Sliders className="w-3.5 h-3.5 shrink-0" />
-          </div>
           <div className="flex flex-col min-w-0">
             <span className={`text-xs font-bold truncate ${themeClasses.textPrimary}`}>
               メトリクス・文字ツール

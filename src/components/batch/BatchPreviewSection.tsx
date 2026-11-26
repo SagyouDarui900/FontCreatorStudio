@@ -79,7 +79,6 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
   return (
     <ModalSection
       title="プレビュー確認"
-      icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
       themeClasses={themeClasses}
       badge={
         <span className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border ${themeClasses.accentBadge}`}>

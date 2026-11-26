@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sliders, RotateCcw, Zap, Sparkles } from 'lucide-react';
+import { RotateCcw, Zap, Sparkles } from 'lucide-react';
 
 export interface HeatmapTopBarProps {
   isLight: boolean;
@@ -29,7 +29,6 @@ export const HeatmapTopBar: React.FC<HeatmapTopBarProps> = React.memo(({
       {/* Tolerance controls */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-          <Sliders className="w-3.5 h-3.5" />
           <span>単純化強度 (Tolerance):</span>
         </span>
 

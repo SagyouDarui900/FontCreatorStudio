@@ -1,15 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Sliders,
-  Sparkles,
-  Layers,
   Copy,
   CheckCircle2,
-  Eye,
   FolderArchive,
   Minus,
   Plus,
-  Type,
 } from 'lucide-react';
 import JSZip from 'jszip';
 import { FontProject, GlyphData } from '../types';
@@ -685,7 +680,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     <ModalShell
       title="ウェイト補間 & ファミリー生成"
       subtitle="線の太さの一括増減・ウェイトファミリー展開・2マスター間モーフィング補間"
-      icon={<Sliders className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="6xl"
@@ -730,7 +724,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             {/* Single Glyph Vector Preview Stage */}
             <ModalSection
               title="単文字ベクタープレビュー"
-              icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               badge={
                 <span
                   className={`ml-auto px-2 py-0.5 rounded-md font-mono text-xs font-bold border shrink-0 ${themeClasses.accentBadge}`}
@@ -863,7 +856,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             {/* Live Sample Text Preview Bar */}
             <ModalSection
               title="文章プレビュー (ライブレンダリング)"
-              icon={<Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               badge={
                 <span className={`ml-auto text-[10px] font-mono shrink-0 ${themeClasses.textMuted}`}>
                   文字をクリックで直接編集
@@ -958,7 +950,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             <ModalSection
               title="太さオフセット（片側輪郭移動）"
               step={2}
-              icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               theme={theme}
               themeClasses={themeClasses}
             >
@@ -1025,7 +1016,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             <ModalSection
               title="適用対象（スコープ）"
               step={3}
-              icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               badge={
                 <span
                   className={`ml-auto text-[11px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md border shrink-0 ${themeClasses.accentBadge}`}
@@ -1083,7 +1073,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           <div className="lg:col-span-6 space-y-3">
             <ModalSection
               title="補間マスターグリフの選択"
-              icon={<Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               theme={theme}
               themeClasses={themeClasses}
             >
@@ -1143,7 +1132,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             {/* Interpolation Factor Slider */}
             <ModalSection
               title="補間ブレンド比率 (t)"
-              icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               theme={theme}
               themeClasses={themeClasses}
             >
@@ -1185,7 +1173,6 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           <div className="lg:col-span-6">
             <ModalSection
               title="モーフィング補間プレビュー"
-              icon={<Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
               badge={
                 <span className="ml-auto flex flex-wrap gap-2 text-[10px] font-mono">
                   <span className="text-sky-600 font-bold">■ Master A ({glyphA?.char || 'A'})</span>

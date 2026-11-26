@@ -7,9 +7,6 @@ import {
   MousePointerClick,
   AlertCircle,
   Pencil,
-  Eye,
-  Move,
-  Scaling,
   Lock,
   Unlock,
   ExternalLink,
@@ -262,7 +259,6 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
                         onClick={() => setShowLivePreviewBox(!showLivePreviewBox)}
                         className="font-bold flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 hover:underline cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
                         <span>ベクター輪郭プレビュー</span>
                         <span className="text-[10px] font-normal opacity-75">
                           ({showLivePreviewBox ? 'たたむ' : '展開'})
@@ -347,7 +343,6 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
             <div className={`p-3 rounded-xl border ${isLight ? 'bg-emerald-50/50 border-emerald-200' : 'bg-emerald-950/30 border-emerald-900/60'}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-xs flex items-center space-x-1 text-emerald-900 dark:text-emerald-200">
-                  <Move className="w-3.5 h-3.5 text-emerald-600" />
                   <span>位置オフセット (X/Y)</span>
                 </span>
                 <div className="flex items-center space-x-1">
@@ -512,7 +507,6 @@ export const CharAdjustPanel: React.FC<CharAdjustPanelProps> = ({
             <div className={`p-3 rounded-xl border ${isLight ? 'bg-emerald-50/50 border-emerald-200' : 'bg-emerald-950/30 border-emerald-900/60'}`}>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-xs flex items-center space-x-1 text-emerald-900 dark:text-emerald-200">
-                  <Scaling className="w-3.5 h-3.5 text-emerald-600" />
                   <span>拡大縮小 & 縦横比</span>
                 </span>
                 <button

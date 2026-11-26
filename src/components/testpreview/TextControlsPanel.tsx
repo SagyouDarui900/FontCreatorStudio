@@ -1,12 +1,9 @@
 import React from 'react';
 import {
-  FileText,
-  Sliders,
   AlignLeft,
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Eye,
 } from 'lucide-react';
 import { SAMPLE_PRESETS } from './SamplePresets';
 import { TestPreviewState } from './hooks/useTestPreviewState';
@@ -57,7 +54,6 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
       <div className="p-3 sm:p-3.5 border-b border-inherit">
         <div className="flex items-center justify-between mb-1.5">
           <label className={`text-xs font-bold flex items-center space-x-1 ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
-            <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>テスト文章</span>
           </label>
           <div className="flex items-center space-x-2">
@@ -145,7 +141,6 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
       {/* 2. Typesetting Parameters */}
       <div className="p-3 sm:p-3.5 border-b border-inherit flex flex-col space-y-3">
         <div className={`text-xs font-bold flex items-center space-x-1 ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
-          <Sliders className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           <span>組版パラメータ</span>
         </div>
 
@@ -378,7 +373,6 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
       <div className="p-3 sm:p-3.5 flex flex-col space-y-2.5">
         <div className={`text-xs font-bold flex items-center justify-between ${isLight ? 'text-emerald-950' : 'text-emerald-200'}`}>
           <div className="flex items-center space-x-1">
-            <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>表示・補正オプション</span>
           </div>
         </div>

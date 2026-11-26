@@ -1,5 +1,4 @@
 import React from 'react';
-import { Circle } from 'lucide-react';
 import { UserPenPreset } from '../../../types';
 import { SliderControl, ToggleControl } from '../Controls';
 
@@ -16,7 +15,6 @@ export const ShapeTab: React.FC<ShapeTabProps> = ({
     <div className="space-y-2.5">
       <div className="bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800/80 space-y-2">
         <span className="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center space-x-1.5">
-          <Circle className="w-3.5 h-3.5 text-emerald-500" />
           <span>筆先形状・角度・扁平率</span>
         </span>
 

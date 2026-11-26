@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Wand2 } from 'lucide-react';
+import { Wand2 } from 'lucide-react';
 import { getThemeClasses, isLightTheme } from '../utils/theme';
 import {
   DakutenSynthesisPanel,
@@ -49,7 +49,6 @@ export const GlyphSynthesisModal: React.FC<GlyphSynthesisModalProps> = ({
     <ModalShell
       title="かな自動合成"
       subtitle="清音から濁音・半濁音、通常かなから小書き文字を一括生成"
-      icon={<Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="6xl"

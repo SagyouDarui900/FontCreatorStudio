@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Flame } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { GlyphData } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 import { GridFittingPresetType, GridFittingTab, StemInfo } from './types';
@@ -102,7 +102,6 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
       <div className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold flex items-center space-x-1.5">
-            <Flame className={`w-4 h-4 ${themeClasses.accentText}`} />
             <span>検出ステム解析</span>
           </span>
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${themeClasses.accentBadge}`}>

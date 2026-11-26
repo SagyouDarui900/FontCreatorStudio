@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Sparkles, Type } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { ProportionalMetricsConfig } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 import { SliderRow } from '../modals/SliderRow';
@@ -105,7 +105,6 @@ export const PaltMetricsPanel: React.FC<PaltMetricsPanelProps> = ({
             <h4
               className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}
             >
-              <Type className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>登録済みツメ量一覧</span>
             </h4>
             <div className={`inline-flex rounded-lg border p-0.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>

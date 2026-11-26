@@ -148,7 +148,6 @@ export const VertFeaturesPanel: React.FC<VertFeaturesPanelProps> = ({
           <h4
             className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}
           >
-            <AlignVerticalJustifyCenter className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
             <span>標準縦書き置換ルール一覧 (`vert` / `vrt2` GSUB Table)</span>
           </h4>
           <span className={`text-xs ${themeClasses.textMuted}`}>

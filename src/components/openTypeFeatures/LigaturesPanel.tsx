@@ -122,7 +122,6 @@ export const LigaturesPanel: React.FC<LigaturesPanelProps> = ({
           <h4
             className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${themeClasses.textMuted}`}
           >
-            <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
             <span>登録済み合字ルール一覧 ({ligatures.length} 件)</span>
           </h4>
         </div>

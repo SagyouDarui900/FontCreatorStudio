@@ -1,5 +1,4 @@
 import React from 'react';
-import { Sliders, ShieldCheck, Layers, MoveHorizontal } from 'lucide-react';
 import {
   AlignHorizontal,
   AlignVertical,
@@ -96,7 +95,6 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
         <ModalSection
           title="処理対象の文字グループ"
           step={1}
-          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
           themeClasses={themeClasses}
           badge={
             <span className={`text-[11px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md border ${themeClasses.accentBadge}`}>
@@ -133,7 +131,6 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       <ModalSection
         title="字面枠サイズ設定"
         step={2}
-        icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
         themeClasses={themeClasses}
         badge={
           <span className={`text-[11px] font-mono tabular-nums ${themeClasses.textMuted}`}>
@@ -244,7 +241,6 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       <ModalSection
         title="位置揃え & 送り幅 (Advance Width)"
         step={4}
-        icon={<MoveHorizontal className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
         themeClasses={themeClasses}
       >
         <div className="space-y-2.5">
@@ -354,7 +350,6 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
       <ModalSection
         title="輪郭・データ最適化"
         step={5}
-        icon={<ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
         themeClasses={themeClasses}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">

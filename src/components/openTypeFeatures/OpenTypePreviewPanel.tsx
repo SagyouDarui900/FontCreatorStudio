@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { FontProject } from '../../types';
 import { compileFont, stripInvalidPixelData, validateFontProject } from '../../utils/font';
 import { ThemeClasses, type ThemeMode } from '../../utils/theme';
@@ -128,7 +128,6 @@ export const OpenTypePreviewPanel: React.FC<OpenTypePreviewPanelProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
             <h3 className="font-bold text-sm sm:text-base flex items-center space-x-2">
-              <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
               <span>インタラクティブ縦書き＆合字レンダリング検証</span>
             </h3>
             <p className={`text-xs mt-0.5 ${themeClasses.textMuted}`}>

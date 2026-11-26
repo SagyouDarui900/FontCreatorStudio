@@ -1,17 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
  X,
- Plus,
  Trash2,
- Sliders,
  Sparkles,
  CheckCircle2,
- Eye,
  Info,
  Maximize2,
  Minimize2,
- AlignHorizontalDistributeCenter,
- MoveHorizontal,
 } from 'lucide-react';
 import { FontProject } from '../types';
 import {
@@ -373,9 +368,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
         className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
  <div className="flex items-center gap-2.5 max-sm:min-w-0 max-sm:flex-1">
- <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
- <MoveHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
- </div>
  <div className="max-sm:min-w-0">
  <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 max-sm:min-w-0">
  <span className="max-sm:truncate">カーニング & サイドベアリング調整スタジオ</span>
@@ -451,7 +443,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  >
  <span className="text-xs font-bold flex flex-wrap items-center justify-between gap-2">
  <span className="flex items-center gap-1.5">
- <Sparkles className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>標準カーニング一括プリセット</span>
  </span>
  <button
@@ -490,7 +481,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  className={`p-3.5 rounded-lg border flex flex-col gap-2 ${themeClasses.subtoolbarBg}`}
  >
  <span className="text-xs font-bold flex items-center gap-1.5">
- <Plus className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>自由なペアを追加</span>
  </span>
  <div className="grid grid-cols-[1fr_auto_1fr_1.3fr] sm:flex items-center gap-2 text-xs">
@@ -620,7 +610,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  >
  <div className="flex items-center justify-between text-xs font-bold">
  <span className="flex items-center gap-1.5">
- <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>選択ペアの字間微調整</span>
  </span>
  <span className={`font-mono text-sm ${themeClasses.accentText}`}>
@@ -719,7 +708,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  >
  <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-bold">
  <span className="flex items-center gap-1.5">
- <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>リアルタイム組版テスト</span>
  </span>
  <span className={`text-[10px] ${themeClasses.textMuted}`}>文字を入力してテストできます</span>
@@ -801,7 +789,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  className={`p-3.5 rounded-lg border flex flex-col gap-3 ${themeClasses.subtoolbarBg}`}
  >
  <span className="text-xs font-bold flex items-center gap-1.5">
- <AlignHorizontalDistributeCenter className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>調整対象の文字カテゴリ</span>
  </span>
  <div className="flex flex-wrap gap-1.5">
@@ -835,7 +822,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  className={`p-3.5 rounded-lg border flex flex-col gap-3.5 ${themeClasses.subtoolbarBg}`}
  >
  <span className="text-xs font-bold flex items-center gap-1.5">
- <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>サイドベアリング調整モード</span>
  </span>
 
@@ -992,7 +978,6 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  >
  <div className="w-full flex items-center justify-between text-xs font-bold mb-2">
  <span className="flex items-center gap-1">
- <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
  <span>余白・送り幅プレビュー</span>
  </span>
  <span className={`font-mono ${themeClasses.textMuted}`}>「{sbPreviewChar}」</span>

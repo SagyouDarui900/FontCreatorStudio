@@ -1,5 +1,4 @@
 import React from 'react';
-import { Database } from 'lucide-react';
 import { FontMetadata } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 import { DEFAULT_DESCENDER } from '../../utils/font/constants';
@@ -34,7 +33,6 @@ export const OpenTypeMetricsSection: React.FC<OpenTypeMetricsSectionProps> = Rea
         }`}
       >
         <div className="flex items-center gap-2 font-bold text-xs">
-          <Database className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>OpenType OS/2・hhea・post 詳細メタデータ</span>
         </div>
         <p className="text-[11px] opacity-85 leading-relaxed">

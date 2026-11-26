@@ -305,9 +305,6 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
           className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-4 sm:py-3 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
-            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
-              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
             <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 min-w-0">
               <span className="truncate">フォント情報・ライセンス</span>
               {isFullscreen && (

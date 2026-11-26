@@ -51,7 +51,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
       >
         <div className={`flex items-center justify-between border-b pb-3 ${themeClasses.border}`}>
           <div className={`flex items-center space-x-2 ${themeClasses.accentText}`}>
-            <RotateCcw className="w-5 h-5" />
             <h3 className="text-base font-extrabold">新規プロジェクト作成・リセット</h3>
           </div>
           <button

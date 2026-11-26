@@ -2,9 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Upload,
   FileCode,
-  Wand2,
   Clipboard,
-  Sliders,
   Eye,
   Download,
   Check,
@@ -12,7 +10,6 @@ import {
   Image as ImageIcon,
   RotateCw,
   Plus,
-  Info,
 } from 'lucide-react';
 import { PathContour } from '../types';
 import { parseSvgStringToContours, SvgFitMode } from '../utils/svgParser';
@@ -290,7 +287,6 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
     <ModalShell
       title="SVGインポート & 画像ベクター化"
       subtitle="手書きスキャン画像からの自動ベクター変換・SVGパスの直接取り込み"
-      icon={<Wand2 className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="5xl"
@@ -405,7 +401,6 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   className={`lg:col-span-6 p-3.5 sm:p-4 rounded-xl border text-[11px] space-y-2 flex flex-col justify-center ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
                 >
                   <div className={`flex items-center space-x-1.5 font-bold text-xs ${themeClasses.accentText}`}>
-                    <Info className="w-4 h-4 shrink-0" />
                     <span>フォント作成・ベクター変換の推奨画像規格</span>
                   </div>
                   <ul className={`space-y-1.5 pl-0.5 leading-relaxed ${themeClasses.textMuted}`}>
@@ -484,7 +479,6 @@ export const SvgVectorizerModal: React.FC<SvgVectorizerModalProps> = ({
                   >
                     <div className={`flex items-center justify-between font-bold text-xs pb-2 border-b ${themeClasses.border}`}>
                       <span className="flex items-center space-x-1.5">
-                        <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                         <span>ベクター化パラメーター調整</span>
                       </span>
                       <span className={`text-[10px] font-mono font-normal ${themeClasses.textMuted}`}>

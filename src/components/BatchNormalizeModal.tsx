@@ -262,7 +262,6 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     <ModalShell
       title="サイズ・太さ・品質の一括統一"
       subtitle="全文字の字面枠・線の太さ・送り幅・ベジェ頂点数を均一に自動調整"
-      icon={<Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="5xl"

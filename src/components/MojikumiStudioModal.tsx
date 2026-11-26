@@ -9,7 +9,6 @@ import {
   Grid,
   Play,
   Save,
-  Type,
   X,
   ZoomIn,
   ZoomOut,
@@ -91,11 +90,6 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
           className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 border-b flex items-center justify-between gap-2 shrink-0 ${themeClasses.headerBg}`}
         >
           <div className="flex items-center space-x-3 min-w-0">
-            <div
-              className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}
-            >
-              <Type className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Maximize2, ShieldCheck } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { getThemeClasses, ThemeClasses } from '../../utils/theme';
 import { ModalSection } from '../modals/ModalSection';
 import { SliderRow } from '../modals/SliderRow';
@@ -75,7 +75,6 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
       {/* Size & Em-box Optimization */}
       <ModalSection
         title="文字サイズ・出力倍率"
-        icon={<Maximize2 className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
         themeClasses={themeClasses}
         badge={
           <span className={`text-xs font-mono tabular-nums font-bold shrink-0 ${themeClasses.accentText}`}>
@@ -144,7 +143,6 @@ export const ExportFormatSection: React.FC<ExportFormatSectionProps> = React.mem
       {/* Visual Fidelity & Vector Purity */}
       <ModalSection
         title="出力オプション・輪郭補正"
-        icon={<ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
         themeClasses={themeClasses}
         badge={
           <span className={`hidden sm:inline text-[10px] font-semibold shrink-0 ${themeClasses.accentText}`}>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileCode, Check, Copy, ChevronDown, ChevronRight } from 'lucide-react';
+import { Check, Copy, ChevronDown, ChevronRight } from 'lucide-react';
 import { getThemeClasses, ThemeClasses } from '../../utils/theme';
 
 export interface ExportCssSectionProps {
@@ -36,7 +36,6 @@ export const ExportCssSection: React.FC<ExportCssSectionProps> = React.memo(({
           ) : (
             <ChevronRight className={`w-3.5 h-3.5 shrink-0 opacity-70 ${themeClasses.accentText}`} />
           )}
-          <FileCode className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
           <span>Webサイト用 CSS (@font-face)</span>
         </button>
         <button

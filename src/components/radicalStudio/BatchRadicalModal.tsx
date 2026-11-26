@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useDialogFocusTrap } from '../modals/ModalStackFrame';
-import { Layers, Sparkles, AlertCircle } from 'lucide-react';
+import { Sparkles, AlertCircle } from 'lucide-react';
 import { PathContour, RadicalPlacement, GlyphData } from '../../types';
 import { transformContoursForPlacement, contoursToSvgPath } from '../../utils/path';
 import { getThemeClasses, ThemeMode } from '../../utils/theme';
@@ -141,7 +141,6 @@ export const BatchRadicalModal: React.FC<BatchRadicalModalProps> = ({
       <ModalShell
       title="部首パーツの複数漢字一括流し込み（バッチ合成）"
       subtitle={`「${radicalName}」パーツを対象漢字群に一括で変形配置・合成します`}
-      icon={<Layers className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="3xl"

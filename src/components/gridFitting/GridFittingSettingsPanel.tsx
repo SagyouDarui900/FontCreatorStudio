@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings2, Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { ThemeClasses } from '../../utils/theme';
 import { SliderRow } from '../modals/SliderRow';
 import { GridFittingConfig, GridFittingTab } from './types';
@@ -37,7 +37,6 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
       }`}
     >
       <div className="flex items-center space-x-2 border-b pb-2 border-stone-200 dark:border-[#223326]">
-        <Settings2 className={`w-4 h-4 ${themeClasses.accentText}`} />
         <h3 className="text-xs font-bold">
           ヒンティング補正調整パラメータ
         </h3>

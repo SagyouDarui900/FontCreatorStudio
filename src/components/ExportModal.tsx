@@ -430,7 +430,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <span className="hidden sm:inline">OpenType (CFF) 規格準拠のフォントファイルを生成します</span>
         </>
       }
-      icon={<Download className="w-4 h-4 sm:w-5 sm:h-5" />}
       theme={theme}
       themeClasses={themeClasses}
       maxWidth="3xl"

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
-  Grid,
   Pencil,
   BookOpen,
+  Grid,
   Gamepad2,
   ChevronLeft,
   ChevronRight,
@@ -788,9 +788,6 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           className={`hidden md:flex items-center justify-between px-3.5 sm:px-5 py-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-3">
-            <div className={`w-8 h-8 rounded-none flex items-center justify-center font-mono font-bold text-sm border ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}>
-              <Grid className="w-4 h-4 text-white" />
-            </div>
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="font-bold text-sm sm:text-base leading-none tracking-tight">
@@ -909,9 +906,6 @@ export const PixelFontStudioModal: React.FC<PixelFontStudioModalProps> = ({
           className={`flex md:hidden items-center justify-between px-2.5 py-1.5 pt-[calc(0.375rem+env(safe-area-inset-top,0px))] border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2 min-w-0">
-            <div className={`w-7 h-7 rounded-none flex items-center justify-center font-bold text-xs shrink-0 border ${themeClasses.accentBtn} ${themeClasses.accentBorder}`}>
-              <Grid className="w-3.5 h-3.5 text-white" />
-            </div>
             <div className="flex items-center border border-stone-300 dark:border-stone-700 bg-white dark:bg-[#18261f]">
               <button
                 onClick={handlePrevGlyph}

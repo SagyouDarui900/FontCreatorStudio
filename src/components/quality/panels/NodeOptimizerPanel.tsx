@@ -3,8 +3,6 @@ import {
   Sparkles,
   ShieldCheck,
   X,
-  SlidersHorizontal,
-  Layers,
   Check,
   RefreshCw,
 } from 'lucide-react';
@@ -56,15 +54,6 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
     >
       <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3">
         <div className="flex items-start sm:items-center space-x-2.5 min-w-0">
-          <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${
-              isLight
-                ? 'bg-emerald-600 text-white border-emerald-700'
-                : 'bg-emerald-500 text-black border-emerald-400'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-          </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h3 className="font-bold text-xs sm:text-sm text-stone-900 dark:text-white">
@@ -109,7 +98,6 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
           }`}
         >
           <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-            <SlidersHorizontal className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
             <span>最適化の強度</span>
           </div>
           <div className="space-y-1">
@@ -163,7 +151,6 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
           }`}
         >
           <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-            <Layers className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
             <span>対象文字の範囲</span>
           </div>
           <div className="space-y-1">
@@ -218,7 +205,6 @@ export const NodeOptimizerPanel: React.FC<NodeOptimizerPanelProps> = ({
         >
           <div>
             <div className="text-[11px] font-bold text-stone-500 dark:text-stone-400 mb-1.5 flex items-center space-x-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
               <span>形状保護セーフガード</span>
             </div>
             <ul className="text-[11px] text-stone-600 dark:text-stone-300 space-y-1 leading-relaxed">
