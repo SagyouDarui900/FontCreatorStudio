@@ -269,6 +269,15 @@ export function useCanvasNativeGestures({
           if (wasTwoFinger) {
             twoFingerCooldownUntilRef.current = Date.now() + 150;
             setSvgGesturing(false);
+            const g = canvasGroupRef.current;
+            if (g) {
+              const svgEl = g.ownerSVGElement;
+              if (svgEl && svgEl.style.transform) {
+                svgEl.style.transform = '';
+              }
+              g.setAttribute('transform', `translate(${panRef.current.x}, ${panRef.current.y}) scale(${zoomRef.current})`);
+            }
+            setLiveViewport(zoomRef.current, panRef.current);
             setZoom(zoomRef.current);
             setPan(panRef.current);
           }

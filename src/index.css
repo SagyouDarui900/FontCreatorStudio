@@ -431,6 +431,23 @@ svg[data-gesturing="true"] foreignObject {
 
 svg[data-gesturing="true"] .trace-reference-layer image {
   image-rendering: optimizeSpeed;
+  filter: none !important;
+}
+
+svg[data-gesturing="true"] text {
+  paint-order: fill;
+  stroke: none;
+}
+
+svg[data-gesturing="true"] .custom-guidelines-layer *,
+svg[data-gesturing="true"] .trace-adjust-handles * {
+  transition: none !important;
+}
+
+svg[data-gesturing="true"] .canvas-cursor-crosshair,
+svg[data-gesturing="true"] .brush-drawing-reticle,
+svg[data-gesturing="true"] .eraser-sweep-reticle {
+  display: none !important;
 }
 
 /* ==========================================================================

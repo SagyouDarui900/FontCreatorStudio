@@ -281,16 +281,19 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
   }, []);
 
   return (
-    <svg
-      ref={svgRef}
-      className="absolute inset-0 w-full h-full touch-none select-none block"
-      style={{
-        touchAction: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-        cursor: getCanvasCursor(),
-      }}
+    <>
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 w-full h-full touch-none select-none block"
+        style={{
+          touchAction: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+          cursor: getCanvasCursor(),
+          willChange: 'transform',
+          transformOrigin: '0 0',
+        }}
       onPointerDown={handlePointerDown}
       onPointerEnter={(e) => {
         if (!gridSettings.showCursorCrosshair || isSpacePressed || isPanning) return;
@@ -589,17 +592,25 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
           selectionColor={selectionColor}
         />
       </g>
-
-      {/* Top & Left Ruler Scales — outside the panning/zooming <g> so the
-          rulers stay fixed at the viewport edges instead of scrolling away
-          with the glyph. Positions are computed in screen coordinates. */}
-      <CanvasRulersLayer
-        showRulers={gridSettings.showRulers !== false}
-        isLight={isLight}
-        unitsPerEm={upm}
-        width={viewportSize.width}
-        height={viewportSize.height}
-      />
     </svg>
+
+      {/* Top & Left Ruler Scales — in a dedicated pointer-events-none sibling
+          SVG so CSS GPU compositing transforms on the main vector SVG never
+          move or scale the fixed viewport edge rulers. */}
+      {gridSettings.showRulers !== false && (
+        <svg
+          className="pointer-events-none absolute inset-0 w-full h-full block"
+          aria-hidden="true"
+        >
+          <CanvasRulersLayer
+            showRulers={true}
+            isLight={isLight}
+            unitsPerEm={upm}
+            width={viewportSize.width}
+            height={viewportSize.height}
+          />
+        </svg>
+      )}
+    </>
   );
 });
