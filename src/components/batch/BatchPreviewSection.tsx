@@ -4,6 +4,7 @@ import { getSafeGlyphViewBox } from '../../utils/path';
 import { getThemeClasses, ThemeClasses } from '../../utils/theme';
 import { TargetScope } from './types';
 import { Eye, Layers, Columns2 } from 'lucide-react';
+import { ModalSection } from '../modals/ModalSection';
 
 export interface BatchPreviewSectionProps {
   isLight: boolean;
@@ -76,62 +77,61 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
   const scaleRatioY = origBbox.height > 0 ? (normBbox.height / origBbox.height) * 100 : 100;
 
   return (
-    <div className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col gap-3 ${themeClasses.cardBg} ${themeClasses.border}`}>
-      {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between pb-2 border-b gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-bold text-xs tracking-tight flex items-center gap-1.5">
-            <Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-            <span>プレビュー確認</span>
-          </span>
-          <span className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border ${themeClasses.accentBadge}`}>
-            「{previewGlyph?.char || 'あ'}」
-          </span>
-        </div>
-
+    <ModalSection
+      title="プレビュー確認"
+      icon={<Eye className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+      themeClasses={themeClasses}
+      badge={
+        <span className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold border ${themeClasses.accentBadge}`}>
+          「{previewGlyph?.char || 'あ'}」
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-3">
         {/* View Mode Segmented Switcher */}
-        <div className={`flex items-center p-0.5 rounded-lg border text-[10px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <button
-            type="button"
-            onClick={() => setViewMode('overlay')}
-            className={`px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
-              viewMode === 'overlay'
-                ? themeClasses.activeTool
-                : `${themeClasses.textMuted} hover:opacity-80`
-            }`}
-            title="元字形と調整後を重ね合わせて比較"
-          >
-            <Layers className="w-3 h-3" />
-            <span className="hidden sm:inline">重ね合わせ</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('side')}
-            className={`px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
-              viewMode === 'side'
-                ? themeClasses.activeTool
-                : `${themeClasses.textMuted} hover:opacity-80`
-            }`}
-            title="調整前と調整後を横並びで比較"
-          >
-            <Columns2 className="w-3 h-3" />
-            <span className="hidden sm:inline">横並び</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('norm')}
-            className={`px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
-              viewMode === 'norm'
-                ? themeClasses.activeTool
-                : `${themeClasses.textMuted} hover:opacity-80`
-            }`}
-            title="正規化後の形状のみを表示"
-          >
-            <Eye className="w-3 h-3" />
-            <span className="hidden sm:inline">調整後のみ</span>
-          </button>
+        <div className="flex justify-end">
+          <div className={`flex items-center p-0.5 rounded-lg border text-[10px] font-semibold shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+            <button
+              type="button"
+              onClick={() => setViewMode('overlay')}
+              className={`px-2 py-2 sm:py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                viewMode === 'overlay'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:opacity-80`
+              }`}
+              title="元字形と調整後を重ね合わせて比較"
+            >
+              <Layers className="w-3 h-3" />
+              <span className="hidden sm:inline">重ね合わせ</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('side')}
+              className={`px-2 py-2 sm:py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                viewMode === 'side'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:opacity-80`
+              }`}
+              title="調整前と調整後を横並びで比較"
+            >
+              <Columns2 className="w-3 h-3" />
+              <span className="hidden sm:inline">横並び</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('norm')}
+              className={`px-2 py-2 sm:py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
+                viewMode === 'norm'
+                  ? themeClasses.activeTool
+                  : `${themeClasses.textMuted} hover:opacity-80`
+              }`}
+              title="正規化後の形状のみを表示"
+            >
+              <Eye className="w-3 h-3" />
+              <span className="hidden sm:inline">調整後のみ</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Quick Character Picker */}
       {quickSampleGlyphs.length > 1 && (
@@ -145,7 +145,7 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
                 key={g.unicode}
                 type="button"
                 onClick={() => onSelectPreviewGlyph?.(g)}
-                className={`w-8 h-8 sm:w-6 sm:h-6 rounded-lg sm:rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
+                className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg sm:rounded-md text-xs font-bold shrink-0 border transition-colors cursor-pointer flex items-center justify-center ${
                   previewGlyph?.unicode === g.unicode
                     ? themeClasses.accentBtn
                     : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`
@@ -264,7 +264,8 @@ export const BatchPreviewSection: React.FC<BatchPreviewSectionProps> = React.mem
           </span>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalSection>
   );
 });
 

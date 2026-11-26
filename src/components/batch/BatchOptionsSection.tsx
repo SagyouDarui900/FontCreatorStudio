@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sliders, ShieldCheck, CheckCircle2, Layers, MoveHorizontal, MoveVertical, Minus, Plus } from 'lucide-react';
+import { Sliders, ShieldCheck, Layers, MoveHorizontal } from 'lucide-react';
 import {
   AlignHorizontal,
   AlignVertical,
@@ -8,6 +8,8 @@ import {
   isSizePreset,
 } from './types';
 import { getThemeClasses, ThemeClasses } from '../../utils/theme';
+import { ModalSection } from '../modals/ModalSection';
+import { SliderRow } from '../modals/SliderRow';
 
 export interface BatchOptionsSectionProps {
   isLight: boolean;
@@ -88,20 +90,20 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
   ];
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       {/* 1. Target Scope Selection */}
       {setScope && (
-        <div className={`p-3 rounded-xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-xs flex items-center gap-1.5">
-              <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-              <span>① 処理対象の文字グループ</span>
-            </span>
+        <ModalSection
+          title="処理対象の文字グループ"
+          step={1}
+          icon={<Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+          themeClasses={themeClasses}
+          badge={
             <span className={`text-[11px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md border ${themeClasses.accentBadge}`}>
               対象: {targetGlyphsCount} 文字
             </span>
-          </div>
-
+          }
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {SCOPE_ITEMS.map((s) => {
               const isSelected = scope === s.id;
@@ -124,160 +126,105 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
               );
             })}
           </div>
-        </div>
+        </ModalSection>
       )}
 
       {/* 2. Size & Bounding Frame Presets */}
-      <div className={`p-3 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-xs flex items-center gap-1.5">
-            <Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-            <span>② 字面枠サイズ設定</span>
-          </span>
+      <ModalSection
+        title="字面枠サイズ設定"
+        step={2}
+        icon={<Sliders className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+        themeClasses={themeClasses}
+        badge={
           <span className={`text-[11px] font-mono tabular-nums ${themeClasses.textMuted}`}>
             UPM: 1000基準
           </span>
-        </div>
+        }
+      >
+        <div className="space-y-2.5">
+          {/* Preset Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+            {PRESET_ITEMS.map((p) => {
+              const isSelected = sizePreset === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    if (isSizePreset(p.id)) {
+                      handlePresetChange(p.id);
+                    }
+                  }}
+                  className={`p-1.5 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer last:max-sm:col-span-2 ${
+                    isSelected
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  <div className="text-xs font-bold truncate w-full">{p.label}</div>
+                  <div className="text-[10px] font-mono tabular-nums opacity-80">{p.size}</div>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Preset Pills */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-          {PRESET_ITEMS.map((p) => {
-            const isSelected = sizePreset === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  if (isSizePreset(p.id)) {
-                    handlePresetChange(p.id);
-                  }
+          {/* Width & Height Sliders */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className={`p-2 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+              <SliderRow
+                label="目標幅 (Width)"
+                value={targetWidth}
+                min={500}
+                max={960}
+                step={10}
+                unit="px"
+                showNumberInput
+                onChange={(v) => {
+                  setTargetWidth(v);
+                  setSizePreset('custom');
                 }}
-                className={`p-1.5 rounded-xl border text-center flex flex-col items-center justify-center transition-colors cursor-pointer last:max-sm:col-span-2 ${
-                  isSelected
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                <div className="text-xs font-bold truncate w-full">{p.label}</div>
-                <div className="text-[10px] font-mono tabular-nums opacity-80">{p.size}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Width & Height Sliders */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Target Width */}
-          <div className={`p-2 rounded-xl border space-y-1 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium">目標幅 (Width)</span>
-              <div className="flex items-center gap-1.5 sm:gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetWidth(Math.max(400, targetWidth - 10));
-                    setSizePreset('custom');
-                  }}
-                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
-                >
-                  <Minus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
-                </button>
-                <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded border min-w-[54px] text-center ${themeClasses.cardBg} ${themeClasses.accentText}`}>
-                  {targetWidth}px
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetWidth(Math.min(980, targetWidth + 10));
-                    setSizePreset('custom');
-                  }}
-                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
-                >
-                  <Plus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
-                </button>
-              </div>
+                themeClasses={themeClasses}
+              />
             </div>
-            <input
-              type="range"
-              min={500}
-              max={960}
-              step={10}
-              value={targetWidth}
-              onChange={(e) => {
-                setTargetWidth(Number(e.target.value));
-                setSizePreset('custom');
-              }}
-              className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
-            />
-          </div>
 
-          {/* Target Height */}
-          <div className={`p-2 rounded-xl border space-y-1 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium">目標高さ (Height)</span>
-              <div className="flex items-center gap-1.5 sm:gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetHeight(Math.max(400, targetHeight - 10));
-                    setSizePreset('custom');
-                  }}
-                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
-                >
-                  <Minus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
-                </button>
-                <span className={`font-mono font-bold text-xs px-1.5 py-0.5 rounded border min-w-[54px] text-center ${themeClasses.cardBg} ${themeClasses.accentText}`}>
-                  {targetHeight}px
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetHeight(Math.min(980, targetHeight + 10));
-                    setSizePreset('custom');
-                  }}
-                  className={`w-8 h-8 sm:w-5 sm:h-5 rounded-lg sm:rounded border flex items-center justify-center ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
-                >
-                  <Plus className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
-                </button>
-              </div>
+            <div className={`p-2 rounded-xl border ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+              <SliderRow
+                label="目標高さ (Height)"
+                value={targetHeight}
+                min={500}
+                max={960}
+                step={10}
+                unit="px"
+                showNumberInput
+                onChange={(v) => {
+                  setTargetHeight(v);
+                  setSizePreset('custom');
+                }}
+                themeClasses={themeClasses}
+              />
             </div>
-            <input
-              type="range"
-              min={500}
-              max={960}
-              step={10}
-              value={targetHeight}
-              onChange={(e) => {
-                setTargetHeight(Number(e.target.value));
-                setSizePreset('custom');
-              }}
-              className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
-            />
           </div>
         </div>
+      </ModalSection>
 
-        {/* 3. Stroke Weight Normalization Slider */}
-        <div className={`p-2.5 rounded-xl border space-y-1.5 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-bold flex items-center gap-1">
-              <span>③ 線の太さ（ウェイト）微調整</span>
-            </span>
-            <span className={`font-mono tabular-nums font-bold text-xs px-2 py-0.5 rounded-md border ${
-              weightDelta === 0
-                ? `${themeClasses.cardBg} ${themeClasses.border}`
-                : themeClasses.accentBadge
-            }`}>
-              {weightDelta > 0 ? `+${weightDelta}px (太く)` : weightDelta < 0 ? `${weightDelta}px (細く)` : '±0px (維持)'}
-            </span>
-          </div>
-          <input
-            type="range"
+      {/* 3. Stroke Weight Normalization Slider */}
+      <ModalSection
+        title="線の太さ（ウェイト）微調整"
+        step={3}
+        themeClasses={themeClasses}
+      >
+        <div className="space-y-1.5">
+          <SliderRow
+            label="線の太さ"
+            value={weightDelta}
             min={-20}
             max={20}
             step={2}
-            value={weightDelta}
-            onChange={(e) => setWeightDelta(Number(e.target.value))}
-            className="w-full accent-emerald-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
+            onChange={setWeightDelta}
+            formatValue={(v) =>
+              v > 0 ? `+${v}px (太く)` : v < 0 ? `${v}px (細く)` : '±0px (維持)'
+            }
+            themeClasses={themeClasses}
           />
           <div className={`flex justify-between text-[10px] font-mono tabular-nums ${themeClasses.textMuted}`}>
             <span>-20px (スリム化)</span>
@@ -291,123 +238,125 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
             <span>+20px (ボールド化)</span>
           </div>
         </div>
-      </div>
+      </ModalSection>
 
       {/* 4. Alignment & Advance Width */}
-      <div className={`p-3 rounded-xl border space-y-2.5 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
-        <span className="font-bold text-xs flex items-center gap-1.5">
-          <MoveHorizontal className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-          <span>④ 位置揃え & 送り幅 (Advance Width)</span>
-        </span>
+      <ModalSection
+        title="位置揃え & 送り幅 (Advance Width)"
+        step={4}
+        icon={<MoveHorizontal className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+        themeClasses={themeClasses}
+      >
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Horizontal Align */}
+            <div className="space-y-1.5">
+              <label className={`text-[11px] font-medium block ${themeClasses.textMuted}`}>
+                水平揃え (X軸)
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAlignH('center')}
+                  className={`py-1.5 px-2 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                    alignH === 'center'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  中央揃え (推奨)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAlignH('keep')}
+                  className={`py-1.5 px-2 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                    alignH === 'keep'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  位置を維持
+                </button>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Horizontal Align */}
-          <div className="space-y-1.5">
-            <label className={`text-[11px] font-medium block ${themeClasses.textMuted}`}>
-              水平揃え (X軸)
-            </label>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button
-                type="button"
-                onClick={() => setAlignH('center')}
-                className={`py-1.5 px-2 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
-                  alignH === 'center'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                中央揃え (推奨)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAlignH('keep')}
-                className={`py-1.5 px-2 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
-                  alignH === 'keep'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                位置を維持
-              </button>
+            {/* Vertical Align */}
+            <div className="space-y-1.5">
+              <label className={`text-[11px] font-medium block ${themeClasses.textMuted}`}>
+                垂直揃え (Y軸)
+              </label>
+              <div className="grid grid-cols-3 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAlignV('center')}
+                  className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
+                    alignV === 'center'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  中央 (全角)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAlignV('baseline')}
+                  className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
+                    alignV === 'baseline'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  ベースライン
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAlignV('keep')}
+                  className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
+                    alignV === 'keep'
+                      ? themeClasses.activeTool
+                      : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
+                  }`}
+                >
+                  維持
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Vertical Align */}
-          <div className="space-y-1.5">
-            <label className={`text-[11px] font-medium block ${themeClasses.textMuted}`}>
-              垂直揃え (Y軸)
+          {/* Advance Width Checkbox & Input */}
+          <div className={`p-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
+            <label className="flex items-center gap-2 cursor-pointer select-none min-h-[36px] sm:min-h-0">
+              <input
+                type="checkbox"
+                checked={unifyAdvance}
+                onChange={(e) => setUnifyAdvance(e.target.checked)}
+                className="rounded accent-emerald-600 w-4 h-4 shrink-0"
+              />
+              <span className="text-xs font-semibold">送り幅 (advanceWidth) を統一</span>
             </label>
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                type="button"
-                onClick={() => setAlignV('center')}
-                className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
-                  alignV === 'center'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                中央 (全角)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAlignV('baseline')}
-                className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
-                  alignV === 'baseline'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                ベースライン
-              </button>
-              <button
-                type="button"
-                onClick={() => setAlignV('keep')}
-                className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-semibold text-center transition-colors cursor-pointer ${
-                  alignV === 'keep'
-                    ? themeClasses.activeTool
-                    : `${themeClasses.subtoolbarBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-                }`}
-              >
-                維持
-              </button>
+            <div className="flex items-center gap-1 ml-auto">
+              <input
+                type="number"
+                disabled={!unifyAdvance}
+                value={advanceWidth}
+                onChange={(e) => setAdvanceWidth(Number(e.target.value))}
+                className={`w-20 border rounded-lg p-1 text-right font-mono tabular-nums text-xs font-bold ${
+                  themeClasses.cardBg
+                } ${themeClasses.border} ${!unifyAdvance && 'opacity-40 cursor-not-allowed'}`}
+              />
+              <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>px</span>
             </div>
           </div>
         </div>
-
-        {/* Advance Width Checkbox & Input */}
-        <div className={`p-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}>
-          <label className="flex items-center gap-2 cursor-pointer select-none min-h-[36px] sm:min-h-0">
-            <input
-              type="checkbox"
-              checked={unifyAdvance}
-              onChange={(e) => setUnifyAdvance(e.target.checked)}
-              className="rounded accent-emerald-600 w-4 h-4 shrink-0"
-            />
-            <span className="text-xs font-semibold">送り幅 (advanceWidth) を統一</span>
-          </label>
-          <div className="flex items-center gap-1 ml-auto">
-            <input
-              type="number"
-              disabled={!unifyAdvance}
-              value={advanceWidth}
-              onChange={(e) => setAdvanceWidth(Number(e.target.value))}
-              className={`w-20 border rounded-lg p-1 text-right font-mono tabular-nums text-xs font-bold ${
-                themeClasses.cardBg
-              } ${themeClasses.border} ${!unifyAdvance && 'opacity-40 cursor-not-allowed'}`}
-            />
-            <span className={`text-[11px] font-mono ${themeClasses.textMuted}`}>px</span>
-          </div>
-        </div>
-      </div>
+      </ModalSection>
 
       {/* 5. Quality & File Size Optimization */}
-      <div className={`p-3 rounded-xl border space-y-2 shadow-none ${themeClasses.cardBg} ${themeClasses.border}`}>
-        <span className="font-bold text-xs flex items-center gap-1.5">
-          <ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
-          <span>⑤ 輪郭・データ最適化</span>
-        </span>
-
+      <ModalSection
+        title="輪郭・データ最適化"
+        step={5}
+        icon={<ShieldCheck className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />}
+        themeClasses={themeClasses}
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           {/* Point Optimization Toggle */}
           <label className={`p-2 rounded-xl border flex items-start gap-2 cursor-pointer transition-colors ${
@@ -445,7 +394,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
             </div>
           </label>
         </div>
-      </div>
+      </ModalSection>
     </div>
   );
 });

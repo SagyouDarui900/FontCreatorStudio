@@ -1,10 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  X,
-  Sparkles,
-  Maximize2,
-  Minimize2,
-} from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { FontProject, GlyphData } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
@@ -18,6 +13,8 @@ import {
   BatchOptionsSection,
 } from './batch';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalShell } from './modals/ModalShell';
+import { ModalFooter } from './modals/ModalFooter';
 
 export type { TargetScope } from './batch';
 
@@ -262,87 +259,40 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   const normBbox = getContoursBoundingBox(normalizedPreviewContours);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="フォントサイズ・太さ・品質一括調整"
-      className={`fixed inset-0 z-[60] anim-fade ${
-        isFullscreen
-          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
-      }`}
+    <ModalShell
+      title="サイズ・太さ・品質の一括統一"
+      subtitle="全文字の字面枠・線の太さ・送り幅・ベジェ頂点数を均一に自動調整"
+      icon={<Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />}
+      theme={theme}
+      themeClasses={themeClasses}
+      maxWidth="5xl"
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
+      onClose={onClose}
+      ariaLabel="フォントサイズ・太さ・品質一括調整"
+      bodyClassName="overscroll-contain"
+      footer={
+        <ModalFooter
+          primaryLabel={`対象 ${targetGlyphs.length} 文字に一括適用`}
+          primaryIcon={<Sparkles className="w-4 h-4 fill-current shrink-0" />}
+          onPrimary={handleApplyBatch}
+          primaryDisabled={targetGlyphs.length === 0}
+          onCancel={onClose}
+          theme={theme}
+          themeClasses={themeClasses}
+          leftInfo={
+            <span className={`text-[11px] font-mono hidden sm:inline ${themeClasses.textMuted}`}>
+              選択中: {targetGlyphs.length}文字
+            </span>
+          }
+        />
+      }
     >
-      <div
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
-          isFullscreen
-            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-5xl xl:max-w-6xl border-0 sm:border rounded-none sm:rounded-2xl sm:max-h-[92vh] ${themeClasses.border}`
-        }`}
-      >
-        {/* Header Bar */}
-        <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`p-1.5 sm:p-2 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm sm:text-base font-bold tracking-tight flex items-center gap-2">
-                <span className="truncate">サイズ・太さ・品質の一括統一</span>
-                {isFullscreen && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
-                    全画面
-                  </span>
-                )}
-              </h2>
-              <p className={`text-[11px] truncate ${themeClasses.textMuted}`}>
-                全文字の字面枠・線の太さ・送り幅・ベジェ頂点数を均一に自動調整
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-1.5 shrink-0">
-            {/* Fullscreen Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
-                isFullscreen
-                  ? themeClasses.activeTool
-                  : `${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`
-              }`}
-              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span>通常</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>全画面</span>
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`p-1.5 rounded-lg max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center border transition-colors cursor-pointer ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title="閉じる (Esc)"
-              aria-label="閉じる"
-            >
-              <X className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </div>
-
         {/* Content: Balanced 2-Column CAD Studio Layout on lg+ */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4">
+        <div>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
             {/* Left: Dedicated Visual Stage (5 cols) */}
-            <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-2.5">
+            <div className="lg:col-span-5 lg:sticky lg:top-0 space-y-3">
               <BatchPreviewSection
                 isLight={isLight}
                 themeClasses={themeClasses}
@@ -396,35 +346,6 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Footer Action Bar */}
-        <div
-          className={`p-3 sm:px-5 sm:py-2.5 border-t flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 sm:gap-2.5 shrink-0 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-2.5 ${themeClasses.headerBg} ${themeClasses.border}`}
-        >
-          <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={onClose}
-              className={`w-full sm:w-auto px-3.5 py-2.5 sm:py-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.textPrimary} ${themeClasses.activeToolHover}`}
-            >
-              キャンセル
-            </button>
-            <span className={`text-[11px] font-mono hidden sm:inline ${themeClasses.textMuted}`}>
-              選択中: {targetGlyphs.length}文字
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleApplyBatch}
-            disabled={targetGlyphs.length === 0}
-            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 active:opacity-85 transition-colors duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.accentBtn}`}
-          >
-            <Sparkles className="w-4 h-4 fill-current shrink-0" />
-            <span className="truncate">対象 {targetGlyphs.length} 文字に一括適用</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };

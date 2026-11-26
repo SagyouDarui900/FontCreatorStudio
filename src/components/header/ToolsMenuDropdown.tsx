@@ -31,6 +31,7 @@ import { ThemeMode, getThemePreset, getThemeClasses } from '../../utils/theme';
 import { useModalContext } from '../../contexts/ModalContext';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { PWAInstallButton } from '../PWAInstallButton';
+import { ToolMenuCard } from '../modals/ToolMenuCard';
 
 interface ToolsMenuDropdownProps {
   isOpen: boolean;
@@ -108,8 +109,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
   const { openModal } = useModalContext();
   const { isInstalled } = usePWAInstall();
   const themeClasses = getThemeClasses(theme);
-  const toolItemClass = `text-left p-2 rounded-xl border flex items-start space-x-2 group cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
-  const smallItemClass = `text-left p-2 rounded-xl border flex items-center space-x-2 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
+  const smallItemClass = `text-left p-2 rounded-xl border flex items-center space-x-2 h-full cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`;
 
   return (
     <div className="relative shrink-0" ref={menuRef}>
@@ -137,7 +137,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
         <>
           {/* Click-away backdrop rendered at root stacking context above drawers */}
           <div
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-50 bg-black/75"
             onClick={onClose}
           />
           <div
@@ -160,7 +160,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               </div>
               <button
                 onClick={onClose}
-                className={`p-1 rounded-lg cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+                className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-1.5 rounded-lg flex items-center justify-center cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
                 title="閉じる"
               >
                 <X className="w-4 h-4" />
@@ -180,7 +180,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   <Download className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold truncate">フォントを出力 (OTF)</div>
+                  <div className="text-xs font-bold truncate" title="フォントを出力 (OTF)">フォントを出力 (OTF)</div>
                   <div className="text-[10.5px] opacity-80 jp-wrap leading-tight">
                     インストール用・ダウンロード用フォントファイルの書き出し
                   </div>
@@ -207,7 +207,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 <div className="flex items-center space-x-2 min-w-0 flex-1 mr-2">
                   <SlidersHorizontal className={`w-4 h-4 shrink-0 ${themeClasses.accentText}`} />
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">メトリクスパネル</div>
+                    <div className="text-xs font-bold truncate" title="メトリクスパネル">メトリクスパネル</div>
                     <div className={`text-[11px] jp-wrap leading-tight ${themeClasses.textMuted}`}>
                       {showMetricsDrawer ? '表示中 (タップで閉じる)' : '文字枠・送り幅の調整'}
                     </div>
@@ -227,335 +227,243 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
                 {/* Pixel Font */}
                 {onOpenPixelStudio && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Grid className="w-4 h-4" />}
+                    title="ピクセルフォント"
+                    description="ドット絵形式の作字・グリッド編集"
                     onClick={() => {
                       onOpenPixelStudio();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${themeClasses.accentBadge}`}>
-                      <Grid className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">ピクセルフォント</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        ドット絵形式の作字・グリッド編集
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Radical / Parts */}
-                <button
+                <ToolMenuCard
+                  icon={<Shapes className="w-4 h-4" />}
+                  title="部首・パーツパレット"
+                  description="214部首・偏旁冠脚の合成"
                   onClick={() => {
                     onOpenRadicalStudio();
                     onClose();
                   }}
-                  className={toolItemClass}
-                >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                    <Shapes className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">部首・パーツパレット</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      214部首・偏旁冠脚の合成
-                    </div>
-                  </div>
-                </button>
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
 
                 {/* Custom Pen Creation */}
                 {onOpenPenPresetsModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Sliders className="w-4 h-4" />}
+                    title="カスタムペン"
+                    description="筆先形状・入り抜き・筆圧設定"
                     onClick={() => {
                       onOpenPenPresetsModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Sliders className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">カスタムペン</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        筆先形状・入り抜き・筆圧設定
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Image / Photo Trace */}
-                <button
+                <ToolMenuCard
+                  icon={<Layers className="w-4 h-4" />}
+                  title="下絵トレース"
+                  description="手書きノートや画像からの輪郭抽出"
                   onClick={() => {
                     onOpenTraceModal();
                     onClose();
                   }}
-                  className={toolItemClass}
-                >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">下絵トレース</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      手書きノートや画像からの輪郭抽出
-                    </div>
-                  </div>
-                </button>
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
 
                 {/* SVG Vectorizer Import */}
-                <button
+                <ToolMenuCard
+                  icon={<FileCode className="w-4 h-4" />}
+                  title="SVGインポート"
+                  description="ベクター画像（SVG）のパス取り込み"
                   onClick={() => {
                     onOpenSvgModal();
                     onClose();
                   }}
-                  className={`${toolItemClass} col-span-1 sm:col-span-2`}
-                >
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                    <FileCode className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">SVGインポート</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      ベクター画像（SVG）のパス取り込み
-                    </div>
-                  </div>
-                </button>
+                  span={2}
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
               </div>
             </div>
 
             {/* Section 2: 自動化・フォント調整 */}
-            <div>
+            <div className={`pt-1 border-t ${themeClasses.border}`}>
               <div className={`px-1 pb-1 text-[11px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                 自動化・フォント調整
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
                 {/* Glyph Synthesis */}
                 {onOpenGlyphSynthesisModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Wand2 className="w-4 h-4" />}
+                    title="濁点・小書き合成"
+                    description="清音から濁音・促音・拗音を一括生成"
                     onClick={() => {
                       onOpenGlyphSynthesisModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Wand2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">濁点・小書き合成</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        清音から濁音・促音・拗音を一括生成
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Batch Normalize */}
-                <button
+                <ToolMenuCard
+                  icon={<Sliders className="w-4 h-4" />}
+                  title="サイズ・太さ統一"
+                  description="字面枠や線の太さの一括正規化"
                   onClick={() => {
                     onOpenBatchNormalizeModal();
                     onClose();
                   }}
-                  className={toolItemClass}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 flex items-center justify-center shrink-0 mt-0.5">
-                    <Sliders className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">サイズ・太さ統一</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      字面枠や線の太さの一括正規化
-                    </div>
-                  </div>
-                </button>
+                  accent="violet"
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
 
                 {/* Weight Interpolation */}
                 {onOpenWeightInterpolationModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Sliders className="w-4 h-4" />}
+                    title="ウェイト補間"
+                    description="太さの異なるファミリー書体を生成"
                     onClick={() => {
                       onOpenWeightInterpolationModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Sliders className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">ウェイト補間</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        太さの異なるファミリー書体を生成
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Kerning & Side Bearings */}
                 {onOpenKerningModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<ArrowLeftRight className="w-4 h-4" />}
+                    title="カーニング調整"
+                    description="文字ペアの間隔・余白設定"
                     onClick={() => {
                       onOpenKerningModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <ArrowLeftRight className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">カーニング調整</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        文字ペアの間隔・余白設定
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Quality Check */}
                 {onOpenQualityModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<ShieldCheck className="w-4 h-4" />}
+                    title="品質チェック"
+                    description="重複ノード・極点・パス交差の検査"
                     onClick={() => {
                       onOpenQualityModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">品質チェック</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        重複ノード・極点・パス交差の検査
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Glyph Overlay Compare */}
                 {onOpenGlyphCompareModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Eye className="w-4 h-4" />}
+                    title="グリフ比較"
+                    description="複数文字の重ね合わせバランス確認"
                     onClick={() => {
                       onOpenGlyphCompareModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Eye className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">グリフ比較</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        複数文字の重ね合わせバランス確認
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* OpenType Features */}
                 {onOpenOpenTypeFeaturesModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<FileCode className="w-4 h-4" />}
+                    title="縦書き・合字"
+                    description="縦書き用グリフと合字 (OpenType) 設定"
                     onClick={() => {
                       onOpenOpenTypeFeaturesModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <FileCode className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">縦書き・合字</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        縦書き用グリフと合字 (OpenType) 設定
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Mojikumi Studio */}
                 {onOpenMojikumiStudio && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Type className="w-4 h-4" />}
+                    title="文字組み・組版"
+                    description="ベタ/ツメ/アケ比較・アキ量・禁則"
                     onClick={() => {
                       onOpenMojikumiStudio();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Type className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">文字組み・組版</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        ベタ/ツメ/アケ比較・アキ量・禁則
-                      </div>
-                    </div>
-                  </button>
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* Grid Fitting */}
                 {onOpenGridFittingModal && (
-                  <button
+                  <ToolMenuCard
+                    icon={<Grid className="w-4 h-4" />}
+                    title="グリッド整列"
+                    description="低解像度向けの自動ヒンティング"
                     onClick={() => {
                       onOpenGridFittingModal();
                       onClose();
                     }}
-                    className={toolItemClass}
-                  >
-                    <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${themeClasses.accentBadge}`}>
-                      <Grid className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">グリッド整列</div>
-                      <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                        低解像度向けの自動ヒンティング
-                      </div>
-                    </div>
-                  </button>
+                    accent="amber"
+                    theme={theme}
+                    themeClasses={themeClasses}
+                  />
                 )}
 
                 {/* JIS Progress Dashboard */}
-                <button
+                <ToolMenuCard
+                  icon={<Award className="w-4 h-4" />}
+                  title="JIS規格進捗"
+                  description="常用・JIS第1・第2水準の達成率メーター"
                   onClick={() => {
                     openModal('jisProgress');
                     onClose();
                   }}
-                  className={toolItemClass}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Award className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">JIS規格進捗</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      常用・JIS第1・第2水準の達成率メーター
-                    </div>
-                  </div>
-                </button>
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
 
                 {/* IVS Variant Manager */}
-                <button
+                <ToolMenuCard
+                  icon={<Layers className="w-4 h-4" />}
+                  title="IVS 異体字管理"
+                  description="辻・葛・辺などの異体字セレクタ"
                   onClick={() => {
                     openModal('ivsManager');
                     onClose();
                   }}
-                  className={toolItemClass}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold truncate">IVS 異体字管理</div>
-                    <div className={`text-[10.5px] leading-snug ${themeClasses.textMuted}`}>
-                      辻・葛・辺などの異体字セレクタ
-                    </div>
-                  </div>
-                </button>
+                  accent="purple"
+                  theme={theme}
+                  themeClasses={themeClasses}
+                />
               </div>
             </div>
 
@@ -564,7 +472,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
               <div className={`px-1 pb-1 text-[11px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                 ファイル・設定
               </div>
-              <div className="grid grid-cols-2 gap-1.5 mt-0.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-0.5">
                 <button
                   onClick={() => {
                     onTriggerImportTtf();
@@ -573,7 +481,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   className={smallItemClass}
                 >
                   <Upload className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
-                  <span className="text-xs font-medium truncate">フォント読込 (.ttf/.otf)</span>
+                  <span className="text-xs font-medium truncate" title="フォント読込 (.ttf/.otf)">フォント読込 (.ttf/.otf)</span>
                 </button>
 
                 <button
@@ -584,7 +492,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   className={smallItemClass}
                 >
                   <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
-                  <span className="text-xs font-medium truncate">セーブ読込 (.json)</span>
+                  <span className="text-xs font-medium truncate" title="セーブ読込 (.json)">セーブ読込 (.json)</span>
                 </button>
 
                 <button
@@ -595,7 +503,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   className={smallItemClass}
                 >
                   <Save className={`w-3.5 h-3.5 shrink-0 ${themeClasses.textMuted}`} />
-                  <span className="text-xs font-medium truncate">セーブ保存 (.json)</span>
+                  <span className="text-xs font-medium truncate" title="セーブ保存 (.json)">セーブ保存 (.json)</span>
                 </button>
 
                 <button
@@ -605,8 +513,8 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={smallItemClass}
                 >
-                  <Scale className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="text-xs font-medium truncate">フォント情報・設定</span>
+                  <Scale className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
+                  <span className="text-xs font-medium truncate" title="フォント情報・設定">フォント情報・設定</span>
                 </button>
 
                 {onOpenStorageManagerModal && (
@@ -619,8 +527,8 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   >
                     <HardDrive className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">保存管理・バックアップ</div>
-                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                      <div className="text-xs font-medium truncate" title="保存管理・バックアップ">保存管理・バックアップ</div>
+                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`} title="ストレージ容量・履歴スナップショット">
                         ストレージ容量・履歴スナップショット
                       </div>
                     </div>
@@ -636,7 +544,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     className={`${smallItemClass} col-span-2`}
                   >
                     <BookOpen className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
-                    <span className="text-xs font-medium truncate">ショートカット・操作ガイド</span>
+                    <span className="text-xs font-medium truncate" title="ショートカット・操作ガイド">ショートカット・操作ガイド</span>
                   </button>
                 )}
 
@@ -648,10 +556,10 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                   }}
                   className={`${smallItemClass} col-span-2`}
                 >
-                  <Palette className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+                  <Palette className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate">カラーテーマ・目の保護</div>
-                    <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                    <div className="text-xs font-medium truncate" title="カラーテーマ・目の保護">カラーテーマ・目の保護</div>
+                    <div className={`text-[11px] truncate ${themeClasses.textMuted}`} title={`現在のテーマ: ${getThemePreset(theme).name}`}>
                       現在のテーマ: {getThemePreset(theme).name}
                     </div>
                   </div>
@@ -659,10 +567,10 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 {/* PWA install entry (the header install button is hidden below 640px) */}
                 {!isInstalled && (
                   <div className={`${smallItemClass} col-span-2`}>
-                    <Smartphone className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <Smartphone className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">アプリとしてインストール</div>
-                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`}>
+                      <div className="text-xs font-medium truncate" title="アプリとしてインストール">アプリとしてインストール</div>
+                      <div className={`text-[11px] truncate ${themeClasses.textMuted}`} title="ホーム画面に追加してオフラインで使う">
                         ホーム画面に追加してオフラインで使う
                       </div>
                     </div>
@@ -682,7 +590,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     ) : (
                       <Maximize className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     )}
-                    <span className="text-xs font-medium truncate">
+                    <span className="text-xs font-medium truncate" title={isFullscreen ? '全画面モードを解除 (Esc)' : '全画面モードで集中制作'}>
                       {isFullscreen ? '全画面モードを解除 (Esc)' : '全画面モードで集中制作'}
                     </span>
                   </button>

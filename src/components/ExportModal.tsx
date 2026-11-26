@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  X,
   Download,
   Share2,
-  AlertCircle,
-  Smartphone,
-  Maximize2,
-  Minimize2,
   ShieldCheck,
   RotateCcw,
 } from 'lucide-react';
@@ -31,6 +26,9 @@ import {
 import { copyTextToClipboard } from '../utils/clipboard';
 import { isIOSDevice, isIPadOS } from '../utils/platform';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalShell } from './modals/ModalShell';
+import { ModalFooter } from './modals/ModalFooter';
+import { ModalAlert } from './modals/ModalAlert';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -422,124 +420,85 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     : `.${format.toUpperCase()} をダウンロード`;
 
   return (
-    <div
-      className={`fixed inset-0 z-[60] ${
-        isFullscreen
-          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
-      }`}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="フォント出力・ダウンロード"
-        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
-          isFullscreen
-            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl lg:max-w-5xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
-        }`}
-      >
-        {/* Header */}
-        <div
-          className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg}`}
-        >
-          <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className={`hidden sm:flex p-1.5 rounded-xl shrink-0 border ${themeClasses.accentBadge}`}>
-              <Download className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm sm:text-base font-bold tracking-wide flex items-center gap-2">
-                <span className="truncate">フォント出力</span>
-                {isFullscreen && (
-                  <span className={`hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
-                    全画面
-                  </span>
-                )}
-              </h2>
-              <p className={`sm:hidden text-[11px] font-mono tabular-nums truncate ${themeClasses.textMuted}`}>
-                {glyphCount}文字収録 · 倍率 {Math.round(effectiveScale * 100)}% · .{format.toUpperCase()}
-              </p>
-              <p className={`hidden sm:block text-[11px] truncate ${themeClasses.textMuted}`}>
-                OpenType (CFF) 規格準拠のフォントファイルを生成します
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1.5 shrink-0">
-            {/* Fullscreen Toggle (Desktop / Tablet only; mobile always uses full viewport) */}
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 cursor-pointer ${
-                isFullscreen
-                  ? themeClasses.activeTool
-                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
-              }`}
-              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span>通常</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>全画面</span>
-                </>
+    <ModalShell
+      title="フォント出力"
+      subtitle={
+        <>
+          <span className="sm:hidden">
+            収録文字: {glyphCount}文字 / 倍率: {Math.round(effectiveScale * 100)}%・OTF
+          </span>
+          <span className="hidden sm:inline">OpenType (CFF) 規格準拠のフォントファイルを生成します</span>
+        </>
+      }
+      icon={<Download className="w-4 h-4 sm:w-5 sm:h-5" />}
+      theme={theme}
+      themeClasses={themeClasses}
+      maxWidth="3xl"
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
+      onClose={onClose}
+      ariaLabel="フォント出力・ダウンロード"
+      bodyClassName="space-y-3 overscroll-contain"
+      footer={
+        <ModalFooter
+          primaryLabel={primaryActionLabel}
+          primaryIcon={
+            isAppleTouch ? (
+              <Share2 className="w-4 h-4 shrink-0" />
+            ) : (
+              <Download className="w-4 h-4 shrink-0" />
+            )
+          }
+          onPrimary={() => handleExport(isAppleTouch ? 'share' : 'download')}
+          primaryDisabled={isExporting || !validation.valid}
+          onCancel={onClose}
+          cancelLabel="閉じる"
+          theme={theme}
+          themeClasses={themeClasses}
+          leftInfo={
+            <>
+              {onRequestNewProject && (
+                <button
+                  type="button"
+                  onClick={onRequestNewProject}
+                  className={`min-h-[44px] sm:min-h-0 px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center space-x-1.5 whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                  title="現在のフォント作成を終了し、リセットして新プロジェクトを開きます"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
+                  <span className="whitespace-nowrap">新規作成</span>
+                </button>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="閉じる"
-              className={`w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg border cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-              title="閉じる (Esc)"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
+              <span className="hidden sm:block text-[11px] opacity-85 tabular-nums whitespace-nowrap">
+                収録文字:{' '}
+                <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>{glyphCount}</strong>
+                {' '}文字 / 倍率:{' '}
+                <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>
+                  {Math.round(effectiveScale * 100)}%
+                </strong>
+              </span>
+            </>
+          }
+        />
+      }
+    >
         {/* Content */}
-        <div className="flex-1 min-h-0 px-3.5 py-3 sm:p-4 overflow-y-auto overscroll-contain space-y-3 text-xs">
+        <div className="space-y-3">
           {!validation.valid && (
-            <div
-              className={`p-3 rounded-xl border flex items-start space-x-2 ${
-                isLight
-                  ? 'bg-red-50 border-red-200 text-red-900'
-                  : 'bg-red-950/40 border-red-800 text-red-200'
-              }`}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
-                <div className="font-bold">書き出し前の検証でエラーが検出されました（{validation.errors.length}件）</div>
-                <ul className="list-disc pl-4 space-y-0.5">
-                  {validation.errors.map((err, idx) => (
-                    <li key={idx}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            <ModalAlert
+              tone="error"
+              title={`書き出し前の検証でエラーが検出されました（${validation.errors.length}件）`}
+              items={validation.errors}
+              theme={theme}
+            />
           )}
 
           {validation.warnings.length > 0 && (
-            <div
-              className={`p-3 rounded-xl border flex items-start space-x-2 ${
-                isLight
-                  ? 'bg-amber-50 border-amber-200 text-amber-900'
-                  : 'bg-amber-950/40 border-amber-800 text-amber-200'
-              }`}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
-                <div className="font-bold">書き出し前の検証で警告が検出されました（{validation.warnings.length}件）</div>
-                <ul className="list-disc pl-4 space-y-0.5">
-                  {validation.warnings.map((warn, idx) => (
-                    <li key={idx}>{warn}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            <ModalAlert
+              tone="warning"
+              title={`書き出し前の検証で警告が検出されました（${validation.warnings.length}件）`}
+              items={validation.warnings}
+              theme={theme}
+            />
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -547,6 +506,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <div className="lg:col-span-5 space-y-3">
               <ExportFormatSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 format={format}
                 setFormat={setFormat}
                 sizePreset={sizePreset}
@@ -561,15 +521,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               />
 
               {isPixelProject && (
-                <div
-                  className={`p-3 rounded-xl border text-[11px] leading-relaxed ${
-                    isLight
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                      : 'bg-emerald-950/40 border-emerald-800 text-emerald-200'
-                  }`}
-                >
-                  ピクセルプロジェクトのため、倍率は 1.0 倍、センタリングと重なり結合は無効で書き出します。
-                </div>
+                <ModalAlert
+                  tone="info"
+                  title="ピクセルプロジェクトのため、倍率は 1.0 倍、センタリングと重なり結合は無効で書き出します。"
+                  theme={theme}
+                />
               )}
             </div>
 
@@ -577,23 +533,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <div className="lg:col-span-7 space-y-3">
               {/* Live Render & Size Preview in Modal with Custom Text Input & Presets */}
               {previewError && (
-                <div
-                  className={`p-3 rounded-xl border flex items-start space-x-2 ${
-                    isLight
-                      ? 'bg-red-50 border-red-200 text-red-900'
-                      : 'bg-red-950/40 border-red-800 text-red-200'
-                  }`}
-                >
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
-                  <div className="min-w-0 space-y-0.5 text-[11px] leading-relaxed">
-                    <div className="font-bold">プレビューの生成に失敗しました</div>
-                    <div>{previewError}</div>
-                  </div>
-                </div>
+                <ModalAlert tone="error" title="プレビューの生成に失敗しました" theme={theme}>
+                  {previewError}
+                </ModalAlert>
               )}
 
               <FontPreviewSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 previewText={previewText}
                 setPreviewText={setPreviewText}
                 previewFontSize={previewFontSize}
@@ -605,17 +552,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               {/* Quality Check Recommendation Banner */}
               {onOpenQualityModal && (
                 <div
-                  className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 ${
-                    isLight
-                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
-                      : 'bg-emerald-950/40 border-emerald-800/60 text-emerald-100'
-                  }`}
+                  className={`p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 ${themeClasses.accentBadge}`}
                 >
                   <div className="flex items-start space-x-2.5 min-w-0">
-                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <ShieldCheck className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 ${themeClasses.accentText}`} />
                     <div className="min-w-0">
                       <div className="text-xs font-bold">フォント品質チェック</div>
-                      <div className="text-[11px] text-stone-600 dark:text-emerald-300/80 leading-relaxed break-words mt-0.5">
+                      <div className={`text-[11px] leading-relaxed break-words mt-0.5 jp-wrap ${themeClasses.textMuted}`}>
                         出力前に字形の重複・交差やベースライン逸脱を自動検査できます
                       </div>
                     </div>
@@ -625,11 +568,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     onClick={() => {
                       onOpenQualityModal();
                     }}
-                    className={`w-full sm:w-auto min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border shrink-0 text-center cursor-pointer ${
-                      isLight
-                        ? 'bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-50'
-                        : 'bg-[#1a271f] border-emerald-700 text-emerald-200 hover:bg-[#23342a]'
-                    }`}
+                    className={`w-full sm:w-auto min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border shrink-0 text-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     品質を検査
                   </button>
@@ -638,20 +577,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
               {/* Apple Touch Device Specific Advice */}
               {isAppleTouch && (
-                <div
-                  className={`p-3 rounded-xl border flex items-start space-x-2.5 ${
-                    isLight ? 'bg-amber-50/70 border-amber-200 text-amber-900' : 'bg-amber-950/30 border-amber-800 text-amber-200'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                  <div className="text-[11px] leading-relaxed jp-wrap">
-                    <strong>{isIPad ? 'iPad' : 'iPhone / iPad'}をご利用中:</strong> 下の「{primaryActionLabel}」を押すと、標準の共有メニューから「ファイル」アプリやiCloud Driveに直接保存できます。
-                  </div>
-                </div>
+                <ModalAlert tone="warning" title={`${isIPad ? 'iPad' : 'iPhone / iPad'}をご利用中`} theme={theme}>
+                  下の「{primaryActionLabel}」を押すと、標準の共有メニューから「ファイル」アプリやiCloud Driveに直接保存できます。
+                </ModalAlert>
               )}
 
               <ExportCssSection
                 isLight={isLight}
+                themeClasses={themeClasses}
                 cssSnippet={cssSnippet}
                 copiedCss={copiedCss}
                 handleCopyCss={handleCopyCss}
@@ -659,68 +592,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Footer Actions */}
-        <div
-          className={`px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-5 sm:py-3 sm:pb-3 border-t flex items-center justify-between gap-2.5 shrink-0 ${themeClasses.headerBg}`}
-        >
-          <div className="hidden sm:block text-[11px] opacity-85 tabular-nums whitespace-nowrap">
-            収録文字: <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>{glyphCount}</strong> 文字 / 倍率:{' '}
-            <strong className={`font-mono tabular-nums font-bold ${themeClasses.accentText}`}>
-              {Math.round(effectiveScale * 100)}%
-            </strong>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto sm:justify-end">
-            {onRequestNewProject && (
-              <button
-                type="button"
-                onClick={onRequestNewProject}
-                className={`min-h-[44px] sm:min-h-0 px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center space-x-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
-                  isLight
-                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
-                    : 'bg-amber-950/60 hover:bg-amber-900/60 text-amber-200 border-amber-800'
-                }`}
-                title="現在のフォント作成を終了し、リセットして新プロジェクトを開きます"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="whitespace-nowrap">新規作成</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className={`hidden sm:inline-flex px-3.5 py-2 rounded-xl text-xs font-semibold border whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
-            >
-              閉じる
-            </button>
-
-            {/* Primary Download / Share Action */}
-            {isAppleTouch ? (
-              <button
-                type="button"
-                onClick={() => handleExport('share')}
-                disabled={isExporting || !validation.valid}
-                className={`flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 disabled:opacity-50 max-sm:min-w-0 max-sm:shrink sm:whitespace-nowrap sm:shrink-0 cursor-pointer ${themeClasses.accentBtn}`}
-              >
-                <Share2 className="w-4 h-4 shrink-0" />
-                <span className="max-sm:truncate sm:whitespace-nowrap">{primaryActionLabel}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleExport('download')}
-                disabled={isExporting || !validation.valid}
-                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 disabled:opacity-50 max-sm:min-w-0 max-sm:shrink sm:whitespace-nowrap sm:shrink-0 cursor-pointer"
-              >
-                <Download className="w-4 h-4 shrink-0" />
-                <span className="max-sm:truncate sm:whitespace-nowrap">{primaryActionLabel}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 };
