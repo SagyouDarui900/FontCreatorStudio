@@ -3,6 +3,8 @@ import { FontProject } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { validateStoredFontProjectWithReport } from '../utils/font/validation';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalAlert } from './modals/ModalAlert';
+import { ModalFooter } from './modals/ModalFooter';
 import {
  StorageUsageBreakdown,
  ProjectBackupSnapshot,
@@ -47,6 +49,8 @@ import {
  ShieldCheck,
  FolderArchive,
  Database,
+ Maximize2,
+ Minimize2,
 } from 'lucide-react';
 
 interface StorageManagerModalProps {
@@ -87,6 +91,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
  const [confirmClearAll, setConfirmClearAll] = useState(false);
  const [confirmDeleteBreakdownItem, setConfirmDeleteBreakdownItem] = useState<{ key: string; label: string } | null>(null);
+ const [isFullscreen, setIsFullscreen] = useState(false);
 
  // Refresh storage data
  const refreshStorageData = useCallback(() => {
@@ -131,11 +136,16 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  setConfirmClearAll(false);
  } else if (isCreatingSnapshot) {
  setIsCreatingSnapshot(false);
+ } else if (isFullscreen) {
+ setIsFullscreen(false);
  } else {
  onClose();
  }
  } else if (!isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
- if (e.key === '1') {
+ if (e.key === 'f' || e.key === 'F') {
+ e.preventDefault();
+ setIsFullscreen((prev) => !prev);
+ } else if (e.key === '1') {
  e.preventDefault();
  setActiveTab('snapshots');
  } else if (e.key === '2') {
@@ -168,6 +178,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  confirmDeleteBreakdownItem,
  confirmClearAll,
  isCreatingSnapshot,
+ isFullscreen,
  ]);
 
  // Handle manual JSON file backup export
@@ -290,21 +301,29 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
     role="dialog"
     aria-modal="true"
     aria-label="保存・バックアップ管理"
-    className="fixed inset-0 bg-black/75 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 z-[60] anim-fade"
+    className={`fixed inset-0 z-[60] anim-fade ${
+      isFullscreen
+        ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+        : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
+    }`}
   >
     <div
-      className={`w-full h-[100dvh] sm:h-auto sm:max-w-4xl lg:max-w-6xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
+      className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
+        isFullscreen
+          ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+          : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl lg:max-w-6xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+      }`}
     >
       {/* MODAL HEADER */}
       <div
         className={`flex items-center justify-between px-4 sm:px-5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:py-2.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
         <div className="flex items-center space-x-2.5 min-w-0">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-xs shrink-0 ${themeClasses.accentBtn}`}>
-            <HardDrive className="w-4 h-4" />
-          </div>
+          <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
+      <HardDrive className="w-4 h-4 sm:w-5 sm:h-5" />
+    </div>
           <div className="min-w-0 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
-            <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-bold flex items-center gap-2">
               <span className="max-sm:truncate">保存・バックアップ管理</span>
               <span className={`text-[11px] font-normal px-2 py-0.5 rounded-md border font-mono max-sm:shrink-0 ${themeClasses.accentBadge}`}>
                 容量と履歴
@@ -315,14 +334,38 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="閉じる"
-          className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg transition-colors cursor-pointer shrink-0 ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
+              isFullscreen
+                ? themeClasses.activeTool
+                : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+            }`}
+            title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5" />
+                <span>通常</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5" />
+                <span>全画面</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="閉じる"
+            className={`p-1.5 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg border transition-colors cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* COMBINED TOP STORAGE CAPACITY + INSTANT BACKUP STRIP */}
@@ -560,7 +603,7 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  className={`text-center py-8 px-4 rounded-2xl border border-dashed ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
  >
  <FolderArchive className={`w-9 h-9 mx-auto mb-2 opacity-60 ${themeClasses.textMuted}`} />
- <h3 className={`text-sm font-bold ${themeClasses.textPrimary}`}>
+ <h3 className={`text-xs font-bold ${themeClasses.textPrimary}`}>
  保存されたスナップショットはありません
  </h3>
  <p className={`text-xs max-w-md mx-auto mt-1 ${themeClasses.textMuted}`}>
@@ -642,15 +685,9 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* TAB 2: INDEXEDDB AUTOSAVE RECOVERY HISTORY */}
  {activeTab === 'autosave' && (
  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 space-y-3">
- <div className={`p-3 rounded-xl border text-xs leading-relaxed flex items-center space-x-2.5 ${themeClasses.accentBadge}`}>
- <ShieldCheck className="w-4 h-4 shrink-0" />
- <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
- <span className="font-bold">IndexedDB オートセーブ履歴:</span>
- <span className="text-[11px] opacity-90">
- 編集データは IndexedDB に自動保存されます。直近の保存時点を選択して復元できます。
- </span>
- </div>
- </div>
+ <ModalAlert tone="info" title="IndexedDB オートセーブ履歴:" theme={theme}>
+   編集データは IndexedDB に自動保存されます。直近の保存時点を選択して復元できます。
+ </ModalAlert>
 
  {autosaveEntries.length === 0 ? (
  <div className={`py-8 text-center text-xs ${themeClasses.textMuted}`}>
@@ -747,27 +784,16 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  {/* TAB 3: SAFETY & STORAGE GUIDE */}
  {activeTab === 'guide' && (
  <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
- <div
- className={`p-3.5 rounded-xl border space-y-2 ${
- isLight ? 'bg-amber-50/60 border-amber-200 text-amber-950' : 'bg-amber-950/20 border-amber-800/40 text-amber-200'
- }`}
- >
- <div className="font-bold flex items-center gap-1.5">
- <AlertTriangle className="w-4 h-4 text-amber-600" />
- <span>ブラウザの保存領域（localStorage）に関する注意点</span>
- </div>
- <ul className="list-disc list-inside space-y-1 text-[11px] opacity-90 pl-1">
- <li>
- ブラウザのlocalStorageは約 <strong>5MB</strong> の容量上限が定められています。
- </li>
- <li>
- 文字数が増えたり、ノード数の多い複雑なベクター輪郭が増えると容量制限に達する場合があります。
- </li>
- <li>
- ブラウザの「閲覧履歴やキャッシュの削除」を実行すると、ブラウザ内の保存データが消失するリスクがあります。
- </li>
- </ul>
- </div>
+ <ModalAlert
+   tone="warning"
+   title="ブラウザの保存領域（localStorage）に関する注意点"
+   items={[
+     'ブラウザのlocalStorageは約 5MB の容量上限が定められています。',
+     '文字数が増えたり、ノード数の多い複雑なベクター輪郭が増えると容量制限に達する場合があります。',
+     'ブラウザの「閲覧履歴やキャッシュの削除」を実行すると、ブラウザ内の保存データが消失するリスクがあります。',
+   ]}
+   theme={theme}
+ />
 
  <div
  className={`p-3.5 rounded-xl border space-y-2 ${themeClasses.accentBadge}`}
@@ -795,22 +821,18 @@ export const StorageManagerModal: React.FC<StorageManagerModalProps> = ({
  )}
 
  {/* MODAL FOOTER */}
- <div
- className={`flex items-center justify-between px-4 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-2.5 border-t shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
- >
- <div className={`text-[11px] ${themeClasses.textMuted} flex items-center gap-1.5 max-sm:hidden`}>
- <Clock className="w-3.5 h-3.5" />
- <span>自動保存: 編集時に常時バックグラウンド実行中</span>
- </div>
-
- <button
- type="button"
- onClick={onClose}
- className={`max-sm:w-full max-sm:min-h-[40px] px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
- >
- 閉じる
- </button>
- </div>
+ <ModalFooter
+   primaryLabel="閉じる"
+   onPrimary={onClose}
+   leftInfo={
+     <span className={`text-[11px] ${themeClasses.textMuted} hidden sm:flex items-center gap-1.5`}>
+       <Clock className="w-3.5 h-3.5" />
+       <span>自動保存: 編集時に常時バックグラウンド実行中</span>
+     </span>
+   }
+   theme={theme}
+   themeClasses={themeClasses}
+ />
  </div>
 
  {/* CONFIRM RESTORE DIALOG */}

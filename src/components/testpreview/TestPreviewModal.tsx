@@ -63,7 +63,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
       }}
       className={`fixed inset-0 z-[60] select-none anim-fade ${
         isFullscreen
-          ? 'flex flex-col w-screen h-[100dvh] p-0 bg-black/90 overflow-hidden'
+          ? 'flex flex-col w-screen h-[100dvh] p-0 bg-black/85 overflow-hidden'
           : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75'
       }`}
     >
@@ -71,7 +71,7 @@ export const TestPreviewModal: React.FC<TestPreviewModalWithPersistedProps> = (p
         className={`w-full flex flex-col overflow-hidden ${
           isFullscreen
             ? `w-screen h-[100dvh] rounded-none border-none ${themeClasses.modalBg} ${themeClasses.textPrimary}`
-            : `w-full sm:max-w-7xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl h-[100dvh] sm:h-[95vh] max-h-none sm:max-h-[960px] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
+            : `w-full sm:max-w-7xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl h-[100dvh] sm:h-[92vh] sm:max-h-[92vh] ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`
         }`}
       >
         {/* Header Bar and Guidance Banner */}

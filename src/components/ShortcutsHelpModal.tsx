@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Search, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Search, Maximize2, Minimize2, HelpCircle } from 'lucide-react';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { BeginnerTutorialTab } from './help/BeginnerTutorialTab';
 import { GlossaryTab } from './help/GlossaryTab';
 import { FeedbackTab } from './help/FeedbackTab';
 import { useIsTopModal, useDialogFocusTrap } from './modals/ModalStackFrame';
+import { ModalFooter } from './modals/ModalFooter';
 
 interface ShortcutsHelpModalProps {
   isOpen: boolean;
@@ -263,10 +264,10 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-[60] ${
+      className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
           ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex items-center justify-center p-2 sm:p-4 bg-black/75'
+          : 'flex items-center justify-center p-0 sm:p-4 bg-black/75 select-none'
       }`}
     >
       <div
@@ -278,13 +279,16 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full max-w-5xl xl:max-w-6xl border ${themeClasses.border} rounded-xl shadow-2xl max-h-[92dvh]`
+            : `w-full h-[100dvh] sm:h-auto max-w-5xl xl:max-w-6xl border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-2xl sm:max-h-[92vh]`
         }`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-4 sm:px-5 py-2.5 border-b shrink-0 ${themeClasses.headerBg}`}
+          className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.headerBg}`}
         >
+          <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 mr-2.5 ${themeClasses.accentBadge}`}>
+            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
           <div className="min-w-0 flex-1 pr-3 flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <h2 className={`text-sm sm:text-base font-bold truncate ${headingText}`}>
               操作ガイド・ショートカット
@@ -297,7 +301,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`px-2.5 py-1.5 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
+              className={`hidden sm:flex px-2.5 py-1.5 rounded-lg border text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
                 isFullscreen
                   ? themeClasses.activeTool
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -320,7 +324,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="閉じる"
-              className={`p-1.5 rounded-md border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] max-sm:flex max-sm:items-center max-sm:justify-center rounded-lg border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-4 h-4" />
@@ -367,7 +371,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
           {activeTab === 'features' && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-                <h3 className={`text-sm font-bold ${headingText}`}>主な機能</h3>
+                <h3 className={`text-xs font-bold ${headingText}`}>主な機能</h3>
                 <p className={`text-xs ${mutedText}`}>
                   文字の描画から品質検査・書き出しまでに利用する機能の一覧です。
                 </p>
@@ -429,7 +433,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
                       onClick={() => setSelectedCategory(cat.id)}
                       className={`px-2.5 py-1 rounded-md font-medium shrink-0 whitespace-nowrap transition-colors cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-700 text-white'
+                          ? themeClasses.activeTool
                           : isLight
                           ? 'bg-stone-100 hover:bg-stone-200 text-stone-700'
                           : 'bg-[#1a261f] hover:bg-[#23332a] text-stone-300'
@@ -486,7 +490,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
           {activeTab === 'faq' && (
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-                <h3 className={`text-sm font-bold ${headingText}`}>よくある質問</h3>
+                <h3 className={`text-xs font-bold ${headingText}`}>よくある質問</h3>
                 <p className={`text-xs ${mutedText}`}>
                   フォントの利用範囲、OS への導入手順、バックアップに関する質問と回答です。
                 </p>
@@ -506,23 +510,20 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div
-          className={`flex items-center justify-between px-4 sm:px-5 py-2.5 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
-        >
-          <div className={`flex items-center gap-1.5 max-sm:hidden ${themeClasses.textMuted}`}>
-            <kbd className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${themeClasses.cardBg}`}>
-              ?
-            </kbd>
-            <span>キーでいつでもこの画面を開けます</span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className={`px-4 py-1.5 rounded-md font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
-          >
-            閉じる
-          </button>
-        </div>
+        <ModalFooter
+          primaryLabel="閉じる"
+          onPrimary={onClose}
+          leftInfo={
+            <span className={`hidden sm:flex items-center gap-1.5 text-xs ${themeClasses.textMuted}`}>
+              <kbd className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${themeClasses.cardBg}`}>
+                ?
+              </kbd>
+              <span>キーでいつでもこの画面を開けます</span>
+            </span>
+          }
+          theme={theme}
+          themeClasses={themeClasses}
+        />
       </div>
     </div>
   );

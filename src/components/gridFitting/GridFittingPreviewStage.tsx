@@ -53,8 +53,8 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
       }`}
     >
       <div className="flex items-center justify-between">
-        <h3 className="font-extrabold text-xs sm:text-sm flex items-center space-x-1.5 sm:space-x-2">
-          <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+        <h3 className="text-xs font-bold flex items-center space-x-1.5 sm:space-x-2">
+          <Eye className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${themeClasses.accentText}`} />
           <span>
             「{currentGlyph.char}」 (U+{selectedUnicode.toString(16).toUpperCase()}) — {selectedPpem}px
           </span>
@@ -70,7 +70,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
           onClick={() => onChangeMobilePreviewDisplay('raster')}
           className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
             mobilePreviewDisplay === 'raster'
-              ? 'bg-amber-600 text-white'
+              ? themeClasses.activeTool
               : themeClasses.textMuted
           }`}
         >
@@ -80,7 +80,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
           onClick={() => onChangeMobilePreviewDisplay('vector')}
           className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
             mobilePreviewDisplay === 'vector'
-              ? 'bg-amber-600 text-white'
+              ? themeClasses.activeTool
               : themeClasses.textMuted
           }`}
         >
@@ -90,7 +90,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
           onClick={() => onChangeMobilePreviewDisplay('both')}
           className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-colors ${
             mobilePreviewDisplay === 'both'
-              ? 'bg-amber-600 text-white'
+              ? themeClasses.activeTool
               : themeClasses.textMuted
           }`}
         >
@@ -108,7 +108,7 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
         >
           <div className="flex items-center justify-between">
             <span className={`text-xs font-bold flex items-center space-x-1 ${themeClasses.textMuted}`}>
-              <Layers className="w-3.5 h-3.5 text-amber-500" />
+              <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>ベクトルパス & ステムガイド</span>
             </span>
             <button
@@ -188,10 +188,10 @@ export const GridFittingPreviewStage: React.FC<GridFittingPreviewStageProps> = (
         >
           <div className="flex items-center justify-between">
             <span className={`text-xs font-bold flex items-center space-x-1 ${themeClasses.textMuted}`}>
-              <Monitor className="w-3.5 h-3.5 text-amber-500" />
+              <Monitor className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
               <span>{selectedPpem}px ラスタライズ結果</span>
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${themeClasses.accentBadge}`}>
               {renderingMode}
             </span>
           </div>

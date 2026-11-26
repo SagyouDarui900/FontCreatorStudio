@@ -1,6 +1,8 @@
-import React from 'react';
-import { X, Grid, Zap, Sparkles, Check, Info, Monitor } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Grid, Zap, Sparkles, Check, Monitor, Maximize2, Minimize2 } from 'lucide-react';
 import { getThemeClasses } from '../utils/theme';
+import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalFooter } from './modals/ModalFooter';
 import {
   GridFittingModalProps,
   useGridFittingState,
@@ -28,6 +30,32 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   commitHistory,
 }) => {
   const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isTopModal = useIsTopModal();
+
+  // Escape exits fullscreen first, F toggles fullscreen outside form fields
+  useEffect(() => {
+    if (!isOpen || !isTopModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInput =
+        activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
+      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsFullscreen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   const {
     targetSizes,
@@ -77,10 +105,18 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="グリッド整列 & ヒンティング工房"
-      className="fixed inset-0 z-[60] anim-fade flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none"
+      className={`fixed inset-0 z-[60] anim-fade ${
+        isFullscreen
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
+      }`}
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-7xl sm:max-h-[94vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+          isFullscreen
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-6xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+        }`}
       >
         {/* Header Bar */}
         <div
@@ -88,13 +124,13 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         >
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <div
-              className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center border bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400 shrink-0"
+              className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}
             >
               <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <h2 className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
+                <h2 className="text-sm sm:text-base font-bold tracking-tight truncate">
                   グリッド整列 & ヒンティング
                 </h2>
               </div>
@@ -107,7 +143,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={handleApplyToCurrentGlyph}
-              className="hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+              className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
               title="選択中の1文字のみにヒンティングを適用します"
             >
               <Check className="w-4 h-4" />
@@ -124,8 +160,29 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             </button>
 
             <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
+                isFullscreen
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+              }`}
+              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>通常</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>全画面</span>
+                </>
+              )}
+            </button>
+            <button
               onClick={onClose}
-              className={`p-1.5 sm:p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              className={`p-1.5 sm:p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
               title="閉じる (Esc)"
             >
               <X className="w-5 h-5" />
@@ -139,9 +196,9 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
         >
           <div className="flex items-center space-x-1.5 shrink-0">
             <span className={`shrink-0 flex items-center space-x-1 text-[11px] sm:text-xs ${themeClasses.textMuted}`}>
-              <Monitor className="w-3.5 h-3.5 text-amber-500 hidden sm:inline-block" />
+              <Monitor className={`w-3.5 h-3.5 hidden sm:inline-block ${themeClasses.accentText}`} />
               <span className="hidden sm:inline">検証解像度 (PPEM):</span>
-              <span className="sm:hidden text-amber-500 font-bold">PPEM:</span>
+              <span className={`sm:hidden font-bold ${themeClasses.accentText}`}>PPEM:</span>
             </span>
             <div className="flex items-center space-x-1">
               {targetSizes.map((sz) => (
@@ -150,7 +207,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                   onClick={() => setSelectedPpem(sz)}
                   className={`px-2 max-sm:px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border transition-colors font-mono text-[10px] sm:text-[11px] cursor-pointer ${
                     selectedPpem === sz
-                      ? 'bg-amber-600 text-white border-amber-600 font-black'
+                      ? `${themeClasses.activeTool} border-transparent font-black`
                       : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                   }`}
                 >
@@ -191,7 +248,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
             >
-              <Zap className="w-3 h-3 text-amber-300" />
+              <Zap className="w-3 h-3" />
               <span>{enablePreview ? 'ON (整列後)' : 'OFF (元パス)'}</span>
             </button>
           </div>
@@ -203,7 +260,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             onClick={() => setActiveTab('preview')}
             className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'preview'
-                ? 'border-amber-500 text-amber-600'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
@@ -213,7 +270,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             onClick={() => setActiveTab('stems')}
             className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'stems'
-                ? 'border-amber-500 text-amber-600'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
@@ -223,7 +280,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             onClick={() => setActiveTab('settings')}
             className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'settings'
-                ? 'border-amber-500 text-amber-600'
+                ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
@@ -278,42 +335,31 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           />
         </div>
 
-        {/* Mobile Sticky Action Bar */}
-        <div className={`flex sm:hidden items-center justify-between gap-2 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] border-t shrink-0 ${themeClasses.subtoolbarBg}`}>
-          <button
-            onClick={handleApplyToCurrentGlyph}
-            className="flex-1 min-h-[42px] py-2 rounded-xl bg-amber-600 active:bg-amber-700 text-white font-bold text-xs flex items-center justify-center space-x-1 transition-colors"
-          >
-            <Check className="w-3.5 h-3.5" />
-            <span>「{currentGlyph.char}」に適用</span>
-          </button>
-          <button
-            onClick={handleBatchApplyHinting}
-            className={`flex-1 min-h-[42px] py-2 rounded-xl font-bold text-xs flex items-center justify-center space-x-1 transition-colors ${themeClasses.accentBtn}`}
-          >
-            <Sparkles className="w-3.5 h-3.5 opacity-90" />
-            <span>全文字一括適用</span>
-          </button>
-        </div>
-
-        {/* Modal Footer (Desktop) */}
-        <div
-          className={`hidden sm:flex items-center justify-between px-4 sm:px-5 py-2.5 border-t shrink-0 text-xs ${themeClasses.headerBg}`}
-        >
-          <div className={`flex items-center space-x-2 ${themeClasses.textMuted}`}>
-            <Info className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>
-              ヒンティング処理を行うことで、Webブラウザ、ゲームUI、AviUtl、各種Wordで小サイズ表示時の文字掠れが劇的に改善します
-            </span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className={`px-5 py-2 rounded-xl border font-bold text-xs transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
-          >
-            完了・閉じる
-          </button>
-        </div>
+        {/* Footer */}
+        <ModalFooter
+          primaryLabel={`全文字一括 ${selectedPpem}px 適用`}
+          primaryIcon={<Sparkles className="w-4 h-4 opacity-90" />}
+          onPrimary={handleBatchApplyHinting}
+          onCancel={onClose}
+          cancelLabel="完了・閉じる"
+          leftInfo={
+            <>
+              <button
+                onClick={handleApplyToCurrentGlyph}
+                className={`min-h-[44px] sm:min-h-0 px-3.5 py-2.5 sm:py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer border ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+                title="選択中の1文字のみにヒンティングを適用します"
+              >
+                <Check className="w-4 h-4" />
+                <span>「{currentGlyph.char}」に適用</span>
+              </button>
+              <span className={`hidden xl:inline text-[11px] truncate ${themeClasses.textMuted}`}>
+                ヒンティング処理を行うことで、Webブラウザ、ゲームUI、AviUtl、各種Wordで小サイズ表示時の文字掠れが劇的に改善します
+              </span>
+            </>
+          }
+          theme={theme ?? (isLight ? 'light' : 'dark')}
+          themeClasses={themeClasses}
+        />
       </div>
     </div>
   );

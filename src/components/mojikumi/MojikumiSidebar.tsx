@@ -124,7 +124,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
               key={tab.id}
               type="button"
               onClick={() => onChangeSidebarTab(tab.id)}
-              className={`py-1.5 min-h-[36px] sm:min-h-0 px-1 rounded-md text-[11px] text-center transition-colors duration-150 truncate ${
+              className={`py-1.5 min-h-[44px] sm:min-h-0 px-1 rounded-md text-[11px] text-center transition-colors duration-150 truncate ${
                 isSel
                   ? isLight
                     ? 'bg-white text-emerald-900 shadow-xs border border-stone-200 font-bold'
@@ -224,7 +224,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     type="button"
                     aria-label="文字サイズを0.5Q下げる"
                     onClick={() => onChangeFontSizeQ(Math.max(8, Number((fontSizeQ - 0.5).toFixed(1))))}
-                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     -
                   </button>
@@ -235,7 +235,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     type="button"
                     aria-label="文字サイズを0.5Q上げる"
                     onClick={() => onChangeFontSizeQ(Math.min(40, Number((fontSizeQ + 0.5).toFixed(1))))}
-                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     +
                   </button>
@@ -265,7 +265,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     type="button"
                     aria-label="行送りを0.5H下げる"
                     onClick={() => onChangeLineFeedH(Math.max(12, Number((lineFeedH - 0.5).toFixed(1))))}
-                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     -
                   </button>
@@ -276,7 +276,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                     type="button"
                     aria-label="行送りを0.5H上げる"
                     onClick={() => onChangeLineFeedH(Math.min(60, Number((lineFeedH + 0.5).toFixed(1))))}
-                    className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                    className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                   >
                     +
                   </button>
@@ -314,7 +314,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                       type="button"
                       aria-label="1行字詰めを1字減らす"
                       onClick={() => onChangeCharsPerLine(Math.max(10, charsPerLine - 1))}
-                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                     >
                       -
                     </button>
@@ -327,7 +327,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                       type="button"
                       aria-label="1行字詰めを1字増やす"
                       onClick={() => onChangeCharsPerLine(Math.min(45, charsPerLine + 1))}
-                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                     >
                       +
                     </button>
@@ -355,7 +355,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                       type="button"
                       aria-label="1ページ行数を1行減らす"
                       onClick={() => onChangeLineCount(Math.max(4, lineCount - 1))}
-                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                     >
                       -
                     </button>
@@ -368,7 +368,7 @@ export const MojikumiSidebar: React.FC<MojikumiSidebarProps> = ({
                       type="button"
                       aria-label="1ページ行数を1行増やす"
                       onClick={() => onChangeLineCount(Math.min(24, lineCount + 1))}
-                      className={`w-5 h-5 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
+                      className={`w-7 h-7 rounded border text-[11px] font-bold flex items-center justify-center cursor-pointer shrink-0 ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
                     >
                       +
                     </button>

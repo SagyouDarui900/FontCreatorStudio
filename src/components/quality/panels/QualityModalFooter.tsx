@@ -64,7 +64,7 @@ export const QualityModalFooter: React.FC<QualityModalFooterProps> = ({
         </button>
         <button
           onClick={onClose}
-          className={`w-full sm:w-auto min-h-[42px] sm:min-h-0 px-4 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
+          className={`w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-1.5 rounded-xl font-bold transition-colors cursor-pointer ${themeClasses.accentBtn}`}
         >
           閉じる
         </button>

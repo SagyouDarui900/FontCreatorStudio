@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   X,
   Award,
@@ -9,6 +9,8 @@ import {
   Filter,
   BarChart3,
   Hash,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { FontProject } from '../../types';
 import {
@@ -19,6 +21,7 @@ import {
 import { JIS_LEVEL_1_KANJI } from '../../data/jisLevel1';
 import { JIS_LEVEL_2_KANJI } from '../../data/jisLevel2';
 import { getThemeClasses, ThemeMode } from '../../utils/theme';
+import { useIsTopModal } from '../modals/ModalStackFrame';
 
 export interface JisProgressDashboardModalProps {
   isOpen: boolean;
@@ -49,6 +52,32 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
   const [searchQuery, setSearchQuery] = useState('');
   const [pageSize] = useState(180);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isTopModal = useIsTopModal();
+
+  // Escape exits fullscreen first, F toggles fullscreen outside form fields
+  useEffect(() => {
+    if (!isOpen || !isTopModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInput =
+        activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
+      } else if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsFullscreen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isTopModal, isFullscreen, onClose]);
 
   const progress = useMemo(() => {
     return calculateJisProgress(project?.glyphs || {});
@@ -158,18 +187,26 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
       role="dialog"
       aria-modal="true"
       aria-label="JIS規格・常用漢字 制作進捗ダッシュボード"
-      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-3 bg-black/75 anim-fade"
+      className={`fixed inset-0 z-[60] anim-fade ${
+        isFullscreen
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
+      }`}
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-6xl xl:max-w-[1440px] sm:max-h-[94vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+          isFullscreen
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-6xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+        }`}
       >
         {/* Header */}
         <div
           className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-4 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="hidden sm:flex p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <BarChart3 className="w-4 h-4" />
+            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex flex-col xl:flex-row xl:items-baseline xl:gap-3">
               <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 truncate ${themeClasses.textPrimary}`}>
@@ -180,13 +217,37 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-            title="閉じる"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
+                isFullscreen
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+              }`}
+              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>通常</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>全画面</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className={`p-1.5 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl border transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              title="閉じる"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Metric Cards Top Section */}
@@ -333,7 +394,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 ${
                 statusFilter === 'completed'
-                  ? 'bg-emerald-600 text-white'
+                  ? themeClasses.accentBtn
                   : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
               }`}
             >
@@ -375,7 +436,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
 
             <button
               onClick={handleJumpToFirstMissing}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer ${themeClasses.accentBtn}`}
               title="未作成の先頭文字をエディタで開いて制作を開始"
             >
               <span>次の未作成文字へジャンプ</span>
@@ -400,7 +461,7 @@ export const JisProgressDashboardModal: React.FC<JisProgressDashboardModalProps>
         </div>
 
         {/* Character Grid Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 sm:p-3.5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4">
           {filteredList.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center text-center">
               <p className={`text-sm ${themeClasses.textMuted}`}>該当する文字がありません</p>

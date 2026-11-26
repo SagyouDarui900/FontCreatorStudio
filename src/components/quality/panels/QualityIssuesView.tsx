@@ -434,7 +434,7 @@ export const QualityIssuesView: React.FC<QualityIssuesViewProps> = ({
             >
               <CheckCircle2 className="w-7 h-7" />
             </div>
-            <h3 className="text-sm font-bold">
+            <h3 className="text-xs font-bold">
               {report && report.totalIssues === 0
                 ? '問題は検出されませんでした'
                 : '該当する指摘項目はありません'}

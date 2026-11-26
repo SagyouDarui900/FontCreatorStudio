@@ -15,6 +15,8 @@ import {
 import { FontProject, GlyphData, GlyphOverlaySettings } from '../types';
 import { ThemeMode, getThemeClasses } from '../utils/theme';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalFooter } from './modals/ModalFooter';
+import { SliderRow } from './modals/SliderRow';
 
 interface GlyphCompareModalProps {
   isOpen: boolean;
@@ -189,7 +191,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl lg:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-3xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -198,14 +200,14 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
           className={`px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3 sm:pt-3 border-b flex items-center justify-between shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
         >
           <div className="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
-            <div className="hidden sm:flex w-8 h-8 rounded-lg bg-sky-600 text-white items-center justify-center shrink-0">
+            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
               <ArrowRightLeft className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1 flex flex-col lg:flex-row lg:items-baseline lg:gap-3">
               <h2 className="text-sm sm:text-base font-bold flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span className="truncate">グリフ重ね合わせ比較 (Overlay Compare)</span>
                 {isFullscreen && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-600 text-white font-medium shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium shrink-0 ${themeClasses.accentBtn}`}>
                     全画面モード
                   </span>
                 )}
@@ -265,12 +267,12 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
             <div
               className={`p-3 rounded-lg border flex items-center justify-between transition-colors ${
                 overlaySettings.enabled
-                  ? 'bg-sky-500/10 border-sky-500/40'
+                  ? themeClasses.accentBadge
                   : themeClasses.subtoolbarBg
               }`}
             >
               <div className="flex items-center space-x-2.5">
-                <Eye className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <Eye className={`w-4 h-4 ${themeClasses.accentText}`} />
                 <div>
                   <div className="text-xs font-bold">重ね合わせ比較レイヤーを表示</div>
                   <div className={`text-[10px] ${themeClasses.textMuted}`}>
@@ -287,7 +289,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                   }
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-stone-400/50 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-sky-600"></div>
+                <div className="w-11 h-6 bg-stone-400/50 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-emerald-600"></div>
               </label>
             </div>
 
@@ -310,9 +312,9 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       onClick={() => handleSelectRefChar(ch)}
                       className={`w-9 h-9 rounded-xl border text-sm font-bold flex items-center justify-center transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-400/40'
+                          ? `${themeClasses.activeTool} border-transparent ring-2 ring-emerald-500/30`
                           : isDrawn
-                          ? 'bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-300'
+                          ? `${themeClasses.accentBadge} ${themeClasses.activeToolHover}`
                           : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                       }`}
                     >
@@ -354,7 +356,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                         onClick={() => handleSelectRefChar(g.char, g.unicode)}
                         className={`px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded-md border text-xs font-bold transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-sky-600 text-white border-sky-600'
+                            ? `${themeClasses.activeTool} border-transparent`
                             : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                         }`}
                       >
@@ -379,7 +381,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               {/* Render Mode */}
               <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
                 <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-sky-600" />
+                  <Layers className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>表示モード</span>
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -397,7 +399,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       }
                       className={`py-1.5 px-1.5 rounded-lg border text-[11px] font-bold transition-colors cursor-pointer ${
                         overlaySettings.renderMode === m.id
-                          ? 'bg-sky-600 text-white border-sky-600'
+                          ? `${themeClasses.activeTool} border-transparent`
                           : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                       }`}
                     >
@@ -411,7 +413,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
               {/* Color Palette */}
               <div className={`p-3 rounded-lg border ${themeClasses.subtoolbarBg}`}>
                 <label className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-sky-600" />
+                  <Palette className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
                   <span>比較色</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -426,7 +428,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                         title={c.name}
                         style={{ backgroundColor: c.hex }}
                         className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center cursor-pointer ${
-                          isSelected ? 'ring-2 ring-offset-2 ring-sky-500 scale-110' : 'hover:scale-105'
+                          isSelected ? 'ring-2 ring-offset-2 ring-emerald-500 scale-110' : 'hover:scale-105'
                         }`}
                       >
                         {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
@@ -439,73 +441,47 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
 
           {/* Opacity & Fine Offset Sliders */}
           <div className={`p-3 rounded-lg border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
-            {/* Opacity */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold">不透明度 (Opacity)</label>
-                <span className="text-xs font-mono tabular-nums font-bold text-sky-600 dark:text-sky-400">
-                  {Math.round((overlaySettings.opacity ?? 0.45) * 100)}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                value={overlaySettings.opacity ?? 0.45}
-                onChange={(e) =>
-                  onChangeOverlaySettings((prev) => ({
-                    ...prev,
-                    opacity: Number(e.target.value),
-                  }))
-                }
-                className="w-full accent-sky-600 h-2 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
-              />
-            </div>
+            <SliderRow
+              label="不透明度 (Opacity)"
+              value={Math.round((overlaySettings.opacity ?? 0.45) * 100)}
+              min={10}
+              max={100}
+              step={5}
+              unit="%"
+              onChange={(v) =>
+                onChangeOverlaySettings((prev) => ({ ...prev, opacity: v / 100 }))
+              }
+              theme={theme}
+              themeClasses={themeClasses}
+            />
 
-            {/* Position Offset X & Y */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span>横位置オフセット (X)</span>
-                  <span className="font-mono tabular-nums">{overlaySettings.offsetX ?? 0}px</span>
-                </div>
-                <input
-                  type="range"
-                  min={-250}
-                  max={250}
-                  step={5}
-                  value={overlaySettings.offsetX ?? 0}
-                  onChange={(e) =>
-                    onChangeOverlaySettings((prev) => ({
-                      ...prev,
-                      offsetX: Number(e.target.value),
-                    }))
-                  }
-                  className="w-full accent-sky-600 h-1.5 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-bold mb-1">
-                  <span>縦位置オフセット (Y)</span>
-                  <span className="font-mono tabular-nums">{overlaySettings.offsetY ?? 0}px</span>
-                </div>
-                <input
-                  type="range"
-                  min={-250}
-                  max={250}
-                  step={5}
-                  value={overlaySettings.offsetY ?? 0}
-                  onChange={(e) =>
-                    onChangeOverlaySettings((prev) => ({
-                      ...prev,
-                      offsetY: Number(e.target.value),
-                    }))
-                  }
-                  className="w-full accent-sky-600 h-1.5 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
-                />
-              </div>
+              <SliderRow
+                label="横位置オフセット (X)"
+                value={overlaySettings.offsetX ?? 0}
+                min={-250}
+                max={250}
+                step={5}
+                unit="px"
+                onChange={(v) =>
+                  onChangeOverlaySettings((prev) => ({ ...prev, offsetX: v }))
+                }
+                theme={theme}
+                themeClasses={themeClasses}
+              />
+              <SliderRow
+                label="縦位置オフセット (Y)"
+                value={overlaySettings.offsetY ?? 0}
+                min={-250}
+                max={250}
+                step={5}
+                unit="px"
+                onChange={(v) =>
+                  onChangeOverlaySettings((prev) => ({ ...prev, offsetY: v }))
+                }
+                theme={theme}
+                themeClasses={themeClasses}
+              />
             </div>
 
             {/* Show Metrics toggle */}
@@ -520,7 +496,7 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
                       showMetrics: e.target.checked,
                     }))
                   }
-                  className="rounded accent-sky-600"
+                  className="rounded accent-emerald-600"
                 />
                 <span>比較文字の送り幅・LSBガイド線も表示</span>
               </label>
@@ -538,38 +514,19 @@ export const GlyphCompareModal: React.FC<GlyphCompareModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div
-          className={`p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-3 border-t flex items-center justify-between max-sm:flex-col max-sm:items-stretch max-sm:gap-2 shrink-0 ${themeClasses.headerBg}`}
-        >
-          <div className="flex items-center justify-between sm:justify-start gap-3">
-            <div className={`text-xs ${themeClasses.textMuted}`}>
-              選択中: 「<strong className="text-sky-600 dark:text-sky-400">{overlaySettings.referenceChar || '未設定'}</strong>」
-            </div>
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-1.5 px-2.5 rounded-lg border text-xs font-medium items-center space-x-1.5 transition-colors hidden sm:flex cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
-              title={isFullscreen ? '通常表示に戻す (F / Esc)' : '全画面表示モード (F)'}
-            >
-              {isFullscreen ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5" />
-                  <span>通常サイズに戻す</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>全画面表示</span>
-                </>
-              )}
-            </button>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-full sm:w-auto min-h-[42px] sm:min-h-0 px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white active:scale-95 transition-[transform,background-color] cursor-pointer"
-          >
-            完了 (キャンバスに反映)
-          </button>
-        </div>
+        <ModalFooter
+          primaryLabel="完了 (キャンバスに反映)"
+          onPrimary={onClose}
+          onCancel={onClose}
+          cancelLabel="キャンセル"
+          leftInfo={
+            <span className={`text-xs ${themeClasses.textMuted}`}>
+              選択中: 「<strong className={themeClasses.accentText}>{overlaySettings.referenceChar || '未設定'}</strong>」
+            </span>
+          }
+          theme={theme}
+          themeClasses={themeClasses}
+        />
       </div>
     </div>
   );

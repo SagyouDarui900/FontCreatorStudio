@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { X, Layers, Sparkles, BookOpen, ExternalLink, ArrowRight } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Layers, Sparkles, BookOpen, ExternalLink, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
 import { IVS_PRESETS, IvsPresetEntry, IvsVariant } from '../../data/ivsPresets';
 import { isLightTheme, getThemeClasses, ThemeMode } from '../../utils/theme';
 import { GlyphData } from '../../types';
+import { useIsTopModal, useDialogFocusTrap } from '../modals/ModalStackFrame';
+import { ModalTabs } from '../modals/ModalTabs';
+import { ModalFooter } from '../modals/ModalFooter';
 
 export interface IvsVariantManagerModalProps {
   isOpen: boolean;
@@ -29,6 +32,34 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
   const themeClasses = getThemeClasses(theme);
 
   const [activeTab, setActiveTab] = useState<'presets' | 'about'>('presets');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const isTopModal = useIsTopModal();
+
+  useDialogFocusTrap(modalRef, isOpen && isTopModal, () => {
+    if (isFullscreen) {
+      setIsFullscreen(false);
+    } else {
+      onClose();
+    }
+  });
+
+  // F toggles fullscreen outside form fields
+  useEffect(() => {
+    if (!isOpen || !isTopModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isInput =
+        activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+      if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setIsFullscreen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isTopModal]);
 
   if (!isOpen) return null;
 
@@ -37,18 +68,27 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="IVS 異体字セレクタ管理"
-      className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-5 bg-black/75 anim-fade"
+      className={`fixed inset-0 z-[60] anim-fade ${
+        isFullscreen
+          ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 select-none'
+      }`}
     >
       <div
-        className={`w-full h-[100dvh] sm:h-auto sm:max-w-5xl xl:max-w-6xl sm:max-h-[92vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border shadow-none sm:shadow-2xl overflow-hidden ${themeClasses.modalBg} ${themeClasses.border}`}
+        ref={modalRef}
+        className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
+          isFullscreen
+            ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-5xl border-0 sm:border ${themeClasses.border} rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh]`
+        }`}
       >
         {/* Header */}
         <div
           className={`flex items-center justify-between gap-2 px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-2.5 sm:pt-2.5 border-b shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="hidden sm:flex p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-              <Layers className="w-5 h-5" />
+            <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <h2 className={`text-sm sm:text-base font-bold flex items-center gap-2 truncate ${themeClasses.textPrimary}`}>
@@ -59,40 +99,51 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
-            title="閉じる"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`hidden sm:flex p-1.5 px-2.5 rounded-lg border text-xs font-semibold items-center space-x-1.5 transition-colors cursor-pointer ${
+                isFullscreen
+                  ? themeClasses.activeTool
+                  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
+              }`}
+              title={isFullscreen ? '通常表示に戻す (F または Esc)' : '全画面表示に拡大 (F)'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>通常</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>全画面</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className={`p-2 max-sm:min-w-[40px] max-sm:min-h-[40px] flex items-center justify-center rounded-xl border transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.textMuted} ${themeClasses.activeToolHover}`}
+              title="閉じる"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div
-          className={`px-3.5 sm:px-5 py-2 border-b flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap shrink-0 ${themeClasses.subtoolbarBg} ${themeClasses.border}`}
-        >
-          <button
-            onClick={() => setActiveTab('presets')}
-            className={`px-3 py-1.5 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer ${
-              activeTab === 'presets'
-                ? themeClasses.accentBtn
-                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-            }`}
-          >
-            代表的なIVS漢字プリセット
-          </button>
-          <button
-            onClick={() => setActiveTab('about')}
-            className={`px-3 py-1.5 sm:py-1 rounded-lg text-xs font-bold transition-colors shrink-0 cursor-pointer ${
-              activeTab === 'about'
-                ? themeClasses.accentBtn
-                : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
-            }`}
-          >
-            IVS規格とフォント出力仕様について
-          </button>
-        </div>
+        <ModalTabs
+          tabs={[
+            { id: 'presets', label: '代表的なIVS漢字プリセット', shortLabel: 'プリセット', count: IVS_PRESETS.length },
+            { id: 'about', label: 'IVS規格とフォント出力仕様について', shortLabel: 'IVS規格' },
+          ]}
+          activeId={activeTab}
+          onChange={(id) => setActiveTab(id as typeof activeTab)}
+          theme={theme}
+          themeClasses={themeClasses}
+          ariaLabel="IVS管理のタブ"
+        />
 
         {/* Content */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4">
@@ -128,7 +179,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                               </span>
                             </div>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-md border border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold bg-purple-500/10">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-md border font-bold ${themeClasses.accentBadge}`}>
                             {item.category}
                           </span>
                         </div>
@@ -173,7 +224,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
             </div>
           ) : (
             <div className={`space-y-4 text-xs leading-relaxed ${themeClasses.textPrimary}`}>
-              <h3 className={`text-sm font-bold ${themeClasses.textPrimary}`}>IVS（Ideographic Variation Sequence）とは？</h3>
+              <h3 className={`text-xs font-bold ${themeClasses.textPrimary}`}>IVS（Ideographic Variation Sequence）とは？</h3>
               <p>
                 従来のUnicodeでは「辻」や「葛」といった漢字は1つのコードポイント（例: 辻=U+8FBB）しか割り当てられていませんでしたが、
                 人名・地名における「一点しんにょう」と「二点しんにょう」のように、微細だが法的に重要な字形差を区別するために制定された仕組みです。
@@ -183,7 +234,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                 同一コードポイントでありながら異なるグリフ（字形）を呼び出すことができます。
               </p>
 
-              <h3 className={`text-sm font-bold mt-4 ${themeClasses.textPrimary}`}>OpenType IVS 仕様と本アプリでの扱い</h3>
+              <h3 className={`text-xs font-bold mt-4 ${themeClasses.textPrimary}`}>OpenType IVS 仕様と本アプリでの扱い</h3>
               <p>
                 OpenType 規格では <code>cmap format 14 (Unicode Variation Sequences)</code> テーブルによって同一コードポイントに対する異体字字形を切り替えます。
                 本アプリでは代表的な IVS 対象漢字の基底コードポイントを素早く呼び出して作図・調整するためのガイドとしてご活用いただけます。
@@ -193,16 +244,14 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div
-          className={`px-3.5 sm:px-5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:py-3 border-t flex justify-end shrink-0 ${themeClasses.toolbarBg} ${themeClasses.border}`}
-        >
-          <button
-            onClick={onClose}
-            className={`w-full sm:w-auto min-h-[42px] sm:min-h-0 px-4 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${themeClasses.cardBg} ${themeClasses.border} ${themeClasses.activeToolHover}`}
-          >
-            閉じる
-          </button>
-        </div>
+        <ModalFooter
+          onCancel={onClose}
+          cancelLabel="キャンセル"
+          primaryLabel="閉じる"
+          onPrimary={onClose}
+          theme={theme}
+          themeClasses={themeClasses}
+        />
       </div>
     </div>
   );

@@ -143,7 +143,7 @@ export const QualityModalHeader: React.FC<QualityModalHeaderProps> = ({
           <button
             onClick={onRescan}
             disabled={isScanning}
-            className={`min-w-[36px] min-h-[36px] p-2 rounded-xl border text-xs font-semibold flex items-center justify-center transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+            className={`min-w-[40px] min-h-[40px] p-2 rounded-xl border text-xs font-semibold flex items-center justify-center transition-colors shrink-0 cursor-pointer ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
             title="フォント全体を再検査 (R)"
           >
             <RefreshCw className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />

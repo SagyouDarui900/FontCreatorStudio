@@ -272,14 +272,14 @@ export const FontQualityModal: React.FC<FontQualityModalProps> = (props) => {
       className={`fixed inset-0 z-[60] ${
         isFullscreen
           ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
-          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade'
+          : 'flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade select-none'
       }`}
     >
       <div
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl sm:max-h-[90vh]`
+            : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl rounded-none sm:rounded-2xl border-0 sm:border ${themeClasses.border} shadow-none sm:shadow-2xl sm:max-h-[92vh]`
         }`}
       >
         {/* Header Bar */}

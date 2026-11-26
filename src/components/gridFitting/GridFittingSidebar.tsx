@@ -54,22 +54,22 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
         <span className={`text-[10px] font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
           クイックヒンティングプリセット:
         </span>
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
           <button
             onClick={() => onApplyPreset('retro')}
-            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
+            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg}`}
           >
             ドットゲーム
           </button>
           <button
             onClick={() => onApplyPreset('web_ui')}
-            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
+            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg}`}
           >
             Web・UI画面
           </button>
           <button
             onClick={() => onApplyPreset('soft')}
-            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border hover:border-amber-500 transition-colors cursor-pointer ${themeClasses.cardBg}`}
+            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${themeClasses.cardBg}`}
           >
             ソフト整列
           </button>
@@ -81,14 +81,14 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
         <label className={`text-[11px] font-bold uppercase tracking-wider flex items-center justify-between ${themeClasses.textMuted}`}>
           <span>検証対象文字選択 ({glyphList.length}):</span>
         </label>
-        <div className={`grid grid-cols-5 gap-1.5 max-h-36 sm:max-h-40 overflow-y-auto p-1.5 border rounded-xl ${themeClasses.subtoolbarBg}`}>
+        <div className={`grid grid-cols-3 sm:grid-cols-5 gap-1.5 max-h-36 sm:max-h-40 overflow-y-auto p-1.5 border rounded-xl ${themeClasses.subtoolbarBg}`}>
           {glyphList.map((g) => (
             <button
               key={g.unicode}
               onClick={() => onSelectUnicode(g.unicode)}
               className={`h-10 sm:h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
                 selectedUnicode === g.unicode
-                  ? 'bg-amber-600 text-white border-amber-600'
+                  ? `${themeClasses.activeTool} border-transparent`
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
             >
@@ -102,10 +102,10 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
       <div className={`p-3 sm:p-3.5 rounded-xl border space-y-2.5 ${themeClasses.subtoolbarBg}`}>
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold flex items-center space-x-1.5">
-            <Flame className="w-4 h-4 text-amber-500" />
+            <Flame className={`w-4 h-4 ${themeClasses.accentText}`} />
             <span>検出ステム解析</span>
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${themeClasses.accentBadge}`}>
             {detectedStems.length} 本
           </span>
         </div>
@@ -123,7 +123,7 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
                 onMouseLeave={() => onHoverStem(null)}
                 className={`flex items-center justify-between text-[11px] p-2 rounded-lg border transition-colors cursor-pointer ${
                   hoveredStemId === stem.id
-                    ? 'border-amber-500 bg-amber-500/10'
+                    ? `${themeClasses.accentBorder} ${themeClasses.accentBadge}`
                     : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
                 }`}
               >
@@ -140,7 +140,7 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
                 <div className={`text-right font-mono text-[10px] ${themeClasses.textMuted}`}>
                   <div>位置: {stem.pos}u (幅 {stem.width}u)</div>
                   {stem.shiftDelta !== undefined && (
-                    <div className={stem.shiftDelta !== 0 ? 'text-amber-500 font-bold' : ''}>
+                    <div className={stem.shiftDelta !== 0 ? `${themeClasses.accentText} font-bold` : ''}>
                       シフト: {stem.shiftDelta > 0 ? `+${stem.shiftDelta}` : stem.shiftDelta}u
                     </div>
                   )}

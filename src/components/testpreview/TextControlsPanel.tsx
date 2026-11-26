@@ -214,7 +214,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
               max={96}
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
-              className="flex-1 accent-emerald-700 h-3"
+              className="flex-1 accent-emerald-600 h-3"
             />
             <button
               type="button"
@@ -249,7 +249,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
               step={0.1}
               value={lineHeight}
               onChange={(e) => setLineHeight(Number(e.target.value))}
-              className="flex-1 accent-emerald-700 h-3"
+              className="flex-1 accent-emerald-600 h-3"
             />
             <button
               type="button"
@@ -284,7 +284,7 @@ export const TextControlsPanel: React.FC<TextControlsPanelProps> = ({ state }) =
               step={0.02}
               value={letterSpacing}
               onChange={(e) => setLetterSpacing(Number(e.target.value))}
-              className="flex-1 accent-emerald-700 h-3"
+              className="flex-1 accent-emerald-600 h-3"
             />
             <button
               type="button"

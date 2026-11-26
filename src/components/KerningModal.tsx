@@ -24,6 +24,8 @@ import { contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path'
 
 import { ThemeMode, getThemeClasses, isLightTheme } from '../utils/theme';
 import { useIsTopModal } from './modals/ModalStackFrame';
+import { ModalTabs } from './modals/ModalTabs';
+import { SliderRow } from './modals/SliderRow';
 
 interface KerningModalProps {
  isOpen: boolean;
@@ -363,7 +365,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
       className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.textPrimary} ${
         isFullscreen
           ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
-          : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl xl:max-w-5xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
+          : `w-full h-[100dvh] sm:h-auto sm:max-w-4xl border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-h-[92vh] ${themeClasses.border}`
       }`}
     >
       {/* Modal Header */}
@@ -371,11 +373,11 @@ export const KerningModal: React.FC<KerningModalProps> = ({
         className={`flex items-center justify-between px-3.5 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] sm:px-5 sm:py-3.5 sm:pt-3.5 border-b shrink-0 ${themeClasses.headerBg} ${themeClasses.border}`}
       >
  <div className="flex items-center gap-2.5 max-sm:min-w-0 max-sm:flex-1">
- <div className={`p-1.5 rounded-lg ${themeClasses.accentBtn}`}>
- <MoveHorizontal className="w-5 h-5" />
+ <div className={`hidden sm:flex w-8 h-8 rounded-xl border items-center justify-center shrink-0 ${themeClasses.accentBadge}`}>
+ <MoveHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
  </div>
  <div className="max-sm:min-w-0">
- <h2 className="text-base font-bold flex items-center gap-2 max-sm:min-w-0">
+ <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 max-sm:min-w-0">
  <span className="max-sm:truncate">カーニング & サイドベアリング調整スタジオ</span>
  {isFullscreen && (
  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${themeClasses.accentBtn}`}>
@@ -422,38 +424,20 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
 
  {/* Tabs */}
- <div
- className={`flex border-b px-3 sm:px-5 pt-2 gap-2 text-xs font-bold shrink-0 overflow-x-auto no-scrollbar whitespace-nowrap ${themeClasses.subtoolbarBg}`}
- >
- <button
- onClick={() => setActiveTab('kerning')}
- className={`flex items-center gap-1.5 px-4 py-2.5 border-b-2 transition-colors cursor-pointer ${
- activeTab === 'kerning'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <MoveHorizontal className="w-3.5 h-3.5" />
- <span className="max-sm:hidden">ペアカーニング調整（約物・欧文・かな）</span>
- <span className="hidden max-sm:inline">ペアカーニング調整</span>
- </button>
-
- <button
- onClick={() => setActiveTab('sidebearing')}
- className={`flex items-center gap-1.5 px-4 py-2.5 border-b-2 transition-colors cursor-pointer ${
- activeTab === 'sidebearing'
- ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
- : `border-transparent ${themeClasses.textMuted} ${themeClasses.activeToolHover}`
- }`}
- >
- <AlignHorizontalDistributeCenter className="w-3.5 h-3.5" />
- <span className="max-sm:hidden">サイドベアリング（左右余白・送り幅）一括調整</span>
- <span className="hidden max-sm:inline">サイドベアリング一括調整</span>
- </button>
- </div>
+ <ModalTabs
+   tabs={[
+     { id: 'kerning', label: 'ペアカーニング調整（約物・欧文・かな）', shortLabel: 'ペアカーニング調整' },
+     { id: 'sidebearing', label: 'サイドベアリング（左右余白・送り幅）一括調整', shortLabel: 'サイドベアリング一括調整' },
+   ]}
+   activeId={activeTab}
+   onChange={(id) => setActiveTab(id as typeof activeTab)}
+   theme={theme}
+   themeClasses={themeClasses}
+   ariaLabel="カーニング調整のタブ"
+ />
 
  {/* Modal Content */}
- <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:p-5 sm:pb-5">
+ <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:pb-4">
  {activeTab === 'kerning' ? (
  /* ========================================================= */
  /* TAB 1: PAIR KERNING */
@@ -473,7 +457,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  type="button"
  onClick={handleAutoKernAllPairs}
- className="px-2.5 py-1 sm:px-2 sm:py-0.5 text-[10px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1 cursor-pointer transition-colors"
+ className={`px-2.5 py-1 sm:px-2 sm:py-0.5 text-[10px] font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-colors ${themeClasses.accentBtn}`}
  title="作図済みグリフの光学プロファイルからペアカーニングを自動計算"
  >
  <Sparkles className="w-3 h-3" />
@@ -516,7 +500,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="左 (A)"
  value={customLeft ?? ''}
  onChange={(e) => setCustomLeft(e.target.value)}
- className={`w-full sm:w-14 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-full sm:w-16 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <span className={`font-bold ${themeClasses.textMuted}`}>+</span>
  <input
@@ -525,7 +509,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  placeholder="右 (V)"
  value={customRight ?? ''}
  onChange={(e) => setCustomRight(e.target.value)}
- className={`w-full sm:w-14 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
+ className={`w-full sm:w-16 p-2 sm:p-1.5 rounded-lg border text-center font-bold ${themeClasses.cardBg}`}
  />
  <input
  type="number"
@@ -645,41 +629,20 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  </div>
 
  {/* Value Slider */}
- <div className="flex flex-col gap-1.5">
- <div className="flex justify-between items-center text-xs">
- <span className={themeClasses.textMuted}>カーニング変位値 (フォント単位):</span>
- <div className="flex items-center gap-2">
- <input
- type="number"
- step={5}
- value={Number.isFinite(currentPairValue) ? currentPairValue : 0}
- onChange={(e) => {
- const parsed = Number(e.target.value);
- handleUpdateKerningValue(Number.isFinite(parsed) ? parsed : 0);
- }}
- className={`w-20 p-1 text-center font-mono font-bold rounded border ${themeClasses.cardBg}`}
+ <SliderRow
+   label="カーニング変位値 (フォント単位)"
+   value={Number.isFinite(currentPairValue) ? currentPairValue : 0}
+   min={-300}
+   max={150}
+   step={5}
+   unit=" units"
+   formatValue={(v) => (v > 0 ? `+${v}` : `${v}`)}
+   onChange={(v) => handleUpdateKerningValue(v)}
+   showNumberInput
+   hint="-300 (詰める) ・ 0 (基準) ・ +150 (広げる)"
+   theme={theme}
+   themeClasses={themeClasses}
  />
- <span className={`text-xs ${themeClasses.textMuted}`}>units</span>
- </div>
- </div>
- <input
- type="range"
- min="-300"
- max="150"
- step="5"
- value={Number.isFinite(currentPairValue) ? currentPairValue : 0}
- onChange={(e) => {
- const parsed = Number(e.target.value);
- handleUpdateKerningValue(Number.isFinite(parsed) ? parsed : 0);
- }}
- className="w-full h-2 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
- />
- <div className={`flex justify-between text-[10px] ${themeClasses.textMuted}`}>
- <span>-300 (詰める)</span>
- <span>0 (基準)</span>
- <span>+150 (広げる)</span>
- </div>
- </div>
 
  {/* Visual Pair Comparison */}
  <div className="flex flex-col gap-2">
@@ -693,7 +656,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <div className={`flex items-center gap-3 border-b pb-2 min-w-0 ${themeClasses.border}`}>
  <span className={`text-[10px] w-16 shrink-0 ${themeClasses.textMuted}`}>通常(±0)</span>
  <div className="h-16 min-w-0 flex-1 flex items-center relative overflow-hidden sm:overflow-visible">
- <svg viewBox="0 0 2000 1000" className="w-full max-w-[160px] sm:w-auto h-16 overflow-visible">
+ <svg viewBox="0 0 2000 1000" className="w-full max-w-[240px] sm:w-auto h-16 overflow-visible">
  {/* Left Glyph */}
  {pairGlyphs.leftGlyph && (
  <path
@@ -722,7 +685,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  {currentPairValue > 0 ? `+${currentPairValue}` : currentPairValue} 適用
  </span>
  <div className="h-16 min-w-0 flex-1 flex items-center relative overflow-hidden sm:overflow-visible">
- <svg viewBox="0 0 2000 1000" className="w-full max-w-[160px] sm:w-auto h-16 overflow-visible">
+ <svg viewBox="0 0 2000 1000" className="w-full max-w-[240px] sm:w-auto h-16 overflow-visible">
  {/* Left Glyph */}
  {pairGlyphs.leftGlyph && (
  <path
@@ -980,22 +943,19 @@ export const KerningModal: React.FC<KerningModalProps> = ({
 
  {(sbMode === 'offset-lsb' || sbMode === 'offset-rsb') && (
  <div className={`pt-2 border-t text-xs ${themeClasses.border}`}>
- <div className="flex justify-between text-xs mb-1">
- <span className={themeClasses.textMuted}>オフセットシフト値:</span>
- <span className="font-mono font-bold">{sbOffsetDelta > 0 ? `+${sbOffsetDelta}` : sbOffsetDelta}px</span>
- </div>
- <input
- type="range"
- min="-150"
- max="150"
- step="5"
- value={Number.isFinite(sbOffsetDelta) ? sbOffsetDelta : 0}
- onChange={(e) => {
- const parsed = Number(e.target.value);
- setSbOffsetDelta(Number.isFinite(parsed) ? parsed : 0);
- }}
- className="w-full h-2 accent-emerald-600 bg-black/10 dark:bg-white/10 rounded-lg cursor-pointer"
- />
+   <SliderRow
+     label="オフセットシフト値"
+     value={Number.isFinite(sbOffsetDelta) ? sbOffsetDelta : 0}
+     min={-150}
+     max={150}
+     step={5}
+     unit="px"
+     formatValue={(v) => (v > 0 ? `+${v}` : `${v}`)}
+     onChange={(v) => setSbOffsetDelta(v)}
+     showNumberInput
+     theme={theme}
+     themeClasses={themeClasses}
+   />
  </div>
  )}
  </div>
@@ -1012,7 +972,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <button
  key={c}
  onClick={() => setSbPreviewChar(c)}
- className={`w-9 h-9 sm:w-7 sm:h-7 rounded border text-xs font-bold transition-colors cursor-pointer ${
+ className={`w-10 h-10 sm:w-7 sm:h-7 rounded border text-xs font-bold transition-colors cursor-pointer ${
  sbPreviewChar === c
  ? `${themeClasses.activeTool} border-transparent`
  : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
@@ -1038,7 +998,7 @@ export const KerningModal: React.FC<KerningModalProps> = ({
  <span className={`font-mono ${themeClasses.textMuted}`}>「{sbPreviewChar}」</span>
  </div>
 
- <div className={`w-full max-w-[256px] aspect-square relative rounded-lg border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.cardBg}`}>
+ <div className={`w-full max-w-[320px] sm:max-w-[256px] aspect-square relative rounded-lg border flex items-center justify-center overflow-hidden shadow-inner ${themeClasses.cardBg}`}>
  {/* Visual Sidebearing Margins */}
  <div className="absolute inset-0 pointer-events-none opacity-20">
  <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-current" />

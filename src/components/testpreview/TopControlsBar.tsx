@@ -64,7 +64,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
               max={96}
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
-              className="w-20 accent-emerald-700"
+              className="w-20 accent-emerald-600"
             />
           </div>
         </div>
@@ -178,7 +178,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
               max={96}
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
-              className="w-16 accent-emerald-700"
+              className="w-16 accent-emerald-600"
             />
             <span className="font-mono w-6 text-[11px]">{fontSize}</span>
           </div>
@@ -192,7 +192,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
               step={0.1}
               value={lineHeight}
               onChange={(e) => setLineHeight(Number(e.target.value))}
-              className="w-14 accent-emerald-700"
+              className="w-14 accent-emerald-600"
             />
             <span className="font-mono w-6 text-[11px]">{lineHeight.toFixed(1)}</span>
           </div>
@@ -206,7 +206,7 @@ export const TopControlsBar: React.FC<TopControlsBarProps> = ({ state }) => {
               step={0.02}
               value={letterSpacing}
               onChange={(e) => setLetterSpacing(Number(e.target.value))}
-              className="w-14 accent-emerald-700"
+              className="w-14 accent-emerald-600"
             />
             <span className="font-mono w-8 text-[11px]">
               {letterSpacing >= 0 ? `+${letterSpacing.toFixed(2)}` : letterSpacing.toFixed(2)}
