@@ -649,4 +649,52 @@ describe('Low findings L13 / L14 / L15 / L16 / L18 / L21 / L23', () => {
     expect(container.textContent).not.toContain('行間: -4H');
     expect(container.textContent).toContain('行送りが文字サイズ未満です');
   });
+
+  it('places hanging punctuation below in vertical manuscript mode and to the right in horizontal mode', () => {
+    const layout = makeLayout([['あ', 'い', '。']]);
+    layout.lines[0].glyphs[2].isHanging = true;
+    const viewProps = {
+      title: '銀河鉄道の夜',
+      author: '宮沢賢治',
+      isLight: true,
+      fontFamily: 'serif',
+      fontSizeQ: 14,
+      zoom: 1,
+      lineFeedH: 24,
+      showGrid: true,
+    };
+    const vertical = renderIntoDom(
+      <ManuscriptView layout={layout} {...viewProps} isVertical={true} />
+    );
+    const vHang = vertical.container.querySelector('[title="ぶら下がり約物「。」"]');
+    expect(vHang?.className).toContain('-bottom-3');
+
+    const horizontal = renderIntoDom(
+      <ManuscriptView layout={layout} {...viewProps} isVertical={false} />
+    );
+    const hHang = horizontal.container.querySelector('[title="ぶら下がり約物「。」"]');
+    expect(hHang?.className).toContain('-right-3');
+    expect(hHang?.className).not.toContain('-bottom-3');
+  });
+
+  it('allows two-axis touch scrolling on preview main and puts role=dialog on the 100dvh panel', () => {
+    const project = makeProject();
+    const { container } = renderIntoDom(
+      <MojikumiStudioModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={project}
+        setProject={vi.fn()}
+        theme="light"
+        onShowToast={vi.fn()}
+      />
+    );
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog!.className).toContain('h-[100dvh]');
+    const main = container.querySelector('main');
+    expect(main).not.toBeNull();
+    expect(main!.className).toContain('touch-pan-both');
+    expect(main!.style.touchAction).toBe('pan-x pan-y');
+  });
 });

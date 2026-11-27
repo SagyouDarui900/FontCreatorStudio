@@ -89,8 +89,8 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
       return (
         <div
           dir="rtl"
-          className="w-full overflow-x-auto custom-scrollbar min-h-[280px] sm:min-h-[320px] p-1"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="w-full overflow-x-auto touch-pan-both custom-scrollbar min-h-[280px] sm:min-h-[320px] p-1"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
         >
           <div
             dir="ltr"
@@ -198,8 +198,8 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
 
     return (
       <div
-        className="w-full overflow-x-auto custom-scrollbar min-h-[280px] sm:min-h-[320px] p-1"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="w-full overflow-x-auto touch-pan-both custom-scrollbar min-h-[280px] sm:min-h-[320px] p-1"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
       >
         <div
           className="flex flex-col items-start justify-start w-max select-text"
@@ -317,7 +317,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             <button
               type="button"
               onClick={() => setMobileColView('col1')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+              className={`px-2.5 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-xs font-bold ${
                 mobileColView === 'col1'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-stone-500 hover:text-stone-800'
@@ -328,7 +328,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             <button
               type="button"
               onClick={() => setMobileColView('col2')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+              className={`px-2.5 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-xs font-bold ${
                 mobileColView === 'col2'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-stone-500 hover:text-stone-800'
@@ -339,7 +339,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
             <button
               type="button"
               onClick={() => setMobileColView('both')}
-              className={`px-2 py-1 rounded-md text-[11px] ${
+              className={`px-2 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-[11px] ${
                 mobileColView === 'both'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-stone-500 hover:text-stone-800'
@@ -361,7 +361,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
                 type="button"
                 disabled={safePageIdx === 0}
                 onClick={() => setPageIdx((p) => Math.max(0, p - 1))}
-                className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>前頁</span>
@@ -370,7 +370,7 @@ export const MagazineLayoutView: React.FC<MagazineLayoutViewProps> = ({
                 type="button"
                 disabled={safePageIdx >= totalPages - 1}
                 onClick={() => setPageIdx((p) => Math.min(totalPages - 1, p + 1))}
-                className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <span>次頁</span>
                 <ChevronRight className="w-3.5 h-3.5" />

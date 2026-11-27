@@ -64,13 +64,20 @@ button {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Horizontal scrollers inside vertically scrollable containers must allow pan-y
+   so vertical swipes chain to parent scroll containers on mobile devices. */
 .overflow-x-auto,
 .overflow-x-scroll {
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
-.overflow-auto {
+.overflow-auto,
+.overflow-x-auto.overflow-y-auto,
+.overflow-x-auto.overflow-y-scroll,
+.overflow-x-scroll.overflow-y-auto,
+.overflow-x-scroll.overflow-y-scroll,
+.touch-pan-both {
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
 }
@@ -386,11 +393,11 @@ p {
   animation: uiSlideRight 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Guard dialogs and modal containers against virtual keyboard overflow */
+/* Guard non-fullscreen dialogs and modal containers against virtual keyboard overflow */
 @media (max-width: 639px) {
-  .modal-container,
-  [role="dialog"] {
-    max-height: min(92vh, calc(100dvh - 1.5rem));
+  .modal-container:not([class*="100dvh"]),
+  [role="dialog"]:not([class*="100dvh"]):not(.inset-0) {
+    max-height: min(92dvh, calc(100dvh - 1.5rem));
   }
 }
 

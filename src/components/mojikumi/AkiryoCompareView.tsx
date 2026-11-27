@@ -64,8 +64,8 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
       return (
         <div
           dir="rtl"
-          className="w-full h-full overflow-x-auto custom-scrollbar p-2"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="w-full h-full overflow-x-auto touch-pan-both custom-scrollbar p-2"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
         >
           <div
             dir="ltr"
@@ -174,8 +174,8 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
 
     return (
       <div
-        className="w-full h-full overflow-x-auto custom-scrollbar p-2"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="w-full h-full overflow-x-auto touch-pan-both custom-scrollbar p-2"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
       >
         <div
           className="flex flex-col items-start justify-start w-max select-text"
@@ -274,7 +274,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
       <div className="flex md:hidden items-center justify-center p-1 mb-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-900 text-xs">
         <button
           onClick={() => setMobileTab('all')}
-          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
+          className={`flex-1 py-2 min-h-[38px] rounded-md font-bold transition-colors ${
             mobileTab === 'all'
               ? 'bg-white dark:bg-stone-800 text-emerald-800 dark:text-emerald-300 shadow-xs'
               : 'text-stone-500'
@@ -284,7 +284,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('beta')}
-          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
+          className={`flex-1 py-2 min-h-[38px] rounded-md font-bold transition-colors ${
             mobileTab === 'beta'
               ? 'bg-white dark:bg-stone-800 text-emerald-800 dark:text-emerald-300 shadow-xs'
               : 'text-stone-500'
@@ -294,7 +294,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('tsume')}
-          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
+          className={`flex-1 py-2 min-h-[38px] rounded-md font-bold transition-colors ${
             mobileTab === 'tsume'
               ? 'bg-white dark:bg-stone-800 text-blue-800 dark:text-blue-300 shadow-xs'
               : 'text-stone-500'
@@ -304,7 +304,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
         </button>
         <button
           onClick={() => setMobileTab('ake')}
-          className={`flex-1 py-1 rounded-md font-bold transition-colors ${
+          className={`flex-1 py-2 min-h-[38px] rounded-md font-bold transition-colors ${
             mobileTab === 'ake'
               ? 'bg-white dark:bg-stone-800 text-purple-800 dark:text-purple-300 shadow-xs'
               : 'text-stone-500'
@@ -325,7 +325,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
               type="button"
               disabled={safePageIdx === 0}
               onClick={() => setPageIdx((v) => Math.max(0, v - 1))}
-              className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               <span>前頁</span>
@@ -334,7 +334,7 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
               type="button"
               disabled={safePageIdx >= totalPages - 1}
               onClick={() => setPageIdx((v) => Math.min(totalPages - 1, v + 1))}
-              className="px-2 py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+              className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-stone-300 dark:border-stone-700 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
             >
               <span>次頁</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -382,9 +382,10 @@ export const AkiryoCompareView: React.FC<AkiryoCompareViewProps> = ({
 
               {/* Text Render Area */}
               <div
-                className={`flex-1 min-h-[300px] max-h-[520px] p-3 overflow-auto custom-scrollbar relative ${
+                className={`flex-1 min-h-[300px] max-h-[520px] p-3 overflow-auto touch-pan-both custom-scrollbar relative ${
                   isLight ? 'bg-stone-50/50' : 'bg-[#0f1712]'
                 }`}
+                style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
               >
                 {renderLines({ ...col.layout, lines: pageLines(col.layout) })}
               </div>

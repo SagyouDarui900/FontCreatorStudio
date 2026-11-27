@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Copy,
   CheckCircle2,
@@ -7,7 +7,7 @@ import {
   Plus,
 } from 'lucide-react';
 import JSZip from 'jszip';
-import { FontProject, GlyphData } from '../types';
+import { FontProject, GlyphData, IvsGlyphVariant, PathContour } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import {
   adjustContoursWeight,
@@ -48,16 +48,53 @@ interface WeightInterpolationModalProps {
   // no argument it commits the selected glyph (used by the single-glyph
   // master-interpolation apply).
   onCommitHistory?: (targetUnicode?: number) => void;
+  // Batched pre-change snapshot commit for multi-glyph / IVS updates.
+  onCommitBatchHistory?: (targetUnicodes: number[], targetIvsKeys?: string[]) => void;
   // Commits the pre-change project-level config (styleName /
   // usWeightClass) before the batch apply rewrites the metadata.
   onCommitProjectHistory?: () => void;
+  // Navigates directly to edit a glyph clicked inside the sample strip.
+  onSelectGlyphForEdit?: (unicode: number) => void;
 }
 
-export type WeightPresetKey = 'thin' | 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'heavy' | 'custom';
+export type WeightPresetKey =
+  | 'thin'
+  | 'extralight'
+  | 'light'
+  | 'regular'
+  | 'medium'
+  | 'semibold'
+  | 'bold'
+  | 'extrabold'
+  | 'heavy'
+  | 'custom';
 type WeightScope = 'all' | 'kanji' | 'kana' | 'latin' | 'current';
 
 const isWeightScope = (value: string): value is WeightScope =>
   value === 'all' || value === 'kanji' || value === 'kana' || value === 'latin' || value === 'current';
+
+const isUnicodeInWeightScope = (
+  u: number,
+  scope: WeightScope,
+  selectedUnicode: number
+): boolean => {
+  switch (scope) {
+    case 'all':
+      return true;
+    case 'current':
+      return u === selectedUnicode;
+    case 'kana':
+      return (
+        (u >= 0x3041 && u <= 0x309f) ||
+        (u >= 0x30a0 && u <= 0x30ff) ||
+        (u >= 0xff66 && u <= 0xff9f)
+      );
+    case 'kanji':
+      return (u >= 0x4e00 && u <= 0x9fff) || (u >= 0x3400 && u <= 0x4dbf);
+    case 'latin':
+      return (u >= 0x0020 && u <= 0x007e) || (u >= 0x00a0 && u <= 0x024f);
+  }
+};
 
 interface WeightPreset {
   key: WeightPresetKey;
@@ -70,6 +107,7 @@ interface WeightPreset {
 
 const WEIGHT_PRESETS: WeightPreset[] = [
   { key: 'thin', label: 'Thin (極細)', sub: '-40px', delta: -40, styleName: 'Thin', usWeightClass: 100 },
+  { key: 'extralight', label: 'ExtraLight (特細)', sub: '-30px', delta: -30, styleName: 'ExtraLight', usWeightClass: 200 },
   { key: 'light', label: 'Light (細字)', sub: '-22px', delta: -22, styleName: 'Light', usWeightClass: 300 },
   { key: 'regular', label: 'Regular (標準)', sub: '±0px', delta: 0, styleName: 'Regular', usWeightClass: 400 },
   { key: 'medium', label: 'Medium (中字)', sub: '+22px', delta: 22, styleName: 'Medium', usWeightClass: 500 },
@@ -99,13 +137,20 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   theme,
   onShowToast,
   onCommitHistory,
+  onCommitBatchHistory,
   onCommitProjectHistory,
+  onSelectGlyphForEdit,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  const upm =
+    project.metadata?.unitsPerEm && project.metadata.unitsPerEm > 0
+      ? project.metadata.unitsPerEm
+      : DEFAULT_UPM;
+  const emScale = upm / 1000;
   // Preview baseline follows the project ascender so the position shown
   // here matches the exported glyph position (compile uses ascender).
-  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+  const baselineY = resolveBaselineY(project.metadata?.ascender, upm);
 
   // Mode: 'family' (Weight expansion / variation) or 'master' (Master-to-master morphing)
   const [activeTab, setActiveTab] = useState<'family' | 'master'>('family');
@@ -122,9 +167,46 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  const scaledWeightDelta = weightDelta * emScale;
+
+  // Helper to resolve vector contours for any glyph (including pixelData-only glyphs)
+  const resolveGlyphContours = useCallback(
+    (g?: GlyphData | null): PathContour[] => {
+      if (!g) return [];
+      if (g.contours && g.contours.length > 0) return g.contours;
+      if (g.pixelData?.data && g.pixelData.width && g.pixelData.height) {
+        const pGrid = normalizePixelGrid(g.pixelData.data);
+        if (pGrid.some((val) => val === 1)) {
+          return pixelGridToContours(
+            pGrid,
+            g.pixelData.width,
+            g.pixelData.height,
+            upm,
+            project.metadata?.ascender || DEFAULT_ASCENDER,
+            project.metadata?.descender || DEFAULT_DESCENDER,
+            g.advanceWidth || upm,
+            g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+            project.pixelFontSettings?.mergeContours !== false
+          );
+        }
+      }
+      return [];
+    },
+    [
+      upm,
+      project.metadata?.ascender,
+      project.metadata?.descender,
+      project.pixelFontSettings?.dotShape,
+      project.pixelFontSettings?.mergeContours,
+    ]
+  );
+
   const nonEmptyGlyphs = useMemo(
-    () => (Object.values(project.glyphs || {}) as GlyphData[]).filter((g) => g && g.contours && g.contours.length > 0),
-    [project.glyphs]
+    () =>
+      (Object.values(project.glyphs || {}) as GlyphData[]).filter(
+        (g) => g && resolveGlyphContours(g).length > 0
+      ),
+    [project.glyphs, resolveGlyphContours]
   );
 
   // Master interpolation settings
@@ -180,49 +262,63 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     return project.glyphs[previewUnicode] || project.glyphs[selectedUnicode] || Object.values(project.glyphs)[0] || null;
   }, [project.glyphs, previewUnicode, selectedUnicode]);
 
-  // Target glyphs in scope + separation of editable vs locked glyphs
-  const { targetGlyphs, lockedTargetCount, openContourCount } = useMemo(() => {
+  // Target glyphs & IVS variants in scope + separation of editable vs locked glyphs
+  const {
+    targetGlyphs,
+    targetIvsVariants,
+    lockedTargetCount,
+    openContourCount,
+  } = useMemo(() => {
     const list: GlyphData[] = [];
+    const ivsList: Array<[string, IvsGlyphVariant]> = [];
     let lockedCount = 0;
     let openCount = 0;
     const all = Object.values(project.glyphs || {}) as GlyphData[];
 
     for (const g of all) {
-      if (!g || !g.contours || g.contours.length === 0) continue;
-      const u = g.unicode;
+      if (!g) continue;
+      const resolved = resolveGlyphContours(g);
+      if (resolved.length === 0) continue;
+      if (!isUnicodeInWeightScope(g.unicode, scope, selectedUnicode)) continue;
 
-      let inScope = false;
-      if (scope === 'all') {
-        inScope = true;
-      } else if (scope === 'current') {
-        inScope = u === selectedUnicode;
-      } else if (scope === 'kana') {
-        inScope = (u >= 0x3041 && u <= 0x3096) || (u >= 0x30a1 && u <= 0x30fa);
-      } else if (scope === 'kanji') {
-        inScope = (u >= 0x4e00 && u <= 0x9fff) || (u >= 0x3400 && u <= 0x4dbf);
-      } else if (scope === 'latin') {
-        inScope = u >= 0x0020 && u <= 0x007e;
-      }
-
-      if (!inScope) continue;
       if (g.locked) {
         lockedCount++;
       } else {
         list.push(g);
-        openCount += (g.contours || []).filter((c) => !c.closed).length;
+        openCount += resolved.filter((c) => !c.closed).length;
       }
     }
-    return { targetGlyphs: list, lockedTargetCount: lockedCount, openContourCount: openCount };
-  }, [project.glyphs, scope, selectedUnicode]);
+
+    for (const [ivsKey, variant] of Object.entries(project.ivsVariants || {})) {
+      if (!variant?.glyph) continue;
+      const resolved = resolveGlyphContours(variant.glyph);
+      if (resolved.length === 0) continue;
+      if (!isUnicodeInWeightScope(variant.baseUnicode, scope, selectedUnicode)) continue;
+
+      if (variant.glyph.locked) {
+        lockedCount++;
+      } else {
+        ivsList.push([ivsKey, variant]);
+        openCount += resolved.filter((c) => !c.closed).length;
+      }
+    }
+
+    return {
+      targetGlyphs: list,
+      targetIvsVariants: ivsList,
+      lockedTargetCount: lockedCount,
+      openContourCount: openCount,
+    };
+  }, [project.glyphs, project.ivsVariants, scope, selectedUnicode, resolveGlyphContours]);
 
   // Quick glyph switcher candidates
   const quickGlyphs = useMemo(() => {
     const all = Object.values(project.glyphs || {}) as GlyphData[];
-    const withContours = all.filter((g) => g.contours && g.contours.length > 0);
+    const withContours = all.filter((g) => resolveGlyphContours(g).length > 0);
     const result: GlyphData[] = [];
     const seen = new Set<string>();
 
-    if (currentGlyph && currentGlyph.contours?.length) {
+    if (currentGlyph && resolveGlyphContours(currentGlyph).length > 0) {
       result.push(currentGlyph);
       seen.add(currentGlyph.char);
     }
@@ -234,7 +330,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       }
     }
     return result;
-  }, [project.glyphs, currentGlyph]);
+  }, [project.glyphs, currentGlyph, resolveGlyphContours]);
 
   // Handle Preset Change
   const handlePresetSelect = (preset: WeightPreset) => {
@@ -244,83 +340,81 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Preview Contours for Single Glyph
   const previewOriginalContours = useMemo(() => {
-    return currentGlyph?.contours || [];
-  }, [currentGlyph]);
+    return resolveGlyphContours(currentGlyph);
+  }, [currentGlyph, resolveGlyphContours]);
 
   const previewModifiedContours = useMemo(() => {
     if (!previewOriginalContours || previewOriginalContours.length === 0) return [];
     if (weightDelta === 0) return previewOriginalContours;
-    return adjustContoursWeight(previewOriginalContours, weightDelta);
-  }, [previewOriginalContours, weightDelta]);
+    return adjustContoursWeight(previewOriginalContours, scaledWeightDelta);
+  }, [previewOriginalContours, weightDelta, scaledWeightDelta]);
 
   // Live Sample Text Render Paths (grouped with holes preserved)
   const sampleTextGlyphPaths = useMemo(() => {
     const chars = Array.from(previewSampleText);
     return chars.map((ch) => {
       const u = ch.codePointAt(0);
-      if (!u) return { char: ch, groups: [], hasGlyph: false };
+      if (!u) return { char: ch, unicode: undefined, groups: [], hasGlyph: false };
       const g = project.glyphs[u];
-      if (!g || !g.contours || g.contours.length === 0) {
-        return { char: ch, groups: [], hasGlyph: false };
+      const baseContours = resolveGlyphContours(g);
+      if (!g || baseContours.length === 0) {
+        return { char: ch, unicode: u, groups: [], hasGlyph: false };
       }
-      const adjusted = weightDelta === 0 ? g.contours : adjustContoursWeight(g.contours, weightDelta);
+      const adjusted =
+        weightDelta === 0 ? baseContours : adjustContoursWeight(baseContours, scaledWeightDelta);
       return {
         char: ch,
+        unicode: u,
         groups: groupContoursForRendering(adjusted),
         hasGlyph: true,
       };
     });
-  }, [previewSampleText, project.glyphs, weightDelta]);
+  }, [previewSampleText, project.glyphs, weightDelta, scaledWeightDelta, resolveGlyphContours]);
 
   // Master interpolation contours
   const glyphA = project.glyphs[masterAUnicode];
   const glyphB = project.glyphs[masterBUnicode];
+  const glyphAContours = useMemo(() => resolveGlyphContours(glyphA), [glyphA, resolveGlyphContours]);
+  const glyphBContours = useMemo(() => resolveGlyphContours(glyphB), [glyphB, resolveGlyphContours]);
 
   const masterCompatStatus = useMemo(() => {
-    const cA = glyphA?.contours || [];
-    const cB = glyphB?.contours || [];
-    if (cA.length === 0 || cB.length === 0) {
+    if (glyphAContours.length === 0 || glyphBContours.length === 0) {
       return { kind: 'empty' as const, label: '両方のマスターに輪郭のある文字を選択してください' };
     }
-    if (cA.length !== cB.length) {
+    if (masterAUnicode === masterBUnicode) {
       return {
-        kind: 'mismatch' as const,
-        label: `注意: 輪郭数が異なります（A: ${cA.length} / B: ${cB.length}）— 50%で切り替わります`,
+        kind: 'same' as const,
+        label: 'マスター A と B に同じ文字が選択されています（異なる2文字を選択してください）',
       };
     }
-    const allSameNodes = cA.every((c, i) => (c.nodes?.length || 0) === (cB[i]?.nodes?.length || 0));
+    if (glyphAContours.length !== glyphBContours.length) {
+      return {
+        kind: 'mismatch' as const,
+        label: `注意: 輪郭数が異なります（A: ${glyphAContours.length} / B: ${glyphBContours.length}）— 50%で切り替わります`,
+      };
+    }
+    const hasOpenClosedMismatch = glyphAContours.some(
+      (c, i) => Boolean(c.closed) !== Boolean(glyphBContours[i]?.closed)
+    );
+    if (hasOpenClosedMismatch) {
+      return {
+        kind: 'mismatch' as const,
+        label: '注意: 開輪郭と閉輪郭が混在しています（開輪郭として補間されます）',
+      };
+    }
+    const allSameNodes = glyphAContours.every(
+      (c, i) => (c.nodes?.length || 0) === (glyphBContours[i]?.nodes?.length || 0)
+    );
     if (allSameNodes) {
       return { kind: 'exact' as const, label: 'トポロジー一致（1:1 頂点補間）' };
     }
     return { kind: 'resampled' as const, label: '輪郭数一致（自動リサンプリング補間）' };
-  }, [glyphA, glyphB]);
+  }, [glyphAContours, glyphBContours, masterAUnicode, masterBUnicode]);
 
   const masterInterpContours = useMemo(() => {
-    if (!glyphA?.contours?.length || !glyphB?.contours?.length) return [];
-    return interpolateContours(glyphA.contours, glyphB.contours, interpFactor);
-  }, [glyphA, glyphB, interpFactor]);
-
-  // Helper to resolve vector contours for any glyph (including pixelData-only glyphs)
-  const resolveGlyphContoursForExport = (g: GlyphData) => {
-    if (g.contours && g.contours.length > 0) return g.contours;
-    if (g.pixelData?.data && g.pixelData.width && g.pixelData.height) {
-      const pGrid = normalizePixelGrid(g.pixelData.data);
-      if (pGrid.some((val) => val === 1)) {
-        return pixelGridToContours(
-          pGrid,
-          g.pixelData.width,
-          g.pixelData.height,
-          project.metadata.unitsPerEm || DEFAULT_UPM,
-          project.metadata.ascender || DEFAULT_ASCENDER,
-          project.metadata.descender || DEFAULT_DESCENDER,
-          g.advanceWidth || project.metadata.unitsPerEm || DEFAULT_UPM,
-          g.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
-          project.pixelFontSettings?.mergeContours !== false
-        );
-      }
-    }
-    return [];
-  };
+    if (!glyphAContours.length || !glyphBContours.length) return [];
+    return interpolateContours(glyphAContours, glyphBContours, interpFactor);
+  }, [glyphAContours, glyphBContours, interpFactor]);
 
   // Apply Weight Delta to Current Project
   const handleApplyToProject = () => {
@@ -330,7 +424,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       onShowToast?.('太さオフセットが ±0px のため、適用する変更がありません', 'info');
       return;
     }
-    if (targetGlyphs.length === 0) {
+    if (targetGlyphs.length === 0 && targetIvsVariants.length === 0) {
       onShowToast?.(
         lockedTargetCount > 0
           ? `対象範囲の ${lockedTargetCount} 文字はロック保護されているため変更されませんでした`
@@ -341,60 +435,98 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     }
 
     // Register undo history before changing anything: every glyph the
-    // batch rewrites gets its own pre-change snapshot (previously only
-    // the selected glyph was registered, so the other glyphs could not
-    // be restored with Ctrl+Z), and the metadata change below gets a
-    // project-level snapshot.
-    for (const g of targetGlyphs) {
-      if (!g.contours || g.contours.length === 0 || g.locked) continue;
-      onCommitHistory?.(g.unicode);
+    // batch rewrites gets its own pre-change snapshot (preferring a single
+    // batched commit when provided by AppModalsHost).
+    const changedUnicodes = targetGlyphs.map((g) => g.unicode);
+    const changedIvsKeys = targetIvsVariants.map(([key]) => key);
+    if (onCommitBatchHistory) {
+      onCommitBatchHistory(changedUnicodes, changedIvsKeys);
+    } else {
+      for (const u of changedUnicodes) {
+        onCommitHistory?.(u);
+      }
     }
 
     const updatedGlyphs = { ...project.glyphs };
     let count = 0;
 
     for (const g of targetGlyphs) {
-      if (!g.contours || g.contours.length === 0 || g.locked) continue;
-      const modified = adjustContoursWeight(g.contours, weightDelta);
+      const sourceContours = resolveGlyphContours(g);
+      if (sourceContours.length === 0 || g.locked) continue;
+      const modified = adjustContoursWeight(sourceContours, scaledWeightDelta);
       const bbox = getContoursBoundingBox(modified);
+      const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
       updatedGlyphs[g.unicode] = {
         ...g,
         contours: modified,
+        ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
         lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
         modified: true,
       };
       count++;
     }
 
-    onCommitProjectHistory?.();
+    let nextIvsVariants = project.ivsVariants;
+    if (targetIvsVariants.length > 0 && project.ivsVariants) {
+      nextIvsVariants = { ...project.ivsVariants };
+      const now = Date.now();
+      for (const [ivsKey, variant] of targetIvsVariants) {
+        const g = variant.glyph;
+        const sourceContours = resolveGlyphContours(g);
+        if (sourceContours.length === 0 || g.locked) continue;
+        const modified = adjustContoursWeight(sourceContours, scaledWeightDelta);
+        const bbox = getContoursBoundingBox(modified);
+        const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
+        nextIvsVariants[ivsKey] = {
+          ...variant,
+          glyph: {
+            ...g,
+            contours: modified,
+            ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
+            lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
+            modified: true,
+          },
+          updatedAt: now,
+        };
+        count++;
+      }
+    }
 
-    // Keep the font metadata in sync with the visible thickening, so the
-    // exported OTF is not still Regular: an exact preset match updates both
-    // styleName and usWeightClass; a custom in-between delta updates only
-    // usWeightClass (estimated from the nearest preset) and leaves the
-    // style name untouched.
+    // Keep the font metadata in sync ONLY when applying to the whole font.
+    // Partial-scope edits (kana/kanji/latin/current) must not relabel the
+    // entire font project as Bold/Light.
+    const shouldUpdateMetadata = scope === 'all';
     const presetObj = WEIGHT_PRESETS.find((p) => p.delta === weightDelta);
     const newStyleName = presetObj ? presetObj.styleName : project.metadata.styleName;
     const newWeightClass = presetObj
       ? presetObj.usWeightClass
       : estimateWeightClassFromDelta(weightDelta);
 
+    if (shouldUpdateMetadata) {
+      onCommitProjectHistory?.();
+    }
+
     setProject({
       ...project,
-      metadata: {
-        ...project.metadata,
-        styleName: newStyleName,
-        usWeightClass: newWeightClass,
-      },
+      metadata: shouldUpdateMetadata
+        ? {
+            ...project.metadata,
+            styleName: newStyleName,
+            usWeightClass: newWeightClass,
+          }
+        : project.metadata,
       glyphs: updatedGlyphs,
+      ...(nextIvsVariants !== project.ivsVariants ? { ivsVariants: nextIvsVariants } : {}),
       updatedAt: Date.now(),
     });
 
     const sign = weightDelta > 0 ? `+${weightDelta}px` : `${weightDelta}px`;
     const lockedNote = lockedTargetCount > 0 ? `（ロック保護 ${lockedTargetCount}件除外）` : '';
-    const metaNote = presetObj
-      ? `／スタイル名「${newStyleName}」・Weight ${newWeightClass} に更新しました`
-      : `／Weight ${newWeightClass} に更新しました（スタイル名は変更なし）`;
+    const metaNote = !shouldUpdateMetadata
+      ? '（部分適用のためスタイル名・Weightは維持）'
+      : presetObj
+        ? `／スタイル名「${newStyleName}」・Weight ${newWeightClass} に更新しました`
+        : `／Weight ${newWeightClass} に更新しました（スタイル名は変更なし）`;
     onShowToast?.(
       `${count}文字のウェイトを補正しました (${sign})${lockedNote}${metaNote}`,
       'success'
@@ -447,21 +579,63 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     for (const [key, rawG] of Object.entries(project.glyphs || {})) {
       const g = rawG as GlyphData;
       if (!g) continue;
-      const sourceContours = resolveGlyphContoursForExport(g);
+      if (g.locked) {
+        updatedGlyphs[Number(key)] = { ...g };
+        continue;
+      }
+      const sourceContours = resolveGlyphContours(g);
       if (sourceContours.length === 0) {
         updatedGlyphs[Number(key)] = { ...g };
         continue;
       }
-      const adjusted = weightDelta === 0
-        ? JSON.parse(JSON.stringify(sourceContours))
-        : adjustContoursWeight(sourceContours, weightDelta);
+      const adjusted =
+        weightDelta === 0
+          ? JSON.parse(JSON.stringify(sourceContours))
+          : adjustContoursWeight(sourceContours, scaledWeightDelta);
       const bbox = getContoursBoundingBox(adjusted);
+      const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
       updatedGlyphs[Number(key)] = {
         ...g,
         contours: adjusted,
+        ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
         lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
         modified: true,
       };
+    }
+
+    let updatedIvsVariants = project.ivsVariants;
+    if (project.ivsVariants) {
+      updatedIvsVariants = {};
+      for (const [ivsKey, variant] of Object.entries(project.ivsVariants)) {
+        if (!variant?.glyph) continue;
+        const g = variant.glyph;
+        if (g.locked) {
+          updatedIvsVariants[ivsKey] = { ...variant };
+          continue;
+        }
+        const sourceContours = resolveGlyphContours(g);
+        if (sourceContours.length === 0) {
+          updatedIvsVariants[ivsKey] = { ...variant };
+          continue;
+        }
+        const adjusted =
+          weightDelta === 0
+            ? JSON.parse(JSON.stringify(sourceContours))
+            : adjustContoursWeight(sourceContours, scaledWeightDelta);
+        const bbox = getContoursBoundingBox(adjusted);
+        const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
+        updatedIvsVariants[ivsKey] = {
+          ...variant,
+          glyph: {
+            ...g,
+            contours: adjusted,
+            ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
+            lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
+            modified: true,
+          },
+          updatedAt: Date.now(),
+        };
+      }
     }
 
     const now = Date.now();
@@ -475,6 +649,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
         usWeightClass: newWeightClass,
       },
       glyphs: updatedGlyphs,
+      ...(updatedIvsVariants ? { ivsVariants: updatedIvsVariants } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -495,6 +670,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
     try {
       const zip = new JSZip();
       const safeFamilyName = sanitizeFontFilenamePart(project.metadata.familyName, 'MyCustomFont');
+      const collectedWarnings = new Set<string>();
 
       const exportPresets = [
         { name: 'Light', delta: -22, usWeightClass: 300 },
@@ -505,25 +681,58 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       ];
 
       for (const p of exportPresets) {
+        const scaledPresetDelta = p.delta * emScale;
         // Clone project for this weight
         const weightGlyphs: Record<number, GlyphData> = {};
         for (const [key, rawG] of Object.entries(project.glyphs || {})) {
           const g = rawG as GlyphData;
           if (!g) continue;
-          const sourceContours = resolveGlyphContoursForExport(g);
+          const sourceContours = resolveGlyphContours(g);
           if (sourceContours.length === 0) {
             weightGlyphs[Number(key)] = { ...g };
             continue;
           }
-          const adjusted = p.delta === 0
-            ? JSON.parse(JSON.stringify(sourceContours))
-            : adjustContoursWeight(sourceContours, p.delta);
+          const adjusted =
+            p.delta === 0
+              ? JSON.parse(JSON.stringify(sourceContours))
+              : adjustContoursWeight(sourceContours, scaledPresetDelta);
           const bbox = getContoursBoundingBox(adjusted);
+          const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
           weightGlyphs[Number(key)] = {
             ...g,
             contours: adjusted,
+            ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
             lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
           };
+        }
+
+        let weightIvsVariants = project.ivsVariants;
+        if (project.ivsVariants) {
+          weightIvsVariants = {};
+          for (const [ivsKey, variant] of Object.entries(project.ivsVariants)) {
+            if (!variant?.glyph) continue;
+            const g = variant.glyph;
+            const sourceContours = resolveGlyphContours(g);
+            if (sourceContours.length === 0) {
+              weightIvsVariants[ivsKey] = { ...variant };
+              continue;
+            }
+            const adjusted =
+              p.delta === 0
+                ? JSON.parse(JSON.stringify(sourceContours))
+                : adjustContoursWeight(sourceContours, scaledPresetDelta);
+            const bbox = getContoursBoundingBox(adjusted);
+            const materializedFromPixel = (!g.contours || g.contours.length === 0) && Boolean(g.pixelData);
+            weightIvsVariants[ivsKey] = {
+              ...variant,
+              glyph: {
+                ...g,
+                contours: adjusted,
+                ...(materializedFromPixel ? { pixelData: undefined, vectorContoursBackup: undefined } : {}),
+                lsb: Number.isFinite(bbox.minX) && bbox.width > 0 ? Math.round(bbox.minX) : g.lsb,
+              },
+            };
+          }
         }
 
         const weightProj: FontProject = {
@@ -534,6 +743,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             usWeightClass: p.usWeightClass,
           },
           glyphs: weightGlyphs,
+          ...(weightIvsVariants ? { ivsVariants: weightIvsVariants } : {}),
         };
 
         const result = compileFont(weightProj, {
@@ -542,6 +752,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
           normalizeWinding: true,
           skipBlobUrl: true,
         });
+
+        for (const w of result?.warnings || []) {
+          collectedWarnings.add(w);
+        }
 
         if (result?.buffer) {
           const safeStyleName = sanitizeFontFilenamePart(p.name, 'Regular');
@@ -566,8 +780,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       }, 10000);
 
       onShowToast?.(
-        `全5ウェイトのフォントファミリー（ZIP）を出力しました！`,
-        'success'
+        collectedWarnings.size > 0
+          ? `全5ウェイトのフォントファミリー（ZIP）を出力しました（警告 ${collectedWarnings.size}件）`
+          : `全5ウェイトのフォントファミリー（ZIP）を出力しました！`,
+        collectedWarnings.size > 0 ? 'warning' : 'success'
       );
     } catch (error) {
       console.error('Batch export error:', error);
@@ -580,7 +796,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
   // Apply Master Interpolation Result to Active Glyph
   const handleApplyMasterInterp = () => {
-    if (masterInterpContours.length === 0) return;
+    if (masterInterpContours.length === 0 || masterAUnicode === masterBUnicode) return;
 
     if (project.glyphs[selectedUnicode]?.locked) {
       onShowToast?.('選択中の文字はロック保護されているため上書きできません', 'warning');
@@ -591,7 +807,10 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
     const interpBbox = getContoursBoundingBox(masterInterpContours);
     const computedLsb =
-      Number.isFinite(interpBbox.minX) && interpBbox.width > 0 ? Math.round(interpBbox.minX) : 50;
+      Number.isFinite(interpBbox.minX) && interpBbox.width > 0 ? Math.round(interpBbox.minX) : Math.round(upm * 0.05);
+    const advA = glyphA?.advanceWidth && glyphA.advanceWidth > 0 ? glyphA.advanceWidth : upm;
+    const advB = glyphB?.advanceWidth && glyphB.advanceWidth > 0 ? glyphB.advanceWidth : upm;
+    const interpAdvance = Math.max(1, Math.round(advA * (1 - interpFactor) + advB * interpFactor));
 
     setProject((prev) => ({
       ...prev,
@@ -602,11 +821,14 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
             unicode: selectedUnicode,
             char: String.fromCodePoint(selectedUnicode),
             name: `uni${selectedUnicode.toString(16).toUpperCase()}`,
-            advanceWidth: prev.metadata?.unitsPerEm || DEFAULT_UPM,
+            advanceWidth: interpAdvance,
             lsb: computedLsb,
           }),
           contours: masterInterpContours,
-          lsb: prev.glyphs[selectedUnicode]?.lsb ?? computedLsb,
+          advanceWidth: interpAdvance,
+          lsb: computedLsb,
+          pixelData: undefined,
+          vectorContoursBackup: undefined,
           modified: true,
         },
       },
@@ -669,7 +891,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
       primaryLabel={`補間結果を「${selectedGlyph?.char || String.fromCodePoint(selectedUnicode)}」に適用`}
       primaryIcon={<CheckCircle2 className="w-4 h-4 shrink-0" />}
       onPrimary={handleApplyMasterInterp}
-      primaryDisabled={masterInterpContours.length === 0}
+      primaryDisabled={masterInterpContours.length === 0 || masterAUnicode === masterBUnicode}
       onCancel={onClose}
       theme={theme}
       themeClasses={themeClasses}
@@ -767,15 +989,52 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   <svg
                     viewBox={getSafeGlyphViewBox(
                       [...previewOriginalContours, ...previewModifiedContours],
-                      1000
+                      upm
                     )}
                     className="w-full h-full p-2 pointer-events-none"
                   >
                     {/* Guides */}
-                    <rect x={0} y={0} width={1000} height={1000} fill="none" stroke="#94a3b8" strokeDasharray="6 6" strokeWidth={5} opacity={0.3} />
-                    <line x1={0} y1={500} x2={1000} y2={500} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
-                    <line x1={500} y1={0} x2={500} y2={1000} stroke="#38bdf8" strokeDasharray="6 6" strokeWidth={3} opacity={0.35} />
-                    <line x1={0} y1={baselineY} x2={1000} y2={baselineY} stroke="#f87171" strokeDasharray="8 8" strokeWidth={4} opacity={0.45} />
+                    <rect
+                      x={0}
+                      y={0}
+                      width={upm}
+                      height={upm}
+                      fill="none"
+                      stroke="#94a3b8"
+                      strokeDasharray={`${6 * emScale} ${6 * emScale}`}
+                      strokeWidth={5 * emScale}
+                      opacity={0.3}
+                    />
+                    <line
+                      x1={0}
+                      y1={upm / 2}
+                      x2={upm}
+                      y2={upm / 2}
+                      stroke="#38bdf8"
+                      strokeDasharray={`${6 * emScale} ${6 * emScale}`}
+                      strokeWidth={3 * emScale}
+                      opacity={0.35}
+                    />
+                    <line
+                      x1={upm / 2}
+                      y1={0}
+                      x2={upm / 2}
+                      y2={upm}
+                      stroke="#38bdf8"
+                      strokeDasharray={`${6 * emScale} ${6 * emScale}`}
+                      strokeWidth={3 * emScale}
+                      opacity={0.35}
+                    />
+                    <line
+                      x1={0}
+                      y1={baselineY}
+                      x2={upm}
+                      y2={baselineY}
+                      stroke="#f87171"
+                      strokeDasharray={`${8 * emScale} ${8 * emScale}`}
+                      strokeWidth={4 * emScale}
+                      opacity={0.45}
+                    />
 
                     {/* Original Shape (Ghost Outline) */}
                     {showOriginalOverlay && previewOriginalContours.length > 0 && (
@@ -783,8 +1042,8 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         d={contoursToSvgPath(previewOriginalContours)}
                         fill="none"
                         stroke={isLight ? '#94a3b8' : '#64748b'}
-                        strokeWidth={2}
-                        strokeDasharray="5 4"
+                        strokeWidth={2 * emScale}
+                        strokeDasharray={`${5 * emScale} ${4 * emScale}`}
                         opacity={0.8}
                       />
                     )}
@@ -798,7 +1057,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                           fill={isLight ? '#0f172a' : '#ecfdf5'}
                           fillRule={group.fillRule}
                           stroke={isLight ? '#059669' : '#34d399'}
-                          strokeWidth={1}
+                          strokeWidth={1 * emScale}
                         />
                       ))}
                   </svg>
@@ -878,9 +1137,29 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                   className={`p-2.5 rounded-xl border flex items-center gap-1 overflow-x-auto min-h-[58px] ${themeClasses.cardBg} ${themeClasses.border}`}
                 >
                   {sampleTextGlyphPaths.map((item, idx) => (
-                    <div key={idx} className="shrink-0 flex flex-col items-center">
+                    <button
+                      key={`${item.char}-${idx}`}
+                      type="button"
+                      disabled={!item.unicode}
+                      onClick={() => {
+                        if (!item.unicode) return;
+                        if (onSelectGlyphForEdit) {
+                          onSelectGlyphForEdit(item.unicode);
+                        } else if (item.hasGlyph) {
+                          setPreviewUnicode(item.unicode);
+                        }
+                      }}
+                      title={
+                        item.unicode
+                          ? onSelectGlyphForEdit
+                            ? `「${item.char}」をエディタで直接編集`
+                            : `「${item.char}」をプレビュー`
+                          : undefined
+                      }
+                      className={`shrink-0 flex flex-col items-center rounded-lg p-0.5 transition-colors cursor-pointer ${themeClasses.activeToolHover} disabled:cursor-default`}
+                    >
                       {item.hasGlyph ? (
-                        <svg viewBox="0 0 1000 1000" className="w-9 h-9">
+                        <svg viewBox={`0 0 ${upm} ${upm}`} className="w-9 h-9 pointer-events-none">
                           {item.groups.map((group) => (
                             <path
                               key={group.id}
@@ -896,7 +1175,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         </div>
                       )}
                       <span className={`text-[8px] font-mono opacity-50`}>{item.char}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
 
@@ -1020,7 +1299,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <span
                   className={`ml-auto text-[11px] font-mono tabular-nums font-bold px-2 py-0.5 rounded-md border shrink-0 ${themeClasses.accentBadge}`}
                 >
-                  対象: {targetGlyphs.length} 文字{lockedTargetCount > 0 ? ` (ロック除外 ${lockedTargetCount})` : ''}
+                  対象: {targetGlyphs.length} 文字{targetIvsVariants.length > 0 ? ` + IVS ${targetIvsVariants.length}件` : ''}{lockedTargetCount > 0 ? ` (ロック除外 ${lockedTargetCount})` : ''}
                 </span>
               }
               theme={theme}
@@ -1117,7 +1396,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
 
                 <ModalAlert
                   tone={
-                    masterCompatStatus.kind === 'mismatch'
+                    masterCompatStatus.kind === 'mismatch' || masterCompatStatus.kind === 'same'
                       ? 'warning'
                       : masterCompatStatus.kind === 'empty'
                         ? 'info'
@@ -1189,33 +1468,33 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                 <svg
                   viewBox={getSafeGlyphViewBox(
                     [
-                      ...(glyphA?.contours || []),
-                      ...(glyphB?.contours || []),
+                      ...glyphAContours,
+                      ...glyphBContours,
                       ...masterInterpContours,
                     ],
-                    1000
+                    upm
                   )}
                   className="w-full h-full p-3 pointer-events-none"
                 >
                   {/* Master A Ghost */}
-                  {glyphA?.contours && (
+                  {glyphAContours.length > 0 && (
                     <path
-                      d={contoursToSvgPath(glyphA.contours)}
+                      d={contoursToSvgPath(glyphAContours)}
                       fill="none"
                       stroke="#0284c7"
-                      strokeWidth={1.5}
-                      strokeDasharray="4 4"
+                      strokeWidth={1.5 * emScale}
+                      strokeDasharray={`${4 * emScale} ${4 * emScale}`}
                       opacity={0.45}
                     />
                   )}
                   {/* Master B Ghost */}
-                  {glyphB?.contours && (
+                  {glyphBContours.length > 0 && (
                     <path
-                      d={contoursToSvgPath(glyphB.contours)}
+                      d={contoursToSvgPath(glyphBContours)}
                       fill="none"
                       stroke="#f43f5e"
-                      strokeWidth={1.5}
-                      strokeDasharray="4 4"
+                      strokeWidth={1.5 * emScale}
+                      strokeDasharray={`${4 * emScale} ${4 * emScale}`}
                       opacity={0.45}
                     />
                   )}
@@ -1228,7 +1507,7 @@ export const WeightInterpolationModal: React.FC<WeightInterpolationModalProps> =
                         fill={isLight ? '#0f172a' : '#ecfdf5'}
                         fillRule={group.fillRule}
                         stroke={isLight ? '#059669' : '#34d399'}
-                        strokeWidth={1}
+                        strokeWidth={1 * emScale}
                       />
                     ))}
                 </svg>

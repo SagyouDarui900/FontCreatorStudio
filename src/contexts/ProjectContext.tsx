@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { FontProject, GlyphData, PathContour, ToolMode } from '../types';
+import { FontProject, GlyphData, IvsGlyphVariant, PathContour, ToolMode } from '../types';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useGlyphActions } from '../hooks/useGlyphActions';
 import {
@@ -24,6 +24,9 @@ export interface ProjectContextType {
   setSelectedUnicode: (unicode: number) => void;
   selectedChar: string;
   setSelectedChar: (char: string) => void;
+  activeIvsKey: string | null;
+  activeIvsVariant: IvsGlyphVariant | null;
+  handleSelectIvsVariant: (ivsKey: string | null) => void;
   currentGlyph: GlyphData;
   handleSelectGlyph: (unicode: number, char?: string) => void;
   handleSelectPrevGlyph: () => void;
@@ -43,6 +46,7 @@ export interface ProjectContextType {
   handleUndo: () => void;
   handleRedo: () => void;
   commitHistory: (targetUnicode?: number) => void;
+  commitBatchHistory: (targetUnicodes: number[]) => void;
   commitProjectHistory: () => void;
   discardLastHistoryEntry: (expectedContours?: PathContour[], targetUnicode?: number) => boolean;
   clearHistory: () => void;
@@ -94,8 +98,23 @@ export function ProjectProvider({
   children,
 }: ProjectProviderProps) {
   const [selectedUnicode, setSelectedUnicode] = useState<number>(12354); // 'あ' (U+3042)
+  const [activeIvsKey, setActiveIvsKey] = useState<string | null>(null);
+
+  const activeIvsVariant: IvsGlyphVariant | null = useMemo(() => {
+    if (!activeIvsKey) return null;
+    return project.ivsVariants?.[activeIvsKey] ?? null;
+  }, [activeIvsKey, project.ivsVariants]);
+
+  const effectiveActiveIvsKey = activeIvsVariant ? activeIvsKey : null;
+
+  useEffect(() => {
+    if (activeIvsKey && !project.ivsVariants?.[activeIvsKey]) {
+      setActiveIvsKey(null);
+    }
+  }, [activeIvsKey, project.ivsVariants]);
 
   const selectedChar = useMemo(() => {
+    if (activeIvsVariant?.glyph?.char) return activeIvsVariant.glyph.char;
     const fromGlyph = project.glyphs[selectedUnicode]?.char;
     if (fromGlyph) return fromGlyph;
     try {
@@ -103,11 +122,14 @@ export function ProjectProvider({
     } catch {
       return '';
     }
-  }, [project.glyphs, selectedUnicode]);
+  }, [activeIvsVariant, project.glyphs, selectedUnicode]);
 
   const setSelectedChar = useCallback((_char: string) => {}, []);
 
   const currentGlyph: GlyphData = useMemo(() => {
+    if (activeIvsVariant?.glyph) {
+      return activeIvsVariant.glyph;
+    }
     return (
       project.glyphs[selectedUnicode] || {
         unicode: selectedUnicode,
@@ -119,7 +141,7 @@ export function ProjectProvider({
         modified: false,
       }
     );
-  }, [project.glyphs, project.metadata?.unitsPerEm, selectedUnicode, selectedChar]);
+  }, [activeIvsVariant, project.glyphs, project.metadata?.unitsPerEm, selectedUnicode, selectedChar]);
 
   const currentGlyphRef = useRef<GlyphData>(currentGlyph);
   useEffect(() => {
@@ -131,6 +153,7 @@ export function ProjectProvider({
     redoStack,
     setUndoStack,
     commitHistory,
+    commitBatchHistory,
     commitProjectHistory,
     discardLastHistoryEntry,
     clearHistory,
@@ -143,6 +166,7 @@ export function ProjectProvider({
     currentGlyphRef,
     selectedUnicode,
     selectedChar,
+    activeIvsKey: effectiveActiveIvsKey,
     setSelectedUnicode,
     setProject,
   });
@@ -151,13 +175,32 @@ export function ProjectProvider({
   useEffect(() => {
     if (prevProjectIdRef.current !== project.id) {
       prevProjectIdRef.current = project.id;
+      setActiveIvsKey(null);
       clearHistory();
     }
   }, [project.id, clearHistory]);
 
   const handleSelectGlyph = useCallback((unicode: number, _char?: string) => {
+    setActiveIvsKey(null);
     setSelectedUnicode(unicode);
   }, []);
+
+  const handleSelectIvsVariant = useCallback(
+    (ivsKey: string | null) => {
+      if (!ivsKey) {
+        setActiveIvsKey(null);
+        return;
+      }
+      const variant = projectRef.current.ivsVariants?.[ivsKey];
+      if (!variant) {
+        setActiveIvsKey(null);
+        return;
+      }
+      setSelectedUnicode(variant.baseUnicode);
+      setActiveIvsKey(ivsKey);
+    },
+    [projectRef]
+  );
 
   const handleSelectPrevGlyph = useCallback(() => {
     const prev = getPrevGlyphNav(selectedUnicode);
@@ -189,10 +232,41 @@ export function ProjectProvider({
     }
   }, [selectedUnicode, project.glyphs, handleSelectGlyph, showToast]);
 
-  const isGlyphLocked = Boolean(project.glyphs[selectedUnicode]?.locked);
+  const isGlyphLocked = effectiveActiveIvsKey
+    ? Boolean(activeIvsVariant?.glyph?.locked)
+    : Boolean(project.glyphs[selectedUnicode]?.locked);
 
   const handleToggleLockGlyph = useCallback(() => {
     const nextLocked = !isGlyphLocked;
+    if (effectiveActiveIvsKey) {
+      setProject((prev) => {
+        const variant = prev.ivsVariants?.[effectiveActiveIvsKey];
+        if (!variant) return prev;
+        return {
+          ...prev,
+          ivsVariants: {
+            ...prev.ivsVariants,
+            [effectiveActiveIvsKey]: {
+              ...variant,
+              glyph: {
+                ...variant.glyph,
+                locked: nextLocked,
+              },
+              updatedAt: Date.now(),
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+      showToast(
+        nextLocked
+          ? `IVS異体字「${selectedChar}」を編集ロックしました`
+          : `IVS異体字「${selectedChar}」の編集ロックを解除しました`,
+        nextLocked ? 'warning' : 'info'
+      );
+      return;
+    }
+
     setProject((prev) => {
       const existing = prev.glyphs[selectedUnicode] || {
         unicode: selectedUnicode,
@@ -220,10 +294,13 @@ export function ProjectProvider({
         : `文字「${selectedChar}」の編集ロックを解除しました`,
       nextLocked ? 'warning' : 'info'
     );
-  }, [isGlyphLocked, project.metadata?.unitsPerEm, selectedUnicode, selectedChar, setProject, showToast]);
+  }, [effectiveActiveIvsKey, isGlyphLocked, project.metadata?.unitsPerEm, selectedUnicode, selectedChar, setProject, showToast]);
 
   const checkIsLockedAndNotify = useCallback((): boolean => {
-    if (projectRef.current.glyphs[selectedUnicode]?.locked) {
+    const locked = effectiveActiveIvsKey
+      ? Boolean(projectRef.current.ivsVariants?.[effectiveActiveIvsKey]?.glyph?.locked)
+      : Boolean(projectRef.current.glyphs[selectedUnicode]?.locked);
+    if (locked) {
       showToast(
         `文字「${selectedChar}」は編集ロックされています。ヘッダーの鍵アイコンで解除してください。`,
         'warning'
@@ -231,7 +308,7 @@ export function ProjectProvider({
       return true;
     }
     return false;
-  }, [selectedUnicode, selectedChar, showToast, projectRef]);
+  }, [effectiveActiveIvsKey, selectedUnicode, selectedChar, showToast, projectRef]);
 
   const updateCurrentGlyphField = useCallback(
     <K extends 'contours' | 'advanceWidth' | 'lsb'>(
@@ -243,6 +320,46 @@ export function ProjectProvider({
       if (!options?.skipHistory) {
         commitHistory();
       }
+
+      if (effectiveActiveIvsKey) {
+        const currentVariant = projectRef.current.ivsVariants?.[effectiveActiveIvsKey];
+        if (!currentVariant) return;
+        const latest =
+          currentGlyphRef.current.name === currentVariant.glyph.name &&
+          currentGlyphRef.current.unicode === currentVariant.baseUnicode
+            ? currentGlyphRef.current
+            : currentVariant.glyph;
+        if (latest[field] !== value) {
+          currentGlyphRef.current = {
+            ...latest,
+            [field]: value,
+            modified: true,
+          };
+        }
+        setProject((prev) => {
+          const existingVariant = prev.ivsVariants?.[effectiveActiveIvsKey];
+          if (!existingVariant) return prev;
+          if (existingVariant.glyph[field] === value) return prev;
+          return {
+            ...prev,
+            ivsVariants: {
+              ...prev.ivsVariants,
+              [effectiveActiveIvsKey]: {
+                ...existingVariant,
+                glyph: {
+                  ...existingVariant.glyph,
+                  [field]: value,
+                  modified: true,
+                },
+                updatedAt: Date.now(),
+              },
+            },
+            updatedAt: Date.now(),
+          };
+        });
+        return;
+      }
+
       const latest =
         currentGlyphRef.current.unicode === selectedUnicode
           ? currentGlyphRef.current
@@ -279,7 +396,7 @@ export function ProjectProvider({
         };
       });
     },
-    [checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
+    [effectiveActiveIvsKey, checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
   );
 
   const handleUpdateContours = useCallback(
@@ -316,14 +433,17 @@ export function ProjectProvider({
       // and take it into account as well.
       const indexedDbSaved = await saveProjectToIndexedDbWhenIdle(projectRef.current);
 
-      const g = projectRef.current.glyphs?.[selectedUnicode] || {
-        unicode: selectedUnicode,
-        char: selectedChar,
-        advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
-        contours: [],
-        strokes: [],
-        anchors: [],
-      };
+      const g =
+        (effectiveActiveIvsKey
+          ? projectRef.current.ivsVariants?.[effectiveActiveIvsKey]?.glyph
+          : projectRef.current.glyphs?.[selectedUnicode]) || {
+          unicode: selectedUnicode,
+          char: selectedChar,
+          advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
+          contours: [],
+          strokes: [],
+          anchors: [],
+        };
 
       const res = exportGlyphJsonFile(
         g,
@@ -387,6 +507,9 @@ export function ProjectProvider({
       setSelectedUnicode,
       selectedChar,
       setSelectedChar,
+      activeIvsKey: effectiveActiveIvsKey,
+      activeIvsVariant,
+      handleSelectIvsVariant,
       currentGlyph,
       handleSelectGlyph,
       handleSelectPrevGlyph,
@@ -406,6 +529,7 @@ export function ProjectProvider({
       handleUndo,
       handleRedo,
       commitHistory,
+      commitBatchHistory,
       clearHistory,
       commitProjectHistory,
       discardLastHistoryEntry,
@@ -434,6 +558,9 @@ export function ProjectProvider({
       projectRef,
       selectedUnicode,
       selectedChar,
+      effectiveActiveIvsKey,
+      activeIvsVariant,
+      handleSelectIvsVariant,
       currentGlyph,
       handleSelectGlyph,
       handleSelectPrevGlyph,
@@ -453,6 +580,7 @@ export function ProjectProvider({
       handleUndo,
       handleRedo,
       commitHistory,
+      commitBatchHistory,
       clearHistory,
       commitProjectHistory,
       discardLastHistoryEntry,

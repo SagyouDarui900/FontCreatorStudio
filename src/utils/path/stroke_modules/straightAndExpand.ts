@@ -126,6 +126,19 @@ function alignClosedRingStart(refRing: Point[], candRing: Point[]): Point[] {
   return [...candRing.slice(bestOffset), ...candRing.slice(0, bestOffset)];
 }
 
+function cloneContoursWithFreshIds(contours: PathContour[], prefix: string): PathContour[] {
+  return (contours || []).map((c, cIdx) => ({
+    ...c,
+    id: `${prefix}-contour-${cIdx}`,
+    nodes: (c.nodes || []).map((n, i) => ({
+      ...n,
+      id: `${prefix}-${cIdx}-${i}`,
+      handleIn: n.handleIn ? { x: n.handleIn.x, y: n.handleIn.y } : null,
+      handleOut: n.handleOut ? { x: n.handleOut.x, y: n.handleOut.y } : null,
+    })),
+  }));
+}
+
 /**
  * Perform vector point-by-point geometric interpolation between Master Contours A and B.
  * @param masterA Starting master contours (t = 0)
@@ -138,14 +151,19 @@ export function interpolateContours(
   t: number
 ): PathContour[] {
   const clampedT = Math.max(0, Math.min(1, t));
-  if (clampedT === 0 || !masterB || masterB.length === 0) return masterA;
-  if (clampedT === 1 || !masterA || masterA.length === 0) return masterB;
+  if (clampedT === 0 || !masterB || masterB.length === 0) {
+    return cloneContoursWithFreshIds(masterA, 'interp');
+  }
+  if (clampedT === 1 || !masterA || masterA.length === 0) {
+    return cloneContoursWithFreshIds(masterB, 'interp');
+  }
 
   // Contour order cannot safely be inferred when the masters have different
   // contour counts (for example, a counter exists in only one master).
-  // Returning the nearer master avoids creating a hybrid with dropped contours.
+  // Returning a clone of the nearer master avoids creating a hybrid with
+  // dropped contours or sharing mutable references with master glyphs.
   if (masterA.length !== masterB.length) {
-    return clampedT < 0.5 ? masterA : masterB;
+    return cloneContoursWithFreshIds(clampedT < 0.5 ? masterA : masterB, 'interp');
   }
 
   const count = Math.min(masterA.length, masterB.length);

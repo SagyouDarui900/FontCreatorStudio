@@ -107,6 +107,7 @@ interface UseUndoRedoOptions {
   currentGlyphRef: React.MutableRefObject<GlyphData>;
   selectedUnicode: number;
   selectedChar: string;
+  activeIvsKey?: string | null;
   setSelectedUnicode?: (unicode: number) => void;
   setSelectedChar?: (char: string) => void;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
@@ -208,12 +209,19 @@ export function useUndoRedo({
   currentGlyphRef,
   selectedUnicode,
   selectedChar,
+  activeIvsKey = null,
   setProject,
   maxHistoryBytes = MAX_HISTORY_BYTES,
 }: UseUndoRedoOptions) {
   // Store undo & redo histories isolated per glyph Unicode to prevent cross-glyph warping and contamination
   const [undoStacks, setUndoStacks] = useState<Record<number, GlyphData[]>>({});
   const [redoStacks, setRedoStacks] = useState<Record<number, GlyphData[]>>({});
+
+  // Isolated undo/redo stacks for IVS variant glyphs keyed by IvsGlyphVariant.id
+  const [ivsUndoStacks, setIvsUndoStacks] = useState<Record<string, GlyphData[]>>({});
+  const [ivsRedoStacks, setIvsRedoStacks] = useState<Record<string, GlyphData[]>>({});
+  const ivsUndoStacksRef = useRef<Record<string, GlyphData[]>>({});
+  const ivsRedoStacksRef = useRef<Record<string, GlyphData[]>>({});
 
   // Project-level undo/redo for data the per-glyph stacks cannot restore:
   // metadata, kerning, OpenType features and mojikumi settings. These
@@ -228,8 +236,12 @@ export function useUndoRedo({
   const redoStacksRef = useRef<Record<number, GlyphData[]>>({});
   const historyOrderRef = useRef<number[]>([]);
 
-  const currentUndoStack = undoStacks[selectedUnicode] || EMPTY_HISTORY_STACK;
-  const currentRedoStack = redoStacks[selectedUnicode] || EMPTY_HISTORY_STACK;
+  const currentUndoStack = activeIvsKey
+    ? ivsUndoStacks[activeIvsKey] || EMPTY_HISTORY_STACK
+    : undoStacks[selectedUnicode] || EMPTY_HISTORY_STACK;
+  const currentRedoStack = activeIvsKey
+    ? ivsRedoStacks[activeIvsKey] || EMPTY_HISTORY_STACK
+    : redoStacks[selectedUnicode] || EMPTY_HISTORY_STACK;
 
   const applyEvictionAndBudget = useCallback(
     (
@@ -323,6 +335,36 @@ export function useUndoRedo({
 
   const commitHistory = useCallback(
     (targetUnicode?: number) => {
+      if (targetUnicode === undefined && activeIvsKey) {
+        const variant = projectRef.current.ivsVariants?.[activeIvsKey];
+        if (!variant) return;
+        const existingGlyph = variant.glyph;
+        const currentUndo = ivsUndoStacksRef.current[activeIvsKey] || [];
+        const last = currentUndo.length > 0 ? currentUndo[currentUndo.length - 1] : null;
+        const nextUndoMap = { ...ivsUndoStacksRef.current };
+        const nextRedoMap = { ...ivsRedoStacksRef.current };
+        let undoChanged = false;
+        let redoChanged = false;
+
+        if (!last || !areGlyphsEqual(last, existingGlyph)) {
+          nextUndoMap[activeIvsKey] = [...currentUndo.slice(-49), cloneGlyph(existingGlyph)];
+          undoChanged = true;
+        }
+        if (nextRedoMap[activeIvsKey] && nextRedoMap[activeIvsKey].length > 0) {
+          delete nextRedoMap[activeIvsKey];
+          redoChanged = true;
+        }
+        if (undoChanged) {
+          ivsUndoStacksRef.current = nextUndoMap;
+          setIvsUndoStacks(nextUndoMap);
+        }
+        if (redoChanged) {
+          ivsRedoStacksRef.current = nextRedoMap;
+          setIvsRedoStacks(nextRedoMap);
+        }
+        return;
+      }
+
       const unicode = targetUnicode ?? selectedUnicode;
       const existingGlyph = projectRef.current.glyphs[unicode] || {
         unicode,
@@ -365,7 +407,103 @@ export function useUndoRedo({
         setRedoStacks(nextRedoMap);
       }
     },
-    [selectedUnicode, selectedChar, projectRef, applyEvictionAndBudget]
+    [activeIvsKey, selectedUnicode, selectedChar, projectRef, applyEvictionAndBudget]
+  );
+
+  const commitBatchHistory = useCallback(
+    (targetUnicodes: number[], targetIvsKeys?: string[]) => {
+      const hasUnicodes = Boolean(targetUnicodes && targetUnicodes.length > 0);
+      const hasIvs = Boolean(targetIvsKeys && targetIvsKeys.length > 0);
+      if (!hasUnicodes && !hasIvs) return;
+
+      if (hasUnicodes) {
+        const uniqueTargets = Array.from(new Set(targetUnicodes));
+        const maxEntries = Math.max(MAX_HISTORY_GLYPHS, uniqueTargets.length);
+
+        let order = historyOrderRef.current;
+        const nextUndoMap = { ...undoStacksRef.current };
+        const nextRedoMap = { ...redoStacksRef.current };
+        let undoChanged = false;
+        let redoChanged = false;
+        const evictedSet = new Set<number>();
+
+        for (const unicode of uniqueTargets) {
+          const existingGlyph = projectRef.current.glyphs[unicode] || {
+            unicode,
+            char: String.fromCodePoint(unicode),
+            advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
+            lsb: 50,
+            contours: [],
+          };
+
+          const touched = touchHistoryGlyphOrder(order, unicode, maxEntries);
+          order = touched.nextOrder;
+          for (const ev of touched.evicted) evictedSet.add(ev);
+
+          const currentUndo = nextUndoMap[unicode] || [];
+          const last = currentUndo.length > 0 ? currentUndo[currentUndo.length - 1] : null;
+          if (!last || !areGlyphsEqual(last, existingGlyph)) {
+            nextUndoMap[unicode] = [...currentUndo.slice(-49), cloneGlyph(existingGlyph)];
+            undoChanged = true;
+          }
+          if (nextRedoMap[unicode] && nextRedoMap[unicode].length > 0) {
+            delete nextRedoMap[unicode];
+            redoChanged = true;
+          }
+        }
+
+        historyOrderRef.current = order;
+        const budgetResult = applyEvictionAndBudget(
+          nextUndoMap,
+          nextRedoMap,
+          Array.from(evictedSet),
+          [selectedUnicode]
+        );
+
+        if (undoChanged || budgetResult.undoChanged) {
+          undoStacksRef.current = nextUndoMap;
+          setUndoStacks(nextUndoMap);
+        }
+        if (redoChanged || budgetResult.redoChanged) {
+          redoStacksRef.current = nextRedoMap;
+          setRedoStacks(nextRedoMap);
+        }
+      }
+
+      if (hasIvs && targetIvsKeys) {
+        const uniqueIvsKeys = Array.from(new Set(targetIvsKeys));
+        const nextIvsUndoMap = { ...ivsUndoStacksRef.current };
+        const nextIvsRedoMap = { ...ivsRedoStacksRef.current };
+        let ivsUndoChanged = false;
+        let ivsRedoChanged = false;
+
+        for (const ivsKey of uniqueIvsKeys) {
+          const variant = projectRef.current.ivsVariants?.[ivsKey];
+          if (!variant) continue;
+          const existingGlyph = variant.glyph;
+          const currentUndo = nextIvsUndoMap[ivsKey] || [];
+          const last = currentUndo.length > 0 ? currentUndo[currentUndo.length - 1] : null;
+          if (!last || !areGlyphsEqual(last, existingGlyph)) {
+            nextIvsUndoMap[ivsKey] = [...currentUndo.slice(-49), cloneGlyph(existingGlyph)];
+            ivsUndoChanged = true;
+          }
+          if (nextIvsRedoMap[ivsKey] && nextIvsRedoMap[ivsKey].length > 0) {
+            delete nextIvsRedoMap[ivsKey];
+            ivsRedoChanged = true;
+          }
+        }
+
+        if (ivsUndoChanged) {
+          ivsUndoStacksRef.current = nextIvsUndoMap;
+          setIvsUndoStacks(nextIvsUndoMap);
+        }
+        if (ivsRedoChanged) {
+          ivsRedoStacksRef.current = nextIvsRedoMap;
+          setIvsRedoStacks(nextIvsRedoMap);
+        }
+      }
+    },
+    [selectedUnicode, projectRef, applyEvictionAndBudget]
   );
 
   /**
@@ -402,6 +540,22 @@ export function useUndoRedo({
    */
   const discardLastHistoryEntry = useCallback(
     (expectedContours?: PathContour[], targetUnicode?: number): boolean => {
+      if (targetUnicode === undefined && activeIvsKey) {
+        const stack = ivsUndoStacksRef.current[activeIvsKey] || [];
+        if (stack.length === 0) return false;
+        const top = stack[stack.length - 1];
+        if (expectedContours && !areContoursEqual(top.contours || [], expectedContours)) {
+          return false;
+        }
+        const nextUndoMap = {
+          ...ivsUndoStacksRef.current,
+          [activeIvsKey]: stack.slice(0, stack.length - 1),
+        };
+        ivsUndoStacksRef.current = nextUndoMap;
+        setIvsUndoStacks(nextUndoMap);
+        return true;
+      }
+
       const unicode = targetUnicode ?? selectedUnicode;
       const stack = undoStacksRef.current[unicode] || [];
       if (stack.length === 0) return false;
@@ -417,10 +571,50 @@ export function useUndoRedo({
       setUndoStacks(nextUndoMap);
       return true;
     },
-    [selectedUnicode]
+    [activeIvsKey, selectedUnicode]
   );
 
   const handleUndo = useCallback(() => {
+    if (activeIvsKey) {
+      const ivsKey = activeIvsKey;
+      const stack = ivsUndoStacksRef.current[ivsKey] || [];
+      if (stack.length === 0) return;
+
+      const previous = stack[stack.length - 1];
+      const nextUndoStack = stack.slice(0, stack.length - 1);
+      const currentSnapshot = currentGlyphRef.current;
+      const redoList = ivsRedoStacksRef.current[ivsKey] || [];
+      const nextRedoStack = [...redoList.slice(-49), cloneGlyph(currentSnapshot)];
+
+      const nextUndoMap = { ...ivsUndoStacksRef.current, [ivsKey]: nextUndoStack };
+      const nextRedoMap = { ...ivsRedoStacksRef.current, [ivsKey]: nextRedoStack };
+      ivsUndoStacksRef.current = nextUndoMap;
+      ivsRedoStacksRef.current = nextRedoMap;
+
+      const restoredGlyph: GlyphData = { ...previous, modified: true };
+      currentGlyphRef.current = restoredGlyph;
+
+      setIvsUndoStacks(nextUndoMap);
+      setIvsRedoStacks(nextRedoMap);
+      setProject((prevProj) => {
+        const existingVariant = prevProj.ivsVariants?.[ivsKey];
+        if (!existingVariant) return prevProj;
+        return {
+          ...prevProj,
+          ivsVariants: {
+            ...prevProj.ivsVariants,
+            [ivsKey]: {
+              ...existingVariant,
+              glyph: restoredGlyph,
+              updatedAt: Date.now(),
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+      return;
+    }
+
     const unicode = selectedUnicode;
     const stack = undoStacksRef.current[unicode] || [];
     if (stack.length === 0) {
@@ -488,9 +682,49 @@ export function useUndoRedo({
       },
       updatedAt: Date.now(),
     }));
-  }, [selectedUnicode, currentGlyphRef, setProject, applyEvictionAndBudget]);
+  }, [activeIvsKey, selectedUnicode, currentGlyphRef, projectRef, setProject, applyEvictionAndBudget]);
 
   const handleRedo = useCallback(() => {
+    if (activeIvsKey) {
+      const ivsKey = activeIvsKey;
+      const stack = ivsRedoStacksRef.current[ivsKey] || [];
+      if (stack.length === 0) return;
+
+      const next = stack[stack.length - 1];
+      const nextRedoStack = stack.slice(0, stack.length - 1);
+      const currentSnapshot = currentGlyphRef.current;
+      const undoList = ivsUndoStacksRef.current[ivsKey] || [];
+      const nextUndoStack = [...undoList.slice(-49), cloneGlyph(currentSnapshot)];
+
+      const nextRedoMap = { ...ivsRedoStacksRef.current, [ivsKey]: nextRedoStack };
+      const nextUndoMap = { ...ivsUndoStacksRef.current, [ivsKey]: nextUndoStack };
+      ivsRedoStacksRef.current = nextRedoMap;
+      ivsUndoStacksRef.current = nextUndoMap;
+
+      const restoredGlyph: GlyphData = { ...next, modified: true };
+      currentGlyphRef.current = restoredGlyph;
+
+      setIvsRedoStacks(nextRedoMap);
+      setIvsUndoStacks(nextUndoMap);
+      setProject((prevProj) => {
+        const existingVariant = prevProj.ivsVariants?.[ivsKey];
+        if (!existingVariant) return prevProj;
+        return {
+          ...prevProj,
+          ivsVariants: {
+            ...prevProj.ivsVariants,
+            [ivsKey]: {
+              ...existingVariant,
+              glyph: restoredGlyph,
+              updatedAt: Date.now(),
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+      return;
+    }
+
     const unicode = selectedUnicode;
     const stack = redoStacksRef.current[unicode] || [];
     if (stack.length === 0) {
@@ -557,10 +791,27 @@ export function useUndoRedo({
       },
       updatedAt: Date.now(),
     }));
-  }, [selectedUnicode, currentGlyphRef, setProject, applyEvictionAndBudget]);
+  }, [activeIvsKey, selectedUnicode, currentGlyphRef, projectRef, setProject, applyEvictionAndBudget]);
 
   const pushSnapshot = useCallback(
     (glyph: GlyphData, targetUnicode?: number) => {
+      if (targetUnicode === undefined && activeIvsKey) {
+        const stack = ivsUndoStacksRef.current[activeIvsKey] || [];
+        const nextUndoMap = {
+          ...ivsUndoStacksRef.current,
+          [activeIvsKey]: [...stack.slice(-49), cloneGlyph(glyph)],
+        };
+        ivsUndoStacksRef.current = nextUndoMap;
+        setIvsUndoStacks(nextUndoMap);
+        if (ivsRedoStacksRef.current[activeIvsKey]?.length) {
+          const nextRedoMap = { ...ivsRedoStacksRef.current };
+          delete nextRedoMap[activeIvsKey];
+          ivsRedoStacksRef.current = nextRedoMap;
+          setIvsRedoStacks(nextRedoMap);
+        }
+        return;
+      }
+
       const unicode = targetUnicode ?? glyph.unicode ?? selectedUnicode;
       const { nextOrder, evicted } = touchHistoryGlyphOrder(historyOrderRef.current, unicode);
       historyOrderRef.current = nextOrder;
@@ -590,11 +841,20 @@ export function useUndoRedo({
         setRedoStacks(nextRedoMap);
       }
     },
-    [selectedUnicode, applyEvictionAndBudget]
+    [activeIvsKey, selectedUnicode, applyEvictionAndBudget]
   );
 
   const setUndoStack = useCallback(
     (action: React.SetStateAction<GlyphData[]>) => {
+      if (activeIvsKey) {
+        const currentStack = ivsUndoStacksRef.current[activeIvsKey] || [];
+        const nextStack = typeof action === 'function' ? action(currentStack) : action;
+        const nextUndoMap = { ...ivsUndoStacksRef.current, [activeIvsKey]: nextStack };
+        ivsUndoStacksRef.current = nextUndoMap;
+        setIvsUndoStacks(nextUndoMap);
+        return;
+      }
+
       const { nextOrder, evicted } = touchHistoryGlyphOrder(
         historyOrderRef.current,
         selectedUnicode
@@ -619,17 +879,21 @@ export function useUndoRedo({
         setRedoStacks(nextRedoMap);
       }
     },
-    [selectedUnicode, applyEvictionAndBudget]
+    [activeIvsKey, selectedUnicode, applyEvictionAndBudget]
   );
 
   const clearHistory = useCallback(() => {
     undoStacksRef.current = {};
     redoStacksRef.current = {};
+    ivsUndoStacksRef.current = {};
+    ivsRedoStacksRef.current = {};
     historyOrderRef.current = [];
     projectUndoStackRef.current = [];
     projectRedoStackRef.current = [];
     setUndoStacks({});
     setRedoStacks({});
+    setIvsUndoStacks({});
+    setIvsRedoStacks({});
     setProjectUndoStack([]);
     setProjectRedoStack([]);
   }, []);
@@ -642,12 +906,17 @@ export function useUndoRedo({
     setUndoStack,
     pushSnapshot,
     commitHistory,
+    commitBatchHistory,
     commitProjectHistory,
     discardLastHistoryEntry,
     clearHistory,
     handleUndo,
     handleRedo,
-    canUndo: currentUndoStack.length > 0 || projectUndoStack.length > 0,
-    canRedo: currentRedoStack.length > 0 || projectRedoStack.length > 0,
+    canUndo: activeIvsKey
+      ? currentUndoStack.length > 0
+      : currentUndoStack.length > 0 || projectUndoStack.length > 0,
+    canRedo: activeIvsKey
+      ? currentRedoStack.length > 0
+      : currentRedoStack.length > 0 || projectRedoStack.length > 0,
   };
 }

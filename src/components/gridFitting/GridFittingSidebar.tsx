@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Lock, Search } from 'lucide-react';
 import { GlyphData } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 import { GridFittingPresetType, GridFittingTab, StemInfo } from './types';
@@ -11,6 +11,9 @@ interface GridFittingSidebarProps {
   onChangeSearchQuery: (q: string) => void;
   onApplyPreset: (preset: GridFittingPresetType) => void;
   glyphList: GlyphData[];
+  totalGlyphCount: number;
+  showAllGlyphs: boolean;
+  onToggleShowAllGlyphs: () => void;
   selectedUnicode: number;
   onSelectUnicode: (unicode: number) => void;
   detectedStems: StemInfo[];
@@ -25,16 +28,21 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
   onChangeSearchQuery,
   onApplyPreset,
   glyphList,
+  totalGlyphCount,
+  showAllGlyphs,
+  onToggleShowAllGlyphs,
   selectedUnicode,
   onSelectUnicode,
   detectedStems,
   hoveredStemId,
   onHoverStem,
 }) => {
+  const isTruncated = !searchQuery.trim() && totalGlyphCount > glyphList.length;
+
   return (
     <div
-      className={`w-full md:w-72 shrink-0 p-3 sm:p-4 pb-24 sm:pb-4 space-y-3 sm:space-y-4 overflow-y-auto ${themeClasses.sidebarBg} ${
-        activeTab !== 'stems' ? 'hidden sm:block' : ''
+      className={`w-full md:w-72 shrink-0 p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto overscroll-contain ${themeClasses.sidebarBg} ${
+        activeTab !== 'stems' ? 'hidden md:block' : 'flex-1 md:flex-none min-h-0'
       }`}
     >
       {/* Glyph Search */}
@@ -79,20 +87,35 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
       {/* Glyph Grid Selector */}
       <div className="space-y-1.5">
         <label className={`text-[11px] font-bold uppercase tracking-wider flex items-center justify-between ${themeClasses.textMuted}`}>
-          <span>検証対象文字選択 ({glyphList.length}):</span>
+          <span>
+            検証対象文字選択 ({isTruncated ? `${glyphList.length}/${totalGlyphCount}` : glyphList.length}):
+          </span>
+          {!searchQuery.trim() && totalGlyphCount > 80 && (
+            <button
+              type="button"
+              onClick={onToggleShowAllGlyphs}
+              className={`text-[10px] font-bold underline cursor-pointer ${themeClasses.accentText}`}
+            >
+              {showAllGlyphs ? '80文字に絞る' : `全${totalGlyphCount}文字を表示`}
+            </button>
+          )}
         </label>
-        <div className={`grid grid-cols-3 sm:grid-cols-5 gap-1.5 max-h-36 sm:max-h-40 overflow-y-auto p-1.5 border rounded-xl ${themeClasses.subtoolbarBg}`}>
+        <div className={`grid grid-cols-4 sm:grid-cols-6 md:grid-cols-5 gap-1.5 md:max-h-44 md:overflow-y-auto p-1.5 border rounded-xl ${themeClasses.subtoolbarBg}`}>
           {glyphList.map((g) => (
             <button
               key={g.unicode}
               onClick={() => onSelectUnicode(g.unicode)}
-              className={`h-10 sm:h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
+              title={`${g.char} (U+${g.unicode.toString(16).toUpperCase()})${g.locked ? ' [ロック中]' : ''}`}
+              className={`relative h-10 md:h-9 rounded-lg font-bold text-sm border flex items-center justify-center transition-colors cursor-pointer ${
                 selectedUnicode === g.unicode
                   ? `${themeClasses.activeTool} border-transparent`
                   : `${themeClasses.cardBg} ${themeClasses.activeToolHover}`
               }`}
             >
               <span>{g.char}</span>
+              {g.locked && (
+                <Lock className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-75" />
+              )}
             </button>
           ))}
         </div>
@@ -114,7 +137,7 @@ export const GridFittingSidebar: React.FC<GridFittingSidebarProps> = ({
             選択中の文字から垂直・水平の主要ステムが検出されませんでした。
           </p>
         ) : (
-          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-1.5 md:max-h-48 md:overflow-y-auto pr-1">
             {detectedStems.map((stem) => (
               <div
                 key={stem.id}

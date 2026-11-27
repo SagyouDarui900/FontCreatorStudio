@@ -3,7 +3,9 @@ import {
   transformContoursForPlacement,
   flipSingleContourH,
   flipSingleContourV,
+  adjustContoursWeight,
 } from './transform';
+import { interpolateContours } from './stroke_modules/straightAndExpand';
 import {
   getContoursBoundingBox,
   contoursHaveFiniteCoordinates,
@@ -179,5 +181,68 @@ describe('flipSingleContourH / flipSingleContourV winding preservation', () => {
     const flippedV = flipSingleContourV(contour);
     expect(Math.sign(getContourSignedArea(flippedV))).toBe(Math.sign(originalArea));
     expect(getContoursBoundingBox([flippedV])).toEqual(getContoursBoundingBox([contour]));
+  });
+});
+
+describe('adjustContoursWeight Bezier handle scaling & inversion guard', () => {
+  it('scales relative Bezier handles proportionally to segment chord growth when bolding', () => {
+    const circleLike: PathContour = {
+      id: 'circle',
+      closed: true,
+      nodes: [
+        { id: 'n0', x: 500, y: 300, handleIn: { x: 390, y: 300 }, handleOut: { x: 610, y: 300 }, type: 'smooth' },
+        { id: 'n1', x: 700, y: 500, handleIn: { x: 700, y: 390 }, handleOut: { x: 700, y: 610 }, type: 'smooth' },
+        { id: 'n2', x: 500, y: 700, handleIn: { x: 610, y: 700 }, handleOut: { x: 390, y: 700 }, type: 'smooth' },
+        { id: 'n3', x: 300, y: 500, handleIn: { x: 300, y: 610 }, handleOut: { x: 300, y: 390 }, type: 'smooth' },
+      ],
+    };
+
+    const bolded = adjustContoursWeight([circleLike], 60);
+    const topNode = bolded[0].nodes[0];
+    // Original relative handleOut.x - node.x was 110; because radius grew from 200 to 260 (1.3x),
+    // the handle length should expand above 110 rather than staying fixed at 110.
+    expect(topNode.handleOut!.x - topNode.x).toBeGreaterThan(125);
+    expect(topNode.x - topNode.handleIn!.x).toBeGreaterThan(125);
+
+    const slimmed = adjustContoursWeight([circleLike], -50);
+    const slimTop = slimmed[0].nodes[0];
+    expect(slimTop.handleOut!.x - slimTop.x).toBeLessThan(95);
+  });
+
+  it('prevents winding inversion and shape collapse on extreme negative thinning', () => {
+    const smallRect = rectContour(400, 400, 600, 600); // 200x200
+    const origSign = Math.sign(getContourSignedArea(smallRect));
+    const thinned = adjustContoursWeight([smallRect], -180);
+
+    const newArea = getContourSignedArea(thinned[0]);
+    expect(Math.sign(newArea)).toBe(origSign);
+    const bbox = getContoursBoundingBox(thinned);
+    expect(bbox.width).toBeGreaterThanOrEqual(2);
+    expect(bbox.height).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('interpolateContours clone isolation', () => {
+  it('returns fresh cloned contours at t=0, t=1, and mismatched contour counts without aliasing inputs', () => {
+    const masterA = [rectContour(100, 100, 400, 400)];
+    const masterB = [rectContour(200, 200, 700, 700)];
+    const masterBExtra = [rectContour(200, 200, 700, 700), rectContour(300, 300, 500, 500)];
+
+    const atZero = interpolateContours(masterA, masterB, 0);
+    expect(atZero).not.toBe(masterA);
+    expect(atZero[0]).not.toBe(masterA[0]);
+    expect(atZero[0].nodes[0]).not.toBe(masterA[0].nodes[0]);
+    atZero[0].nodes[0].x = 9999;
+    expect(masterA[0].nodes[0].x).toBe(100);
+
+    const atOne = interpolateContours(masterA, masterB, 1);
+    expect(atOne[0]).not.toBe(masterB[0]);
+    atOne[0].nodes[0].x = 8888;
+    expect(masterB[0].nodes[0].x).toBe(200);
+
+    const mismatched = interpolateContours(masterA, masterBExtra, 0.2);
+    expect(mismatched[0]).not.toBe(masterA[0]);
+    mismatched[0].nodes[0].x = 7777;
+    expect(masterA[0].nodes[0].x).toBe(100);
   });
 });

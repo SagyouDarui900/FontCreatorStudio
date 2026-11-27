@@ -92,7 +92,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                 type="button"
                 disabled={safeSlipIdx === 0}
                 onClick={() => setSlipIdx((v) => Math.max(0, v - 1))}
-                className="px-2 py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>前枚</span>
@@ -101,7 +101,7 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
                 type="button"
                 disabled={safeSlipIdx >= totalSlips - 1}
                 onClick={() => setSlipIdx((v) => Math.min(totalSlips - 1, v + 1))}
-                className="px-2 py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-amber-900/20 dark:border-emerald-700/40 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <span>次枚</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -115,8 +115,8 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
           {isVertical ? (
             <div
               dir="rtl"
-              className="w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar px-2 py-2"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="w-full overflow-x-auto overflow-y-auto touch-pan-both max-h-[60vh] custom-scrollbar px-2 py-2"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
             >
               <div
                 dir="ltr"
@@ -222,8 +222,8 @@ export const PoetryTanzakuView: React.FC<PoetryTanzakuViewProps> = ({
             </div>
           ) : (
             <div
-              className="w-full overflow-x-auto overflow-y-auto max-h-[60vh] custom-scrollbar px-2 py-2"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="w-full overflow-x-auto overflow-y-auto touch-pan-both max-h-[60vh] custom-scrollbar px-2 py-2"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
             >
               <div
                 className="flex flex-col items-start justify-start w-max mx-auto select-text"

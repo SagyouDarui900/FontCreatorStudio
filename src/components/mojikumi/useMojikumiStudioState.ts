@@ -532,7 +532,12 @@ export function useMojikumiStudioState({
   // settles instead of on every keystroke. The textarea itself stays
   // controlled by the raw customText, so typing echo is not delayed.
   // M27: real advance widths / kerning from the project, in em units.
-  const advanceOptions = useMemo(() => buildTypesettingAdvanceOptions(project), [project]);
+  // Only apply custom glyph metrics when previewing the custom project font;
+  // system fonts ('mincho' / 'gothic') use standard metric defaults.
+  const advanceOptions = useMemo(
+    () => (fontSource === 'custom' ? buildTypesettingAdvanceOptions(project) : undefined),
+    [fontSource, project]
+  );
 
   const currentLayout = useMemo(() => {
     return simulateTypesetting(deferredCustomText, effectiveCharsPerLine, currentConfig, {

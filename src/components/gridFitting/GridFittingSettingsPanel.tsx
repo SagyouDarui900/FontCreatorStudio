@@ -32,8 +32,8 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
 }) => {
   return (
     <div
-      className={`w-full md:w-80 shrink-0 p-3 sm:p-4 pb-24 sm:pb-4 space-y-3 sm:space-y-4 overflow-y-auto ${
-        activeTab !== 'settings' ? 'hidden sm:block' : ''
+      className={`w-full md:w-80 shrink-0 p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto overscroll-contain ${
+        activeTab !== 'settings' ? 'hidden md:block' : 'flex-1 md:flex-none min-h-0'
       }`}
     >
       <div className="flex items-center space-x-2 border-b pb-2 border-stone-200 dark:border-[#223326]">
@@ -131,7 +131,7 @@ export const GridFittingSettingsPanel: React.FC<GridFittingSettingsPanelProps> =
       </div>
 
       {/* Desktop Apply Actions */}
-      <div className={`pt-4 space-y-2 border-t hidden sm:block ${themeClasses.border}`}>
+      <div className={`pt-4 space-y-2 border-t hidden md:block ${themeClasses.border}`}>
         <button
           onClick={onApplyCurrent}
           className={`w-full py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-2 cursor-pointer ${themeClasses.accentBtn}`}

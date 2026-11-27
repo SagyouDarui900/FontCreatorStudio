@@ -103,11 +103,35 @@ export interface PixelFontProjectSettings {
   proportionalSpacing?: boolean;
 }
 
+export interface IvsGlyphVariant {
+  /** Key in `${baseHex}_${selectorHex}` format, e.g. "8FBB_E0101" */
+  id: string;
+  /** Base character Unicode code point, e.g. 0x8FBB ('辻') */
+  baseUnicode: number;
+  /** Variation selector code point, e.g. 0xE0101 (VS18) or 0xFE00 (VS1) */
+  selectorCode: number;
+  /** Optional IVD collection or label (e.g. "Adobe-Japan1", "Moji_Joho", "Custom") */
+  collection?: string;
+  /** Optional user note describing the variant difference */
+  note?: string;
+  /** Variant glyph contours/pixelData/metrics */
+  glyph: GlyphData;
+  updatedAt?: number;
+}
+
+export function formatIvsVariantKey(baseUnicode: number, selectorCode: number): string {
+  const baseHex = Math.max(0, Math.round(baseUnicode)).toString(16).toUpperCase().padStart(4, '0');
+  const selHex = Math.max(0, Math.round(selectorCode)).toString(16).toUpperCase().padStart(4, '0');
+  return `${baseHex}_${selHex}`;
+}
+
 export interface FontProject {
   id: string;
   name: string;
   metadata: FontMetadata;
   glyphs: Record<number, GlyphData>;
+  /** OpenType cmap format 14 Unicode/Ideographic Variation Sequence variants */
+  ivsVariants?: Record<string, IvsGlyphVariant>;
   kerning?: Record<string, number>; // Pair string "char1,char2", "U+XXXX,U+XXXX", "0xXXXX,0xXXXX" or "decimal1,decimal2" -> offset in font units
   openTypeFeatures?: OpenTypeFeaturesConfig;
   pixelFontSettings?: PixelFontProjectSettings;

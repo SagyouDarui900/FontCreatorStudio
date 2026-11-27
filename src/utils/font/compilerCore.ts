@@ -28,6 +28,11 @@ import {
   type GposVpalEntry,
   type VmtxEntry,
 } from './gposTable';
+import {
+  extractSfntTableBytes,
+  spliceCmapWithFormat14,
+  type CmapFormat14Mapping,
+} from './cmapTable';
 import type { PaltGlyphMetric, VpalGlyphMetric } from '../../types';
 
 export interface CompileFontOptions {
@@ -386,7 +391,10 @@ export function compileFont(
       const firstChar = safeFromCodePoint(pair.firstUnicode);
       const secondChar = safeFromCodePoint(pair.secondUnicode);
       if (firstChar === null || secondChar === null) continue;
-      const key = `${firstChar},${secondChar}`;
+      const key =
+        firstChar === ',' || secondChar === ','
+          ? `U+${pair.firstUnicode.toString(16).toUpperCase().padStart(4, '0')},U+${pair.secondUnicode.toString(16).toUpperCase().padStart(4, '0')}`
+          : `${firstChar},${secondChar}`;
       configuredKerning[key] = pair.amount;
     }
     // NOTE: palt is no longer simulated with kern pairs for a few
@@ -767,6 +775,140 @@ export function compileFont(
     }
   }
 
+  // Compile IVS (Ideographic/Unicode Variation Sequence) variants as unencoded glyphs
+  // and record their glyph indices for the OpenType cmap format 14 table.
+  const ivsCmapMappings: CmapFormat14Mapping[] = [];
+  const ivsEntries = Object.values(project.ivsVariants || {});
+  const seenIvsPairs = new Set<string>();
+  for (const variant of ivsEntries) {
+    if (
+      !variant ||
+      typeof variant.baseUnicode !== 'number' ||
+      !Number.isInteger(variant.baseUnicode) ||
+      variant.baseUnicode <= 0 ||
+      variant.baseUnicode > 0x10ffff ||
+      typeof variant.selectorCode !== 'number' ||
+      !Number.isInteger(variant.selectorCode) ||
+      variant.selectorCode <= 0 ||
+      variant.selectorCode > 0x10ffff ||
+      !variant.glyph
+    ) {
+      continue;
+    }
+    const pairKey = `${variant.baseUnicode}_${variant.selectorCode}`;
+    if (seenIvsPairs.has(pairKey)) continue;
+    seenIvsPairs.add(pairKey);
+
+    const vg = variant.glyph;
+    let glyphContours = vg.contours || [];
+    const advWidth = Math.round(
+      Number.isFinite(vg.advanceWidth) && (vg.advanceWidth ?? 0) > 0
+        ? (vg.advanceWidth ?? upm)
+        : (variant.baseUnicode > 255 ? upm : Math.round(upm / 2))
+    );
+
+    if (glyphContours.length === 0 && vg.pixelData?.data && vg.pixelData.width && vg.pixelData.height) {
+      const pGrid = normalizePixelGrid(vg.pixelData.data);
+      if (pGrid.some((val) => val === 1)) {
+        glyphContours = pixelGridToContours(
+          pGrid,
+          vg.pixelData.width,
+          vg.pixelData.height,
+          upm,
+          safeAscender,
+          safeDescender,
+          advWidth,
+          vg.pixelData.shape || project.pixelFontSettings?.dotShape || 'square',
+          project.pixelFontSettings?.mergeContours !== false
+        );
+      }
+    }
+
+    glyphContours = glyphContours.filter((c) => Boolean(c && c.nodes && c.nodes.length >= 2));
+    const baseHex = variant.baseUnicode.toString(16).toUpperCase().padStart(4, '0');
+    const selHex = variant.selectorCode.toString(16).toUpperCase().padStart(4, '0');
+    if (glyphContours.length === 0) {
+      const baseCharLabel = safeFromCodePoint(variant.baseUnicode) || `U+${baseHex}`;
+      compileWarnings.push(
+        `IVS異体字「${baseCharLabel}」(+U+${selHex}) に輪郭データがないため、cmap format 14 テーブルから除外しました。`
+      );
+      continue;
+    }
+
+    const shouldBalance = options?.balanceSideBearings !== false;
+    const shouldMerge = options?.mergeOverlaps === true;
+    const baseCharForCheck = vg.char || safeFromCodePoint(variant.baseUnicode) || '';
+    const origBbox = getContoursBoundingBox(glyphContours);
+    if (origBbox.width > 0 && origBbox.height > 0) {
+      if (Math.abs(exportScaleFactor - 1.0) > 0.001) {
+        const isAsymmetric = isAsymmetricOrPunctuationGlyph(variant.baseUnicode, baseCharForCheck);
+        const anchorX = shouldBalance && !isAsymmetric ? origBbox.centerX : advWidth / 2;
+        const anchorY = Math.round(upm * 0.45);
+        const clampTop = Math.round(upm * 0.02);
+        const clampBottom = Math.round(upm * 0.98);
+
+        let safeScale = exportScaleFactor;
+        if (exportScaleFactor > 1.0) {
+          const distTop = anchorY - origBbox.minY;
+          const distBottom = origBbox.maxY - anchorY;
+          if (distTop > 0) safeScale = Math.min(safeScale, (anchorY - clampTop) / distTop);
+          if (distBottom > 0) safeScale = Math.min(safeScale, (clampBottom - anchorY) / distBottom);
+          safeScale = Math.max(1.0, safeScale);
+        }
+
+        glyphContours = transformContours(glyphContours, (p) => ({
+          x: Math.round(anchorX + (p.x - anchorX) * safeScale),
+          y: Math.round(anchorY + (p.y - anchorY) * safeScale),
+        }));
+      }
+
+      if (shouldBalance && !isAsymmetricOrPunctuationGlyph(variant.baseUnicode, baseCharForCheck)) {
+        const scaledBbox = getContoursBoundingBox(glyphContours);
+        if (scaledBbox.width > 0) {
+          const dx = Math.round(advWidth / 2 - scaledBbox.centerX);
+          if (Math.abs(dx) > 0) {
+            glyphContours = transformContours(glyphContours, (p) => ({
+              x: p.x + dx,
+              y: p.y,
+            }));
+          }
+        }
+      }
+    }
+
+    if (shouldMerge && glyphContours.length > 0 && !vg.pixelData) {
+      try {
+        glyphContours = unionContours(glyphContours, 1.2, true);
+      } catch (e) {
+        console.warn('Auto unionContours fallback for IVS', pairKey, e);
+      }
+    }
+    if (options?.normalizeWinding !== false) {
+      glyphContours = normalizeGlyphContoursWinding(glyphContours);
+    }
+
+    const ivsGlyphIndex = glyphsList.length;
+    const rawIvsName = vg.name || `uni${baseHex}.u${selHex}`;
+    const ivsGlyphName = uniqueGlyphName(
+      usedGlyphNames,
+      sanitizePostScriptGlyphName(rawIvsName, `ivs_${baseHex}_${selHex}`)
+    );
+
+    const ivsGlyph = new opentype.Glyph({
+      name: ivsGlyphName,
+      advanceWidth: advWidth,
+      path: contoursToOpenTypePath(glyphContours, baselineY),
+    });
+    glyphsList.push(ivsGlyph);
+    ivsCmapMappings.push({
+      baseUnicode: variant.baseUnicode,
+      selectorCode: variant.selectorCode,
+      glyphIndex: ivsGlyphIndex,
+    });
+    totalAdvanceWidth += advWidth;
+    countedAdvanceGlyphs += 1;
+  }
+
   // Horizontal metrics from the actual outlines (OpenType spec: the
   // minLeftSideBearing / minRightSideBearing / xMaxExtent values are
   // computed using only glyphs that have contours).
@@ -1044,6 +1186,19 @@ export function compileFont(
       }
     }
   }
+  for (const mapping of ivsCmapMappings) {
+    for (const u of [mapping.selectorCode, mapping.baseUnicode]) {
+      for (const { bit, ranges } of UNICODE_RANGE_BITS) {
+        if (unicodeRangeBits.has(bit)) continue;
+        for (const [start, end] of ranges) {
+          if (u >= start && u <= end) {
+            unicodeRangeBits.add(bit);
+            break;
+          }
+        }
+      }
+    }
+  }
   let uRange1 = 0;
   let uRange2 = 0;
   let uRange3 = 0;
@@ -1209,7 +1364,7 @@ export function compileFont(
             return [c.type, c.x, c.y, c.x1, c.y1, c.x2, c.y2].join(',');
           })
           .join(';');
-        return `${glyph.unicode}:${glyph.advanceWidth}:${commands}`;
+        return `${glyph.unicode ?? glyph.name}:${glyph.advanceWidth}:${commands}`;
       }),
       ...Object.entries(configuredKerning)
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
@@ -1742,6 +1897,17 @@ export function compileFont(
     });
   }
 
+  if (ivsCmapMappings.length > 0) {
+    const existingCmap = extractSfntTableBytes(buffer, 'cmap');
+    if (!existingCmap) {
+      throw new Error('IVS (cmap format 14) の生成に必要な cmap テーブルが見つかりません');
+    }
+    extraTables.push({
+      tag: 'cmap',
+      data: spliceCmapWithFormat14(existingCmap, ivsCmapMappings),
+    });
+  }
+
   if (extraTables.length > 0) {
     try {
       buffer = injectSfntTables(buffer, extraTables);
@@ -1749,7 +1915,7 @@ export function compileFont(
       // A missing GPOS / vmtx / vhea table must not be treated as
       // success: the in-memory metrics do not reach the file.
       throw new Error(
-        `GPOS / 垂直メトリクステーブルの生成に失敗しました: ${tableErr instanceof Error ? tableErr.message : '不明なエラー'}`
+        `GPOS / 垂直メトリクス・cmap テーブルの生成に失敗しました: ${tableErr instanceof Error ? tableErr.message : '不明なエラー'}`
       );
     }
   }

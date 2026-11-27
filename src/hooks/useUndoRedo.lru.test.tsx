@@ -359,4 +359,140 @@ describe('useUndoRedo LRU eviction & ProjectContext same-frame Undo/Redo sync', 
     });
     container.remove();
   });
+
+  it('isolates IVS variant editing and Undo/Redo from base glyph history and supports commitBatchHistory', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    let ctx!: ReturnType<typeof useProjectContext>;
+    function Consumer() {
+      ctx = useProjectContext();
+      return null;
+    }
+
+    function Wrapper() {
+      const [project, setProject] = React.useState<FontProject>(() => ({
+        ...makeProject(),
+        glyphs: {
+          [0x8fbb]: {
+            unicode: 0x8fbb,
+            char: '辻',
+            name: 'uni8FBB',
+            advanceWidth: 1000,
+            lsb: 50,
+            contours: [
+              {
+                id: 'base-c1',
+                closed: true,
+                nodes: [
+                  { id: 'b1', x: 100, y: 100, type: 'corner' },
+                  { id: 'b2', x: 300, y: 100, type: 'corner' },
+                  { id: 'b3', x: 300, y: 300, type: 'corner' },
+                ],
+              },
+            ],
+          },
+        },
+        ivsVariants: {
+          '8FBB_E0101': {
+            id: '8FBB_E0101',
+            baseUnicode: 0x8fbb,
+            selectorCode: 0xe0101,
+            glyph: {
+              unicode: 0x8fbb,
+              char: '辻',
+              name: 'uni8FBB.uE0101',
+              advanceWidth: 1000,
+              lsb: 50,
+              contours: [],
+            },
+          },
+        },
+      }));
+      const projectRef = React.useRef(project);
+      projectRef.current = project;
+      return (
+        <ProjectProvider
+          project={project}
+          setProject={setProject}
+          projectRef={projectRef}
+          saveProjectToIndexedDbWhenIdle={async () => true}
+          showToast={vi.fn()}
+        >
+          <Consumer />
+        </ProjectProvider>
+      );
+    }
+
+    act(() => {
+      root.render(<Wrapper />);
+    });
+
+    // Switch to IVS variant and edit contours
+    act(() => {
+      ctx.handleSelectIvsVariant('8FBB_E0101');
+    });
+    expect(ctx.activeIvsKey).toBe('8FBB_E0101');
+    expect(ctx.currentGlyph.contours).toHaveLength(0);
+
+    act(() => {
+      ctx.handleUpdateContours([
+        {
+          id: 'ivs-c1',
+          closed: true,
+          nodes: [
+            { id: 'i1', x: 200, y: 200, type: 'corner' },
+            { id: 'i2', x: 400, y: 200, type: 'corner' },
+            { id: 'i3', x: 400, y: 400, type: 'corner' },
+          ],
+        },
+      ]);
+    });
+
+    expect(ctx.project.ivsVariants?.['8FBB_E0101'].glyph.contours[0].id).toBe('ivs-c1');
+    // Base glyph remained untouched
+    expect(ctx.project.glyphs[0x8fbb].contours[0].id).toBe('base-c1');
+
+    act(() => {
+      ctx.handleUndo();
+    });
+    expect(ctx.currentGlyph.contours).toHaveLength(0);
+    expect(ctx.project.glyphs[0x8fbb].contours[0].id).toBe('base-c1');
+
+    act(() => {
+      ctx.handleRedo();
+    });
+    expect(ctx.currentGlyph.contours[0].id).toBe('ivs-c1');
+
+    // Return to base glyph and test commitBatchHistory
+    act(() => {
+      ctx.handleSelectGlyph(0x8fbb);
+    });
+    expect(ctx.activeIvsKey).toBeNull();
+
+    act(() => {
+      ctx.commitBatchHistory([0x8fbb]);
+      ctx.setProject((prev) => ({
+        ...prev,
+        glyphs: {
+          ...prev.glyphs,
+          [0x8fbb]: {
+            ...prev.glyphs[0x8fbb],
+            advanceWidth: 900,
+          },
+        },
+      }));
+    });
+
+    act(() => {
+      ctx.handleUndo();
+    });
+    expect(ctx.project.glyphs[0x8fbb].advanceWidth).toBe(1000);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });

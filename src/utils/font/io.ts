@@ -1,5 +1,11 @@
 import * as opentype from 'opentype.js';
-import { FontMetadata, FontProject, GlyphData } from '../../types';
+import {
+  FontMetadata,
+  FontProject,
+  GlyphData,
+  IvsGlyphVariant,
+  formatIvsVariantKey,
+} from '../../types';
 import { compileFont, CompileFontOptions } from './compilerCore';
 import { validateFontProject, stripInvalidPixelData } from './validation';
 import { openTypePathToContours } from './paths';
@@ -181,7 +187,12 @@ function countKernTablePairs(font: opentype.Font): number {
  */
 export async function loadFontFromFile(
   file: File
-): Promise<{ metadata: Partial<FontMetadata>; glyphs: Record<number, GlyphData>; report: FontImportReport }> {
+): Promise<{
+  metadata: Partial<FontMetadata>;
+  glyphs: Record<number, GlyphData>;
+  ivsVariants?: Record<string, IvsGlyphVariant>;
+  report: FontImportReport;
+}> {
   if (typeof file.size === 'number' && file.size > MAX_IMPORT_FONT_BYTES) {
     throw new Error(
       `ファイルサイズが大きすぎます（${Math.round(file.size / (1024 * 1024))}MB / 上限 ${Math.round(MAX_IMPORT_FONT_BYTES / (1024 * 1024))}MB）。`
@@ -370,6 +381,52 @@ export async function loadFontFromFile(
     ),
   };
 
+  // Collect cmap format 14 Unicode Variation Sequences (NonDefaultUVS mappings)
+  const ivsPairsByGlyphIndex = new Map<number, { baseUnicode: number; selectorCode: number }[]>();
+  const rawCmap = (font.tables as Record<string, unknown> | undefined)?.cmap as
+    | {
+        varSelectorList?: Record<
+          string,
+          {
+            varSelector?: number;
+            nonDefaultUVS?: {
+              uvsMappings?: Record<string, { unicodeValue?: number; glyphID?: number }>;
+            };
+          }
+        >;
+      }
+    | undefined;
+  if (rawCmap?.varSelectorList && typeof rawCmap.varSelectorList === 'object') {
+    for (const [selKey, rec] of Object.entries(rawCmap.varSelectorList)) {
+      const selectorCode =
+        typeof rec?.varSelector === 'number' && Number.isInteger(rec.varSelector)
+          ? rec.varSelector
+          : Number(selKey);
+      if (!Number.isInteger(selectorCode) || selectorCode <= 0 || selectorCode > 0x10ffff) continue;
+      const mappings = rec?.nonDefaultUVS?.uvsMappings;
+      if (!mappings || typeof mappings !== 'object') continue;
+      for (const mapping of Object.values(mappings)) {
+        const baseUnicode = mapping?.unicodeValue;
+        const glyphID = mapping?.glyphID;
+        if (
+          typeof baseUnicode === 'number' &&
+          Number.isInteger(baseUnicode) &&
+          baseUnicode > 0 &&
+          baseUnicode <= 0x10ffff &&
+          typeof glyphID === 'number' &&
+          Number.isInteger(glyphID) &&
+          glyphID > 0
+        ) {
+          const list = ivsPairsByGlyphIndex.get(glyphID) || [];
+          list.push({ baseUnicode, selectorCode });
+          ivsPairsByGlyphIndex.set(glyphID, list);
+        }
+      }
+    }
+  }
+
+  const ivsVariants: Record<string, IvsGlyphVariant> = {};
+
   for (let i = 0; i < font.glyphs.length; i++) {
     const g = font.glyphs.get(i);
     if (!g) continue;
@@ -385,7 +442,8 @@ export async function loadFontFromFile(
         }
       }
     }
-    if (unicodes.length === 0) {
+    const ivsTargets = ivsPairsByGlyphIndex.get(i) || [];
+    if (unicodes.length === 0 && ivsTargets.length === 0) {
       // .notdef, ligature and alternate glyphs have no Unicode: they
       // cannot be addressed by character, so they are skipped — but the
       // skip is counted and reported instead of happening silently.
@@ -433,7 +491,40 @@ export async function loadFontFromFile(
         modified: true,
       };
     }
+
+    for (const { baseUnicode, selectorCode } of ivsTargets) {
+      const ivsKey = formatIvsVariantKey(baseUnicode, selectorCode);
+      if (ivsVariants[ivsKey]) continue;
+      let baseChar = '';
+      try {
+        baseChar = String.fromCodePoint(baseUnicode);
+      } catch {
+        baseChar = '';
+      }
+      const baseHex = baseUnicode.toString(16).toUpperCase().padStart(4, '0');
+      const selHex = selectorCode.toString(16).toUpperCase().padStart(4, '0');
+      ivsVariants[ivsKey] = {
+        id: ivsKey,
+        baseUnicode,
+        selectorCode,
+        glyph: {
+          unicode: baseUnicode,
+          char: baseChar,
+          name: g.name || `uni${baseHex}.u${selHex}`,
+          advanceWidth: normalizedAdvance > 0 ? normalizedAdvance : 1000,
+          lsb: normalizedLsb,
+          contours: JSON.parse(JSON.stringify(contours)),
+          modified: true,
+        },
+        updatedAt: Date.now(),
+      };
+    }
   }
 
-  return { metadata, glyphs, report };
+  return {
+    metadata,
+    glyphs,
+    ...(Object.keys(ivsVariants).length > 0 ? { ivsVariants } : {}),
+    report,
+  };
 }

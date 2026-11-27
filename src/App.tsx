@@ -137,6 +137,9 @@ function AppMain({
     projectRef,
     selectedUnicode,
     selectedChar,
+    activeIvsKey,
+    activeIvsVariant,
+    handleSelectIvsVariant,
     currentGlyph,
     handleSelectGlyph,
     handleSelectPrevGlyph,
@@ -153,6 +156,7 @@ function AppMain({
     handleUndo,
     handleRedo,
     commitHistory,
+    commitBatchHistory,
     commitProjectHistory,
     discardLastHistoryEntry,
     clearHistory,
@@ -735,6 +739,29 @@ function AppMain({
           />
 
           <div className="flex-1 min-h-0 h-full w-full relative overflow-hidden">
+            {activeIvsVariant && (
+              <div
+                className={`absolute top-2 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100%-1rem)] flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-md text-xs ${themeClasses.modalBg} ${themeClasses.accentBorder}`}
+              >
+                <span className={`font-bold truncate ${themeClasses.accentText}`}>
+                  IVS異体字編集中: 「{selectedChar}」+ U+{activeIvsVariant.selectorCode.toString(16).toUpperCase().padStart(4, '0')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => openModal('ivsManager')}
+                  className={`px-2 py-0.5 rounded-lg border text-[11px] font-semibold shrink-0 cursor-pointer transition-colors ${themeClasses.cardBg} ${themeClasses.activeToolHover}`}
+                >
+                  IVS管理
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectIvsVariant(null)}
+                  className={`px-2 py-0.5 rounded-lg text-[11px] font-bold shrink-0 cursor-pointer transition-colors ${themeClasses.accentBtn}`}
+                >
+                  基底文字に戻る
+                </button>
+              </div>
+            )}
             <GlyphCanvas
               contours={currentGlyph.contours || EMPTY_CONTOURS}
               onChangeContours={handleUpdateContours}
@@ -900,7 +927,10 @@ function AppMain({
         changeTheme={changeTheme}
         showToast={showToast}
         commitHistory={commitHistory}
+        commitBatchHistory={commitBatchHistory}
         commitProjectHistory={commitProjectHistory}
+        activeIvsKey={activeIvsKey}
+        onSelectIvsVariant={handleSelectIvsVariant}
         traceSettings={traceSettings}
         setTraceSettings={setTraceSettings}
         overlaySettings={overlaySettings}

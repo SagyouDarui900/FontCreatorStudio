@@ -24,6 +24,7 @@ interface UseGridFittingStateOptions {
   isLight: boolean;
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   commitHistory?: (targetUnicode?: number) => void;
+  commitBatchHistory?: (targetUnicodes: number[]) => void;
 }
 
 export function useGridFittingState({
@@ -34,6 +35,7 @@ export function useGridFittingState({
   isLight,
   onShowToast,
   commitHistory,
+  commitBatchHistory,
 }: UseGridFittingStateOptions) {
   const [selectedPpem, setSelectedPpem] = useState<number>(16);
   const [renderingMode, setRenderingMode] = useState<RenderingMode>('grayscale');
@@ -42,6 +44,7 @@ export function useGridFittingState({
   const [mobilePreviewDisplay, setMobilePreviewDisplay] = useState<MobilePreviewDisplay>('raster');
   const [enablePreview, setEnablePreview] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllGlyphs, setShowAllGlyphs] = useState(false);
   const [activeTab, setActiveTab] = useState<GridFittingTab>('preview');
 
   const [config, setConfig] = useState<GridFittingConfig>({
@@ -90,13 +93,13 @@ export function useGridFittingState({
     () =>
       project.glyphs[selectedUnicode] || {
         unicode: selectedUnicode,
-        char: String.fromCharCode(selectedUnicode),
-        name: `uni${selectedUnicode.toString(16).toUpperCase()}`,
-        advanceWidth: 1000,
+        char: String.fromCodePoint(selectedUnicode),
+        name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
+        advanceWidth: upm,
         lsb: 50,
         contours: [],
       },
-    [project.glyphs, selectedUnicode]
+    [project.glyphs, selectedUnicode, upm]
   );
 
   const fittedGlyph = useMemo(() => {
@@ -112,19 +115,23 @@ export function useGridFittingState({
     );
   }, [currentGlyph.contours, fittedGlyph.contours, selectedPpem, upm, enablePreview]);
 
+  const allGlyphs = useMemo(() => Object.values(project.glyphs), [project.glyphs]);
+  const totalGlyphCount = allGlyphs.length;
+
   const glyphList = useMemo(() => {
-    const list: GlyphData[] = Object.values(project.glyphs);
-    if (!searchQuery.trim()) return list.slice(0, 50);
+    if (!searchQuery.trim()) {
+      return showAllGlyphs ? allGlyphs : allGlyphs.slice(0, 80);
+    }
 
     const q = searchQuery.toLowerCase().trim();
-    return list.filter((g: GlyphData) => {
+    return allGlyphs.filter((g: GlyphData) => {
       return (
         g.char.toLowerCase().includes(q) ||
         g.name.toLowerCase().includes(q) ||
         `u+${g.unicode.toString(16)}`.includes(q)
       );
     });
-  }, [project.glyphs, searchQuery]);
+  }, [allGlyphs, searchQuery, showAllGlyphs]);
 
   // Render raster pixel simulation canvas
   useEffect(() => {
@@ -142,6 +149,8 @@ export function useGridFittingState({
     );
   }, [
     isOpen,
+    activeTab,
+    mobilePreviewDisplay,
     fittedGlyph.contours,
     currentGlyph.contours,
     selectedPpem,
@@ -152,8 +161,21 @@ export function useGridFittingState({
   ]);
 
   const handleApplyToCurrentGlyph = useCallback(() => {
+    if (currentGlyph.locked) {
+      onShowToast(
+        `「${currentGlyph.char}」は編集ロックされているため整列できません。ロックを解除してから実行してください`,
+        'warning'
+      );
+      return;
+    }
     if (!currentGlyph.contours || currentGlyph.contours.length === 0) {
-      onShowToast(`「${currentGlyph.char}」には整列する輪郭パスがありません`, 'warning');
+      const hasPixel = Boolean(currentGlyph.pixelData?.data?.some((p) => p === 1));
+      onShowToast(
+        hasPixel
+          ? `「${currentGlyph.char}」はピクセルグリフのため、ベジェ輪郭のグリッド整列は不要です`
+          : `「${currentGlyph.char}」には整列する輪郭パスがありません`,
+        hasPixel ? 'info' : 'warning'
+      );
       return;
     }
     const updated = applyGridFittingToGlyph(currentGlyph, selectedPpem, upm, config, project.metadata);
@@ -174,35 +196,56 @@ export function useGridFittingState({
 
   const handleBatchApplyHinting = useCallback(() => {
     let updatedCount = 0;
+    let skippedLockedCount = 0;
     const newGlyphs: Record<number, GlyphData> = { ...project.glyphs };
     const updatedUnicodes: number[] = [];
 
     for (const uniStr of Object.keys(newGlyphs)) {
       const uni = Number(uniStr);
       const original = newGlyphs[uni];
-      if (original && original.contours && original.contours.length > 0) {
+      if (!original) continue;
+      if (original.locked) {
+        skippedLockedCount++;
+        continue;
+      }
+      if (original.contours && original.contours.length > 0) {
         newGlyphs[uni] = applyGridFittingToGlyph(original, selectedPpem, upm, config, project.metadata);
         updatedUnicodes.push(uni);
         updatedCount++;
       }
     }
 
-    // Register history for every glyph the batch touches before
-    // applying, so each one can be undone individually.
-    for (const uni of updatedUnicodes) {
-      commitHistory?.(uni);
+    if (updatedCount === 0) {
+      onShowToast(
+        skippedLockedCount > 0
+          ? `対象となる未ロックの輪郭グリフがありません（ロック中 ${skippedLockedCount} 文字をスキップ）`
+          : '整列可能な輪郭を持つ文字がありません',
+        'warning'
+      );
+      return;
     }
+
+    if (commitBatchHistory) {
+      commitBatchHistory(updatedUnicodes);
+    } else {
+      for (const uni of updatedUnicodes) {
+        commitHistory?.(uni);
+      }
+    }
+
     setProject((prev) => ({
       ...prev,
       glyphs: newGlyphs,
       updatedAt: Date.now(),
     }));
 
+    const skippedNote =
+      skippedLockedCount > 0 ? `（ロック中の ${skippedLockedCount} 文字は保護のため除外）` : '';
     onShowToast(
-      `全 ${updatedCount} 文字のステムを ${selectedPpem}px グリッドに最適化整列しました`,
+      `全 ${updatedCount} 文字のステムを ${selectedPpem}px グリッドに最適化整列しました${skippedNote}`,
       'success'
     );
-  }, [project.glyphs, project.metadata, selectedPpem, upm, config, setProject, commitHistory, onShowToast]);
+  }, [project.glyphs, project.metadata, selectedPpem, upm, config, setProject, commitBatchHistory, commitHistory, onShowToast]);
 
   const applyPreset = useCallback(
     (presetType: GridFittingPresetType) => {
@@ -264,6 +307,9 @@ export function useGridFittingState({
     setSelectedUnicode,
     searchQuery,
     setSearchQuery,
+    showAllGlyphs,
+    setShowAllGlyphs,
+    totalGlyphCount,
     activeTab,
     setActiveTab,
     canvasRef,

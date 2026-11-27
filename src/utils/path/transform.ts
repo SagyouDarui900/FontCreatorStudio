@@ -627,28 +627,31 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
     const glyphExpandSign = isHole ? -1 : 1;
     const effectiveDelta = delta * normalToOutwardSign * glyphExpandSign;
 
-    const findDistinctNeighbor = (startIdx: number, step: 1 | -1): BezierNode | null => {
+    const findDistinctNeighborIndex = (startIdx: number, step: 1 | -1): number | null => {
       const origin = contour.nodes[startIdx];
       for (let offset = 1; offset < n; offset++) {
         const nextIdx = startIdx + step * offset;
         if (!contour.closed && (nextIdx < 0 || nextIdx >= n)) {
           return null;
         }
-        const cand = contour.nodes[(nextIdx + n) % n];
+        const candIdx = (nextIdx + n) % n;
+        const cand = contour.nodes[candIdx];
         if (Math.hypot(cand.x - origin.x, cand.y - origin.y) > 0.05) {
-          return cand;
+          return candIdx;
         }
       }
       if (!contour.closed) {
         const clamped = startIdx + step;
-        return clamped >= 0 && clamped < n ? contour.nodes[clamped] : null;
+        return clamped >= 0 && clamped < n ? clamped : null;
       }
-      return contour.nodes[(startIdx + step + n) % n];
+      return (startIdx + step + n) % n;
     };
 
-    const shiftedNodes = contour.nodes.map((node, i) => {
-      const prev = findDistinctNeighbor(i, -1);
-      const next = findDistinctNeighbor(i, 1);
+    const nodeDirections = contour.nodes.map((node, i) => {
+      const prevIdx = findDistinctNeighborIndex(i, -1);
+      const nextIdx = findDistinctNeighborIndex(i, 1);
+      const prev = prevIdx !== null ? contour.nodes[prevIdx] : null;
+      const next = nextIdx !== null ? contour.nodes[nextIdx] : null;
 
       const hasInHandle =
         node.handleIn && Math.hypot(node.x - node.handleIn.x, node.y - node.handleIn.y) > 0.05;
@@ -701,36 +704,120 @@ export function adjustContoursWeight(contours: PathContour[], delta: number): Pa
       const dot = avgNx * n1x + avgNy * n1y;
       const miterScale = dot > 0.35 ? Math.min(1.5, 1 / dot) : 1;
 
-      const shiftX = avgNx * effectiveDelta * miterScale;
-      const shiftY = avgNy * effectiveDelta * miterScale;
-
-      const newNode: BezierNode = {
-        ...node,
-        id: generateId(),
-        x: Math.round((node.x + shiftX) * 100) / 100,
-        y: Math.round((node.y + shiftY) * 100) / 100,
-        handleIn: node.handleIn
-          ? {
-              x: Math.round((node.handleIn.x + shiftX) * 100) / 100,
-              y: Math.round((node.handleIn.y + shiftY) * 100) / 100,
-            }
-          : null,
-        handleOut: node.handleOut
-          ? {
-              x: Math.round((node.handleOut.x + shiftX) * 100) / 100,
-              y: Math.round((node.handleOut.y + shiftY) * 100) / 100,
-            }
-          : null,
+      return {
+        prevIdx,
+        nextIdx,
+        unitShiftX: avgNx * miterScale,
+        unitShiftY: avgNy * miterScale,
       };
-
-      return newNode;
     });
 
-    return {
-      ...contour,
-      id: generateId(),
-      nodes: shiftedNodes,
+    const contourId = generateId();
+    const nodeIds = contour.nodes.map(() => generateId());
+
+    const buildAdjustedContour = (scaledDelta: number): PathContour => {
+      const shiftedPositions = contour.nodes.map((node, i) => {
+        const dir = nodeDirections[i];
+        return {
+          x: Math.round((node.x + dir.unitShiftX * scaledDelta) * 100) / 100,
+          y: Math.round((node.y + dir.unitShiftY * scaledDelta) * 100) / 100,
+        };
+      });
+
+      const shiftedNodes: BezierNode[] = contour.nodes.map((node, i) => {
+        const dir = nodeDirections[i];
+        const newPos = shiftedPositions[i];
+
+        let handleIn: Point | null = null;
+        if (node.handleIn) {
+          let scale = 1;
+          if (dir.prevIdx !== null) {
+            const prevOld = contour.nodes[dir.prevIdx];
+            const prevNew = shiftedPositions[dir.prevIdx];
+            const oldChord = Math.hypot(node.x - prevOld.x, node.y - prevOld.y);
+            const newChord = Math.hypot(newPos.x - prevNew.x, newPos.y - prevNew.y);
+            if (oldChord > 1) {
+              scale = Math.max(0.35, Math.min(1.8, newChord / oldChord));
+            }
+          }
+          handleIn = {
+            x: Math.round((newPos.x + (node.handleIn.x - node.x) * scale) * 100) / 100,
+            y: Math.round((newPos.y + (node.handleIn.y - node.y) * scale) * 100) / 100,
+          };
+        }
+
+        let handleOut: Point | null = null;
+        if (node.handleOut) {
+          let scale = 1;
+          if (dir.nextIdx !== null) {
+            const nextOld = contour.nodes[dir.nextIdx];
+            const nextNew = shiftedPositions[dir.nextIdx];
+            const oldChord = Math.hypot(nextOld.x - node.x, nextOld.y - node.y);
+            const newChord = Math.hypot(nextNew.x - newPos.x, nextNew.y - newPos.y);
+            if (oldChord > 1) {
+              scale = Math.max(0.35, Math.min(1.8, newChord / oldChord));
+            }
+          }
+          handleOut = {
+            x: Math.round((newPos.x + (node.handleOut.x - node.x) * scale) * 100) / 100,
+            y: Math.round((newPos.y + (node.handleOut.y - node.y) * scale) * 100) / 100,
+          };
+        }
+
+        return {
+          ...node,
+          id: nodeIds[i],
+          x: newPos.x,
+          y: newPos.y,
+          handleIn,
+          handleOut,
+        };
+      });
+
+      return {
+        ...contour,
+        id: contourId,
+        nodes: shiftedNodes,
+      };
     };
+
+    const isMovingInward = (!isHole && delta < 0) || (isHole && delta > 0);
+    const hasCollapsedOrInverted = (candidate: PathContour): boolean => {
+      if (!isMovingInward || absAreaI <= 1) return false;
+      const candSignedArea = getContourSignedArea(candidate);
+      if ((signedArea > 0 && candSignedArea <= 0) || (signedArea < 0 && candSignedArea >= 0)) {
+        return true;
+      }
+      if (Math.abs(candSignedArea) < absAreaI * 0.08) {
+        return true;
+      }
+      if (bboxI) {
+        const candBbox = getContoursBoundingBox([candidate]);
+        if ((bboxI.width > 4 && candBbox.width < 2) || (bboxI.height > 4 && candBbox.height < 2)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const fullResult = buildAdjustedContour(effectiveDelta);
+    if (!hasCollapsedOrInverted(fullResult)) {
+      return fullResult;
+    }
+
+    // Clamp inward offset scale via binary search so heavy thinning never flips winding inside-out
+    let lo = 0;
+    let hi = 1;
+    for (let iter = 0; iter < 10; iter++) {
+      const mid = (lo + hi) / 2;
+      const probe = buildAdjustedContour(effectiveDelta * mid);
+      if (hasCollapsedOrInverted(probe)) {
+        hi = mid;
+      } else {
+        lo = mid;
+      }
+    }
+    return buildAdjustedContour(effectiveDelta * lo);
   });
 }
 

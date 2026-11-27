@@ -105,8 +105,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
       return (
         <div
           dir="rtl"
-          className="w-full h-full overflow-x-auto overflow-y-auto custom-scrollbar pb-1"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="w-full h-full overflow-x-auto touch-pan-both custom-scrollbar pb-1"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
         >
           <div
             dir="ltr"
@@ -217,8 +217,8 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
     // Horizontal Book Layout
     return (
       <div
-        className="w-full h-full overflow-x-auto overflow-y-auto custom-scrollbar pb-1"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="w-full h-full overflow-x-auto touch-pan-both custom-scrollbar pb-1"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
       >
         <div
           className="flex flex-col items-start justify-start w-max select-text"
@@ -375,7 +375,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             <button
               type="button"
               onClick={() => setMobilePageView('p1')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+              className={`px-2.5 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-xs font-bold ${
                 mobilePageView === 'p1'
                   ? isLight
                     ? 'bg-amber-200/90 text-amber-950 font-bold shadow-xs'
@@ -388,7 +388,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             <button
               type="button"
               onClick={() => setMobilePageView('p2')}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+              className={`px-2.5 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-xs font-bold ${
                 mobilePageView === 'p2'
                   ? isLight
                     ? 'bg-amber-200/90 text-amber-950 font-bold shadow-xs'
@@ -401,7 +401,7 @@ export const BookSpreadView: React.FC<BookSpreadViewProps> = ({
             <button
               type="button"
               onClick={() => setMobilePageView('both')}
-              className={`px-2 py-1 rounded-md text-[11px] ${
+              className={`px-2 py-1.5 min-h-[38px] md:min-h-0 rounded-md text-[11px] ${
                 mobilePageView === 'both'
                   ? isLight
                     ? 'bg-amber-200/90 text-amber-950 font-bold shadow-xs'

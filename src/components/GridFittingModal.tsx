@@ -28,6 +28,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
   theme,
   onShowToast,
   commitHistory,
+  commitBatchHistory,
 }) => {
   const themeClasses = getThemeClasses(theme ?? (isLight ? 'light' : 'dark'));
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -77,6 +78,9 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
     setSelectedUnicode,
     searchQuery,
     setSearchQuery,
+    showAllGlyphs,
+    setShowAllGlyphs,
+    totalGlyphCount,
     activeTab,
     setActiveTab,
     canvasRef,
@@ -96,15 +100,13 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
     isLight,
     onShowToast,
     commitHistory,
+    commitBatchHistory,
   });
 
   if (!isOpen) return null;
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="グリッド整列 & ヒンティング工房"
       className={`fixed inset-0 z-[60] anim-fade ${
         isFullscreen
           ? 'p-0 w-screen h-[100dvh] bg-black/85 flex flex-col'
@@ -112,6 +114,9 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
       }`}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="グリッド整列 & ヒンティング工房"
         className={`flex flex-col overflow-hidden ${themeClasses.modalBg} ${
           isFullscreen
             ? 'w-screen h-[100dvh] rounded-none border-none shadow-none'
@@ -138,7 +143,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={handleApplyToCurrentGlyph}
-              className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
+              className={`hidden md:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
               title="選択中の1文字のみにヒンティングを適用します"
             >
               <Check className="w-4 h-4" />
@@ -147,7 +152,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
 
             <button
               onClick={handleBatchApplyHinting}
-              className={`hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
+              className={`hidden md:flex px-3.5 py-2 rounded-xl text-xs font-bold items-center space-x-1.5 transition-[transform,background-color] active:scale-[0.98] cursor-pointer ${themeClasses.accentBtn}`}
               title="すべての文字のステムを選択中のグリッド条件で一括整列します"
             >
               <Sparkles className="w-4 h-4 opacity-90" />
@@ -249,11 +254,11 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile Tab Navigation */}
-        <div className={`flex sm:hidden border-b shrink-0 ${themeClasses.subtoolbarBg}`}>
+        {/* Mobile & Small Tablet Tab Navigation (matches md:flex-row body switch) */}
+        <div className={`flex md:hidden border-b shrink-0 ${themeClasses.subtoolbarBg}`}>
           <button
             onClick={() => setActiveTab('preview')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-2 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'preview'
                 ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
@@ -263,17 +268,17 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('stems')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-2 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'stems'
                 ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
             }`}
           >
-            ステム解析 ({detectedStems.length})
+            文字・ステム ({detectedStems.length})
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex-1 py-1.5 text-xs font-bold border-b-2 transition-colors ${
+            className={`flex-1 py-2 text-xs font-bold border-b-2 transition-colors ${
               activeTab === 'settings'
                 ? `${themeClasses.accentBorder} ${themeClasses.accentText}`
                 : `border-transparent ${themeClasses.textMuted}`
@@ -292,6 +297,9 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             onChangeSearchQuery={setSearchQuery}
             onApplyPreset={applyPreset}
             glyphList={glyphList}
+            totalGlyphCount={totalGlyphCount}
+            showAllGlyphs={showAllGlyphs}
+            onToggleShowAllGlyphs={() => setShowAllGlyphs((prev) => !prev)}
             selectedUnicode={selectedUnicode}
             onSelectUnicode={setSelectedUnicode}
             detectedStems={detectedStems}
@@ -306,6 +314,7 @@ export const GridFittingModal: React.FC<GridFittingModalProps> = ({
             selectedUnicode={selectedUnicode}
             selectedPpem={selectedPpem}
             upm={upm}
+            metadata={project.metadata}
             currentGlyph={currentGlyph}
             fittedGlyph={fittedGlyph}
             enablePreview={enablePreview}

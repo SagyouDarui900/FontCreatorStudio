@@ -12,6 +12,8 @@ export interface GridFittingModalProps {
   onShowToast: (msg: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   /** Commit history for one glyph (target unicode) before applying. */
   commitHistory?: (targetUnicode?: number) => void;
+  /** Commit history for multiple glyphs in a single batch before applying. */
+  commitBatchHistory?: (targetUnicodes: number[]) => void;
 }
 
 export interface StemInfo {

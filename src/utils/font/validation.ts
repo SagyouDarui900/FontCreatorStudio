@@ -1,4 +1,4 @@
-import { FontProject } from '../../types';
+import { FontProject, IvsGlyphVariant, formatIvsVariantKey } from '../../types';
 import { DEFAULT_ASCENDER, DEFAULT_DESCENDER } from './constants';
 import { sanitizeStoredTraceSettings } from '../traceSettings';
 import { normalizePixelDataValues, isPixelDataLengthValid } from '../pixelFontUtils';
@@ -455,6 +455,62 @@ export function validateFontProject(project: FontProject): FontValidationResult 
     }
   }
 
+  // IVS / UVS Variation Sequences validation
+  const seenIvsPairs = new Set<string>();
+  for (const [ivsKey, variant] of Object.entries(project.ivsVariants || {})) {
+    if (!variant || typeof variant !== 'object') {
+      errors.push(`IVS異体字（${ivsKey}）のデータが無効です。`);
+      continue;
+    }
+    if (!isValidUnicode(variant.baseUnicode) || !isValidUnicode(variant.selectorCode)) {
+      errors.push(`IVS異体字（${ivsKey}）の基底Unicodeまたはセレクタ値が範囲外です。`);
+      continue;
+    }
+    const baseHex = variant.baseUnicode.toString(16).toUpperCase().padStart(4, '0');
+    const selHex = variant.selectorCode.toString(16).toUpperCase().padStart(4, '0');
+    const pairKey = `${variant.baseUnicode}_${variant.selectorCode}`;
+    if (seenIvsPairs.has(pairKey)) {
+      warnings.push(`IVS異体字（U+${baseHex} + U+${selHex}）が重複しているため、後続の定義が除外されます。`);
+    }
+    seenIvsPairs.add(pairKey);
+
+    let baseChar = `U+${baseHex}`;
+    try {
+      baseChar = String.fromCodePoint(variant.baseUnicode);
+    } catch {}
+    const ivsLabel = `IVS異体字「${baseChar}」(+U+${selHex})`;
+
+    if (!existingUnicodes.has(variant.baseUnicode)) {
+      warnings.push(`${ivsLabel} の基底文字（U+${baseHex}）がまだ作成されていません。`);
+    }
+
+    const vg = variant.glyph;
+    if (!vg || typeof vg !== 'object') {
+      errors.push(`${ivsLabel} のグリフデータがありません。`);
+      continue;
+    }
+    if (vg.contours) {
+      for (const c of vg.contours) {
+        if (!c.nodes || c.nodes.length === 0) {
+          errors.push(`${ivsLabel} に頂点が無い空の輪郭があります。`);
+          removed.contours++;
+          continue;
+        }
+        if (c.nodes.length === 1) {
+          errors.push(`${ivsLabel} に頂点が1つだけの孤立輪郭があります。`);
+          removed.contours++;
+        }
+        for (const n of c.nodes) {
+          if (!Number.isFinite(n.x) || !Number.isFinite(n.y)) {
+            errors.push(`${ivsLabel} に無効な数値座標を持つ頂点があります。`);
+            removed.nodes++;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   return {
     valid: errors.length === 0,
     glyphCount,
@@ -509,8 +565,49 @@ export function stripInvalidPixelData(project: FontProject): {
       glyphs[unicode] = g;
     }
   }
+  let nextIvsVariants: Record<string, IvsGlyphVariant> | undefined = project.ivsVariants;
+  if (project.ivsVariants) {
+    let ivsChanged = false;
+    const cleanedIvs: Record<string, IvsGlyphVariant> = {};
+    for (const [key, variant] of Object.entries(project.ivsVariants)) {
+      if (!variant?.glyph?.pixelData) {
+        cleanedIvs[key] = variant;
+        continue;
+      }
+      const p = variant.glyph.pixelData;
+      if (!isPixelDataLengthValid(p)) {
+        excluded.push(`${variant.glyph.char || `U+${variant.baseUnicode.toString(16).toUpperCase()}`}(IVS)`);
+        ivsChanged = true;
+        const { pixelData: _removed, ...rest } = variant.glyph;
+        cleanedIvs[key] = { ...variant, glyph: { ...rest, contours: variant.glyph.contours || [] } };
+        continue;
+      }
+      const normalized = normalizePixelDataValues(p.data);
+      if (normalized.some((v, i) => v !== p.data[i])) {
+        ivsChanged = true;
+        cleanedIvs[key] = {
+          ...variant,
+          glyph: { ...variant.glyph, pixelData: { ...p, data: normalized } },
+        };
+      } else {
+        cleanedIvs[key] = variant;
+      }
+    }
+    if (ivsChanged) {
+      changed = true;
+      nextIvsVariants = cleanedIvs;
+    }
+  }
+
   if (!changed && excluded.length === 0) return { project, excluded };
-  return { project: { ...project, glyphs }, excluded };
+  return {
+    project: {
+      ...project,
+      glyphs,
+      ...(nextIvsVariants !== undefined ? { ivsVariants: nextIvsVariants } : {}),
+    },
+    excluded,
+  };
 }
 
 /**
@@ -775,12 +872,114 @@ export function validateStoredFontProjectWithReport(data: unknown): StoredValida
     };
   }
 
+  // IVS variants sanitization
+  let sanitizedIvsVariants: Record<string, IvsGlyphVariant> | undefined;
+  if (proj.ivsVariants && typeof proj.ivsVariants === 'object' && !Array.isArray(proj.ivsVariants)) {
+    sanitizedIvsVariants = {};
+    let droppedIvs = 0;
+    for (const [, rawVariant] of Object.entries(proj.ivsVariants)) {
+      if (!rawVariant || typeof rawVariant !== 'object' || Array.isArray(rawVariant)) {
+        droppedIvs++;
+        continue;
+      }
+      const v = rawVariant as Record<string, any>;
+      if (!isValidUnicode(v.baseUnicode) || !isValidUnicode(v.selectorCode)) {
+        droppedIvs++;
+        continue;
+      }
+      const g = v.glyph as Record<string, any> | undefined;
+      if (!g || typeof g !== 'object' || Array.isArray(g)) {
+        droppedIvs++;
+        continue;
+      }
+      const advValid = typeof g.advanceWidth === 'number' && Number.isFinite(g.advanceWidth) && g.advanceWidth > 0;
+      const lsbValid = typeof g.lsb === 'number' && Number.isFinite(g.lsb);
+      const rawContours = Array.isArray(g.contours) ? g.contours : [];
+      const validContours = [];
+      for (let ci = 0; ci < rawContours.length; ci++) {
+        const c = rawContours[ci];
+        if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+        const rawNodes = Array.isArray(c.nodes) ? c.nodes : [];
+        const validNodes = [];
+        for (let ni = 0; ni < rawNodes.length; ni++) {
+          const n = rawNodes[ni];
+          if (!n || typeof n !== 'object' || !Number.isFinite(n.x) || !Number.isFinite(n.y)) continue;
+          const handleIn =
+            n.handleIn && typeof n.handleIn === 'object' && Number.isFinite(n.handleIn.x) && Number.isFinite(n.handleIn.y)
+              ? { x: n.handleIn.x, y: n.handleIn.y }
+              : null;
+          const handleOut =
+            n.handleOut && typeof n.handleOut === 'object' && Number.isFinite(n.handleOut.x) && Number.isFinite(n.handleOut.y)
+              ? { x: n.handleOut.x, y: n.handleOut.y }
+              : null;
+          validNodes.push({
+            id: typeof n.id === 'string' ? n.id : `node_${ci}_${ni}`,
+            x: n.x,
+            y: n.y,
+            type: (n.type === 'smooth' || n.type === 'symmetric' ? n.type : 'corner') as 'corner' | 'smooth' | 'symmetric',
+            handleIn,
+            handleOut,
+          });
+        }
+        if (validNodes.length >= 2) {
+          validContours.push({
+            id: typeof c.id === 'string' ? c.id : `contour_${ci}`,
+            nodes: validNodes,
+            closed: Boolean(c.closed),
+          });
+        }
+      }
+      let validPixelData = undefined;
+      if (g.pixelData && typeof g.pixelData === 'object' && !Array.isArray(g.pixelData)) {
+        const p = g.pixelData;
+        if (
+          typeof p.width === 'number' && Number.isFinite(p.width) && p.width > 0 &&
+          typeof p.height === 'number' && Number.isFinite(p.height) && p.height > 0 &&
+          Array.isArray(p.data) && p.data.length === p.width * p.height
+        ) {
+          validPixelData = {
+            width: p.width,
+            height: p.height,
+            data: p.data.map((d: any) => (d ? 1 : 0)),
+            shape: p.shape,
+          };
+        }
+      }
+      const normalizedKey = formatIvsVariantKey(v.baseUnicode, v.selectorCode);
+      const baseHex = v.baseUnicode.toString(16).toUpperCase().padStart(4, '0');
+      const selHex = v.selectorCode.toString(16).toUpperCase().padStart(4, '0');
+      sanitizedIvsVariants[normalizedKey] = {
+        id: normalizedKey,
+        baseUnicode: v.baseUnicode,
+        selectorCode: v.selectorCode,
+        ...(typeof v.collection === 'string' && v.collection ? { collection: v.collection } : {}),
+        ...(typeof v.note === 'string' && v.note ? { note: v.note } : {}),
+        ...(typeof v.updatedAt === 'number' && Number.isFinite(v.updatedAt) ? { updatedAt: v.updatedAt } : {}),
+        glyph: {
+          unicode: v.baseUnicode,
+          char: typeof g.char === 'string' ? g.char : String.fromCodePoint(v.baseUnicode),
+          name: typeof g.name === 'string' ? g.name : `uni${baseHex}.u${selHex}`,
+          advanceWidth: advValid ? g.advanceWidth : upm,
+          lsb: lsbValid ? g.lsb : 50,
+          contours: validContours,
+          ...(validPixelData ? { pixelData: validPixelData } : {}),
+          modified: g.modified !== undefined ? Boolean(g.modified) : validContours.length > 0,
+          ...(typeof g.locked === 'boolean' ? { locked: g.locked } : {}),
+        },
+      };
+    }
+    if (droppedIvs > 0) {
+      warnings.push(`無効なIVS異体字データを ${droppedIvs}件除外しました。`);
+    }
+  }
+
   const sanitizedTraceSettings = sanitizeStoredTraceSettings(proj.traceSettings);
 
   const project = {
     ...proj,
     metadata: sanitizedMetadata,
     glyphs: validatedGlyphs,
+    ...(sanitizedIvsVariants !== undefined ? { ivsVariants: sanitizedIvsVariants } : {}),
     ...(sanitizedKerning !== undefined ? { kerning: sanitizedKerning } : {}),
     // Trace settings: keep the image-free settings, drop any stored image
     // data URLs and sanitize the values.

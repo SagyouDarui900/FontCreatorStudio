@@ -4,6 +4,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { getThemeClasses } from '../utils/theme';
+import { parseKerningPairKey } from '../utils/font/validation';
 import { ModalShell } from './modals/ModalShell';
 import { ModalTabs, type ModalTabItem } from './modals/ModalTabs';
 import { ModalFooter } from './modals/ModalFooter';
@@ -84,6 +85,26 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
   if (!isOpen) return null;
 
+  const activeKerningPairCount = (() => {
+    const seenPairs = new Set<string>();
+    for (const pairKey of Object.keys(project.kerning || {})) {
+      const { left, right } = parseKerningPairKey(pairKey);
+      if (left !== null && right !== null) {
+        seenPairs.add(`${left}:${right}`);
+      } else {
+        seenPairs.add(`raw:${pairKey}`);
+      }
+    }
+    if (config.enabled) {
+      for (const pair of config.customKerningPairs || []) {
+        if (pair.enabled && Number.isFinite(pair.amount)) {
+          seenPairs.add(`${pair.firstUnicode}:${pair.secondUnicode}`);
+        }
+      }
+    }
+    return seenPairs.size;
+  })();
+
   const tabs: ModalTabItem[] = [
     {
       id: 'vert',
@@ -101,7 +122,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
       id: 'gpos',
       label: 'カーニング・ペア調整 (GPOS)',
       shortLabel: 'カーニング',
-      count: Object.keys(project.kerning || {}).length,
+      count: activeKerningPairCount,
     },
     {
       id: 'palt',
@@ -226,7 +247,7 @@ export const OpenTypeFeaturesModal: React.FC<OpenTypeFeaturesModalProps> = ({
 
       {activeTab === 'gpos' && (
         <GposKerningPanel
-          kerningPairCount={Object.keys(project.kerning || {}).length}
+          kerningPairCount={activeKerningPairCount}
           themeClasses={themeClasses}
         />
       )}

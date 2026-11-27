@@ -270,11 +270,13 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
       >
         {renderCellContent(cell)}
 
-        {/* Hanging punctuation rendered below the cell it hangs from
-            (L21: not only below the 20th cell) */}
+        {/* Hanging punctuation rendered below the cell in vertical mode,
+            or to the right of the cell in horizontal mode (L21) */}
         {cell.hangingChar && (
           <span
-            className="absolute -bottom-3 right-0 leading-none text-amber-600 dark:text-amber-400 font-bold pointer-events-none"
+            className={`absolute leading-none text-amber-600 dark:text-amber-400 font-bold pointer-events-none ${
+              isVertical ? '-bottom-3 right-0' : '-right-3 top-1/2 -translate-y-1/2'
+            }`}
             style={{ fontSize: `${Math.max(10, cellSizePx * 0.55)}px` }}
             title={`ぶら下がり約物「${cell.hangingChar}」`}
           >
@@ -363,7 +365,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
                 type="button"
                 disabled={safeSheetIdx === 0}
                 onClick={() => setSheetIdx((p) => Math.max(0, p - 1))}
-                className="px-2 py-1 rounded-md border border-emerald-600/30 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-emerald-600/30 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>前枚</span>
@@ -372,7 +374,7 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
                 type="button"
                 disabled={safeSheetIdx >= sheets.length - 1}
                 onClick={() => setSheetIdx((p) => Math.min(sheets.length - 1, p + 1))}
-                className="px-2 py-1 rounded-md border border-emerald-600/30 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
+                className="px-2.5 py-1.5 min-h-[36px] md:min-h-0 md:px-2 md:py-1 rounded-md border border-emerald-600/30 disabled:opacity-35 flex items-center gap-0.5 text-[11px] font-bold cursor-pointer"
               >
                 <span>次枚</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -385,8 +387,8 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
           /* 20x20 Manuscript Grid Layout: RTL scroll container starts at rightmost col (line 1) */
           <div
             dir="rtl"
-            className="w-full overflow-x-auto custom-scrollbar pb-2"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="w-full overflow-x-auto touch-pan-both custom-scrollbar pb-2"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
           >
             <div
               dir="ltr"
@@ -427,8 +429,8 @@ export const ManuscriptView: React.FC<ManuscriptViewProps> = ({
         ) : (
           /* M15: horizontal manuscript: rows run left to right, 20 rows per sheet */
           <div
-            className="w-full overflow-x-auto custom-scrollbar pb-2"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="w-full overflow-x-auto touch-pan-both custom-scrollbar pb-2"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
           >
             <div
               className="w-max mx-auto relative flex flex-col items-center justify-center border-2 border-emerald-700/50 dark:border-emerald-500/50 bg-white/40 dark:bg-black/20 p-2 pr-4 rounded-lg"

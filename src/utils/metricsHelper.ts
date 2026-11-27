@@ -1,5 +1,5 @@
-import { GlyphData, PathContour } from '../types';
-import { getContoursBoundingBox } from './path/bounds';
+import { GlyphData, PathContour, Point } from '../types';
+import { getContoursBoundingBox, sampleContourPoints } from './path/bounds';
 import { transformContours } from './path/transform';
 
 /**
@@ -226,27 +226,38 @@ export function batchAdjustSidebearings(
 ): {
   updatedGlyphs: Record<number, GlyphData>;
   modifiedCount: number;
+  lockedSkippedCount: number;
 } {
   const updatedGlyphs: Record<number, GlyphData> = { ...glyphs };
+  const upm = options.unitsPerEm && options.unitsPerEm > 0 ? options.unitsPerEm : 1000;
   let modifiedCount = 0;
+  let lockedSkippedCount = 0;
 
   for (const [codeStr, glyph] of Object.entries(glyphs)) {
+    if (!glyph) continue;
     const code = Number(codeStr);
     if (!isCharInScope(code, options.scope)) continue;
 
     const contours = glyph.contours || [];
     if (!contours.some((c) => c.nodes && c.nodes.length > 0)) continue;
 
-    const bbox = getContoursBoundingBox(contours);
+    if (glyph.locked) {
+      lockedSkippedCount++;
+      continue;
+    }
 
-    let newAdvance = glyph.advanceWidth || 1000;
-    let newLsb = glyph.lsb ?? 50;
+    const bbox = getContoursBoundingBox(contours);
+    const prevAdvance = glyph.advanceWidth;
+    const prevLsb = glyph.lsb;
+
+    let newAdvance = prevAdvance && prevAdvance > 0 ? prevAdvance : upm;
+    let newLsb = prevLsb ?? Math.round(upm * 0.05);
     let newContours = contours;
 
     if (options.mode === 'smart-auto') {
       // スマート自動計算 (和文は全角中央揃え、欧文はプロポーショナル光学マージン)
-      const res = calculateOptimalSpacing(code, contours, 'smart', options.unitsPerEm ?? 1000);
-      newAdvance = res.advanceWidth;
+      const res = calculateOptimalSpacing(code, contours, 'smart', upm);
+      newAdvance = Math.max(1, res.advanceWidth);
       newLsb = res.lsb;
       newContours = res.contours;
     } else if (options.mode === 'center') {
@@ -258,37 +269,53 @@ export function batchAdjustSidebearings(
         newContours = transformContours(contours, (p) => ({ x: p.x + dx, y: p.y }));
         const newBbox = getContoursBoundingBox(newContours);
         newLsb = Math.round(newBbox.minX);
+      } else {
+        newLsb = Math.round(bbox.minX);
       }
     } else if (options.mode === 'proportional') {
       // プロポーショナル化：指定された左右余白（例: LSB=60, RSB=60）に合わせて文字を配置し、送り幅を再計算
-      const targetLsb = options.lsb ?? 60;
-      const targetRsb = options.rsb ?? 60;
+      const defaultMargin = Math.round(60 * (upm / 1000));
+      const targetLsb = options.lsb ?? defaultMargin;
+      const targetRsb = options.rsb ?? defaultMargin;
       const dx = Math.round(targetLsb - bbox.minX);
       if (dx !== 0) {
         newContours = transformContours(contours, (p) => ({ x: p.x + dx, y: p.y }));
       }
       newLsb = targetLsb;
-      newAdvance = Math.round(targetLsb + bbox.width + targetRsb);
+      newAdvance = Math.max(1, Math.round(targetLsb + bbox.width + targetRsb));
     } else if (options.mode === 'uniform-advance') {
-      // 送り幅の統一（全角1000、半角500など）
-      newAdvance = options.targetAdvance ?? 1000;
+      // 送り幅の統一（全角upm、半角upm/2など）
+      newAdvance = Math.max(1, Math.round(options.targetAdvance ?? upm));
       // 左右余白を均等に再配分
       const targetCenter = newAdvance / 2;
       const dx = Math.round(targetCenter - bbox.centerX);
-      newContours = transformContours(contours, (p) => ({ x: p.x + dx, y: p.y }));
-      const newBbox = getContoursBoundingBox(newContours);
-      newLsb = Math.round(newBbox.minX);
+      if (dx !== 0) {
+        newContours = transformContours(contours, (p) => ({ x: p.x + dx, y: p.y }));
+        const newBbox = getContoursBoundingBox(newContours);
+        newLsb = Math.round(newBbox.minX);
+      } else {
+        newLsb = Math.round(bbox.minX);
+      }
     } else if (options.mode === 'offset-lsb') {
       // 左余白オフセット加減算
-      const delta = options.offsetDelta ?? 0;
+      const delta = Math.round(options.offsetDelta ?? 0);
       if (delta !== 0) {
         newContours = transformContours(contours, (p) => ({ x: p.x + delta, y: p.y }));
-        newLsb = (glyph.lsb ?? 50) + delta;
+        const newBbox = getContoursBoundingBox(newContours);
+        newLsb = Math.round(newBbox.minX);
       }
     } else if (options.mode === 'offset-rsb') {
       // 右余白オフセット加減算（送り幅を広げる/狭める）
-      const delta = options.offsetDelta ?? 0;
-      newAdvance = Math.max(100, newAdvance + delta);
+      const delta = Math.round(options.offsetDelta ?? 0);
+      if (delta !== 0) {
+        newAdvance = Math.max(1, newAdvance + delta);
+      }
+    }
+
+    const contoursChanged = newContours !== contours;
+    const metricsChanged = newAdvance !== prevAdvance || newLsb !== prevLsb;
+    if (!contoursChanged && !metricsChanged) {
+      continue;
     }
 
     updatedGlyphs[code] = {
@@ -301,7 +328,55 @@ export function batchAdjustSidebearings(
     modifiedCount++;
   }
 
-  return { updatedGlyphs, modifiedCount };
+  return { updatedGlyphs, modifiedCount, lockedSkippedCount };
+}
+
+function getScanlineExtremumX(
+  polylines: { pts: Point[]; closed: boolean }[],
+  sampleY: number,
+  bandTolerance: number,
+  mode: 'max' | 'min',
+  xOffset: number = 0
+): number | null {
+  let best = mode === 'max' ? -Infinity : Infinity;
+  const record = (x: number) => {
+    const shifted = x + xOffset;
+    if (mode === 'max') {
+      if (shifted > best) best = shifted;
+    } else if (shifted < best) {
+      best = shifted;
+    }
+  };
+
+  for (const { pts, closed } of polylines) {
+    if (pts.length === 0) continue;
+    const segCount = closed ? pts.length : pts.length - 1;
+    for (let i = 0; i < segCount; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % pts.length];
+      const y1 = p1.y;
+      const y2 = p2.y;
+      if ((y1 <= sampleY && y2 >= sampleY) || (y2 <= sampleY && y1 >= sampleY)) {
+        if (Math.abs(y2 - y1) < 1e-6) {
+          record(p1.x);
+          record(p2.x);
+        } else {
+          const t = (sampleY - y1) / (y2 - y1);
+          record(p1.x + (p2.x - p1.x) * t);
+        }
+      } else if (Math.abs(y1 - sampleY) <= bandTolerance) {
+        record(p1.x);
+      }
+    }
+    if (!closed) {
+      const last = pts[pts.length - 1];
+      if (Math.abs(last.y - sampleY) <= bandTolerance) {
+        record(last.x);
+      }
+    }
+  }
+
+  return Number.isFinite(best) ? best : null;
 }
 
 /**
@@ -310,11 +385,17 @@ export function batchAdjustSidebearings(
 export function calculateAutoKernOffset(
   leftGlyph: GlyphData,
   rightGlyph: GlyphData,
-  targetGap: number = 40
+  targetGap?: number,
+  unitsPerEm: number = 1000
 ): number {
   if (!leftGlyph?.contours?.length || !rightGlyph?.contours?.length) {
     return 0;
   }
+
+  const upm = unitsPerEm > 0 ? unitsPerEm : 1000;
+  const emScale = upm / 1000;
+  const resolvedTargetGap = targetGap !== undefined ? targetGap : Math.round(40 * emScale);
+  const advanceX = leftGlyph.advanceWidth > 0 ? leftGlyph.advanceWidth : upm;
 
   const leftBbox = getContoursBoundingBox(leftGlyph.contours);
   const rightBbox = getContoursBoundingBox(rightGlyph.contours);
@@ -326,8 +407,16 @@ export function calculateAutoKernOffset(
 
   if (maxY <= minY) return 0;
 
+  const leftPolylines = leftGlyph.contours
+    .filter((c) => c.nodes && c.nodes.length > 0)
+    .map((c) => ({ pts: sampleContourPoints(c, 16), closed: c.closed }));
+  const rightPolylines = rightGlyph.contours
+    .filter((c) => c.nodes && c.nodes.length > 0)
+    .map((c) => ({ pts: sampleContourPoints(c, 16), closed: c.closed }));
+
   const steps = 16;
   const stepY = (maxY - minY) / steps;
+  const bandTolerance = stepY * 0.75;
 
   let minGap = Infinity;
   let totalGap = 0;
@@ -336,26 +425,10 @@ export function calculateAutoKernOffset(
   for (let i = 0; i <= steps; i++) {
     const sampleY = minY + i * stepY;
 
-    let maxLeftX = -Infinity;
-    for (const c of leftGlyph.contours) {
-      for (const n of c.nodes) {
-        if (Math.abs(n.y - sampleY) < stepY * 1.5) {
-          if (n.x > maxLeftX) maxLeftX = n.x;
-        }
-      }
-    }
+    const maxLeftX = getScanlineExtremumX(leftPolylines, sampleY, bandTolerance, 'max', 0);
+    const minRightX = getScanlineExtremumX(rightPolylines, sampleY, bandTolerance, 'min', advanceX);
 
-    let minRightX = Infinity;
-    for (const c of rightGlyph.contours) {
-      for (const n of c.nodes) {
-        const shiftedX = n.x + (leftGlyph.advanceWidth || 1000);
-        if (Math.abs(n.y - sampleY) < stepY * 1.5) {
-          if (shiftedX < minRightX) minRightX = shiftedX;
-        }
-      }
-    }
-
-    if (maxLeftX !== -Infinity && minRightX !== Infinity) {
+    if (maxLeftX !== null && minRightX !== null) {
       const gap = minRightX - maxLeftX;
       if (gap < minGap) minGap = gap;
       totalGap += gap;
@@ -367,8 +440,10 @@ export function calculateAutoKernOffset(
 
   const avgGap = totalGap / validSamples;
   const opticalGap = minGap * 0.6 + avgGap * 0.4;
-  const kerningDelta = Math.round(targetGap - opticalGap);
+  const kerningDelta = Math.round(resolvedTargetGap - opticalGap);
 
-  return Math.max(-350, Math.min(150, kerningDelta));
+  const minBound = Math.round(-350 * emScale);
+  const maxBound = Math.round(150 * emScale);
+  return Math.max(minBound, Math.min(maxBound, kerningDelta));
 }
 

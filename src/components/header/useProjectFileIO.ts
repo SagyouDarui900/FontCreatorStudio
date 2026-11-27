@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { FontMetadata, FontProject, GlyphData } from '../../types';
+import { FontMetadata, FontProject, GlyphData, IvsGlyphVariant } from '../../types';
 import { createDefaultProject } from '../../utils/font/projectDefaults';
 import { validateStoredFontProjectWithReport } from '../../utils/font/validation';
 import {
@@ -62,6 +62,7 @@ export function useProjectFileIO({
     summary: PendingFontImportSummary;
     metadata: Partial<FontMetadata>;
     glyphs: Record<number, GlyphData>;
+    ivsVariants?: Record<string, IvsGlyphVariant>;
     report?: FontImportReport;
   } | null>(null);
 
@@ -175,9 +176,11 @@ export function useProjectFileIO({
     glyphs: Record<number, GlyphData>,
     mode: 'overwrite' | 'addOnly',
     fileName: string,
-    report?: FontImportReport
+    report?: FontImportReport,
+    ivsVariants?: Record<string, IvsGlyphVariant>
   ) => {
     const droppedNotice = formatFontImportDroppedNotice(report);
+    const ivsCount = ivsVariants ? Object.keys(ivsVariants).length : 0;
     if (mode === 'overwrite') {
       const importedCount = Object.keys(glyphs).length;
       // Register history before replacing, so Ctrl+Z restores the
@@ -197,10 +200,18 @@ export function useProjectFileIO({
           ...prev.glyphs,
           ...glyphs,
         },
+        ...(ivsCount > 0
+          ? {
+              ivsVariants: {
+                ...(prev.ivsVariants || {}),
+                ...ivsVariants,
+              },
+            }
+          : {}),
         updatedAt: Date.now(),
       }));
       notify(
-        `フォント「${metadata.familyName || fileName}」から ${importedCount} 文字をインポートしました`,
+        `フォント「${metadata.familyName || fileName}」から ${importedCount} 文字${ivsCount > 0 ? `（+IVS異体字 ${ivsCount}件）` : ''}をインポートしました`,
         'success'
       );
       if (droppedNotice) notify(droppedNotice, 'warning');
@@ -208,6 +219,7 @@ export function useProjectFileIO({
     }
 
     let addedCount = 0;
+    let addedIvsCount = 0;
     const addedUnicodes: number[] = [];
     for (const [k] of Object.entries(glyphs)) {
       const u = Number(k);
@@ -229,14 +241,24 @@ export function useProjectFileIO({
           addedCount++;
         }
       }
+      const nextIvs: Record<string, IvsGlyphVariant> = { ...(prev.ivsVariants || {}) };
+      if (ivsVariants) {
+        for (const [k, variant] of Object.entries(ivsVariants)) {
+          if (!nextIvs[k]) {
+            nextIvs[k] = variant;
+            addedIvsCount++;
+          }
+        }
+      }
       return {
         ...prev,
         glyphs: nextGlyphs,
+        ...(Object.keys(nextIvs).length > 0 ? { ivsVariants: nextIvs } : {}),
         updatedAt: Date.now(),
       };
     });
     notify(
-      `フォント「${metadata.familyName || fileName}」から未作成の ${addedCount} 文字を追加しました`,
+      `フォント「${metadata.familyName || fileName}」から未作成の ${addedCount} 文字${addedIvsCount > 0 ? `（+IVS異体字 ${addedIvsCount}件）` : ''}を追加しました`,
       'success'
     );
     if (droppedNotice) notify(droppedNotice, 'warning');
@@ -249,7 +271,8 @@ export function useProjectFileIO({
       pendingFontImportData.glyphs,
       mode,
       pendingFontImportData.summary.fileName,
-      pendingFontImportData.report
+      pendingFontImportData.report,
+      pendingFontImportData.ivsVariants
     );
     setPendingFontImportData(null);
   };
@@ -263,11 +286,11 @@ export function useProjectFileIO({
     if (!file) return;
     try {
       const { loadFontFromFile } = await import('../../utils/font/io');
-      const { metadata, glyphs, report } = await loadFontFromFile(file);
+      const { metadata, glyphs, ivsVariants, report } = await loadFontFromFile(file);
       const importedKeys = Object.keys(glyphs);
       const existingKeys = Object.keys(project.glyphs || {});
       if (existingKeys.length === 0) {
-        commitFontImport(metadata, glyphs, 'overwrite', file.name, report);
+        commitFontImport(metadata, glyphs, 'overwrite', file.name, report, ivsVariants);
       } else {
         let overwriteCount = 0;
         let newOnlyCount = 0;
@@ -292,6 +315,7 @@ export function useProjectFileIO({
           },
           metadata,
           glyphs,
+          ivsVariants,
           report,
         });
       }

@@ -72,9 +72,6 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="日本語組版・文字組みスタジオ"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -83,6 +80,9 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
       className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-black/75 anim-fade select-none"
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="日本語組版・文字組みスタジオ"
         className={`w-full h-[100dvh] sm:h-[min(92dvh,920px)] sm:max-w-[1540px] sm:max-h-[92vh] border-0 sm:border rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl flex flex-col overflow-hidden ${themeClasses.modalBg} ${themeClasses.border} ${themeClasses.textPrimary}`}
       >
         {/* HEADER BAR 1: Brand & Top Quick Action Bar */}
@@ -318,7 +318,7 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
                 : `${themeClasses.textMuted} ${themeClasses.activeToolHover}`
             }`}
           >
-            組版設定 (Q/H)
+            設定 (Q・アキ・禁則)
           </button>
         </div>
 
@@ -365,10 +365,10 @@ export const MojikumiStudioModal: React.FC<MojikumiStudioModalWithPersistedProps
           <main
             className={`${
               state.mobileTab !== 'preview' ? 'hidden md:flex' : 'flex'
-            } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-auto relative ${
+            } flex-1 min-h-0 flex-col overflow-y-auto overflow-x-auto overscroll-contain touch-pan-both relative ${
               isLight ? 'bg-stone-200/50' : 'bg-black/30'
             }`}
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
             title="組版プレビュー（幅が足りない場合は横にスクロールできます）"
           >
             <div

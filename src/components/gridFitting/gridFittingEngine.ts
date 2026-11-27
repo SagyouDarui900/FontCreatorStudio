@@ -134,8 +134,19 @@ export function applyGridFittingToGlyph(
   if (!glyph.contours || glyph.contours.length === 0 || ppem <= 0) return glyph;
 
   const pixelSizeInUnits = upm / ppem;
-  const minStrokeUnits = config.minStemWidthPx * pixelSizeInUnits;
+  const strength = Math.max(
+    0,
+    Math.min(1, Number.isFinite(config.snapStrength) ? config.snapStrength : 1)
+  );
+  const safeMinStemPx =
+    typeof config.minStemWidthPx === 'number' &&
+    Number.isFinite(config.minStemWidthPx) &&
+    config.minStemWidthPx > 0
+      ? config.minStemWidthPx
+      : 0;
+  const minStrokeUnits = safeMinStemPx * pixelSizeInUnits;
   const resolvedMetrics = config.snapMetrics ? resolveCanvasMetrics(metrics, upm) : null;
+  const roundCoord = (v: number) => Math.round(v * 10) / 10;
 
   const newContours: PathContour[] = glyph.contours.map((c) => ({
     ...c,
@@ -145,12 +156,12 @@ export function applyGridFittingToGlyph(
 
       if (config.snapVertical) {
         const roundedX = Math.round(n.x / pixelSizeInUnits) * pixelSizeInUnits;
-        targetX = n.x + (roundedX - n.x) * config.snapStrength;
+        targetX = n.x + (roundedX - n.x) * strength;
       }
 
       if (config.snapHorizontal) {
         const roundedY = Math.round(n.y / pixelSizeInUnits) * pixelSizeInUnits;
-        targetY = n.y + (roundedY - n.y) * config.snapStrength;
+        targetY = n.y + (roundedY - n.y) * strength;
       }
 
       if (config.snapMetrics && resolvedMetrics) {
@@ -158,58 +169,97 @@ export function applyGridFittingToGlyph(
         const threshold = pixelSizeInUnits * 0.5;
 
         if (Math.abs(n.y - baselineY) < threshold) {
-          targetY = n.y + (baselineY - n.y) * config.snapStrength;
+          targetY = n.y + (baselineY - n.y) * strength;
         } else if (Math.abs(n.y - capHeightY) < threshold) {
-          targetY = n.y + (capHeightY - n.y) * config.snapStrength;
+          targetY = n.y + (capHeightY - n.y) * strength;
         } else if (Math.abs(n.y - xHeightY) < threshold) {
-          targetY = n.y + (xHeightY - n.y) * config.snapStrength;
+          targetY = n.y + (xHeightY - n.y) * strength;
         } else if (Math.abs(n.y - ascenderY) < threshold) {
-          targetY = n.y + (ascenderY - n.y) * config.snapStrength;
+          targetY = n.y + (ascenderY - n.y) * strength;
         } else if (Math.abs(n.y - 0) < threshold) {
-          targetY = n.y + (0 - n.y) * config.snapStrength;
+          targetY = n.y + (0 - n.y) * strength;
         } else if (Math.abs(n.y - descenderY) < threshold) {
-          targetY = n.y + (descenderY - n.y) * config.snapStrength;
+          targetY = n.y + (descenderY - n.y) * strength;
         }
       }
 
-      const dx = targetX - n.x;
-      const dy = targetY - n.y;
+      const finalX = roundCoord(targetX);
+      const finalY = roundCoord(targetY);
+      const dx = finalX - n.x;
+      const dy = finalY - n.y;
 
       const handleIn = n.handleIn ? { ...n.handleIn } : null;
       const handleOut = n.handleOut ? { ...n.handleOut } : null;
 
       if (config.adjustHandles) {
         if (handleIn) {
-          handleIn.x += dx * config.snapStrength;
-          handleIn.y += dy * config.snapStrength;
+          handleIn.x = roundCoord(handleIn.x + dx);
+          handleIn.y = roundCoord(handleIn.y + dy);
         }
         if (handleOut) {
-          handleOut.x += dx * config.snapStrength;
-          handleOut.y += dy * config.snapStrength;
+          handleOut.x = roundCoord(handleOut.x + dx);
+          handleOut.y = roundCoord(handleOut.y + dy);
         }
       }
 
       return {
         ...n,
-        x: Math.round(targetX * 10) / 10,
-        y: Math.round(targetY * 10) / 10,
+        x: finalX,
+        y: finalY,
         handleIn,
         handleOut,
       };
     }),
   }));
 
-  if (minStrokeUnits > 0) {
+  if (minStrokeUnits > 0 && strength > 0) {
     const stems = detectGlyphStems(newContours, ppem, upm);
+    const preExpandCoords = new Map<BezierNode, { x: number; y: number }>();
+    for (const c of newContours) {
+      for (const node of c.nodes) {
+        preExpandCoords.set(node, { x: node.x, y: node.y });
+      }
+    }
+
     for (const s of stems) {
-      if (s.width < minStrokeUnits) {
-        const expand = (minStrokeUnits - s.width) / 2;
+      if (s.width > 0 && s.width < minStrokeUnits) {
+        const expand = ((minStrokeUnits - s.width) / 2) * strength;
+        const wallTol = Math.min(s.width * 0.4, Math.max(6, pixelSizeInUnits * 0.25));
+        const lowWall = s.pos - s.width / 2;
+        const highWall = s.pos + s.width / 2;
+
         for (const c of newContours) {
           for (const node of c.nodes) {
-            if (s.type === 'v' && Math.abs(node.x - s.pos) < s.width + 10) {
-              node.x += node.x >= s.pos ? expand : -expand;
-            } else if (s.type === 'h' && Math.abs(node.y - s.pos) < s.width + 10) {
-              node.y += node.y >= s.pos ? expand : -expand;
+            const orig = preExpandCoords.get(node);
+            if (!orig) continue;
+            if (s.type === 'v') {
+              let shiftX = 0;
+              if (Math.abs(orig.x - lowWall) <= wallTol) {
+                shiftX = -expand;
+              } else if (Math.abs(orig.x - highWall) <= wallTol) {
+                shiftX = expand;
+              }
+              if (shiftX !== 0) {
+                node.x = roundCoord(node.x + shiftX);
+                if (config.adjustHandles) {
+                  if (node.handleIn) node.handleIn.x = roundCoord(node.handleIn.x + shiftX);
+                  if (node.handleOut) node.handleOut.x = roundCoord(node.handleOut.x + shiftX);
+                }
+              }
+            } else if (s.type === 'h') {
+              let shiftY = 0;
+              if (Math.abs(orig.y - lowWall) <= wallTol) {
+                shiftY = -expand;
+              } else if (Math.abs(orig.y - highWall) <= wallTol) {
+                shiftY = expand;
+              }
+              if (shiftY !== 0) {
+                node.y = roundCoord(node.y + shiftY);
+                if (config.adjustHandles) {
+                  if (node.handleIn) node.handleIn.y = roundCoord(node.handleIn.y + shiftY);
+                  if (node.handleOut) node.handleOut.y = roundCoord(node.handleOut.y + shiftY);
+                }
+              }
             }
           }
         }
@@ -253,14 +303,21 @@ export function renderRasterPreviewToCanvas(
     return;
   }
 
+  const isSubpixel = renderingMode === 'subpixel_lcd';
+  const offWidth = isSubpixel ? selectedPpem * 3 : selectedPpem;
   const off = document.createElement('canvas');
-  off.width = selectedPpem;
+  off.width = offWidth;
   off.height = selectedPpem;
   const offCtx = off.getContext('2d');
   if (!offCtx) return;
 
   offCtx.fillStyle = '#ffffff';
-  offCtx.fillRect(0, 0, selectedPpem, selectedPpem);
+  offCtx.fillRect(0, 0, offWidth, selectedPpem);
+
+  if (isSubpixel) {
+    offCtx.save();
+    offCtx.scale(3, 1);
+  }
 
   offCtx.fillStyle = '#000000';
   offCtx.beginPath();
@@ -299,46 +356,72 @@ export function renderRasterPreviewToCanvas(
   }
 
   offCtx.fill('evenodd');
-
-  const imgData = offCtx.getImageData(0, 0, selectedPpem, selectedPpem);
-  const data = imgData.data;
-
-  if (renderingMode === 'mono') {
-    for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const v = avg < 128 ? 0 : 255;
-      data[i] = v;
-      data[i + 1] = v;
-      data[i + 2] = v;
-    }
-    offCtx.putImageData(imgData, 0, 0);
+  if (isSubpixel) {
+    offCtx.restore();
   }
+
+  const imgData = offCtx.getImageData(0, 0, offWidth, selectedPpem);
+  const data = imgData.data;
 
   const cellSize = width / selectedPpem;
   ctx.imageSmoothingEnabled = false;
 
-  for (let py = 0; py < selectedPpem; py++) {
-    for (let px = 0; px < selectedPpem; px++) {
-      const idx = (py * selectedPpem + px) * 4;
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const alpha = (255 - (r + g + b) / 3) / 255;
+  const bgRgb = isLight ? [248, 250, 249] : [10, 18, 12];
+  const inkRgb = isLight ? [20, 30, 25] : [52, 211, 153];
 
-      if (renderingMode === 'subpixel_lcd') {
-        const subW = cellSize / 3;
-        ctx.fillStyle = `rgb(${255 - r}, 0, 0)`;
-        ctx.fillRect(px * cellSize, py * cellSize, subW, cellSize);
-        ctx.fillStyle = `rgb(0, ${255 - g}, 0)`;
-        ctx.fillRect(px * cellSize + subW, py * cellSize, subW, cellSize);
-        ctx.fillStyle = `rgb(0, 0, ${255 - b})`;
-        ctx.fillRect(px * cellSize + subW * 2, py * cellSize, subW, cellSize);
+  for (let py = 0; py < selectedPpem; py++) {
+    const y0 = Math.round(py * cellSize);
+    const y1 = Math.round((py + 1) * cellSize);
+    const cellH = Math.max(1, y1 - y0);
+
+    for (let px = 0; px < selectedPpem; px++) {
+      const x0 = Math.round(px * cellSize);
+      const x1 = Math.round((px + 1) * cellSize);
+      const cellW = Math.max(1, x1 - x0);
+
+      if (isSubpixel) {
+        const rIdx = (py * offWidth + px * 3) * 4;
+        const gIdx = (py * offWidth + px * 3 + 1) * 4;
+        const bIdx = (py * offWidth + px * 3 + 2) * 4;
+        const inkR = (255 - (data[rIdx] + data[rIdx + 1] + data[rIdx + 2]) / 3) / 255;
+        const inkG = (255 - (data[gIdx] + data[gIdx + 1] + data[gIdx + 2]) / 3) / 255;
+        const inkB = (255 - (data[bIdx] + data[bIdx + 1] + data[bIdx + 2]) / 3) / 255;
+
+        if (inkR <= 0 && inkG <= 0 && inkB <= 0) continue;
+
+        const sx0 = x0;
+        const sx1 = Math.round(x0 + cellW / 3);
+        const sx2 = Math.round(x0 + (cellW * 2) / 3);
+        const sx3 = x1;
+
+        const outR = Math.round(bgRgb[0] + (inkRgb[0] - bgRgb[0]) * inkR);
+        const outG = Math.round(bgRgb[1] + (inkRgb[1] - bgRgb[1]) * inkG);
+        const outB = Math.round(bgRgb[2] + (inkRgb[2] - bgRgb[2]) * inkB);
+
+        if (Math.abs(inkR - inkG) < 0.02 && Math.abs(inkG - inkB) < 0.02) {
+          ctx.fillStyle = `rgb(${outR}, ${outG}, ${outB})`;
+          ctx.fillRect(x0, y0, cellW, cellH);
+        } else {
+          const avg = (inkR + inkG + inkB) / 3;
+          const blend = (ch: number, weight: number) =>
+            Math.round(bgRgb[ch] + (inkRgb[ch] - bgRgb[ch]) * weight);
+          ctx.fillStyle = `rgb(${outR}, ${blend(1, avg * 0.7 + inkR * 0.3)}, ${blend(2, avg * 0.7 + inkR * 0.3)})`;
+          ctx.fillRect(sx0, y0, Math.max(1, sx1 - sx0), cellH);
+          ctx.fillStyle = `rgb(${blend(0, avg * 0.7 + inkG * 0.3)}, ${outG}, ${blend(2, avg * 0.7 + inkG * 0.3)})`;
+          ctx.fillRect(sx1, y0, Math.max(1, sx2 - sx1), cellH);
+          ctx.fillStyle = `rgb(${blend(0, avg * 0.7 + inkB * 0.3)}, ${blend(1, avg * 0.7 + inkB * 0.3)}, ${outB})`;
+          ctx.fillRect(sx2, y0, Math.max(1, sx3 - sx2), cellH);
+        }
       } else {
-        const fillColor = isLight
+        const idx = (py * offWidth + px) * 4;
+        const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        const alpha = renderingMode === 'mono' ? (gray < 128 ? 1 : 0) : (255 - gray) / 255;
+        if (alpha <= 0) continue;
+
+        ctx.fillStyle = isLight
           ? `rgba(20, 30, 25, ${alpha})`
           : `rgba(52, 211, 153, ${alpha * 0.9})`;
-        ctx.fillStyle = fillColor;
-        ctx.fillRect(px * cellSize, py * cellSize, cellSize, cellSize);
+        ctx.fillRect(x0, y0, cellW, cellH);
       }
     }
   }
@@ -346,7 +429,7 @@ export function renderRasterPreviewToCanvas(
   ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= selectedPpem; i++) {
-    const p = Math.floor(i * cellSize) + 0.5;
+    const p = Math.round(i * cellSize) + 0.5;
     ctx.beginPath();
     ctx.moveTo(p, 0);
     ctx.lineTo(p, height);

@@ -36,6 +36,8 @@ export interface SliderRowProps {
   /** 値の後ろに付ける単位（例: "%"、"px"）。 */
   unit?: string;
   onChange: (value: number) => void;
+  /** Called once when a drag, keyboard step, or numeric input interaction begins. */
+  onInteractionStart?: () => void;
   showNumberInput?: boolean;
   disabled?: boolean;
   /** スライダーの下に出す補足文。 */
@@ -55,6 +57,7 @@ export const SliderRow: React.FC<SliderRowProps> = ({
   step = 1,
   unit,
   onChange,
+  onInteractionStart,
   showNumberInput = false,
   disabled = false,
   hint,
@@ -96,6 +99,21 @@ export const SliderRow: React.FC<SliderRowProps> = ({
           step={step}
           value={value}
           disabled={disabled}
+          onPointerDown={() => onInteractionStart?.()}
+          onKeyDown={(e) => {
+            if (
+              e.key === 'ArrowLeft' ||
+              e.key === 'ArrowRight' ||
+              e.key === 'ArrowUp' ||
+              e.key === 'ArrowDown' ||
+              e.key === 'Home' ||
+              e.key === 'End' ||
+              e.key === 'PageUp' ||
+              e.key === 'PageDown'
+            ) {
+              onInteractionStart?.();
+            }
+          }}
           onChange={(e) => onChange(Number(e.target.value))}
           className="w-full accent-emerald-600"
           aria-label={label}
@@ -108,6 +126,7 @@ export const SliderRow: React.FC<SliderRowProps> = ({
             step={step}
             value={value}
             disabled={disabled}
+            onFocus={() => onInteractionStart?.()}
             onChange={(e) => handleNumberChange(e.target.value)}
             className={`w-16 shrink-0 px-2 py-1 rounded-lg border text-xs font-mono tabular-nums text-center ${themeClasses.cardBg}`}
             aria-label={`${label}（数値入力）`}

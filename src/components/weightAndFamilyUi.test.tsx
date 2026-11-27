@@ -500,4 +500,268 @@ describe('Weight Interpolation & Family Settings Audit Fixes', () => {
 
     unmount();
   });
+
+  it('WeightInterpolationModal preserves metadata on partial scope, scales delta for 2048 UPM, supports ExtraLight preset, and prefers onCommitBatchHistory with IVS', () => {
+    const proj = makeProject();
+    proj.metadata.unitsPerEm = 2048;
+    proj.glyphs[0x3042].advanceWidth = 2048;
+    proj.glyphs[0x3042].lsb = 400;
+    proj.glyphs[0x3042].contours = [
+      {
+        id: 'c-a-2048',
+        closed: true,
+        nodes: [
+          { id: 'a1', x: 400, y: 400, handleIn: null, handleOut: null, type: 'corner' },
+          { id: 'a2', x: 1600, y: 400, handleIn: null, handleOut: null, type: 'corner' },
+          { id: 'a3', x: 1600, y: 1600, handleIn: null, handleOut: null, type: 'corner' },
+          { id: 'a4', x: 400, y: 1600, handleIn: null, handleOut: null, type: 'corner' },
+        ],
+      },
+    ];
+    proj.glyphs[0x0041] = {
+      unicode: 0x0041,
+      char: 'A',
+      name: 'A',
+      advanceWidth: 1200,
+      lsb: 100,
+      contours: [
+        {
+          id: 'c-lat',
+          closed: true,
+          nodes: [
+            { id: 'l1', x: 100, y: 200, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'l2', x: 1000, y: 200, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'l3', x: 1000, y: 1400, handleIn: null, handleOut: null, type: 'corner' },
+            { id: 'l4', x: 100, y: 1400, handleIn: null, handleOut: null, type: 'corner' },
+          ],
+        },
+      ],
+    };
+    proj.ivsVariants = {
+      '3042_E0100': {
+        id: '3042_E0100',
+        baseUnicode: 0x3042,
+        selectorCode: 0xe0100,
+        updatedAt: 1000,
+        glyph: {
+          unicode: 0x3042,
+          char: 'あ',
+          name: 'uni3042.E0100',
+          advanceWidth: 2048,
+          lsb: 400,
+          contours: [
+            {
+              id: 'c-ivs',
+              closed: true,
+              nodes: [
+                { id: 'v1', x: 400, y: 400, handleIn: null, handleOut: null, type: 'corner' },
+                { id: 'v2', x: 1600, y: 400, handleIn: null, handleOut: null, type: 'corner' },
+                { id: 'v3', x: 1600, y: 1600, handleIn: null, handleOut: null, type: 'corner' },
+                { id: 'v4', x: 400, y: 1600, handleIn: null, handleOut: null, type: 'corner' },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    let currentProj = proj;
+    const setProject = vi.fn((updater) => {
+      currentProj = typeof updater === 'function' ? updater(currentProj) : updater;
+    });
+    const onCommitBatchHistory = vi.fn();
+    const onCommitProjectHistory = vi.fn();
+    const onShowToast = vi.fn();
+
+    const { container, unmount } = renderModal(
+      <WeightInterpolationModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={currentProj}
+        setProject={setProject}
+        selectedUnicode={0x3042}
+        theme="dark"
+        onShowToast={onShowToast}
+        onCommitBatchHistory={onCommitBatchHistory}
+        onCommitProjectHistory={onCommitProjectHistory}
+      />
+    );
+
+    // ExtraLight preset exists
+    const extraLightBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('ExtraLight')
+    );
+    expect(extraLightBtn).toBeDefined();
+
+    // Switch scope to 'かなのみ'
+    const kanaScopeBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('かなのみ')
+    );
+    expect(kanaScopeBtn).toBeDefined();
+    act(() => {
+      kanaScopeBtn!.click();
+    });
+
+    // Badge shows 1 kana glyph + 1 IVS variant + 1 locked kana excluded ('い')
+    expect(container.textContent).toContain('対象: 1 文字 + IVS 1件 (ロック除外 1)');
+
+    const applyBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('現在のプロジェクトに適用')
+    );
+    act(() => {
+      applyBtn!.click();
+    });
+
+    // Single batched history commit including both unicode & IVS key; NO project metadata commit on partial scope
+    expect(onCommitBatchHistory).toHaveBeenCalledTimes(1);
+    expect(onCommitBatchHistory).toHaveBeenCalledWith([0x3042], ['3042_E0100']);
+    expect(onCommitProjectHistory).not.toHaveBeenCalled();
+
+    // Bold (+70) at 2048 UPM scales to 70 * 2.048 = 143.36 => minX goes from 400 to ~257
+    expect(currentProj.glyphs[0x3042].lsb).toBe(257);
+    expect(currentProj.ivsVariants!['3042_E0100'].glyph.lsb).toBe(257);
+    // Latin 'A' outside kana scope remained untouched
+    expect(currentProj.glyphs[0x0041].contours[0].id).toBe('c-lat');
+    // Metadata remains Regular (400) because scope was partial ('kana')
+    expect(currentProj.metadata.styleName).toBe('Regular');
+    expect(currentProj.metadata.usWeightClass).toBe(400);
+
+    unmount();
+  });
+
+  it('WeightInterpolationModal supports pixelData glyphs, clickable sample strip, and Master advanceWidth/same-master guard', () => {
+    const proj = makeProject();
+    // Replace 'い' lock with unlocked second glyph having different advanceWidth, and add pixelData-only 'う'
+    proj.glyphs[0x3044].locked = false;
+    proj.glyphs[0x3044].advanceWidth = 800;
+    proj.glyphs[0x3046] = {
+      unicode: 0x3046,
+      char: 'う',
+      name: 'uni3046',
+      advanceWidth: 1000,
+      lsb: 100,
+      contours: [],
+      pixelData: {
+        width: 8,
+        height: 8,
+        data: [
+          0, 0, 1, 1, 1, 1, 0, 0,
+          0, 1, 1, 0, 0, 1, 1, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+      },
+    };
+
+    let currentProj = proj;
+    const setProject = vi.fn((updater) => {
+      currentProj = typeof updater === 'function' ? updater(currentProj) : updater;
+    });
+    const onSelectGlyphForEdit = vi.fn();
+
+    const { container, unmount } = renderModal(
+      <WeightInterpolationModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={currentProj}
+        setProject={setProject}
+        selectedUnicode={0x3042}
+        theme="dark"
+        onShowToast={vi.fn()}
+        onCommitHistory={vi.fn()}
+        onSelectGlyphForEdit={onSelectGlyphForEdit}
+      />
+    );
+
+    // Click 'あ' in sample strip -> triggers onSelectGlyphForEdit(0x3042)
+    const stripBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.getAttribute('title')?.includes('「あ」をエディタで直接編集')
+    );
+    expect(stripBtn).toBeDefined();
+    act(() => {
+      stripBtn!.click();
+    });
+    expect(onSelectGlyphForEdit).toHaveBeenCalledWith(0x3042);
+
+    // Master tab tests
+    const masterTabBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('2マスター')
+    )!;
+    act(() => {
+      masterTabBtn.click();
+    });
+
+    // Apply button interpolates advanceWidth between 1000 ('あ') and 800 ('い') at 50% -> 900
+    const masterApplyBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('補間結果を「あ」に適用')
+    ) as HTMLButtonElement;
+    expect(masterApplyBtn.disabled).toBe(false);
+    act(() => {
+      masterApplyBtn.click();
+    });
+    expect(currentProj.glyphs[0x3042].advanceWidth).toBe(900);
+    expect(currentProj.glyphs[0x3042].lsb).toBe(225);
+
+    unmount();
+
+    // Same master selected for A and B disables Apply and shows warning
+    const singleGlyphProj = makeProject();
+    delete singleGlyphProj.glyphs[0x3044]; // only 'あ' is non-empty -> both dropdowns default to 'あ'
+    const singleModal = renderModal(
+      <WeightInterpolationModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={singleGlyphProj}
+        setProject={vi.fn()}
+        selectedUnicode={0x3042}
+        theme="dark"
+      />
+    );
+    const masterBtn2 = Array.from(singleModal.container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('2マスター')
+    )!;
+    act(() => {
+      masterBtn2.click();
+    });
+    expect(singleModal.container.textContent).toContain('マスター A と B に同じ文字が選択されています');
+    const disabledApply = Array.from(singleModal.container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('補間結果を「あ」に適用')
+    ) as HTMLButtonElement;
+    expect(disabledApply.disabled).toBe(true);
+    singleModal.unmount();
+
+    // Applying weight to pixelData-only glyph materializes contours and clears pixelData
+    const pixelOnlyProj = makeProject();
+    delete pixelOnlyProj.glyphs[0x3042];
+    delete pixelOnlyProj.glyphs[0x3044];
+    pixelOnlyProj.glyphs[0x3046] = proj.glyphs[0x3046];
+    let updatedPixelProj = pixelOnlyProj;
+    const pixelModal = renderModal(
+      <WeightInterpolationModal
+        isOpen={true}
+        onClose={vi.fn()}
+        project={updatedPixelProj}
+        setProject={(u) => {
+          updatedPixelProj = typeof u === 'function' ? u(updatedPixelProj) : u;
+        }}
+        selectedUnicode={0x3046}
+        theme="dark"
+        onShowToast={vi.fn()}
+      />
+    );
+    expect(pixelModal.container.textContent).toContain('対象: 1 文字');
+    const pixelApplyBtn = Array.from(pixelModal.container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('現在のプロジェクトに適用')
+    )!;
+    act(() => {
+      pixelApplyBtn.click();
+    });
+    expect(updatedPixelProj.glyphs[0x3046].contours.length).toBeGreaterThan(0);
+    expect(updatedPixelProj.glyphs[0x3046].pixelData).toBeUndefined();
+    pixelModal.unmount();
+  });
 });

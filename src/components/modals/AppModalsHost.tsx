@@ -99,7 +99,10 @@ export interface AppModalsHostProps {
   changeTheme: (mode: ThemeMode) => void;
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   commitHistory: (targetUnicode?: number) => void;
+  commitBatchHistory?: (targetUnicodes: number[], targetIvsKeys?: string[]) => void;
   commitProjectHistory?: () => void;
+  activeIvsKey?: string | null;
+  onSelectIvsVariant?: (ivsKey: string | null) => void;
   traceSettings: TraceSettings;
   setTraceSettings: React.Dispatch<React.SetStateAction<TraceSettings>>;
   overlaySettings: GlyphOverlaySettings;
@@ -144,7 +147,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
   changeTheme,
   showToast,
   commitHistory,
+  commitBatchHistory,
   commitProjectHistory,
+  activeIvsKey,
+  onSelectIvsVariant,
   traceSettings,
   setTraceSettings,
   overlaySettings,
@@ -200,11 +206,14 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
     createDefaultMojikumiPersistedState(project)
   );
 
-  // [group d] A different project starts from defaults again.
+  // [group d] A different project starts from defaults again, and Undo /
+  // same-ID project reload syncs mojikumiSettings into currentConfig.
   const prevProjectIdRef = useRef(project.id);
+  const prevMojikumiSettingsRef = useRef(project.mojikumiSettings);
   useEffect(() => {
     if (prevProjectIdRef.current !== project.id) {
       prevProjectIdRef.current = project.id;
+      prevMojikumiSettingsRef.current = project.mojikumiSettings;
       setTestPreviewPersisted(createDefaultTestPreviewPersistedState());
       setMojikumiPersisted(createDefaultMojikumiPersistedState(project));
       // Export settings also restart from the new project's defaults:
@@ -215,6 +224,13 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
       setExportCustomScale(1.0);
       setExportMergeOverlaps(!isPixel);
       setExportBalanceSideBearings(!isPixel);
+    } else if (prevMojikumiSettingsRef.current !== project.mojikumiSettings) {
+      prevMojikumiSettingsRef.current = project.mojikumiSettings;
+      const nextConfig =
+        project.mojikumiSettings ?? createDefaultMojikumiPersistedState(project).currentConfig;
+      setMojikumiPersisted((prev) =>
+        prev.currentConfig === nextConfig ? prev : { ...prev, currentConfig: nextConfig }
+      );
     }
   }, [project]);
 
@@ -431,6 +447,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             onShowToast={showToast}
             showToast={showToast}
             commitHistory={commitHistory}
+            commitBatchHistory={commitBatchHistory}
             commitProjectHistory={commitProjectHistory}
           />
         );
@@ -446,7 +463,14 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             theme={theme}
             onShowToast={showToast}
             onCommitHistory={commitHistory}
+            onCommitBatchHistory={commitBatchHistory}
             onCommitProjectHistory={commitProjectHistory}
+            onSelectGlyphForEdit={(unicode) => {
+              const g = project.glyphs?.[unicode];
+              const char = g?.char || String.fromCodePoint(unicode);
+              onSelectGlyph(unicode, char);
+              closeAllModals();
+            }}
           />
         );
 
@@ -603,6 +627,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             theme={theme}
             onShowToast={showToast}
             commitHistory={commitHistory}
+            commitBatchHistory={commitBatchHistory}
           />
         );
 
@@ -659,6 +684,10 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             selectedUnicode={selectedUnicode}
             selectedChar={selectedChar}
             glyphs={project.glyphs || {}}
+            project={project}
+            setProject={setProject}
+            activeIvsKey={activeIvsKey}
+            onSelectIvsVariant={onSelectIvsVariant}
             onSelectGlyph={(u) => onSelectGlyph(u)}
             onShowToast={showToast}
             theme={theme}
