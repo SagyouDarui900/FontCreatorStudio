@@ -75,8 +75,27 @@ export const TaperTab: React.FC<TaperTabProps> = ({
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, taperEndOpacity: v }))}
             desc="ベクター輪郭には不透明度の情報がないため、太さの変化として近似して反映されます"
           />
+          <SliderControl
+            label="入りの時間"
+            value={workingPreset.taperStartTime ?? 100}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, taperStartTime: v }))}
+            desc="書き始めの時間のうち入り抜きをかける割合。100%では長さによる入りの範囲のまま。小さいほど、ゆっくり書き始めたときの入りが短くなる"
+          />
+          <SliderControl
+            label="抜きの時間"
+            value={workingPreset.taperEndTime ?? 100}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, taperEndTime: v }))}
+            desc="書き終わりの時間のうち入り抜きをかける割合。100%では長さによる抜きの範囲のまま。小さいほど、ゆっくり書き終えたときの抜きが短くなる"
+          />
         </div>
-        <p className="text-[11px] text-stone-500 dark:text-stone-400">時間による入り抜きは描画に反映されません。長さによる入り抜きを使用します。</p>
 
         {/* Taper Tip Shape Selector */}
         <div className="flex flex-col space-y-1 pt-1.5 border-t border-stone-200/60 dark:border-stone-800/60">

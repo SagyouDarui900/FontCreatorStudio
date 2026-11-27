@@ -34,8 +34,53 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             unit=""
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, smoothingIntensity: v }))}
           />
+          <SliderControl
+            label="高速時補正強度"
+            value={workingPreset.speedStabilization ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit=""
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, speedStabilization: v }))}
+            desc="速く書いたところほど強く補正する"
+          />
         </div>
-        <p className="text-[11px] text-stone-500 dark:text-stone-400">補正方法・高速時補正強度・旧方式の事前補正は描画に反映されません。手ぶれ補正は常時補正強度で調整します。</p>
+
+        <div className="flex flex-col space-y-1 pt-1.5 border-t border-stone-200/60 dark:border-stone-800/60">
+          <span className="text-xs font-medium text-stone-700 dark:text-stone-300">手ぶれ補正の方式</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'pre' }))}
+              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                (workingPreset.stabilizationMethod || 'pre') === 'pre'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+              }`}
+            >
+              <span>事前補正</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setWorkingPreset((prev) => ({ ...prev, stabilizationMethod: 'post' }))}
+              className={`py-1.5 px-2.5 rounded-md text-xs font-semibold border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                workingPreset.stabilizationMethod === 'post'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+              }`}
+            >
+              <span>事後補正</span>
+            </button>
+          </div>
+          <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">事前補正は描く前に中心線をなめらかにし、事後補正は輪郭の太さを後からなめらかにする</span>
+        </div>
+
+        <ToggleControl
+          label="旧方式の事前補正"
+          checked={workingPreset.legacyStabilization ?? false}
+          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, legacyStabilization: v }))}
+          desc="旧方式の3点平均による事前補正をかける"
+        />
 
         <ToggleControl
           label="折れ・角の張り出しを保持 (転折保護)"

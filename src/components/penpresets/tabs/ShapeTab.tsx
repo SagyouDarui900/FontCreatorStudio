@@ -52,7 +52,19 @@ export const ShapeTab: React.FC<ShapeTabProps> = ({
           checked={workingPreset.constantWidth ?? false}
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, constantWidth: v }))}
         />
-        <p className="text-[11px] text-stone-500 dark:text-stone-400">アンチエイリアスと筆先間隔はベクター輪郭に反映されません。</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
+          <SliderControl
+            label="筆先間隔"
+            value={workingPreset.nibSpacing ?? 1}
+            min={1}
+            max={100}
+            step={1}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibSpacing: v }))}
+            desc="輪郭生成のサンプリング間隔。1%ではこれまでと同じ間隔。大きいほど粗い輪郭になる"
+          />
+        </div>
+        <p className="text-[11px] text-stone-500 dark:text-stone-400">アンチエイリアスはベクター輪郭に反映されません。</p>
       </div>
     </div>
   );

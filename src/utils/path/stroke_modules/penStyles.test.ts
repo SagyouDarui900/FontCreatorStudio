@@ -61,15 +61,56 @@ function totalTurning(nodes: { x: number; y: number }[]): number {
   return sum;
 }
 
-function cfg(style: BrushStyle, preset?: Partial<UserPenPreset>): BrushStrokeConfig {
+function cfg(style: BrushStyle, preset?: Partial<UserPenPreset>, smoothingIntensity = 50): BrushStrokeConfig {
   return {
     brushWidth: 40,
     brushStyle: style,
     pressureSensitivity: 'normal',
     pressureCurve: DEFAULT_PRESSURE_CURVES.linear,
-    smoothingIntensity: 50,
+    smoothingIntensity,
     activePenPreset: preset as never,
   };
+}
+
+/** curveStroke geometry with custom per-point times. */
+function timedStroke(timeAt: (i: number) => number): StrokePoint[] {
+  return curveStroke().map((p, i) => ({ ...p, time: timeAt(i) }));
+}
+
+/** First half of the points spans 80% of the 1360 ms duration (slow start). */
+function slowStartStroke(): StrokePoint[] {
+  return timedStroke((i) => (i <= 20 ? i * 64 : 1280 + (i - 20) * 4));
+}
+
+/** First half of the points spans 20% of the 1360 ms duration (fast start). */
+function fastStartStroke(): StrokePoint[] {
+  return timedStroke((i) => (i <= 20 ? i * 4 : 80 + (i - 20) * 64));
+}
+
+/** Last half of the points spans 80% of the 1360 ms duration (slow end). */
+function slowEndStroke(): StrokePoint[] {
+  return timedStroke((i) => (i <= 20 ? i * 4 : 80 + (i - 20) * 64));
+}
+
+/** Last half of the points spans 20% of the 1360 ms duration (fast end). */
+function fastEndStroke(): StrokePoint[] {
+  return timedStroke((i) => (i <= 20 ? i * 64 : 1280 + (i - 20) * 4));
+}
+
+/** Alternating ±6 zigzag, 41 points, x step 6, constant pressure. */
+function zigzagStroke(stepMs: number): StrokePoint[] {
+  const pts: StrokePoint[] = [];
+  const n = 41;
+  for (let i = 0; i < n; i++) {
+    pts.push({
+      x: 500 + i * 6,
+      y: 500 + (i % 2 === 0 ? 6 : -6),
+      pressure: 0.6,
+      time: i * stepMs,
+      pointerType: 'pen',
+    } as StrokePoint);
+  }
+  return pts;
 }
 
 describe('pen style individuality (regression)', () => {
@@ -183,26 +224,122 @@ describe('pen style individuality (regression)', () => {
     expect(empty).toBe(base);
   });
 
-  it('a preset with only non-connected fields matches the empty preset', () => {
+  it('a preset with only still-unconnected fields matches the empty preset', () => {
     const pts = curveStroke();
     const empty = signature(buildBrushContour(pts, cfg('brush', {})));
     const dead = signature(
       buildBrushContour(
         pts,
         cfg('brush', {
-          taperStartTime: 100,
-          taperEndTime: 100,
-          nibSpacing: 50,
-          jitterSpacing: 50,
           speedOpacityFactor: 100,
           pressureOpacityFactor: 100,
-          stabilizationMethod: 'post',
-          speedStabilization: 100,
-          legacyStabilization: true,
           antiAlias: false,
         })
       )
     );
     expect(dead).toBe(empty);
+  });
+
+  it('a preset with the connected round-C fields at their defaults matches the empty preset', () => {
+    const pts = curveStroke();
+    const empty = signature(buildBrushContour(pts, cfg('brush', {})));
+    const defaults = signature(
+      buildBrushContour(
+        pts,
+        cfg('brush', {
+          taperStartTime: 100,
+          taperEndTime: 100,
+          nibSpacing: 1,
+          jitterSpacing: 0,
+          stabilizationMethod: 'pre',
+          speedStabilization: 0,
+          legacyStabilization: false,
+        })
+      )
+    );
+    expect(defaults).toBe(empty);
+  });
+});
+
+describe('round C: previously unconnected preset fields', () => {
+  it('taperStartTime caps the entry taper by the distance covered in that time', () => {
+    // marker ignores speed, so only the time-based taper zone can differ.
+    const taper = { taperStartLength: 40, taperStartWidth: 10 };
+    const slow100 = signature(buildBrushContour(slowStartStroke(), cfg('marker', { ...taper, taperStartTime: 100 })));
+    const slowUnset = signature(buildBrushContour(slowStartStroke(), cfg('marker', taper)));
+    expect(slow100).toBe(slowUnset);
+    const slow50 = signature(buildBrushContour(slowStartStroke(), cfg('marker', { ...taper, taperStartTime: 50 })));
+    expect(slow50).not.toBe(slow100);
+    // The same geometry tapers differently with writing speed at 50%.
+    const fast50 = signature(buildBrushContour(fastStartStroke(), cfg('marker', { ...taper, taperStartTime: 50 })));
+    expect(fast50).not.toBe(slow50);
+    // 0% time removes the entry taper entirely.
+    const slow0 = signature(buildBrushContour(slowStartStroke(), cfg('marker', { ...taper, taperStartTime: 0 })));
+    const noTaper = signature(buildBrushContour(slowStartStroke(), cfg('marker', {})));
+    expect(slow0).toBe(noTaper);
+  });
+
+  it('taperEndTime caps the exit taper by the distance covered in that time', () => {
+    const taper = { taperEndLength: 40, taperEndWidth: 10 };
+    const slow100 = signature(buildBrushContour(slowEndStroke(), cfg('marker', { ...taper, taperEndTime: 100 })));
+    const slowUnset = signature(buildBrushContour(slowEndStroke(), cfg('marker', taper)));
+    expect(slow100).toBe(slowUnset);
+    const slow50 = signature(buildBrushContour(slowEndStroke(), cfg('marker', { ...taper, taperEndTime: 50 })));
+    expect(slow50).not.toBe(slow100);
+    const fast50 = signature(buildBrushContour(fastEndStroke(), cfg('marker', { ...taper, taperEndTime: 50 })));
+    expect(fast50).not.toBe(slow50);
+  });
+
+  it('nibSpacing coarsens the outline sampling', () => {
+    const pts = curveStroke();
+    const fine = buildBrushContour(pts, cfg('brush', { nibSpacing: 1 }));
+    const coarse = buildBrushContour(pts, cfg('brush', { nibSpacing: 100 }));
+    expect(coarse.nodes.length).toBeLessThan(fine.nodes.length);
+    expect(signature(coarse)).not.toBe(signature(fine));
+    const unset = signature(buildBrushContour(pts, cfg('brush', {})));
+    expect(signature(fine)).toBe(unset);
+  });
+
+  it('jitterSpacing varies the sampling interval together with nibSpacing', () => {
+    const pts = curveStroke();
+    const base = signature(buildBrushContour(pts, cfg('brush', { nibSpacing: 50 })));
+    const jittered = signature(
+      buildBrushContour(pts, cfg('brush', { nibSpacing: 50, jitterSpacing: 100 }))
+    );
+    expect(jittered).not.toBe(base);
+    const noJitter = signature(buildBrushContour(pts, cfg('brush', { nibSpacing: 50, jitterSpacing: 0 })));
+    expect(noJitter).toBe(base);
+    const jitterAlone = signature(buildBrushContour(pts, cfg('brush', { jitterSpacing: 100 })));
+    const plain = signature(buildBrushContour(pts, cfg('brush', {})));
+    expect(jitterAlone).not.toBe(plain);
+  });
+
+  it('stabilizationMethod post leaves the centreline raw and smooths widths instead', () => {
+    const pts = zigzagStroke(16);
+    const pre = signature(buildBrushContour(pts, cfg('brush', { stabilizationMethod: 'pre' })));
+    const unset = signature(buildBrushContour(pts, cfg('brush', {})));
+    expect(pre).toBe(unset);
+    const post = signature(buildBrushContour(pts, cfg('brush', { stabilizationMethod: 'post' })));
+    expect(post).not.toBe(pre);
+  });
+
+  it('speedStabilization strengthens smoothing only where the stroke is fast', () => {
+    const fast = zigzagStroke(8);
+    const fastBase = signature(buildBrushContour(fast, cfg('brush', { speedStabilization: 0 })));
+    const fastStrong = signature(buildBrushContour(fast, cfg('brush', { speedStabilization: 100 })));
+    expect(fastStrong).not.toBe(fastBase);
+    const slow = zigzagStroke(64);
+    const slowBase = signature(buildBrushContour(slow, cfg('brush', { speedStabilization: 0 })));
+    const slowStrong = signature(buildBrushContour(slow, cfg('brush', { speedStabilization: 100 })));
+    expect(slowStrong).toBe(slowBase);
+  });
+
+  it('legacyStabilization applies the old pre-correction to the centreline', () => {
+    const pts = zigzagStroke(16);
+    const base = signature(buildBrushContour(pts, cfg('brush', { legacyStabilization: false }, 10)));
+    const legacy = signature(buildBrushContour(pts, cfg('brush', { legacyStabilization: true }, 10)));
+    expect(legacy).not.toBe(base);
+    const unset = signature(buildBrushContour(pts, cfg('brush', {}, 10)));
+    expect(unset).toBe(base);
   });
 });

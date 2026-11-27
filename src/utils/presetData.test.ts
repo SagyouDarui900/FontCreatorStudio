@@ -109,6 +109,45 @@ describe('presetData - pen preset validation and storage', () => {
     expect(loaded[0].id).toBe('a');
   });
 
+  it('clamps the round-C fields of imported presets to their ranges', () => {
+    const { valid } = validateImportedPenPresets(
+      [
+        {
+          ...makePreset('a', 'A'),
+          taperStartTime: 150,
+          taperEndTime: -5,
+          nibSpacing: 0,
+          jitterSpacing: 200,
+          stabilizationMethod: 'sideways',
+          speedStabilization: 140,
+          legacyStabilization: 'yes',
+          speedOpacityFactor: -150,
+          pressureOpacityFactor: 120,
+        },
+      ],
+      new Set()
+    );
+    expect(valid).toHaveLength(1);
+    const p = valid[0];
+    expect(p.taperStartTime).toBe(100);
+    expect(p.taperEndTime).toBe(0);
+    expect(p.nibSpacing).toBe(1);
+    expect(p.jitterSpacing).toBe(100);
+    expect(p.stabilizationMethod).toBe('pre');
+    expect(p.speedStabilization).toBe(100);
+    expect(p.legacyStabilization).toBe(false);
+    expect(p.speedOpacityFactor).toBe(-100);
+    expect(p.pressureOpacityFactor).toBe(100);
+  });
+
+  it('leaves absent round-C fields absent when importing', () => {
+    const { valid } = validateImportedPenPresets([makePreset('b', 'B')], new Set());
+    expect(valid).toHaveLength(1);
+    expect(valid[0].taperStartTime).toBeUndefined();
+    expect(valid[0].nibSpacing).toBeUndefined();
+    expect(valid[0].stabilizationMethod).toBeUndefined();
+  });
+
   it('numbers duplicate preset names', () => {
     const names = new Set(['カスタムペン', 'カスタムペン 2']);
     expect(makeUniquePresetName('カスタムペン', names)).toBe('カスタムペン 3');

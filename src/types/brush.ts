@@ -48,11 +48,20 @@ export interface PressureCurveConfig {
  * approximation, because a filled vector outline has no opacity channel),
  * jitterPosition, jitterConstrainPerp, jitterAngle, speedFeatherFactor,
  * pressureWidthFactor, pressureFeatherFactor, pressureGamma, constantWidth,
- * inkBleed, axisSlant, edgeRoughness, tipSharpness.
+ * inkBleed, axisSlant, edgeRoughness, tipSharpness, taperStartTime,
+ * taperEndTime (the taper zone is capped by the distance covered in the
+ * first/last X% of the stroke duration), nibSpacing (the outline sampling
+ * interval), jitterSpacing (per-segment variation of that interval),
+ * stabilizationMethod (pre: smooth the centreline before resampling;
+ * post: carry the correction in the width smoothing instead),
+ * speedStabilization (extra smoothing where the stroke is fast),
+ * legacyStabilization (the old 3-point box pre-correction).
  * Not connected, kept in the type for import compatibility and shown in
- * the modal with a note instead of an editor: taperStartTime, taperEndTime,
- * nibSpacing, jitterSpacing, speedOpacityFactor, pressureOpacityFactor,
- * stabilizationMethod, speedStabilization, legacyStabilization, antiAlias.
+ * the modal with a note instead of an editor: speedOpacityFactor,
+ * pressureOpacityFactor (a filled vector outline has no opacity channel,
+ * and the width channel is already covered by the speed/pressure width
+ * and feather factors, so mapping them to width would duplicate those
+ * controls), antiAlias (vector outline data only; a display matter).
  * Smoothing itself is applied through smoothingIntensity / autoSmoothBrush.
  */
 export interface UserPenPreset {

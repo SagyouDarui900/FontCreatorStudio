@@ -396,7 +396,37 @@ export function sanitizeImportedPenPreset(value: unknown): UserPenPreset | null 
   const brushWidth = typeof value.brushWidth === 'number'
     ? clampBrushWidth(value.brushWidth)
     : 38;
-  return { ...value, brushWidth };
+  const sanitized: UserPenPreset = { ...value, brushWidth };
+  // Clamp a numeric field only when it is present in the import; an
+  // absent field stays absent and falls back to the modal default.
+  // A non-numeric value falls back to the same default.
+  const clampField = (field: unknown, min: number, max: number, fallback: number): number | undefined =>
+    field === undefined
+      ? undefined
+      : typeof field === 'number' && Number.isFinite(field)
+        ? Math.max(min, Math.min(max, field))
+        : fallback;
+  const taperStartTime = clampField(value.taperStartTime, 0, 100, 100);
+  if (taperStartTime !== undefined) sanitized.taperStartTime = taperStartTime;
+  const taperEndTime = clampField(value.taperEndTime, 0, 100, 100);
+  if (taperEndTime !== undefined) sanitized.taperEndTime = taperEndTime;
+  const nibSpacing = clampField(value.nibSpacing, 1, 100, 1);
+  if (nibSpacing !== undefined) sanitized.nibSpacing = nibSpacing;
+  const jitterSpacing = clampField(value.jitterSpacing, 0, 100, 0);
+  if (jitterSpacing !== undefined) sanitized.jitterSpacing = jitterSpacing;
+  const speedOpacityFactor = clampField(value.speedOpacityFactor, -100, 100, 0);
+  if (speedOpacityFactor !== undefined) sanitized.speedOpacityFactor = speedOpacityFactor;
+  const pressureOpacityFactor = clampField(value.pressureOpacityFactor, 0, 100, 0);
+  if (pressureOpacityFactor !== undefined) sanitized.pressureOpacityFactor = pressureOpacityFactor;
+  const speedStabilization = clampField(value.speedStabilization, 0, 100, 0);
+  if (speedStabilization !== undefined) sanitized.speedStabilization = speedStabilization;
+  if (value.stabilizationMethod !== undefined) {
+    sanitized.stabilizationMethod = value.stabilizationMethod === 'post' ? 'post' : 'pre';
+  }
+  if (value.legacyStabilization !== undefined) {
+    sanitized.legacyStabilization = value.legacyStabilization === true;
+  }
+  return sanitized;
 }
 
 /**

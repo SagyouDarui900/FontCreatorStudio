@@ -99,6 +99,16 @@ export function strokePointsToOutline(
     });
   }
 
+  const cp = options?.customPreset;
+
+  // Stabilization method: 'pre' (default) smooths the raw centreline
+  // before resampling; 'post' leaves the centreline raw and carries the
+  // correction in the width smoothing after the outline is computed.
+  const isPostStabilization = cp?.stabilizationMethod === 'post';
+  // speedStabilization: extra smoothing strength applied where the stroke
+  // is fast (0 at the default, so existing strokes are unchanged).
+  const speedStabNorm = Math.max(0, Math.min(1, (cp?.speedStabilization ?? 0) / 100));
+
   if (points.length < 2) {
     const p = points[0] || { x: 500, y: 500 };
     const r = Math.max(6, strokeWidth / 2);
@@ -179,6 +189,18 @@ export function strokePointsToOutline(
     }
   }
 
+  // legacyStabilization: the old pre-correction, one 3-point box pass over
+  // the raw centreline before arc lengths are computed. Off by default,
+  // so existing strokes are unchanged.
+  if (cp?.legacyStabilization && rawPts.length >= 3) {
+    const origX = rawPts.map((p) => p.x);
+    const origY = rawPts.map((p) => p.y);
+    for (let i = 1; i < rawPts.length - 1; i++) {
+      rawPts[i].x = origX[i - 1] * 0.25 + origX[i] * 0.5 + origX[i + 1] * 0.25;
+      rawPts[i].y = origY[i - 1] * 0.25 + origY[i] * 0.5 + origY[i + 1] * 0.25;
+    }
+  }
+
   // Compute cumulative physical arc-length along raw points
   const rawArcLengths = new Float64Array(numRaw);
   for (let i = 1; i < numRaw; i++) {
@@ -251,14 +273,28 @@ export function strokePointsToOutline(
   const smoothP = new Float64Array(numRaw);
   const smoothV = new Float64Array(numRaw);
 
-  if (numRaw >= 3 && intensityNorm > 0.05 && totalRawArcLen > 2) {
+  // Mean speed of the stroke (px/ms, normalized to 0-1), used by the
+  // 'post' stabilization width passes below.
+  let meanSpeedNorm = 0;
+  if (numRaw > 0) {
+    let speedSum = 0;
+    for (let i = 0; i < numRaw; i++) speedSum += rawSpeeds[i];
+    meanSpeedNorm = Math.max(0, Math.min(1, speedSum / numRaw / 2.5));
+  }
+
+  if (numRaw >= 3 && intensityNorm > 0.05 && totalRawArcLen > 2 && !isPostStabilization) {
     const baseSigma = isMouseInput ? 2.2 : 1.8;
     const maxSigmaBonus = isMouseInput ? 11.0 : 13.0;
     const sigma = baseSigma + maxSigmaBonus * intensityNorm;
-    const filterRadius = sigma * 2.5;
-    const twoSigmaSq = 2 * sigma * sigma;
 
     for (let i = 0; i < numRaw; i++) {
+      // speedStabilization widens the smoothing kernel where the stroke
+      // is fast; at the default 0 the kernel is the previous one.
+      const localSpeedNorm = Math.max(0, Math.min(1, (rawSpeeds[i] - 0.5) / 2.0));
+      const sigmaI = sigma * (1 + speedStabNorm * localSpeedNorm);
+      const filterRadius = sigmaI * 2.5;
+      const twoSigmaSq = 2 * sigmaI * sigmaI;
+
       if (i === 0 || i === numRaw - 1) {
         smoothX[i] = rawPts[i].x;
         smoothY[i] = rawPts[i].y;
@@ -297,7 +333,7 @@ export function strokePointsToOutline(
 
       if (sumW > 0.0001) {
         const distFromEnd = Math.min(sCenter, totalRawArcLen - sCenter);
-        const endBlend = Math.min(1.0, distFromEnd / Math.max(3.0, sigma * 0.75));
+        const endBlend = Math.min(1.0, distFromEnd / Math.max(3.0, sigmaI * 0.75));
         smoothX[i] = rawPts[i].x * (1 - endBlend) + (sumX / sumW) * endBlend;
         smoothY[i] = rawPts[i].y * (1 - endBlend) + (sumY / sumW) * endBlend;
         smoothP[i] = rawPts[i].pressure * (1 - endBlend) + (sumP / sumW) * endBlend;
@@ -393,6 +429,17 @@ export function strokePointsToOutline(
   const customStep = options?.subdivisionStep;
   const stepTarget = (customStep || (intensityNorm <= 0.05 ? 1.25 : 1.25 + 0.75 * intensityNorm)) * densityMultiplier;
 
+  // nibSpacing: the pen-tip spacing used as the outline sampling
+  // interval. 1% is the default and leaves the step unchanged; 100%
+  // quadruples it, so the outline is sampled more coarsely.
+  const nibSpacingFactor = cp
+    ? 1 + ((Math.max(1, Math.min(100, cp.nibSpacing ?? 1)) - 1) / 99) * 3
+    : 1;
+  const baseStepTarget = stepTarget * nibSpacingFactor;
+  // jitterSpacing: deterministic per-segment variation of the sampling
+  // interval, combined with nibSpacing. 0% is the default (no variation).
+  const jitterSpacingNorm = cp ? Math.max(0, Math.min(100, cp.jitterSpacing ?? 0)) / 100 : 0;
+
   const resampled: { x: number; y: number; pressure: number; speed?: number; time?: number }[] = [];
   resampled.push({ x: smoothX[0], y: smoothY[0], pressure: smoothP[0], speed: smoothV[0], time: rawPts[0].time });
 
@@ -409,14 +456,26 @@ export function strokePointsToOutline(
     const p3y = i + 2 < numRaw ? smoothY[i + 2] : p2y;
 
     const segDist = Math.hypot(p2x - p1x, p2y - p1y);
-    const subSteps = Math.max(1, Math.ceil(segDist / stepTarget));
+    let segStep = baseStepTarget;
+    if (jitterSpacingNorm > 0) {
+      const spacingNoise1 = Math.sin(i * 12.9898) * 43758.5453;
+      const spacingNoise = (spacingNoise1 - Math.floor(spacingNoise1) - 0.5) * 2;
+      segStep = baseStepTarget * Math.max(0.5, 1 + jitterSpacingNorm * 0.5 * spacingNoise);
+    }
+    const subSteps = Math.max(1, Math.ceil(segDist / segStep));
 
     for (let s = 1; s <= subSteps; s++) {
       const u = s / subSteps;
       const pt = evalCentripetalCatmullRom(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, u);
       const pres = evalHermitePressure(i, u, segDist);
       const vel = p1v + (p2v - p1v) * u;
-      resampled.push({ x: pt.x, y: pt.y, pressure: pres, speed: vel });
+      const t0seg = rawPts[i].time;
+      const t1seg = rawPts[i + 1].time;
+      const segTime =
+        typeof t0seg === 'number' && typeof t1seg === 'number'
+          ? t0seg + (t1seg - t0seg) * u
+          : undefined;
+      resampled.push({ x: pt.x, y: pt.y, pressure: pres, speed: vel, time: segTime });
     }
   }
 
@@ -424,8 +483,6 @@ export function strokePointsToOutline(
   if (n < 2) {
     return strokePointsToOutline([resampled[0]], strokeWidth, style, roundCap, pressureSensitivity, pressureCurve);
   }
-
-  const cp = options?.customPreset;
 
   // jitterPosition: deterministic centreline offset. When
   // jitterConstrainPerp is true the offset is perpendicular to the stroke
@@ -465,6 +522,39 @@ export function strokePointsToOutline(
   }
   const totalLength = dists[n - 1] || 1;
 
+  // Time-based taper (taperStartTime / taperEndTime): the taper zone is
+  // the distance covered during the first/last X% of the stroke duration,
+  // capped by the length-based taper zone. At the default 100% the whole
+  // duration is covered, so the length-based zone applies unchanged, and
+  // without timestamps the length zone applies as before. Writing speed
+  // therefore changes how the entry and exit taper appear: a slow start
+  // covers little distance in the same time, so the entry taper is
+  // shorter in space than a fast start.
+  let timeStartLen = 1;
+  let timeEndLen = 1;
+  const timeFirst = resampled[0].time;
+  const timeLast = resampled[n - 1].time;
+  if (typeof timeFirst === 'number' && typeof timeLast === 'number' && timeLast > timeFirst) {
+    const startTimeFrac = Math.max(0, Math.min(1, (cp?.taperStartTime ?? 100) / 100));
+    const endTimeFrac = Math.max(0, Math.min(1, (cp?.taperEndTime ?? 100) / 100));
+    for (let i = 0; i < n; i++) {
+      const ti = resampled[i].time;
+      const frac = typeof ti === 'number' ? (ti - timeFirst) / (timeLast - timeFirst) : dists[i] / totalLength;
+      if (frac >= startTimeFrac) {
+        timeStartLen = dists[i] / totalLength;
+        break;
+      }
+    }
+    for (let i = n - 1; i >= 0; i--) {
+      const ti = resampled[i].time;
+      const frac = typeof ti === 'number' ? (ti - timeFirst) / (timeLast - timeFirst) : dists[i] / totalLength;
+      if (frac <= 1 - endTimeFrac) {
+        timeEndLen = 1 - dists[i] / totalLength;
+        break;
+      }
+    }
+  }
+
   // 5. Continuous Tangents and Normals
   const txArr = new Float64Array(n);
   const tyArr = new Float64Array(n);
@@ -472,7 +562,7 @@ export function strokePointsToOutline(
   const nyArr = new Float64Array(n);
   const turnArr = new Float64Array(n);
 
-  const windowRadius = Math.max(2, Math.min(6, Math.round(16 / stepTarget)));
+  const windowRadius = Math.max(2, Math.min(6, Math.round(16 / baseStepTarget)));
   for (let i = 0; i < n; i++) {
     const prevIdx = Math.max(0, i - windowRadius);
     const nextIdx = Math.min(n - 1, i + windowRadius);
@@ -705,8 +795,8 @@ export function strokePointsToOutline(
     }
 
     if (cp) {
-      const startLen = Math.min(0.40, (cp.taperStartLength ?? 0) / 100);
-      const endLen = Math.min(0.40, (cp.taperEndLength ?? 0) / 100);
+      const startLen = Math.min(0.40, (cp.taperStartLength ?? 0) / 100, timeStartLen);
+      const endLen = Math.min(0.40, (cp.taperEndLength ?? 0) / 100, timeEndLen);
       const startW = Math.max(0.12, (cp.taperStartWidth ?? 100) / 100);
       const endW = Math.max(0.12, (cp.taperEndWidth ?? 100) / 100);
 
@@ -863,7 +953,15 @@ export function strokePointsToOutline(
   const hasWidthJitter =
     Boolean(cp) && ((cp?.jitterSize ?? 0) > 0 || (cp?.jitterOpacity ?? 0) > 0);
   const customPasses = hasWidthJitter ? 16 : 0;
-  const widthPasses = Math.max(options?.widthSmoothingPasses ?? defaultPasses, customPasses);
+  // 'post' stabilization: the centreline was not pre-smoothed, so the
+  // width smoothing after the outline is computed carries the correction
+  // instead, with more passes at higher intensity. At the default 'pre'
+  // method this adds nothing. speedStabilization adds passes where the
+  // stroke is fast; at its default 0 it adds none.
+  const postPasses = isPostStabilization
+    ? Math.round(2 + 10 * intensityNorm + 6 * speedStabNorm * meanSpeedNorm)
+    : 0;
+  const widthPasses = Math.max(options?.widthSmoothingPasses ?? defaultPasses, customPasses, postPasses);
   for (let pass = 0; pass < widthPasses; pass++) {
     for (let i = 1; i < n - 1; i++) {
       smoothedLeftWidths[i] = (smoothedLeftWidths[i - 1] + smoothedLeftWidths[i] * 2 + smoothedLeftWidths[i + 1]) * 0.25;
