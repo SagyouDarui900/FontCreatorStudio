@@ -148,6 +148,87 @@ describe('presetData - pen preset validation and storage', () => {
     expect(valid[0].stabilizationMethod).toBeUndefined();
   });
 
+  it('clamps the round-D fields of imported presets to their ranges', () => {
+    const { valid } = validateImportedPenPresets(
+      [
+        {
+          ...makePreset('a', 'A'),
+          lineCap: 'diagonal',
+          lineJoin: 'curved',
+          taperCurve: 'wavy',
+          minWidth: -10,
+          maxWidth: 300,
+          inkPooling: 150,
+          roughnessScale: -20,
+          brushFlex: 250,
+          doubleLineGap: 120,
+          dottedSpacing: -5,
+        },
+      ],
+      new Set()
+    );
+    expect(valid).toHaveLength(1);
+    const p = valid[0];
+    expect(p.lineCap).toBe('round');
+    expect(p.lineJoin).toBe('miter');
+    expect(p.taperCurve).toBe('linear');
+    expect(p.minWidth).toBe(0);
+    expect(p.maxWidth).toBe(150);
+    expect(p.inkPooling).toBe(100);
+    expect(p.roughnessScale).toBe(0);
+    expect(p.brushFlex).toBe(100);
+    expect(p.doubleLineGap).toBe(100);
+    expect(p.dottedSpacing).toBe(0);
+  });
+
+  it('keeps valid round-D field values when importing', () => {
+    const { valid } = validateImportedPenPresets(
+      [
+        {
+          ...makePreset('a', 'A'),
+          lineCap: 'square',
+          lineJoin: 'bevel',
+          taperCurve: 'steep',
+          minWidth: 10,
+          maxWidth: 80,
+          inkPooling: 40,
+          roughnessScale: 70,
+          brushFlex: 30,
+          doubleLineGap: 25,
+          dottedSpacing: 35,
+        },
+      ],
+      new Set()
+    );
+    expect(valid).toHaveLength(1);
+    const p = valid[0];
+    expect(p.lineCap).toBe('square');
+    expect(p.lineJoin).toBe('bevel');
+    expect(p.taperCurve).toBe('steep');
+    expect(p.minWidth).toBe(10);
+    expect(p.maxWidth).toBe(80);
+    expect(p.inkPooling).toBe(40);
+    expect(p.roughnessScale).toBe(70);
+    expect(p.brushFlex).toBe(30);
+    expect(p.doubleLineGap).toBe(25);
+    expect(p.dottedSpacing).toBe(35);
+  });
+
+  it('leaves absent round-D fields absent when importing', () => {
+    const { valid } = validateImportedPenPresets([makePreset('b', 'B')], new Set());
+    expect(valid).toHaveLength(1);
+    expect(valid[0].lineCap).toBeUndefined();
+    expect(valid[0].lineJoin).toBeUndefined();
+    expect(valid[0].taperCurve).toBeUndefined();
+    expect(valid[0].minWidth).toBeUndefined();
+    expect(valid[0].maxWidth).toBeUndefined();
+    expect(valid[0].inkPooling).toBeUndefined();
+    expect(valid[0].roughnessScale).toBeUndefined();
+    expect(valid[0].brushFlex).toBeUndefined();
+    expect(valid[0].doubleLineGap).toBeUndefined();
+    expect(valid[0].dottedSpacing).toBeUndefined();
+  });
+
   it('numbers duplicate preset names', () => {
     const names = new Set(['カスタムペン', 'カスタムペン 2']);
     expect(makeUniquePresetName('カスタムペン', names)).toBe('カスタムペン 3');

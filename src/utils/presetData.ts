@@ -426,6 +426,35 @@ export function sanitizeImportedPenPreset(value: unknown): UserPenPreset | null 
   if (value.legacyStabilization !== undefined) {
     sanitized.legacyStabilization = value.legacyStabilization === true;
   }
+  // Round-D fields. Enum fields fall back to the drawing default when
+  // the imported value is not one of the allowed values; numeric
+  // fields are clamped to their ranges (absent fields stay absent).
+  if (value.lineCap !== undefined) {
+    sanitized.lineCap =
+      value.lineCap === 'square' || value.lineCap === 'butt' ? value.lineCap : 'round';
+  }
+  if (value.lineJoin !== undefined) {
+    sanitized.lineJoin =
+      value.lineJoin === 'round' || value.lineJoin === 'bevel' ? value.lineJoin : 'miter';
+  }
+  if (value.taperCurve !== undefined) {
+    sanitized.taperCurve =
+      value.taperCurve === 'gentle' || value.taperCurve === 'steep' ? value.taperCurve : 'linear';
+  }
+  const minWidth = clampField(value.minWidth, 0, 150, 0);
+  if (minWidth !== undefined) sanitized.minWidth = minWidth;
+  const maxWidth = clampField(value.maxWidth, 0, 150, 0);
+  if (maxWidth !== undefined) sanitized.maxWidth = maxWidth;
+  const inkPooling = clampField(value.inkPooling, 0, 100, 0);
+  if (inkPooling !== undefined) sanitized.inkPooling = inkPooling;
+  const roughnessScale = clampField(value.roughnessScale, 0, 100, 50);
+  if (roughnessScale !== undefined) sanitized.roughnessScale = roughnessScale;
+  const brushFlex = clampField(value.brushFlex, 0, 100, 0);
+  if (brushFlex !== undefined) sanitized.brushFlex = brushFlex;
+  const doubleLineGap = clampField(value.doubleLineGap, 0, 100, 0);
+  if (doubleLineGap !== undefined) sanitized.doubleLineGap = doubleLineGap;
+  const dottedSpacing = clampField(value.dottedSpacing, 0, 100, 0);
+  if (dottedSpacing !== undefined) sanitized.dottedSpacing = dottedSpacing;
   return sanitized;
 }
 

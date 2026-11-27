@@ -55,13 +55,25 @@ export interface PressureCurveConfig {
  * stabilizationMethod (pre: smooth the centreline before resampling;
  * post: carry the correction in the width smoothing instead),
  * speedStabilization (extra smoothing where the stroke is fast),
- * legacyStabilization (the old 3-point box pre-correction).
+ * legacyStabilization (the old 3-point box pre-correction),
+ * lineCap (round: the existing semicircular cap; square: a flat cap
+ * extended by half the width; butt: no cap extension),
+ * lineJoin (miter: the existing pointed corner at sharp turns; round:
+ * a smoothed corner; bevel: a flat-cut corner),
+ * taperCurve (linear: the existing interpolation unchanged; gentle /
+ * steep warp the taper progress),
+ * minWidth / maxWidth (per-side clamp of the half-widths),
+ * inkPooling (extra width near the start and at sharp turns),
+ * roughnessScale (grain size of the edgeRoughness noise; 50 keeps the
+ * existing grain), brushFlex (causal lag of width changes).
  * Not connected, kept in the type for import compatibility and shown in
  * the modal with a note instead of an editor: speedOpacityFactor,
  * pressureOpacityFactor (a filled vector outline has no opacity channel,
  * and the width channel is already covered by the speed/pressure width
  * and feather factors, so mapping them to width would duplicate those
- * controls), antiAlias (vector outline data only; a display matter).
+ * controls), antiAlias (vector outline data only; a display matter),
+ * doubleLineGap / dottedSpacing (used by the round-B double-line and
+ * dotted pens; no such pen exists yet, so they have no drawing effect).
  * Smoothing itself is applied through smoothingIntensity / autoSmoothBrush.
  */
 export interface UserPenPreset {
@@ -70,6 +82,10 @@ export interface UserPenPreset {
   isCustom?: boolean;
   brushStyle: BrushStyle;
   brushWidth: number;
+  // 太さの最小・最大の直接指定 (px, brushWidth と同じ単位)。
+  // minWidth 0 = 制限なし。maxWidth undefined または 0 = 制限なし。
+  minWidth?: number;
+  maxWidth?: number;
   pressureSensitivity: 'high' | 'normal' | 'low' | 'off';
   pressureCurve?: PressureCurveConfig;
   autoSmoothBrush: boolean;
@@ -91,6 +107,10 @@ export interface UserPenPreset {
   forceTaper?: boolean;       // 強制入り抜き
   forceTaperEnd?: boolean;    // 強制抜き
   taperTipShape?: 'round' | 'sharp'; // 入り抜きの形状: 丸まり / 尖り
+  // 入り抜きの細り方の曲線。'linear' (既定) は既存の補間 (taperTipShape
+  // による曲線) をそのまま使う。'gentle' は細り方を緩やかに、'steep'
+  // は急にする。
+  taperCurve?: 'linear' | 'gentle' | 'steep';
 
   // 形状 (Shape & Nib)
   nibAngle?: number;          // 0 - 180°
@@ -99,6 +119,14 @@ export interface UserPenPreset {
   nibSpacing?: number;        // 間隔 (1% - 100%)
   constantWidth?: boolean;    // 太さを固定
   antiAlias?: boolean;        // アンチエイリアス
+  // 線端の形状。既定 'round' (既存の半円キャップ)。
+  lineCap?: 'round' | 'square' | 'butt';
+  // 角の接合。既定 'miter' (既存の尖った角と同じ)。
+  lineJoin?: 'miter' | 'round' | 'bevel';
+  // 二重線の間隔 (0 - 100)。既定 0。ラウンドBの二重線ペンで使用。
+  doubleLineGap?: number;
+  // 点線の間隔 (0 - 100)。既定 0。ラウンドBの点線・破線ペンで使用。
+  dottedSpacing?: number;
 
   // ランダム (Random Jitter)
   jitterPosition?: number;    // 位置ランダム (0 - 100%)
@@ -115,6 +143,9 @@ export interface UserPenPreset {
   pressureWidthFactor?: number; // 筆圧による太さ変化 (0 - 100%)
   pressureOpacityFactor?: number; // 筆圧による不透明度変化 (0 - 100%)
   pressureFeatherFactor?: number; // 筆圧によるかすれ (0 - 100%)
+  // 筆のしなり: 筆圧の変化に対する太さの追従の遅れ (0 - 100%)。
+  // 既定 0 (遅れなし)。
+  brushFlex?: number;
 
   // 設定 (Settings & Stabilization)
   stabilizationMethod?: 'pre' | 'post'; // 事前補正 / 事後補正
@@ -127,4 +158,9 @@ export interface UserPenPreset {
   edgeRoughness?: number;     // 輪郭の荒れ (0 - 100%)
   tipSharpness?: number;      // 尖端の鋭利さ (0 - 100%)
   pressureGamma?: number;     // 筆圧ガンマ補正 (0.5 - 2.5)
+  // 墨だまりの強さ (0 - 100%)。既定 0。書き始めと角の付近の太さを増やす。
+  inkPooling?: number;
+  // 荒れの粒の大きさ (0 - 100)。既定 50 (既存の粒の大きさと同じ)。
+  // 大きいほど粒が大きい。edgeRoughness が 0 のときは効果がない。
+  roughnessScale?: number;
 }

@@ -3,12 +3,23 @@ import { generateId } from "../id";
 import { simplifyPointsRDP } from "./smoothing";
 import { getContourSignedArea, reverseContour } from "../bounds";
 import { evaluatePressureCurve } from "../pressure";
+import {
+  applyBrushFlex,
+  applyTaperCurve,
+  clampHalfWidth,
+  inkPoolingMultiplier,
+  roughnessGrainFrequency,
+} from "./presetWidth";
 
 /**
  * Options for the geometric (sharp / sharp_round / polygon) contour
  * builders. `customPreset` carries the user pen preset fields that have
  * a meaning for a geometric ribbon; see `sharpCustomWidthMultiplier`
  * and `applySharpOutlineEffects` for the supported set.
+ * lineCap and lineJoin are intentionally not supported here: the cap
+ * and joint are what define each geometric style (sharp: square caps
+ * and miter joints; polygon: pointed caps and always-beveled joints;
+ * sharp_round: round caps and round joints).
  */
 export interface SharpContourOptions {
   customPreset?: Partial<UserPenPreset>;
@@ -173,12 +184,18 @@ function sharpTaperMultiplier(normDist: number, cp: Partial<UserPenPreset>): num
   let m = 1.0;
   if (startLen > 0.001 && normDist < startLen) {
     const t = Math.max(0, Math.min(1.0, normDist / startLen));
-    const smoothT = cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI);
+    const smoothT = applyTaperCurve(
+      cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI),
+      cp.taperCurve
+    );
     m *= startW + (1.0 - startW) * smoothT;
   }
   if (endLen > 0.001 && normDist > 1.0 - endLen) {
     const t = Math.max(0, Math.min(1.0, (1.0 - normDist) / endLen));
-    const smoothT = cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI);
+    const smoothT = applyTaperCurve(
+      cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI),
+      cp.taperCurve
+    );
     m *= endW + (1.0 - endW) * smoothT;
   }
   // Taper opacity is approximated as a width factor (0.7 at 0% opacity to
@@ -205,13 +222,19 @@ function sharpTaperMultiplier(normDist: number, cp: Partial<UserPenPreset>): num
  * geometric path does not track speed, so speedWidthFactor and
  * speedFeatherFactor have no effect here. The nib-shape fields
  * (nibAngle / nibAspectRatio / jitterAngle) also have no effect: the
- * geometric ribbon has no nib model.
+ * geometric ribbon has no nib model. lineCap and lineJoin have no
+ * effect either: the cap and joint are what define each geometric
+ * style (sharp: square caps and miter joints; polygon: pointed caps
+ * and always-beveled joints; sharp_round: round caps and round
+ * joints), so overriding them would erase the distinction between
+ * the styles.
  */
 function sharpCustomWidthMultiplier(
   index: number,
   pressure: number,
   normDist: number,
-  cp: Partial<UserPenPreset>
+  cp: Partial<UserPenPreset>,
+  absTurn: number
 ): number {
   let m = sharpTaperMultiplier(normDist, cp);
   if (cp.pressureWidthFactor && cp.pressureWidthFactor !== 0) {
@@ -232,6 +255,10 @@ function sharpCustomWidthMultiplier(
     const opacityNoise = Math.sin(index * 0.31) * 0.5 + Math.sin(index * 0.77) * 0.5;
     m *= 1.0 + opacityNoise * (cp.jitterOpacity / 100) * 0.15;
   }
+  // inkPooling: extra width near the start and at sharp turns, the
+  // same shape as in the subdivided path. At the default 0 the
+  // multiplier is exactly 1.
+  m *= inkPoolingMultiplier(normDist, absTurn, cp.inkPooling);
   return m;
 }
 
@@ -248,6 +275,19 @@ function computeSharpHalfWidths(
   minHalf: number,
   cp?: Partial<UserPenPreset>
 ): number[] {
+  // Turn angle at each backbone vertex, for the ink-pooling corner
+  // widening (0 at the ends and on straight runs).
+  const turns: number[] = backbone.map((_, i) => {
+    if (i === 0 || i === backbone.length - 1) return 0;
+    const v1x = backbone[i].x - backbone[i - 1].x;
+    const v1y = backbone[i].y - backbone[i - 1].y;
+    const v2x = backbone[i + 1].x - backbone[i].x;
+    const v2y = backbone[i + 1].y - backbone[i].y;
+    const l1 = Math.hypot(v1x, v1y) || 1;
+    const l2 = Math.hypot(v2x, v2y) || 1;
+    const cos = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (l1 * l2)));
+    return Math.acos(cos);
+  });
   return backbone.map((_, i) => {
     let w = Math.max(minHalf, (strokeWidth / 2) * pressureWidthFactor(pressures[i]));
     if (cp) {
@@ -255,9 +295,12 @@ function computeSharpHalfWidths(
         // Uniform width along the stroke; the taper narrowing is kept.
         w = (strokeWidth / 2) * sharpTaperMultiplier(normDists[i], cp);
       } else {
-        w *= sharpCustomWidthMultiplier(i, pressures[i], normDists[i], cp);
+        w *= sharpCustomWidthMultiplier(i, pressures[i], normDists[i], cp, turns[i]);
       }
     }
+    // minWidth / maxWidth: clamp the half-width to half of the
+    // full-width limit. At the defaults this is the identity.
+    w = clampHalfWidth(w, cp);
     return Math.max(1.0, w);
   });
 }
@@ -315,9 +358,12 @@ function applySharpOutlineEffects(nodes: BezierNode[], cp?: Partial<UserPenPrese
   }
   if (cp.edgeRoughness && cp.edgeRoughness > 0) {
     const amp = (cp.edgeRoughness / 100) * 2.5;
+    // roughnessScale: the grain size of the noise. 50 (the default)
+    // keeps the existing grain.
+    const grainFreq = roughnessGrainFrequency(cp.roughnessScale);
     for (let i = 0; i < nodes.length; i++) {
-      const n1 = Math.sin(i * 12.9898) * 43758.5453;
-      const n2 = Math.sin(i * 78.233) * 12543.21;
+      const n1 = Math.sin(i * 12.9898 * grainFreq) * 43758.5453;
+      const n2 = Math.sin(i * 78.233 * grainFreq) * 12543.21;
       const r1 = n1 - Math.floor(n1) - 0.5;
       const r2 = n2 - Math.floor(n2) - 0.5;
       nodes[i].x = Number((nodes[i].x + r1 * 2 * amp).toFixed(2));
@@ -385,6 +431,12 @@ function prepareGeometricStroke(
   );
   const normDists = backboneNormDists(backbone);
   const halfWidths = computeSharpHalfWidths(backbone, pressures, normDists, strokeWidth, minHalf, cp);
+  // brushFlex: lag the width changes in backbone order, the same
+  // causal low-pass as in the subdivided path. At the default 0 the
+  // widths are left untouched.
+  if (cp?.brushFlex && cp.brushFlex > 0) {
+    applyBrushFlex(halfWidths, cp.brushFlex);
+  }
   return { backbone, halfWidths };
 }
 
@@ -617,7 +669,9 @@ export function createSharpAngularContour(
     return { id: generateId(), closed: true, nodes: [] };
   }
 
-  const halfWidth = Math.max(2, strokeWidth / 2);
+  // minWidth / maxWidth also apply to a tap dot. At the defaults
+  // this is the identity.
+  const halfWidth = clampHalfWidth(Math.max(2, strokeWidth / 2), options?.customPreset);
 
   if (rawPoints.length === 1) {
     return squareDot(rawPoints[0], halfWidth);
@@ -656,7 +710,9 @@ export function createPolygonContour(
     return { id: generateId(), closed: true, nodes: [] };
   }
 
-  const halfWidth = Math.max(2, strokeWidth / 2);
+  // minWidth / maxWidth also apply to a tap dot. At the defaults
+  // this is the identity.
+  const halfWidth = clampHalfWidth(Math.max(2, strokeWidth / 2), options?.customPreset);
 
   if (rawPoints.length === 1) {
     return hexagonDot(rawPoints[0], halfWidth);
@@ -701,7 +757,9 @@ export function createSharpRoundedContour(
     return { id: generateId(), closed: true, nodes: [] };
   }
 
-  const halfWidth = Math.max(3, strokeWidth / 2);
+  // minWidth / maxWidth also apply to a tap dot. At the defaults
+  // this is the identity.
+  const halfWidth = clampHalfWidth(Math.max(3, strokeWidth / 2), options?.customPreset);
   const kappa = 0.5522847498;
   const ox = halfWidth * kappa;
 

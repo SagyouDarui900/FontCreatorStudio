@@ -113,6 +113,74 @@ function zigzagStroke(stepMs: number): StrokePoint[] {
   return pts;
 }
 
+/** Straight horizontal stroke, 21 points, constant pressure, mouse input. */
+function straightStroke(): StrokePoint[] {
+  const pts: StrokePoint[] = [];
+  for (let i = 0; i < 21; i++) {
+    pts.push({
+      x: 500 + i * 10,
+      y: 500,
+      pressure: 0.6,
+      time: i * 16,
+      pointerType: 'mouse',
+    } as StrokePoint);
+  }
+  return pts;
+}
+
+/** L-shaped stroke with one sharp 90-degree corner, mouse input. */
+function lStroke(): StrokePoint[] {
+  const pts: StrokePoint[] = [];
+  for (let i = 0; i < 16; i++) {
+    pts.push({
+      x: 500 + i * 10,
+      y: 500,
+      pressure: 0.6,
+      time: i * 16,
+      pointerType: 'mouse',
+    } as StrokePoint);
+  }
+  for (let i = 1; i < 16; i++) {
+    pts.push({
+      x: 650,
+      y: 500 + i * 10,
+      pressure: 0.6,
+      time: (15 + i) * 16,
+      pointerType: 'mouse',
+    } as StrokePoint);
+  }
+  return pts;
+}
+
+/** Staircase stroke: four 100px segments with 90-degree corners, mouse input. */
+function staircaseStroke(): StrokePoint[] {
+  const corners: Array<[number, number]> = [
+    [500, 500],
+    [600, 500],
+    [600, 600],
+    [700, 600],
+    [700, 700],
+  ];
+  const pts: StrokePoint[] = [];
+  let t = 0;
+  for (let s = 0; s < corners.length - 1; s++) {
+    const [x0, y0] = corners[s];
+    const [x1, y1] = corners[s + 1];
+    for (let i = 0; i < 10; i++) {
+      pts.push({
+        x: x0 + ((x1 - x0) * i) / 10,
+        y: y0 + ((y1 - y0) * i) / 10,
+        pressure: 0.6,
+        time: t * 16,
+        pointerType: 'mouse',
+      } as StrokePoint);
+      t += 1;
+    }
+  }
+  pts.push({ x: 700, y: 700, pressure: 0.6, time: t * 16, pointerType: 'mouse' } as StrokePoint);
+  return pts;
+}
+
 describe('pen style individuality (regression)', () => {
   it('sharp and polygon produce different outlines at equal settings', () => {
     const pts = curveStroke();
@@ -341,5 +409,178 @@ describe('round C: previously unconnected preset fields', () => {
     expect(legacy).not.toBe(base);
     const unset = signature(buildBrushContour(pts, cfg('brush', {}, 10)));
     expect(unset).toBe(base);
+  });
+});
+
+describe('round D: new preset fields', () => {
+  const roundDDefaults: Partial<UserPenPreset> = {
+    lineCap: 'round',
+    lineJoin: 'miter',
+    taperCurve: 'linear',
+    minWidth: 0,
+    maxWidth: 0,
+    inkPooling: 0,
+    roughnessScale: 50,
+    brushFlex: 0,
+    doubleLineGap: 0,
+    dottedSpacing: 0,
+  };
+
+  it('a preset with the round-D fields at their defaults matches the empty preset', () => {
+    const pts = curveStroke();
+    for (const style of ['brush', 'marker', 'sumi', 'sharp', 'sharp_round', 'polygon'] as BrushStyle[]) {
+      const empty = signature(buildBrushContour(pts, cfg(style)));
+      const defaults = signature(buildBrushContour(pts, cfg(style, roundDDefaults)));
+      expect(defaults).toBe(empty);
+    }
+  });
+
+  it('lineCap square extends the ends flat, butt does not extend them', () => {
+    // marker with pressure off: constant width 40, no taper, no tail flick.
+    const markerOff = { ...cfg('marker'), pressureSensitivity: 'off' as const };
+    const round = buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { lineCap: 'round' } as never });
+    const unset = buildBrushContour(straightStroke(), markerOff);
+    expect(signature(round)).toBe(signature(unset));
+    const xs = (c: PathContour) => c.nodes.map((n) => n.x);
+    expect(Math.max(...xs(round))).toBeCloseTo(720, 0);
+    expect(Math.min(...xs(round))).toBeCloseTo(480, 0);
+    const square = buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { lineCap: 'square' } as never });
+    expect(Math.max(...xs(square))).toBeCloseTo(720, 0);
+    expect(Math.min(...xs(square))).toBeCloseTo(480, 0);
+    expect(signature(square)).not.toBe(signature(round));
+    // A square cap has corner nodes at the extended ends; a round cap
+    // has its extreme node at the centre of the end instead.
+    const hasNode = (c: PathContour, x: number, y: number) =>
+      c.nodes.some((n) => Math.abs(n.x - x) < 0.011 && Math.abs(n.y - y) < 0.011);
+    expect(hasNode(square, 720, 480)).toBe(true);
+    expect(hasNode(square, 720, 520)).toBe(true);
+    expect(hasNode(square, 480, 480)).toBe(true);
+    expect(hasNode(square, 480, 520)).toBe(true);
+    expect(hasNode(round, 720, 500)).toBe(true);
+    expect(hasNode(round, 480, 500)).toBe(true);
+    expect(hasNode(round, 720, 480)).toBe(false);
+    const butt = buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { lineCap: 'butt' } as never });
+    expect(Math.max(...xs(butt))).toBeCloseTo(700, 0);
+    expect(Math.min(...xs(butt))).toBeCloseTo(500, 0);
+    expect(area(butt)).toBeLessThan(area(round));
+  });
+
+  it('lineJoin miter matches the unset drawing; round and bevel differ at a sharp corner', () => {
+    const pts = lStroke();
+    const unset = signature(buildBrushContour(pts, cfg('marker', {}, 0)));
+    const miter = signature(buildBrushContour(pts, cfg('marker', { lineJoin: 'miter' }, 0)));
+    expect(miter).toBe(unset);
+    const round = signature(buildBrushContour(pts, cfg('marker', { lineJoin: 'round' }, 0)));
+    expect(round).not.toBe(unset);
+    const bevel = signature(buildBrushContour(pts, cfg('marker', { lineJoin: 'bevel' }, 0)));
+    expect(bevel).not.toBe(unset);
+    expect(bevel).not.toBe(round);
+  });
+
+  it('taperCurve linear matches the unset taper; gentle and steep differ', () => {
+    const taper = { taperStartLength: 40, taperStartWidth: 10, taperEndLength: 40, taperEndWidth: 10 };
+    const pts = curveStroke();
+    const unset = signature(buildBrushContour(pts, cfg('marker', taper)));
+    const linear = signature(buildBrushContour(pts, cfg('marker', { ...taper, taperCurve: 'linear' })));
+    expect(linear).toBe(unset);
+    const gentle = signature(buildBrushContour(pts, cfg('marker', { ...taper, taperCurve: 'gentle' })));
+    expect(gentle).not.toBe(unset);
+    const steep = signature(buildBrushContour(pts, cfg('marker', { ...taper, taperCurve: 'steep' })));
+    expect(steep).not.toBe(unset);
+    expect(steep).not.toBe(gentle);
+  });
+
+  it('minWidth raises thin strokes and maxWidth caps thick strokes', () => {
+    const markerOff = { ...cfg('marker'), pressureSensitivity: 'off' as const };
+    const base = area(buildBrushContour(straightStroke(), markerOff));
+    const min = area(
+      buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { minWidth: 60 } as never })
+    );
+    expect(min).toBeGreaterThan(base * 1.3);
+    const max = area(
+      buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { maxWidth: 20 } as never })
+    );
+    expect(max).toBeLessThan(base * 0.7);
+    const noMin = signature(
+      buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { minWidth: 0 } as never })
+    );
+    expect(noMin).toBe(signature(buildBrushContour(straightStroke(), markerOff)));
+    const noMax = signature(
+      buildBrushContour(straightStroke(), { ...markerOff, activePenPreset: { maxWidth: 0 } as never })
+    );
+    expect(noMax).toBe(signature(buildBrushContour(straightStroke(), markerOff)));
+  });
+
+  it('inkPooling widens the start and the corner of a stroke', () => {
+    const base = buildBrushContour(lStroke(), cfg('marker', { inkPooling: 0 }, 0));
+    const unset = buildBrushContour(lStroke(), cfg('marker', {}, 0));
+    expect(signature(base)).toBe(signature(unset));
+    const pooled = buildBrushContour(lStroke(), cfg('marker', { inkPooling: 100 }, 0));
+    expect(signature(pooled)).not.toBe(signature(base));
+    expect(area(pooled)).toBeGreaterThan(area(base));
+  });
+
+  it('roughnessScale changes the grain of the edge roughness, 50 keeps it', () => {
+    const pts = curveStroke();
+    const unset = signature(buildBrushContour(pts, cfg('brush', { edgeRoughness: 80 })));
+    const scale50 = signature(buildBrushContour(pts, cfg('brush', { edgeRoughness: 80, roughnessScale: 50 })));
+    expect(scale50).toBe(unset);
+    const coarse = signature(buildBrushContour(pts, cfg('brush', { edgeRoughness: 80, roughnessScale: 100 })));
+    expect(coarse).not.toBe(unset);
+    const fine = signature(buildBrushContour(pts, cfg('brush', { edgeRoughness: 80, roughnessScale: 0 })));
+    expect(fine).not.toBe(unset);
+    // Without any roughness there is nothing to scale.
+    const plain = signature(buildBrushContour(pts, cfg('brush', { roughnessScale: 100 })));
+    expect(plain).toBe(signature(buildBrushContour(pts, cfg('brush', {}))));
+  });
+
+  it('brushFlex lags width changes; 0 leaves the stroke unchanged', () => {
+    const pts = curveStroke();
+    const unset = signature(buildBrushContour(pts, cfg('brush', {})));
+    const flex0 = signature(buildBrushContour(pts, cfg('brush', { brushFlex: 0 })));
+    expect(flex0).toBe(unset);
+    const flexed = signature(buildBrushContour(pts, cfg('brush', { brushFlex: 100 })));
+    expect(flexed).not.toBe(unset);
+  });
+
+  it('doubleLineGap and dottedSpacing alone do not change the drawing', () => {
+    const pts = curveStroke();
+    const empty = signature(buildBrushContour(pts, cfg('brush', {})));
+    const gaps = signature(
+      buildBrushContour(pts, cfg('brush', { doubleLineGap: 100, dottedSpacing: 100 }))
+    );
+    expect(gaps).toBe(empty);
+  });
+
+  it('sharp styles apply taperCurve, minWidth, inkPooling, brushFlex and roughnessScale', () => {
+    const pts = curveStroke();
+    // The taper curve needs backbone vertices inside the taper zones:
+    // a smooth curve is simplified to a few vertices, so a staircase
+    // stroke (corners at 0.25 / 0.5 / 0.75 of the length) is used.
+    const stairs = staircaseStroke();
+    for (const style of ['sharp', 'sharp_round', 'polygon'] as BrushStyle[]) {
+      const base = signature(buildBrushContour(pts, cfg(style)));
+      const taper = { taperStartLength: 100, taperEndLength: 100, taperStartWidth: 10, taperEndWidth: 10 };
+      expect(signature(buildBrushContour(stairs, cfg(style, { ...taper, taperCurve: 'gentle' })))).not.toBe(
+        signature(buildBrushContour(stairs, cfg(style, taper)))
+      );
+      expect(signature(buildBrushContour(pts, cfg(style, { minWidth: 60 })))).not.toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { inkPooling: 100 })))).not.toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { brushFlex: 100 })))).not.toBe(base);
+      expect(
+        signature(buildBrushContour(pts, cfg(style, { edgeRoughness: 80, roughnessScale: 100 })))
+      ).not.toBe(signature(buildBrushContour(pts, cfg(style, { edgeRoughness: 80 }))));
+    }
+  });
+
+  it('sharp styles keep their own caps and joints regardless of lineCap and lineJoin', () => {
+    const pts = curveStroke();
+    for (const style of ['sharp', 'sharp_round', 'polygon'] as BrushStyle[]) {
+      const base = signature(buildBrushContour(pts, cfg(style)));
+      expect(signature(buildBrushContour(pts, cfg(style, { lineCap: 'square' })))).toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { lineCap: 'butt' })))).toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { lineJoin: 'round' })))).toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { lineJoin: 'bevel' })))).toBe(base);
+    }
   });
 });

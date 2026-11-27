@@ -63,6 +63,78 @@ export const ShapeTab: React.FC<ShapeTabProps> = ({
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, nibSpacing: v }))}
             desc="輪郭生成のサンプリング間隔。1%ではこれまでと同じ間隔。大きいほど粗い輪郭になる"
           />
+          <SliderControl
+            label="二重線の間隔"
+            value={workingPreset.doubleLineGap ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, doubleLineGap: v }))}
+            desc="二重線ペン（ラウンドBで追加）の2本の線の間の距離。既存の筆では描画に反映されない"
+          />
+          <SliderControl
+            label="点線の間隔"
+            value={workingPreset.dottedSpacing ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, dottedSpacing: v }))}
+            desc="点線・破線ペン（ラウンドBで追加）の点と点の間の距離。既存の筆では描画に反映されない"
+          />
+        </div>
+
+        {/* Line Cap Selector */}
+        <div className="flex flex-col space-y-1 pt-1.5 border-t border-stone-200/60 dark:border-stone-800/60">
+          <span className="text-xs font-medium text-stone-700 dark:text-stone-300">線端の形状</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([
+              { value: 'round', label: '丸 (ラウンド)' },
+              { value: 'square', label: '四角 (スクエア)' },
+              { value: 'butt', label: '切りっぱなし' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setWorkingPreset((prev) => ({ ...prev, lineCap: opt.value }))}
+                className={`py-1.5 px-2 rounded-md text-xs font-semibold border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                  (workingPreset.lineCap || 'round') === opt.value
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                    : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                }`}
+              >
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">尖った先端（入り抜きの先端形状が尖りの場合など）では端の形状より先端が優先される。カクカク角筆・多角形ペン・カクカク角丸筆では筆自体の端の形が使われる</span>
+        </div>
+
+        {/* Line Join Selector */}
+        <div className="flex flex-col space-y-1 pt-1.5 border-t border-stone-200/60 dark:border-stone-800/60">
+          <span className="text-xs font-medium text-stone-700 dark:text-stone-300">角の接合</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([
+              { value: 'miter', label: '尖らせる' },
+              { value: 'round', label: '丸める' },
+              { value: 'bevel', label: '切り落とす' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setWorkingPreset((prev) => ({ ...prev, lineJoin: opt.value }))}
+                className={`py-1.5 px-2 rounded-md text-xs font-semibold border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                  (workingPreset.lineJoin || 'miter') === opt.value
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                    : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                }`}
+              >
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">輪郭の鋭い角に適用される。緩やかな曲がりは従来どおり滑らかになる。カクカク角筆・多角形ペン・カクカク角丸筆では筆自体の角の扱いが使われる</span>
         </div>
         <p className="text-[11px] text-stone-500 dark:text-stone-400">アンチエイリアスはベクター輪郭に反映されません。</p>
       </div>

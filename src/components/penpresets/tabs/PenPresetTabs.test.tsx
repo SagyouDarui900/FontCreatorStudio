@@ -9,6 +9,8 @@ import { ShapeTab } from './ShapeTab';
 import { RandomTab } from './RandomTab';
 import { SettingsTab } from './SettingsTab';
 import { DynamicTab } from './DynamicTab';
+import { BasicTab } from './BasicTab';
+import { TextureTab } from './TextureTab';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -129,5 +131,45 @@ describe('pen preset tabs show the round-C editors', () => {
     expect(container.textContent).not.toContain('速度:不透明度');
     expect(container.textContent).not.toContain('筆圧:不透明度');
     expect(container.textContent).toContain('速度・筆圧による不透明度変化はベクター輪郭に反映されません');
+  });
+});
+
+describe('pen preset tabs show the round-D editors', () => {
+  it('BasicTab shows the min and max width editors', () => {
+    const { container } = render(<BasicTab {...tabProps()} />);
+    expect(container.textContent).toContain('最小太さ');
+    expect(container.textContent).toContain('最大太さ');
+  });
+
+  it('ShapeTab shows the line cap and line join selectors and the round-B gap editors', () => {
+    const { container } = render(<ShapeTab {...tabProps()} />);
+    expect(container.textContent).toContain('線端の形状');
+    expect(container.textContent).toContain('丸 (ラウンド)');
+    expect(container.textContent).toContain('四角 (スクエア)');
+    expect(container.textContent).toContain('切りっぱなし');
+    expect(container.textContent).toContain('角の接合');
+    expect(container.textContent).toContain('尖らせる');
+    expect(container.textContent).toContain('丸める');
+    expect(container.textContent).toContain('切り落とす');
+    expect(container.textContent).toContain('二重線の間隔');
+    expect(container.textContent).toContain('点線の間隔');
+    expect(container.textContent).toContain('ラウンドBで追加');
+  });
+
+  it('TaperTab shows the taper curve selector', () => {
+    const { container } = render(<TaperTab {...tabProps()} />);
+    expect(container.textContent).toContain('入り抜きのカーブ');
+    expect(container.textContent).toContain('緩やか');
+  });
+
+  it('TextureTab shows the ink pooling and roughness grain editors', () => {
+    const { container } = render(<TextureTab {...tabProps()} />);
+    expect(container.textContent).toContain('墨だまりの強さ');
+    expect(container.textContent).toContain('荒れの粒の大きさ');
+  });
+
+  it('DynamicTab shows the brush flex editor', () => {
+    const { container } = render(<DynamicTab {...tabProps()} />);
+    expect(container.textContent).toContain('筆のしなり');
   });
 });

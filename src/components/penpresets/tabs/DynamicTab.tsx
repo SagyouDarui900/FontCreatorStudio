@@ -64,6 +64,16 @@ export const DynamicTab: React.FC<DynamicTabProps> = ({
           unit="%"
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, pressureFeatherFactor: v }))}
         />
+        <SliderControl
+          label="筆のしなり"
+          value={workingPreset.brushFlex ?? 0}
+          min={0}
+          max={100}
+          step={5}
+          unit="%"
+          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, brushFlex: v }))}
+          desc="筆圧の変化に対する太さの追従の遅れ。0では遅れなし。大きいほど太さの変化が遅れて現れる"
+        />
       </div>
       <p className="text-[11px] text-stone-500 dark:text-stone-400">速度・筆圧による不透明度変化はベクター輪郭に反映されません。</p>
     </div>

@@ -15,6 +15,13 @@ import {
 } from "../bounds";
 import { simplifyPointsRDP } from "./smoothing";
 import { createSharpAngularContour, createPolygonContour, createSharpRoundedContour } from "./sharpContours";
+import {
+  applyBrushFlex,
+  applyTaperCurve,
+  clampHalfWidth,
+  inkPoolingMultiplier,
+  roughnessGrainFrequency,
+} from "./presetWidth";
 
 export interface SubdividedStrokeOptions {
   /** Target distance between fine sub-segments in font units (default: 1.25) */
@@ -111,7 +118,7 @@ export function strokePointsToOutline(
 
   if (points.length < 2) {
     const p = points[0] || { x: 500, y: 500 };
-    const r = Math.max(6, strokeWidth / 2);
+    const r = clampHalfWidth(Math.max(6, strokeWidth / 2), cp);
     if (style === 'pixel_dot') {
       // Pixel dot: a square on the pixel grid, not a smooth circle.
       const grid = pixelGridSize(strokeWidth);
@@ -803,12 +810,18 @@ export function strokePointsToOutline(
       let taperMultiplier = 1.0;
       if (startLen > 0.001 && normDist < startLen) {
         const t = Math.max(0, Math.min(1.0, normDist / startLen));
-        const smoothT = cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI);
+        const smoothT = applyTaperCurve(
+          cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI),
+          cp.taperCurve
+        );
         taperMultiplier *= startW + (1.0 - startW) * smoothT;
       }
       if (endLen > 0.001 && normDist > 1.0 - endLen) {
         const t = Math.max(0, Math.min(1.0, (1.0 - normDist) / endLen));
-        const smoothT = cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI);
+        const smoothT = applyTaperCurve(
+          cp.taperTipShape === 'sharp' ? Math.pow(t, 1.5) : 0.5 - 0.5 * Math.cos(t * Math.PI),
+          cp.taperCurve
+        );
         taperMultiplier *= endW + (1.0 - endW) * smoothT;
       }
 
@@ -897,8 +910,15 @@ export function strokePointsToOutline(
         tipMultiplier = 1.0 - (cp.tipSharpness / 100) * 0.5 * ((normDist - 0.9) / 0.1);
       }
 
-      leftHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier;
-      rightHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier;
+      // inkPooling: extra width near the start of the stroke and at
+      // sharp turns, mirroring the built-in sumi pooling shape. At the
+      // default 0 the multiplier is exactly 1, so existing strokes are
+      // unchanged (including sumi, whose built-in pooling stays as is
+      // and stacks with this field).
+      const poolMultiplier = inkPoolingMultiplier(normDist, Math.abs(turnArr[i]), cp.inkPooling);
+
+      leftHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier * poolMultiplier;
+      rightHalfWidth *= taperMultiplier * shapeMultiplier * speedMultiplier * jitterMultiplier * opacityMultiplier * featherMultiplier * pressureWidthMultiplier * inkBleedMultiplier * tipMultiplier * poolMultiplier;
 
       // constantWidth: uniform width along the stroke. The taper tip
       // narrowing is kept, all other width variation is discarded.
@@ -909,6 +929,15 @@ export function strokePointsToOutline(
       }
     }
 
+    // minWidth / maxWidth: clamp each half-width to half of the
+    // full-width limit, so the total width stays within the limits.
+    // At the defaults (minWidth 0, maxWidth undefined or 0) this is
+    // the identity. Applied after constantWidth as well, and before
+    // the width smoothing passes (which preserve the bounds, being
+    // convex combinations).
+    leftHalfWidth = clampHalfWidth(leftHalfWidth, cp);
+    rightHalfWidth = clampHalfWidth(rightHalfWidth, cp);
+
     if (isNaN(leftHalfWidth) || !isFinite(leftHalfWidth) || leftHalfWidth < 0.5) {
       leftHalfWidth = 1.0;
     }
@@ -918,6 +947,16 @@ export function strokePointsToOutline(
 
     rawLeftWidths[i] = leftHalfWidth;
     rawRightWidths[i] = rightHalfWidth;
+  }
+
+  // brushFlex: lag the width changes in stroke order (a causal
+  // low-pass over the per-point widths), so a pressure rise reaches
+  // the width later. At the default 0 the widths are left untouched.
+  // Applied before the curvature safety check and the width smoothing
+  // passes, so both see the flexed widths.
+  if (cp?.brushFlex && cp.brushFlex > 0) {
+    applyBrushFlex(rawLeftWidths, cp.brushFlex);
+    applyBrushFlex(rawRightWidths, cp.brushFlex);
   }
 
   // Curvature-based inner edge safety check
@@ -1085,6 +1124,15 @@ export function strokePointsToOutline(
     loopPoints.push(cleanRight[i]);
   }
 
+  // lineCap: the preset field overrides the roundCap parameter.
+  // 'round' (the default) is the existing semicircular cap. 'square'
+  // is a flat cap extended by half the width along the stroke
+  // direction. 'butt' adds no cap points, so the loop closes straight
+  // across the end. A sharp tip (taperTipShape 'sharp', forceTaper /
+  // forceTaperEnd, or a tail flick) still takes precedence over the
+  // cap, as before, and chisel styles keep their ribbon ends.
+  const lineCap = cp?.lineCap ?? (roundCap ? 'round' : 'butt');
+
   // End Cap
   const endP = resampled[n - 1];
   const endTx = txArr[n - 1];
@@ -1114,7 +1162,7 @@ export function strokePointsToOutline(
       x: Number((endP.x + endTx * tipExt * 0.45 + endNx * endLeftW * 0.45).toFixed(2)),
       y: Number((endP.y + endTy * tipExt * 0.45 + endNy * endLeftW * 0.45).toFixed(2)),
     });
-  } else if (roundCap && !isChiselStyle) {
+  } else if (lineCap === 'round' && !isChiselStyle) {
     if (endHalfW > 2.0) {
       const capAngles = [-1.178, -0.785, -0.393, 0, 0.393, 0.785, 1.178];
       for (const phi of capAngles) {
@@ -1132,6 +1180,15 @@ export function strokePointsToOutline(
         y: Number((endP.y + endTy * Math.max(1.8, endHalfW * 0.9)).toFixed(2)),
       });
     }
+  } else if (lineCap === 'square' && !isChiselStyle) {
+    loopPoints.push({
+      x: Number((endP.x + endTx * endHalfW - endNx * endRightW).toFixed(2)),
+      y: Number((endP.y + endTy * endHalfW - endNy * endRightW).toFixed(2)),
+    });
+    loopPoints.push({
+      x: Number((endP.x + endTx * endHalfW + endNx * endLeftW).toFixed(2)),
+      y: Number((endP.y + endTy * endHalfW + endNy * endLeftW).toFixed(2)),
+    });
   }
 
   for (let i = 0; i < cleanLeft.length; i++) {
@@ -1166,7 +1223,7 @@ export function strokePointsToOutline(
       x: Number((startP.x - startTx * tipExt * 0.45 - startNx * startRightW * 0.45).toFixed(2)),
       y: Number((startP.y - startTy * tipExt * 0.45 - startNy * startRightW * 0.45).toFixed(2)),
     });
-  } else if (roundCap && !isChiselStyle) {
+  } else if (lineCap === 'round' && !isChiselStyle) {
     if (startHalfW > 2.0) {
       const capAngles = [1.178, 0.785, 0.393, 0, -0.393, -0.785, -1.178];
       for (const phi of capAngles) {
@@ -1184,6 +1241,15 @@ export function strokePointsToOutline(
         y: Number((startP.y - startTy * Math.max(1.8, startHalfW * 0.9)).toFixed(2)),
       });
     }
+  } else if (lineCap === 'square' && !isChiselStyle) {
+    loopPoints.push({
+      x: Number((startP.x - startTx * startHalfW + startNx * startLeftW).toFixed(2)),
+      y: Number((startP.y - startTy * startHalfW + startNy * startLeftW).toFixed(2)),
+    });
+    loopPoints.push({
+      x: Number((startP.x - startTx * startHalfW - startNx * startRightW).toFixed(2)),
+      y: Number((startP.y - startTy * startHalfW - startNy * startRightW).toFixed(2)),
+    });
   }
 
   const cleanLoop: Point[] = [];
@@ -1249,9 +1315,13 @@ export function strokePointsToOutline(
     }
     if (cp.edgeRoughness && cp.edgeRoughness > 0) {
       const amp = (cp.edgeRoughness / 100) * 2.5;
+      // roughnessScale: the grain size of the noise. 50 (the default)
+      // keeps the existing grain; a larger scale stretches the noise
+      // pattern along the outline (larger grains).
+      const grainFreq = roughnessGrainFrequency(cp.roughnessScale);
       for (let i = 0; i < simplifiedLoop.length; i++) {
-        const n1 = Math.sin(i * 12.9898) * 43758.5453;
-        const n2 = Math.sin(i * 78.233) * 12543.21;
+        const n1 = Math.sin(i * 12.9898 * grainFreq) * 43758.5453;
+        const n2 = Math.sin(i * 78.233 * grainFreq) * 12543.21;
         const r1 = n1 - Math.floor(n1) - 0.5;
         const r2 = n2 - Math.floor(n2) - 0.5;
         simplifiedLoop[i].x = Number((simplifiedLoop[i].x + r1 * 2 * amp).toFixed(2));
@@ -1259,6 +1329,12 @@ export function strokePointsToOutline(
       }
     }
   }
+
+  // lineJoin: how sharp turns of the outline are joined. 'miter'
+  // (the default) is the existing pointed corner. 'round' smooths the
+  // turn with tangent handles instead, 'bevel' cuts it flat with no
+  // handles. Gentle turns stay smooth as before, whatever the join is.
+  const lineJoin = cp?.lineJoin ?? 'miter';
 
   // 11. Convert to smooth G1-continuous Bézier nodes
   const total = simplifiedLoop.length;
@@ -1309,9 +1385,12 @@ export function strokePointsToOutline(
     const dot = uPrevX * uNextX + uPrevY * uNextY;
     const cosAngle = Math.max(-1, Math.min(1, dot));
 
-    if (cosAngle < 0.76) {
+    if (cosAngle < 0.76 && lineJoin !== 'round') {
       curr.type = 'corner';
-      if (cosAngle < 0.35) {
+      if (lineJoin === 'bevel') {
+        curr.handleIn = null;
+        curr.handleOut = null;
+      } else if (cosAngle < 0.35) {
         const inL = Math.min(dPrev * 0.22, 22);
         const outL = Math.min(dNext * 0.22, 22);
         curr.handleIn = inL > 0.5 ? {

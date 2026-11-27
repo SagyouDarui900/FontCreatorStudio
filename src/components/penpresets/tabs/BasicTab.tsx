@@ -30,6 +30,28 @@ export const BasicTab: React.FC<BasicTabProps> = ({
           onChange={(v) => setWorkingPreset((prev) => ({ ...prev, brushWidth: v }))}
         />
 
+        <SliderControl
+          label="最小太さ"
+          value={workingPreset.minWidth ?? 0}
+          min={0}
+          max={150}
+          step={1}
+          unit="px"
+          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, minWidth: v }))}
+          desc="0 = 制限なし。細い線が潰れないよう下限を直接決める"
+        />
+
+        <SliderControl
+          label="最大太さ"
+          value={workingPreset.maxWidth ?? 0}
+          min={0}
+          max={150}
+          step={1}
+          unit="px"
+          onChange={(v) => setWorkingPreset((prev) => ({ ...prev, maxWidth: v }))}
+          desc="0 = 制限なし。太さの上限を直接決める"
+        />
+
         {/* Pressure Sensitivity Selector */}
         <div className="flex flex-col space-y-1 pt-0.5">
           <span className="text-xs font-medium text-stone-700 dark:text-stone-300">筆圧感度モード</span>

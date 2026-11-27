@@ -68,6 +68,28 @@ export const TextureTab: React.FC<TextureTabProps> = ({
             unit=""
             onChange={(v) => setWorkingPreset((prev) => ({ ...prev, pressureGamma: v }))}
           />
+
+          <SliderControl
+            label="墨だまりの強さ"
+            value={workingPreset.inkPooling ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, inkPooling: v }))}
+            desc="書き始めや角の墨だまりの量。0では墨筆の既存の墨だまりのまま"
+          />
+
+          <SliderControl
+            label="荒れの粒の大きさ"
+            value={workingPreset.roughnessScale ?? 50}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => setWorkingPreset((prev) => ({ ...prev, roughnessScale: v }))}
+            desc="50ではこれまでと同じ粒の大きさ。大きいほど粒が大きい。輪郭の荒れが0のときは効果がない"
+          />
         </div>
       </div>
     </div>

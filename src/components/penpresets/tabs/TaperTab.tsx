@@ -126,6 +126,32 @@ export const TaperTab: React.FC<TaperTabProps> = ({
           </div>
         </div>
 
+        {/* Taper Curve Selector */}
+        <div className="flex flex-col space-y-1 pt-1.5 border-t border-stone-200/60 dark:border-stone-800/60">
+          <span className="text-xs font-medium text-stone-700 dark:text-stone-300">入り抜きのカーブ</span>
+          <div className="grid grid-cols-3 gap-1.5">
+            {([
+              { value: 'linear', label: '直線' },
+              { value: 'gentle', label: '緩やか' },
+              { value: 'steep', label: '急' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setWorkingPreset((prev) => ({ ...prev, taperCurve: opt.value }))}
+                className={`py-1.5 px-2 rounded-md text-xs font-semibold border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                  (workingPreset.taperCurve || 'linear') === opt.value
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
+                    : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                }`}
+              >
+                <span>{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] leading-tight text-stone-500 dark:text-stone-400">入り・抜きの細り方の曲線。直線はこれまでの入りの細り方のまま。緩やかは細い区間が長く続き、急は早く太さに戻る</span>
+        </div>
+
         <ToggleControl
           label="強制入り抜き (マウス/タッチでもハライ適用)"
           checked={workingPreset.forceTaper ?? true}
