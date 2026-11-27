@@ -8,6 +8,7 @@ import {
   clampBrushWidth,
   DEFAULT_PEN_PRESETS,
 } from './presetData';
+import { PEN_PRESETS } from './path/pressure';
 import type { UserPenPreset } from '../types';
 
 const PRESETS_KEY = 'mojisaku_user_pen_presets';
@@ -112,5 +113,31 @@ describe('presetData - pen preset validation and storage', () => {
     const names = new Set(['カスタムペン', 'カスタムペン 2']);
     expect(makeUniquePresetName('カスタムペン', names)).toBe('カスタムペン 3');
     expect(makeUniquePresetName('新しい名前', names)).toBe('新しい名前');
+  });
+
+  it('covers all 19 brush styles with unique ids and PEN_PRESETS default widths', () => {
+    expect(DEFAULT_PEN_PRESETS).toHaveLength(19);
+    const ids = DEFAULT_PEN_PRESETS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const byStyle = new Map(DEFAULT_PEN_PRESETS.map((p) => [p.brushStyle, p]));
+    const expectedStyles = [
+      'mincho_nib',
+      'g_pen',
+      'reisho_chisel',
+      'marker',
+      'ballpoint',
+      'chalk',
+      'highlighter',
+      'pixel_dot',
+      'polygon',
+      'wobbly',
+    ] as const;
+    for (const style of expectedStyles) {
+      const preset = byStyle.get(style);
+      expect(preset).toBeDefined();
+      const penInfo = PEN_PRESETS.find((p) => p.id === style);
+      expect(penInfo).toBeDefined();
+      expect(preset!.brushWidth).toBe(penInfo!.defaultWidth);
+    }
   });
 });
