@@ -162,6 +162,7 @@ function AppMain({
     handleSimplifyCurrentGlyph,
     handleAutoSpaceCurrentGlyph,
     handleClearGlyph,
+    handleOptimizeGlyph,
     handleCopyGlyph,
     handlePasteGlyph,
     handleCopySelectedContours,
@@ -680,6 +681,7 @@ function AppMain({
               }
             }}
             onClearGlyph={handleClearGlyph}
+            onOptimizeGlyph={handleOptimizeGlyph}
             onCopyGlyph={handleCopyGlyph}
             onPasteGlyph={handlePasteGlyph}
             onDuplicateAsSmallKana={handleDuplicateAsSmallKana}

@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2, Lock } from 'lucide-react';
+import { X, Copy, Clipboard, Wand2, ArrowRightLeft, Trash2, Lock, Spline } from 'lucide-react';
 import { FontProject } from '../../types';
 import { ThemeMode, getThemeClasses } from '../../utils/theme';
 import { DAKUTEN_MAPPINGS } from '../../utils/dakutenHelper';
@@ -19,6 +19,7 @@ interface GlyphGridContextMenuProps {
   onCopyGlyph: (code: number) => void;
   onPasteGlyph: (code: number) => void;
   onClearGlyph: (code: number) => void;
+  onOptimizeGlyph?: (code: number) => void;
   onGenerateDakutenTarget?: (targetChar: string, isHandakuten: boolean, sourceChar?: string) => void;
   onDuplicateAsSmallKana?: (code: number) => void;
 }
@@ -35,6 +36,7 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
   onCopyGlyph,
   onPasteGlyph,
   onClearGlyph,
+  onOptimizeGlyph,
   onGenerateDakutenTarget,
   onDuplicateAsSmallKana,
 }) => {
@@ -210,6 +212,22 @@ export const GlyphGridContextMenu: React.FC<GlyphGridContextMenuProps> = ({
           }
           return null;
         })()}
+
+        {/* Optimize */}
+        {hasContours && onOptimizeGlyph ? (
+          <button
+            disabled={isLocked}
+            onClick={() => {
+              onOptimizeGlyph(item.code);
+              onClose();
+            }}
+            title={isLocked ? '編集ロック中のため最適化できません' : 'この文字のパスを最適化'}
+            className={`w-full text-left px-2 py-1 rounded flex items-center gap-1.5 font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${themeClasses.accentText} ${themeClasses.activeToolHover}`}
+          >
+            <Spline className={`w-3.5 h-3.5 ${themeClasses.accentText}`} />
+            <span>{isLocked ? 'パス最適化 (ロック中)' : 'パス最適化'}</span>
+          </button>
+        ) : null}
 
         {/* Clear */}
         {hasContours ? (

@@ -1,9 +1,12 @@
 import { FontProject, PathContour } from '../../types';
+// Import from the concrete module, not the pathUtils barrel: the barrel
+// re-exports this through several `export *` layers, and that binding
+// resolves to undefined when this module is loaded through the
+// ProjectContext import graph (vitest), so the optimization call fails.
 import {
   optimizeContoursRedundantNodes,
   NodeOptimizationOptions,
-  simplifyContour,
-} from '../pathUtils';
+} from '../path/stroke_modules/nodeOptimization';
 import { BatchNodeOptimizationResult } from './types';
 
 export function safePreservingNodeOptimization(

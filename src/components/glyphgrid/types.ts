@@ -21,6 +21,7 @@ export interface GlyphGridProps {
   selectedUnicode: number;
   onSelectGlyph: (unicode: number, char: string) => void;
   onClearGlyph: (unicode: number) => void;
+  onOptimizeGlyph?: (unicode: number) => void;
   onCopyGlyph: (unicode: number) => void;
   onPasteGlyph: (unicode: number) => void;
   onDuplicateAsSmallKana?: (sourceUnicode: number) => void;

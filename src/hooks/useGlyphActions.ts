@@ -3,6 +3,7 @@ import { FontProject, GlyphData, PathContour, PixelGlyphData, ToolMode } from '.
 import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates, getContoursBoundingBox } from '../utils/path';
 import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
+import { batchOptimizeProjectNodes } from '../utils/quality/nodeOptimizer';
 import { KANA_PAIRS } from '../data/unicodeTables';
 
 /** What a clipboard entry holds, and how it must be pasted. */
@@ -239,6 +240,43 @@ export function useGlyphActions({
       onShowToast(`文字「${ch}」の字形を消去しました (Ctrl+Zで復元可能)`, 'info');
     },
     [project.glyphs, selectedUnicode, setSelectedUnicode, setSelectedChar, commitHistory, setProject, onShowToast]
+  );
+
+  // Optimize a single glyph's paths: remove redundant nodes on straight
+  // lines and smooth micro-wobble without changing the shape. Uses the
+  // same defaults as the quality panel's node optimization
+  // (level 'normal', preserveSharpCorners, maxBboxDeviation 1.5).
+  const handleOptimizeGlyph = useCallback(
+    (unicode: number) => {
+      const targetGlyph = project.glyphs[unicode];
+      if (!targetGlyph) return;
+      if (targetGlyph.locked) {
+        onShowToast('この文字は編集ロックされています', 'warning');
+        return;
+      }
+      const contours = targetGlyph.contours || [];
+      if (contours.length === 0) return;
+
+      const res = batchOptimizeProjectNodes(project, [unicode], {
+        level: 'normal',
+        preserveSharpCorners: true,
+        maxBboxDeviation: 1.5,
+      });
+
+      const ch = targetGlyph.char || String.fromCodePoint(unicode);
+      if (res.totalReducedNodes <= 0) {
+        onShowToast(`文字「${ch}」のパスに削減できる頂点はありませんでした`, 'info');
+        return;
+      }
+
+      commitHistory(unicode);
+      setProject(res.updatedProject);
+      onShowToast(
+        `文字「${ch}」のパスを最適化しました（${res.totalOriginalNodes}頂点 → ${res.totalOptimizedNodes}頂点） (Ctrl+Zで復元可能)`,
+        'success'
+      );
+    },
+    [project, commitHistory, setProject, onShowToast]
   );
 
   // Copy a whole glyph: contours plus advanceWidth, lsb, pixel data,
@@ -731,6 +769,7 @@ export function useGlyphActions({
       handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph,
       handleClearGlyph,
+      handleOptimizeGlyph,
       handleCopyGlyph,
       handlePasteGlyph,
       handleCopySelectedContours,
@@ -749,6 +788,7 @@ export function useGlyphActions({
       handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph,
       handleClearGlyph,
+      handleOptimizeGlyph,
       handleCopyGlyph,
       handlePasteGlyph,
       handleCopySelectedContours,

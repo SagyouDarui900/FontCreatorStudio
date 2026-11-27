@@ -30,6 +30,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
   selectedUnicode,
   onSelectGlyph,
   onClearGlyph,
+  onOptimizeGlyph,
   onCopyGlyph,
   onPasteGlyph,
   onDuplicateAsSmallKana,
@@ -618,6 +619,7 @@ export const GlyphGrid: React.FC<GlyphGridProps> = memo(({
         onCopyGlyph={onCopyGlyph}
         onPasteGlyph={onPasteGlyph}
         onClearGlyph={onClearGlyph}
+        onOptimizeGlyph={onOptimizeGlyph}
         onGenerateDakutenTarget={onGenerateDakutenTarget}
         onDuplicateAsSmallKana={onDuplicateAsSmallKana}
       />

@@ -57,6 +57,7 @@ export interface ProjectContextType {
   handleSimplifyCurrentGlyph: (level?: 'mild' | 'normal' | 'strong') => void;
   handleAutoSpaceCurrentGlyph: (preset?: any) => void;
   handleClearGlyph: (unicode: number) => void;
+  handleOptimizeGlyph: (unicode: number) => void;
   handleCopyGlyph: (unicode: number) => void;
   handlePasteGlyph: (unicode: number) => void;
   handleCopySelectedContours: (contourIds: string[]) => void;
@@ -416,6 +417,7 @@ export function ProjectProvider({
       handleSimplifyCurrentGlyph: glyphActions.handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph: glyphActions.handleAutoSpaceCurrentGlyph,
       handleClearGlyph: glyphActions.handleClearGlyph,
+      handleOptimizeGlyph: glyphActions.handleOptimizeGlyph,
       handleCopyGlyph: glyphActions.handleCopyGlyph,
       handlePasteGlyph: glyphActions.handlePasteGlyph,
       handleCopySelectedContours: glyphActions.handleCopySelectedContours,

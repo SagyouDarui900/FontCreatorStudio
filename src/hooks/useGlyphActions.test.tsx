@@ -249,3 +249,110 @@ describe('glyph copy & paste (review H4, M16, M17, M18)', () => {
     }
   });
 });
+
+describe('glyph path optimization (grid context menu)', () => {
+  // Closed square with a redundant node in the middle of the top edge:
+  // (50, 100) lies exactly on the straight line from (0, 100) to (100, 100).
+  function makeCollinearContour(): PathContour {
+    return {
+      id: 'c-opt',
+      closed: true,
+      nodes: [
+        { id: 'c-opt-n1', x: 0, y: 100, type: 'corner' },
+        { id: 'c-opt-n2', x: 50, y: 100, type: 'corner' },
+        { id: 'c-opt-n3', x: 100, y: 100, type: 'corner' },
+        { id: 'c-opt-n4', x: 100, y: 200, type: 'corner' },
+        { id: 'c-opt-n5', x: 0, y: 200, type: 'corner' },
+      ],
+    };
+  }
+
+  it('removes the redundant node, marks the glyph modified, and records one undo entry', () => {
+    const glyph = makeGlyph(0x3042, 'あ', { contours: [makeCollinearContour()] });
+    const h = mount(makeProject('proj-1', { [0x3042]: glyph }));
+    try {
+      act(() => {
+        h.ctx.handleOptimizeGlyph(0x3042);
+      });
+      const optimized = h.ctx.project.glyphs[0x3042];
+      expect(optimized.contours[0].nodes.length).toBe(4);
+      expect(optimized.contours[0].nodes.map((n) => n.x)).toEqual([0, 100, 100, 0]);
+      expect(optimized.modified).toBe(true);
+      expect(h.toasts).toContain(
+        '文字「あ」のパスを最適化しました（5頂点 → 4頂点） (Ctrl+Zで復元可能)'
+      );
+      expect(h.ctx.undoStack.length).toBe(1);
+
+      act(() => {
+        h.ctx.handleUndo();
+      });
+      expect(h.ctx.project.glyphs[0x3042].contours[0].nodes.length).toBe(5);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('changes nothing and reports no reducible nodes when the contours are already optimal', () => {
+    const glyph = makeGlyph(0x3042, 'あ', { contours: [makeContour('c1', 100)] });
+    const h = mount(makeProject('proj-1', { [0x3042]: glyph }));
+    try {
+      act(() => {
+        h.ctx.handleOptimizeGlyph(0x3042);
+      });
+      const kept = h.ctx.project.glyphs[0x3042];
+      expect(kept.contours[0].nodes.length).toBe(3);
+      expect(kept.modified).not.toBe(true);
+      expect(h.toasts).toContain('文字「あ」のパスに削減できる頂点はありませんでした');
+      expect(h.ctx.undoStack.length).toBe(0);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('does not change a locked glyph', () => {
+    const glyph = makeGlyph(0x3042, 'あ', {
+      contours: [makeCollinearContour()],
+      locked: true,
+    });
+    const h = mount(makeProject('proj-1', { [0x3042]: glyph }));
+    try {
+      act(() => {
+        h.ctx.handleOptimizeGlyph(0x3042);
+      });
+      expect(h.ctx.project.glyphs[0x3042].contours[0].nodes.length).toBe(5);
+      expect(h.toasts).toContain('この文字は編集ロックされています');
+      expect(h.ctx.undoStack.length).toBe(0);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('does nothing for a glyph without contours', () => {
+    const glyph = makeGlyph(0x3042, 'あ', { contours: [] });
+    const h = mount(makeProject('proj-1', { [0x3042]: glyph }));
+    try {
+      act(() => {
+        h.ctx.handleOptimizeGlyph(0x3042);
+      });
+      expect(h.ctx.project.glyphs[0x3042].contours).toEqual([]);
+      expect(h.toasts.length).toBe(0);
+      expect(h.ctx.undoStack.length).toBe(0);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('does nothing for a missing glyph', () => {
+    const glyph = makeGlyph(0x3042, 'あ', { contours: [makeCollinearContour()] });
+    const h = mount(makeProject('proj-1', { [0x3042]: glyph }));
+    try {
+      act(() => {
+        h.ctx.handleOptimizeGlyph(0x9999);
+      });
+      expect(h.ctx.project.glyphs[0x3042].contours[0].nodes.length).toBe(5);
+      expect(h.toasts.length).toBe(0);
+    } finally {
+      h.unmount();
+    }
+  });
+});
