@@ -25,7 +25,8 @@ const ALL_BRUSH_STYLES: BrushStyle[] = [
   'brush', 'signpen', 'sumi', 'marumoji', 'fountain', 'mincho_nib',
   'reisho_chisel', 'g_pen', 'pixel_dot', 'marker', 'ballpoint',
   'calligraphy', 'highlighter', 'pencil', 'chalk', 'sharp',
-  'sharp_round', 'wobbly', 'polygon',
+  'sharp_round', 'wobbly', 'polygon', 'double_line', 'dotted',
+  'bristle', 'reed', 'round_nib', 'fine_brush',
 ];
 
 function loadSavedBrushStyle(): BrushStyle {

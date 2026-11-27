@@ -20,6 +20,12 @@ export const BRUSH_STYLE_INFO: Record<BrushStyle, { name: string; desc: string; 
   chalk: { name: 'チョーク筆', desc: '黒板風のかすれと手書き質感', category: 'ナチュラル' },
   marker: { name: '丸マーカー', desc: '均質で滑らかなアートマーカー', category: 'ナチュラル' },
   wobbly: { name: 'ゆらぎ手書き', desc: '微細な揺らぎを持つ脱力系手書き線', category: 'ナチュラル' },
+  double_line: { name: '二重線ペン', desc: '中が空いた二重線のストローク', category: 'デザイン' },
+  dotted: { name: '点線ペン', desc: '一定の間隔で区切られた点線のストローク', category: 'デザイン' },
+  bristle: { name: '刷毛', desc: '毛の分かれによる筋のある縁の平筆', category: 'ナチュラル' },
+  reed: { name: '葦ペン', desc: '先が割れた硬いペン先のかすれと荒れ', category: 'ナチュラル' },
+  round_nib: { name: '丸ペン', desc: '細く均一な線のつけペン', category: 'ペン・インク' },
+  fine_brush: { name: '面相筆', desc: '細い先の小筆。尖りと筆圧反応', category: '和風・筆' },
 };
 
 export const CURVE_PRESET_LABELS: Record<string, { name: string; desc: string }> = {

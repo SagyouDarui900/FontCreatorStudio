@@ -17,7 +17,13 @@ export type BrushStyle =
   | 'sharp'
   | 'sharp_round'
   | 'wobbly'
-  | 'polygon';
+  | 'polygon'
+  | 'double_line'
+  | 'dotted'
+  | 'bristle'
+  | 'reed'
+  | 'round_nib'
+  | 'fine_brush';
 
 export interface PenPresetInfo {
   id: BrushStyle;
@@ -71,9 +77,12 @@ export interface PressureCurveConfig {
  * pressureOpacityFactor (a filled vector outline has no opacity channel,
  * and the width channel is already covered by the speed/pressure width
  * and feather factors, so mapping them to width would duplicate those
- * controls), antiAlias (vector outline data only; a display matter),
- * doubleLineGap / dottedSpacing (used by the round-B double-line and
- * dotted pens; no such pen exists yet, so they have no drawing effect).
+ * controls), antiAlias (vector outline data only; a display matter).
+ * doubleLineGap / dottedSpacing are used by the round-B double-line and
+ * dotted pens (double_line / dotted). For other styles they have no
+ * drawing effect. When the style is double_line / dotted and the field
+ * is absent, the drawing uses 30 (% of the stroke width) as the style
+ * default; an explicit 0 draws a single solid line.
  * Smoothing itself is applied through smoothingIntensity / autoSmoothBrush.
  */
 export interface UserPenPreset {

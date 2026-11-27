@@ -52,6 +52,12 @@ export const PEN_ICONS: Record<BrushStyle, React.FC<{ className?: string }>> = {
   sharp_round: SquareDot,
   wobbly: Spline,
   polygon: Hexagon,
+  double_line: Minus,
+  dotted: CircleDot,
+  bristle: Paintbrush,
+  reed: Slash,
+  round_nib: PenLine,
+  fine_brush: Feather,
 };
 
 export const PillIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (

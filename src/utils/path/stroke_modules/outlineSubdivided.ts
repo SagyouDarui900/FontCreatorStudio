@@ -47,6 +47,192 @@ function pixelGridSize(strokeWidth: number): number {
 }
 
 /**
+ * Round B: double-line and dotted pens.
+ *
+ * doubleLineGap / dottedSpacing are 0-100 values on the preset. They are
+ * read as a percentage of the stroke width, so a gap of 30 at width 40 is
+ * 12px. An explicit 0 draws a single solid line (the caller falls through
+ * to the normal path). When the field is absent, the double-line / dotted
+ * style itself supplies 30, so selecting the pen without a preset still
+ * draws its characteristic shape; other styles default to 0.
+ */
+const DOUBLE_LINE_DEFAULT_GAP = 30;
+const DOTTED_DEFAULT_SPACING = 30;
+
+function resolveDoubleLineGapPx(
+  strokeWidth: number,
+  style: BrushStyle,
+  cp?: Partial<UserPenPreset>
+): number {
+  const raw = cp?.doubleLineGap ?? (style === 'double_line' ? DOUBLE_LINE_DEFAULT_GAP : 0);
+  const pct = Math.max(0, Math.min(100, raw));
+  // The two rails keep at least 1px each, so the gap never exceeds
+  // strokeWidth - 2.
+  return Math.min((pct / 100) * strokeWidth, Math.max(0, strokeWidth - 2));
+}
+
+function resolveDottedSpacingPx(
+  strokeWidth: number,
+  style: BrushStyle,
+  cp?: Partial<UserPenPreset>
+): number {
+  const raw = cp?.dottedSpacing ?? (style === 'dotted' ? DOTTED_DEFAULT_SPACING : 0);
+  const pct = Math.max(0, Math.min(100, raw));
+  return (pct / 100) * strokeWidth;
+}
+
+/** Keep points at least minDist apart along a polyline run, always keeping the first and last point. */
+function subsampleRun(pts: Point[], minDist: number): Point[] {
+  if (pts.length <= 2) return pts.slice();
+  const kept: Point[] = [pts[0]];
+  let last = pts[0];
+  for (let i = 1; i < pts.length - 1; i++) {
+    if (Math.hypot(pts[i].x - last.x, pts[i].y - last.y) >= minDist) {
+      kept.push(pts[i]);
+      last = pts[i];
+    }
+  }
+  kept.push(pts[pts.length - 1]);
+  return kept;
+}
+
+/**
+ * Double-line outline as one folded closed loop: the two rails are
+ * traced in a single loop, so the filled region (nonzero rule, the rule
+ * the canvas uses) is exactly the two rails and the gap between them
+ * stays empty. The loop is: left outer edge forward, end cap, left inner
+ * edge backward, start jump across the gap, right inner edge forward, end
+ * cap, right outer edge backward, and the closing segment is the start
+ * cap. The two segments across the gap are traversed in opposite
+ * directions, so they cancel in the winding and enclose no area.
+ */
+function buildDoubleLineLoop(
+  resampled: { x: number; y: number }[],
+  nxArr: Float64Array,
+  nyArr: Float64Array,
+  leftHalf: Float64Array,
+  rightHalf: Float64Array,
+  gapPx: number
+): Point[] {
+  const n = resampled.length;
+  const gapHalf = gapPx / 2;
+  const leftOuter: Point[] = new Array(n);
+  const leftInner: Point[] = new Array(n);
+  const rightOuter: Point[] = new Array(n);
+  const rightInner: Point[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const cx = resampled[i].x;
+    const cy = resampled[i].y;
+    const nx = nxArr[i];
+    const ny = nyArr[i];
+    const oL = leftHalf[i];
+    const oR = rightHalf[i];
+    // Each rail keeps at least 1px, so a gap wider than the stroke
+    // still leaves two thin rails instead of inverting them.
+    const iL = Math.min(gapHalf, Math.max(0, oL - 1));
+    const iR = Math.min(gapHalf, Math.max(0, oR - 1));
+    leftOuter[i] = { x: Number((cx + nx * oL).toFixed(2)), y: Number((cy + ny * oL).toFixed(2)) };
+    leftInner[i] = { x: Number((cx + nx * iL).toFixed(2)), y: Number((cy + ny * iL).toFixed(2)) };
+    rightOuter[i] = { x: Number((cx - nx * oR).toFixed(2)), y: Number((cy - ny * oR).toFixed(2)) };
+    rightInner[i] = { x: Number((cx - nx * iR).toFixed(2)), y: Number((cy - ny * iR).toFixed(2)) };
+  }
+  const loop: Point[] = [];
+  const pushRun = (run: Point[]) => {
+    for (const p of subsampleRun(run, 4)) loop.push(p);
+  };
+  pushRun(leftOuter);
+  pushRun(leftInner.slice().reverse());
+  pushRun(rightInner);
+  pushRun(rightOuter.slice().reverse());
+  return loop;
+}
+
+/**
+ * Dotted outline as one folded closed loop: each dash is a small ribbon,
+ * and consecutive dashes are joined by segments along the centreline. The
+ * closing segment retraces the centreline backwards, so every centreline
+ * segment is traversed once in each direction and encloses no area: the
+ * filled region is exactly the dashes and the gaps stay empty. Dashes have
+ * flat ends; the dash length is the stroke width, so each dash is about as
+ * long as it is wide. The centreline jumps use the resampled centreline
+ * points themselves (not a subsampled copy) so the forward and backward
+ * passes go through exactly the same coordinates.
+ */
+function buildDottedLoop(
+  resampled: { x: number; y: number }[],
+  leftOffsets: Point[],
+  rightOffsets: Point[],
+  dists: Float64Array,
+  totalLength: number,
+  dashLen: number,
+  gapLen: number
+): Point[] {
+  const n = resampled.length;
+  // Dash intervals in arc length: [0, dashLen], [dashLen+gapLen, ...].
+  const dashes: Array<{ start: number; end: number }> = [];
+  let s = 0;
+  while (s < totalLength) {
+    const e = Math.min(s + dashLen, totalLength);
+    // A trailing sliver shorter than a quarter dash is dropped so the
+    // stroke does not end in a speck.
+    if (e - s >= Math.max(4, dashLen * 0.25) || dashes.length === 0) {
+      dashes.push({ start: s, end: e });
+    }
+    s = e + gapLen;
+  }
+  // Index of the first resampled point at or after arc position pos.
+  const indexAt = (pos: number): number => {
+    let lo = 0;
+    let hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dists[mid] < pos) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  const loop: Point[] = [];
+  const pushRun = (run: Point[]) => {
+    for (const p of subsampleRun(run, 4)) loop.push(p);
+  };
+  for (let k = 0; k < dashes.length; k++) {
+    const d = dashes[k];
+    const i0 = indexAt(d.start);
+    const i1 = Math.max(i0, indexAt(d.end));
+    const leftRun: Point[] = [];
+    const rightRun: Point[] = [];
+    for (let i = i0; i <= i1; i++) {
+      leftRun.push(leftOffsets[i]);
+      rightRun.push(rightOffsets[i]);
+    }
+    // Every dash is traced the same way round (left edge forward, end
+    // cap, right edge backward), so all dash areas add instead of
+    // cancelling. The jump after the dash starts from the right edge
+    // start on the centreline, whatever the dash index is. (Tracing
+    // alternate dashes the other way round made the signed area of the
+    // whole loop cancel to near zero.)
+    pushRun(leftRun);
+    pushRun(rightRun.slice().reverse());
+    if (k < dashes.length - 1) {
+      // Centreline jump forward to the next dash start. The first
+      // point is the centreline point under the current dash start
+      // edge point (the radial segment from the edge point to it is
+      // the dash start cap); the last is the centreline point under
+      // the next dash start.
+      const j1 = indexAt(dashes[k + 1].start);
+      for (let i = i0; i <= j1; i++) loop.push(resampled[i]);
+    }
+  }
+  // Closing centreline jump backwards to the stroke start. It retraces
+  // every forward jump in the opposite direction, so the jumps cancel
+  // in the winding. The loop then closes with the short radial segment
+  // from the stroke start centreline point to the first loop point.
+  const lastStart = indexAt(dashes[dashes.length - 1].start);
+  for (let i = lastStart; i >= 0; i--) loop.push(resampled[i]);
+  return loop;
+}
+
+/**
  * Convert freehand stroke points into a closed smoothed vector outline using
  * fine-segment subdivision and monotone cubic Hermite pressure interpolation.
  */
@@ -135,6 +321,34 @@ export function strokePointsToOutline(
           { id: generateId(), x: cx - rGrid, y: cy + rGrid, type: 'corner' },
         ],
       };
+    }
+    if (style === 'double_line') {
+      const gapPx = resolveDoubleLineGapPx(strokeWidth, style, cp);
+      const innerR = Math.min(gapPx / 2, r - 1);
+      if (innerR > 1) {
+        // Tap dot as a ring: the outer circle and the inner circle are
+        // one loop, joined by two radial slits traversed in opposite
+        // directions, so the filled region is the ring and the centre
+        // stays empty. The inner circle runs the opposite way round,
+        // so its winding cancels the outer circle's inside the hole.
+        const kappa = 0.5522847498;
+        const ox = r * kappa;
+        const ix = innerR * kappa;
+        const nodes: BezierNode[] = [
+          { id: generateId(), x: p.x, y: p.y - r, handleIn: { x: p.x - ox, y: p.y - r }, handleOut: { x: p.x + ox, y: p.y - r }, type: 'smooth' },
+          { id: generateId(), x: p.x + r, y: p.y, handleIn: { x: p.x + r, y: p.y - ox }, handleOut: { x: p.x + r, y: p.y + ox }, type: 'smooth' },
+          { id: generateId(), x: p.x, y: p.y + r, handleIn: { x: p.x + ox, y: p.y + r }, handleOut: { x: p.x - ox, y: p.y + r }, type: 'smooth' },
+          { id: generateId(), x: p.x - r, y: p.y, handleIn: { x: p.x - r, y: p.y + ox }, handleOut: { x: p.x - r, y: p.y - ox }, type: 'smooth' },
+          // Inner circle, opposite direction: left, bottom, right, top.
+          { id: generateId(), x: p.x - innerR, y: p.y, handleIn: { x: p.x - innerR, y: p.y - ix }, handleOut: { x: p.x - innerR, y: p.y + ix }, type: 'smooth' },
+          { id: generateId(), x: p.x, y: p.y + innerR, handleIn: { x: p.x - ix, y: p.y + innerR }, handleOut: { x: p.x + ix, y: p.y + innerR }, type: 'smooth' },
+          { id: generateId(), x: p.x + innerR, y: p.y, handleIn: { x: p.x + innerR, y: p.y + ix }, handleOut: { x: p.x + innerR, y: p.y - ix }, type: 'smooth' },
+          { id: generateId(), x: p.x, y: p.y - innerR, handleIn: { x: p.x + ix, y: p.y - innerR }, handleOut: { x: p.x - ix, y: p.y - innerR }, type: 'smooth' },
+        ];
+        const ring: PathContour = { id: generateId(), closed: true, nodes };
+        if (getContourSignedArea(ring) < 0) return reverseContour(ring);
+        return ring;
+      }
     }
     // create a smooth circle with 4 bezier nodes
     const kappa = 0.5522847498;
@@ -799,6 +1013,59 @@ export function strokePointsToOutline(
       const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.50 + 0.80 * pointPressure);
       leftHalfWidth = Math.max(3, (strokeWidth / 2) * (presFactor + wobbleLeft));
       rightHalfWidth = Math.max(3, (strokeWidth / 2) * (presFactor + wobbleRight));
+    } else if (style === 'double_line' || style === 'dotted') {
+      // Uniform marker-like width; the hollow / divided shape comes from
+      // the folded loop assembly below, not from the width.
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.55 + 0.70 * pointPressure);
+      leftHalfWidth = rightHalfWidth = Math.max(3, (strokeWidth / 2) * presFactor);
+    } else if (style === 'bristle') {
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.60 + 0.75 * pointPressure);
+      // Bristle grooves: deterministic width modulation along the arc
+      // length, separate from edgeRoughness (which is index-based xy
+      // noise on the finished loop). The wavelengths (12px / 23px)
+      // survive the width smoothing passes, and a deeper notch every
+      // 41px reads as a separated bristle.
+      const s = dists[i];
+      const groove =
+        1 +
+        0.09 * Math.sin(s * 0.5236 + 1.3) +
+        0.05 * Math.sin(s * 0.2732 + 4.1) -
+        0.14 * Math.pow(Math.max(0, Math.sin(s * 0.1532 + 0.7)), 6);
+      leftHalfWidth = rightHalfWidth = Math.max(3, (strokeWidth / 2) * presFactor * groove);
+    } else if (style === 'reed') {
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.15 + 1.60 * Math.pow(pointPressure, 1.3));
+      // Kasuri (feather): periodic deep narrowings along the arc length,
+      // plus a moderate-frequency width noise for the rough edge. The
+      // kasuri wavelength (25px) survives the width smoothing passes;
+      // the dips use sin^2 (not a sharper power) so they stay wide
+      // enough not to be smoothed away.
+      const s = dists[i];
+      const kasuri = Math.pow(Math.max(0, Math.sin(s * 0.2513 + 0.9)), 2);
+      const rough = 1 + 0.06 * Math.sin(s * 0.5712 + 2.0) + 0.04 * Math.sin(s * 0.3702 + 5.0);
+      leftHalfWidth = rightHalfWidth = Math.max(2, (strokeWidth / 2) * presFactor * (1 - 0.65 * kasuri) * rough);
+    } else if (style === 'round_nib') {
+      // Fine uniform round nib: less pressure response than ballpoint
+      // (a smaller width change) and a harder tip, so the line stays thin
+      // and even. The width is strokeWidth / 3.2 against ballpoint's / 3.0.
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.70 + 0.55 * pointPressure);
+      leftHalfWidth = rightHalfWidth = Math.max(2, (strokeWidth / 3.2) * presFactor);
+    } else if (style === 'fine_brush') {
+      const presFactor = pressureSensitivity === 'off' ? 1.0 : (0.22 + 1.55 * Math.pow(pointPressure, 1.25));
+      // A thin small brush: narrower than brush (0.85 factor) with a
+      // stronger entry and exit taper, so the tip reads as pointed.
+      let fineMul = 1.0;
+      if (normDist < 0.15) {
+        const t = normDist / 0.15;
+        fineMul *= 0.55 + 0.45 * (0.5 - 0.5 * Math.cos(t * Math.PI));
+      } else if (normDist > 0.85) {
+        const t = (normDist - 0.85) / 0.15;
+        if (isTailFlick) {
+          fineMul *= Math.max(0.12, 1.0 - 0.88 * Math.sin(t * Math.PI * 0.5));
+        } else {
+          fineMul *= 1.0 - 0.65 * (0.5 - 0.5 * Math.cos(t * Math.PI));
+        }
+      }
+      leftHalfWidth = rightHalfWidth = Math.max(1.5, (strokeWidth / 2) * presFactor * 0.85 * fineMul);
     }
 
     if (cp) {
@@ -1066,6 +1333,22 @@ export function strokePointsToOutline(
     }
   }
 
+  // Round B: double-line and dotted pens use a folded closed loop
+  // (buildDoubleLineLoop / buildDottedLoop) instead of the sampled
+  // single-line loop with caps below. An explicit gap / spacing of 0
+  // falls through to the normal path, so the result is exactly the
+  // single line.
+  const doubleLineGapPx = style === 'double_line' ? resolveDoubleLineGapPx(strokeWidth, style, cp) : 0;
+  const dottedSpacingPx = style === 'dotted' ? resolveDottedSpacingPx(strokeWidth, style, cp) : 0;
+  const useDoubleLineLoop = style === 'double_line' && doubleLineGapPx > 0.5;
+  const useDottedLoop = style === 'dotted' && dottedSpacingPx > 0.5;
+
+  let loopPoints: Point[];
+  if (useDoubleLineLoop) {
+    loopPoints = buildDoubleLineLoop(resampled, nxArr, nyArr, smoothedLeftWidths, smoothedRightWidths, doubleLineGapPx);
+  } else if (useDottedLoop) {
+    loopPoints = buildDottedLoop(resampled, leftOffsets, rightOffsets, dists, totalLength, strokeWidth, dottedSpacingPx);
+  } else {
   // 9. Adaptive Boundary Sampling
   const baseSampleDist = intensityNorm <= 0.05 ? 6.0 : 6.0 + 4.0 * intensityNorm;
   const sampleTurnThreshold = intensityNorm <= 0.05 ? 0.16 : 0.16 + 0.12 * intensityNorm;
@@ -1118,7 +1401,7 @@ export function strokePointsToOutline(
     ? simplifyPointsRDP(sampleLeft.map((s) => s.pt), 0.45)
     : sampleLeft.map((s) => s.pt);
 
-  const loopPoints: Point[] = [];
+  loopPoints = [];
 
   for (let i = 0; i < cleanRight.length; i++) {
     loopPoints.push(cleanRight[i]);
@@ -1251,6 +1534,7 @@ export function strokePointsToOutline(
       y: Number((startP.y - startTy * startHalfW - startNy * startRightW).toFixed(2)),
     });
   }
+  } // else: single-line loop with caps
 
   const cleanLoop: Point[] = [];
   for (let i = 0; i < loopPoints.length; i++) {
@@ -1313,7 +1597,12 @@ export function strokePointsToOutline(
         p.x = Number((p.x + (cy - p.y) * tanSlant).toFixed(2));
       }
     }
-    if (cp.edgeRoughness && cp.edgeRoughness > 0) {
+    // Double-line and dotted pens skip the edge roughness: the noise
+    // is a function of the loop index, so the forward and backward
+    // centreline jumps would get different noise and stop coinciding,
+    // which would fill the gaps with thin slivers. axisSlant above is
+    // a linear map, so it keeps the jumps coincident and still applies.
+    if (cp.edgeRoughness && cp.edgeRoughness > 0 && style !== 'double_line' && style !== 'dotted') {
       const amp = (cp.edgeRoughness / 100) * 2.5;
       // roughnessScale: the grain size of the noise. 50 (the default)
       // keeps the existing grain; a larger scale stretches the noise

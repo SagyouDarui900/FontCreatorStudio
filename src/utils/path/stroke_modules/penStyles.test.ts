@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildBrushContour, type BrushStrokeConfig } from '../../../hooks/useBrushDrawing';
 import { DEFAULT_PRESSURE_CURVES } from '../../presetData';
-import { getContourSignedArea } from '../bounds';
+import { getContourSignedArea, isPointInContour } from '../bounds';
 import type { BrushStyle, PathContour, StrokePoint, UserPenPreset } from '../../../types';
 
 function curveStroke(): StrokePoint[] {
@@ -582,5 +582,195 @@ describe('round D: new preset fields', () => {
       expect(signature(buildBrushContour(pts, cfg(style, { lineJoin: 'round' })))).toBe(base);
       expect(signature(buildBrushContour(pts, cfg(style, { lineJoin: 'bevel' })))).toBe(base);
     }
+  });
+});
+
+describe('round B: new brush styles', () => {
+  /** marker with pressure off: a constant-width 40 solid line. */
+  const markerOff = { ...cfg('marker'), pressureSensitivity: 'off' as const };
+
+  /** Heights of x-slices of a straight horizontal stroke's outline, middle 60% only (caps excluded). */
+  function sliceHeights(contour: PathContour, sliceWidth = 10): number[] {
+    const xs = contour.nodes.map((n) => n.x);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const span = maxX - minX;
+    const heights: number[] = [];
+    for (let x = minX; x < maxX; x += sliceWidth) {
+      if (x < minX + 0.2 * span || x > maxX - 0.2 * span - sliceWidth) continue;
+      const ys = contour.nodes.filter((n) => n.x >= x && n.x < x + sliceWidth).map((n) => n.y);
+      if (ys.length >= 2) heights.push(Math.max(...ys) - Math.min(...ys));
+    }
+    return heights;
+  }
+
+  it('double_line with a gap draws two hollow rails; gap 0 is the single line', () => {
+    const gap30 = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'double_line',
+      activePenPreset: { doubleLineGap: 30 } as never,
+    });
+    const solid = buildBrushContour(straightStroke(), markerOff);
+    // Hollow: a point in the gap (2px off the centreline, so the ray
+    // does not run through the centreline slit vertices) is outside
+    // the contour, a point inside a rail is inside. The solid line
+    // contains both points.
+    expect(isPointInContour({ x: 600, y: 502 }, gap30)).toBe(false);
+    expect(isPointInContour({ x: 600, y: 502 }, solid)).toBe(true);
+    expect(isPointInContour({ x: 600, y: 513 }, gap30)).toBe(true);
+    // Two rails of (40-12)/2 = 14px each: the area is the rails only,
+    // without the round caps of the solid line.
+    expect(area(gap30)).toBeLessThan(area(solid) * 0.8);
+    expect(area(gap30)).toBeGreaterThan(area(solid) * 0.5);
+    // Gap 0 falls through to the single line and matches marker exactly.
+    const gap0 = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'double_line',
+      activePenPreset: { doubleLineGap: 0 } as never,
+    });
+    expect(signature(gap0)).toBe(signature(solid));
+    // Without a preset the style default (gap 30) applies, so selecting
+    // the pen still draws a double line.
+    const noPreset = buildBrushContour(straightStroke(), { ...markerOff, brushStyle: 'double_line' });
+    expect(signature(noPreset)).toBe(signature(gap30));
+    expect(signature(noPreset)).not.toBe(signature(solid));
+  });
+
+  it('double_line tap dot is a ring; dotted tap dot is a solid dot', () => {
+    const ring = buildBrushContour(singlePoint(), cfg('double_line', { doubleLineGap: 30 }));
+    const solid = buildBrushContour(singlePoint(), cfg('marker'));
+    expect(ring.nodes).toHaveLength(8);
+    expect(isPointInContour({ x: 500, y: 502 }, ring)).toBe(false);
+    expect(isPointInContour({ x: 500, y: 502 }, solid)).toBe(true);
+    expect(isPointInContour({ x: 513, y: 502 }, ring)).toBe(true);
+    expect(area(ring)).toBeLessThan(area(solid));
+    const dot = buildBrushContour(singlePoint(), cfg('dotted', { dottedSpacing: 30 }));
+    expect(signature(dot)).toBe(signature(solid));
+  });
+
+  it('dotted divides the stroke into dashes; spacing 0 is the single line', () => {
+    const dotted = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'dotted',
+      activePenPreset: { dottedSpacing: 30 } as never,
+    });
+    const solid = buildBrushContour(straightStroke(), markerOff);
+    // Dash length is the stroke width (40), gap is 30% of it (12):
+    // dashes cover x 500-540, 552-592, 604-644, 656-696.
+    expect(isPointInContour({ x: 520, y: 503 }, dotted)).toBe(true);
+    expect(isPointInContour({ x: 546, y: 503 }, dotted)).toBe(false);
+    expect(isPointInContour({ x: 572, y: 503 }, dotted)).toBe(true);
+    expect(isPointInContour({ x: 546, y: 503 }, solid)).toBe(true);
+    expect(area(dotted)).toBeLessThan(area(solid) * 0.8);
+    expect(area(dotted)).toBeGreaterThan(area(solid) * 0.5);
+    // The gaps are empty along the whole stroke, not just at one point.
+    // 4px slices: a slice fully inside a 12px gap holds only the
+    // centreline jump points, so its height is near zero.
+    const heights = sliceHeights(dotted, 4);
+    expect(Math.min(...heights)).toBeLessThan(5);
+    expect(Math.max(...heights)).toBeGreaterThan(35);
+    // Spacing 0 falls through to the single line and matches marker exactly.
+    const spacing0 = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'dotted',
+      activePenPreset: { dottedSpacing: 0 } as never,
+    });
+    expect(signature(spacing0)).toBe(signature(solid));
+    // Without a preset the style default (spacing 30) applies.
+    const noPreset = buildBrushContour(straightStroke(), { ...markerOff, brushStyle: 'dotted' });
+    expect(signature(noPreset)).toBe(signature(dotted));
+    expect(signature(noPreset)).not.toBe(signature(solid));
+  });
+
+  it('bristle has grooved edges distinct from marker and from edgeRoughness', () => {
+    const pts = curveStroke();
+    const bristle = buildBrushContour(pts, cfg('bristle'));
+    const marker = buildBrushContour(pts, cfg('marker'));
+    expect(signature(bristle)).not.toBe(signature(marker));
+    // The grooves are an edge waviness, like the wobbly wobble.
+    expect(totalTurning(bristle.nodes)).toBeGreaterThan(totalTurning(marker.nodes) * 1.5);
+    expect(bristle.nodes.length).toBeGreaterThan(marker.nodes.length);
+    // The grooves narrow the stroke in places along a straight stroke.
+    const heights = sliceHeights(buildBrushContour(straightStroke(), cfg('bristle', {}, 0)), 5);
+    expect(Math.min(...heights)).toBeLessThan(Math.max(...heights) * 0.93);
+    // Bristle grooves are not the edgeRoughness noise: a marker with
+    // edgeRoughness draws differently, and bristle without roughness
+    // already has the grooves.
+    const roughMarker = signature(buildBrushContour(pts, cfg('marker', { edgeRoughness: 80 })));
+    expect(signature(bristle)).not.toBe(roughMarker);
+  });
+
+  it('reed has kasuri narrowings and a strong pressure response', () => {
+    const reed = buildBrushContour(straightStroke(), cfg('reed', {}, 0));
+    const marker = buildBrushContour(straightStroke(), cfg('marker', {}, 0));
+    expect(signature(reed)).not.toBe(signature(marker));
+    // Kasuri: the distance from the centreline to the edge narrows
+    // deeply at intervals along the middle of the stroke (caps
+    // excluded). A slice height cannot show this, because it measures
+    // the widest point inside the slice.
+    const minEdgeHalf = (c: PathContour) => {
+      const ds = c.nodes
+        .filter((n) => n.x >= 540 && n.x <= 660)
+        .map((n) => Math.abs(n.y - 500));
+      return Math.min(...ds);
+    };
+    expect(minEdgeHalf(reed)).toBeLessThan(minEdgeHalf(marker) * 0.7);
+    // Pressure response is much stronger than marker's.
+    const reedLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('reed')));
+    const reedHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('reed')));
+    const markerLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('marker')));
+    const markerHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('marker')));
+    expect(reedHigh / reedLow).toBeGreaterThan((markerHigh / markerLow) * 2);
+  });
+
+  it('round_nib is thinner and less pressure-sensitive than ballpoint', () => {
+    const pts = curveStroke();
+    const roundNib = buildBrushContour(pts, cfg('round_nib'));
+    const ballpoint = buildBrushContour(pts, cfg('ballpoint'));
+    expect(signature(roundNib)).not.toBe(signature(ballpoint));
+    const nibLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('round_nib')));
+    const nibHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('round_nib')));
+    const ballLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('ballpoint')));
+    const ballHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('ballpoint')));
+    expect(nibHigh / nibLow).toBeLessThan(ballHigh / ballLow);
+    expect(area(buildBrushContour(pts, cfg('round_nib')))).toBeLessThan(area(ballpoint));
+  });
+
+  it('fine_brush is narrower than brush with a stronger taper and pressure response', () => {
+    const pts = curveStroke();
+    const fine = buildBrushContour(pts, cfg('fine_brush'));
+    const brush = buildBrushContour(pts, cfg('brush'));
+    expect(signature(fine)).not.toBe(signature(brush));
+    expect(area(fine)).toBeLessThan(area(brush) * 0.9);
+    const fineLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('fine_brush')));
+    const fineHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('fine_brush')));
+    const brushLow = area(buildBrushContour(flatPressureStroke(0.2), cfg('brush')));
+    const brushHigh = area(buildBrushContour(flatPressureStroke(0.9), cfg('brush')));
+    expect(fineHigh / fineLow).toBeGreaterThan(brushHigh / brushLow);
+  });
+
+  it('the new styles reflect the round-D width fields', () => {
+    const pts = curveStroke();
+    for (const style of ['bristle', 'reed', 'round_nib', 'fine_brush'] as BrushStyle[]) {
+      const base = signature(buildBrushContour(pts, cfg(style)));
+      expect(signature(buildBrushContour(pts, cfg(style, { minWidth: 60 })))).not.toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { inkPooling: 100 })))).not.toBe(base);
+      expect(signature(buildBrushContour(pts, cfg(style, { brushFlex: 100 })))).not.toBe(base);
+    }
+    // Double-line and dotted go through the same width path: minWidth
+    // widens the rails / dashes, and the gap stays open.
+    const gapBase = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'double_line',
+      activePenPreset: { doubleLineGap: 30 } as never,
+    });
+    const gapMin = buildBrushContour(straightStroke(), {
+      ...markerOff,
+      brushStyle: 'double_line',
+      activePenPreset: { doubleLineGap: 30, minWidth: 60 } as never,
+    });
+    expect(signature(gapMin)).not.toBe(signature(gapBase));
+    expect(area(gapMin)).toBeGreaterThan(area(gapBase));
+    expect(isPointInContour({ x: 600, y: 502 }, gapMin)).toBe(false);
   });
 });

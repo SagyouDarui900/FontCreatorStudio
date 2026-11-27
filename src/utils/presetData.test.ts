@@ -235,8 +235,8 @@ describe('presetData - pen preset validation and storage', () => {
     expect(makeUniquePresetName('新しい名前', names)).toBe('新しい名前');
   });
 
-  it('covers all 19 brush styles with unique ids and PEN_PRESETS default widths', () => {
-    expect(DEFAULT_PEN_PRESETS).toHaveLength(19);
+  it('covers all 25 brush styles with unique ids and PEN_PRESETS default widths', () => {
+    expect(DEFAULT_PEN_PRESETS).toHaveLength(25);
     const ids = DEFAULT_PEN_PRESETS.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
     const byStyle = new Map(DEFAULT_PEN_PRESETS.map((p) => [p.brushStyle, p]));
@@ -251,6 +251,12 @@ describe('presetData - pen preset validation and storage', () => {
       'pixel_dot',
       'polygon',
       'wobbly',
+      'double_line',
+      'dotted',
+      'bristle',
+      'reed',
+      'round_nib',
+      'fine_brush',
     ] as const;
     for (const style of expectedStyles) {
       const preset = byStyle.get(style);
