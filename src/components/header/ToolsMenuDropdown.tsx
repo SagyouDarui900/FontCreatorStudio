@@ -523,7 +523,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenStorageManagerModal();
                       onClose();
                     }}
-                    className={`${smallItemClass} col-span-2`}
+                    className={`${smallItemClass} sm:col-span-2`}
                   >
                     <HardDrive className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <div className="flex-1 min-w-0">
@@ -541,7 +541,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onOpenShortcutsModal();
                       onClose();
                     }}
-                    className={`${smallItemClass} col-span-2`}
+                    className={`${smallItemClass} sm:col-span-2`}
                   >
                     <BookOpen className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <span className="text-xs font-medium truncate" title="ショートカット・操作ガイド">ショートカット・操作ガイド</span>
@@ -554,7 +554,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                     onClose();
                     onOpenThemeMenu();
                   }}
-                  className={`${smallItemClass} col-span-2`}
+                  className={`${smallItemClass} sm:col-span-2`}
                 >
                   <Palette className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                   <div className="flex-1 min-w-0">
@@ -566,7 +566,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                 </button>
                 {/* PWA install entry (the header install button is hidden below 640px) */}
                 {!isInstalled && (
-                  <div className={`${smallItemClass} col-span-2`}>
+                  <div className={`${smallItemClass} sm:col-span-2`}>
                     <Smartphone className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate" title="アプリとしてインストール">アプリとしてインストール</div>
@@ -583,7 +583,7 @@ export const ToolsMenuDropdown: React.FC<ToolsMenuDropdownProps> = ({
                       onToggleFullscreen();
                       onClose();
                     }}
-                    className={`${smallItemClass} col-span-2`}
+                    className={`${smallItemClass} sm:col-span-2`}
                   >
                     {isFullscreen ? (
                       <Minimize className={`w-3.5 h-3.5 shrink-0 ${themeClasses.accentText}`} />

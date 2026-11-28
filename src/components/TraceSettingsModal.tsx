@@ -47,7 +47,9 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [applyMode, setApplyMode] = useState<'char' | 'global'>('global');
+  const [applyMode, setApplyMode] = useState<'char' | 'global'>(() =>
+    traceSettings.charImages?.[selectedUnicode] ? 'char' : 'global',
+  );
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState<boolean>(false);
 
@@ -78,6 +80,14 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isTopModal, isFullscreen, isLicenseModalOpen, onClose]);
+
+  // Decide the apply scope from the current state each time the modal opens:
+  // a per-character image for the selected character means 'char', otherwise 'global'.
+  useEffect(() => {
+    if (isOpen) {
+      setApplyMode(traceSettings.charImages?.[selectedUnicode] ? 'char' : 'global');
+    }
+  }, [isOpen]);
 
   // Current active image source (either per-char or global)
   const currentImageSrc =
@@ -142,6 +152,20 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
       if (onShowToast) {
         onShowToast('クリップボードの読み取り権限がないか、ブラウザでサポートされていません。「画像を読み込む」ボタンから画像ファイルを選択してください。', 'warning');
       }
+    }
+  };
+
+  // Delete the image currently displayed: the per-character image when one
+  // exists for the selected character, otherwise the global image.
+  const handleDeleteImage = () => {
+    if (traceSettings.charImages?.[selectedUnicode]) {
+      setTraceSettings((s) => {
+        const copy = { ...(s.charImages || {}) };
+        delete copy[selectedUnicode];
+        return { ...s, charImages: copy };
+      });
+    } else {
+      setTraceSettings((s) => ({ ...s, imageSrc: undefined }));
     }
   };
 
@@ -316,23 +340,17 @@ export const TraceSettingsModal: React.FC<TraceSettingsModalProps> = ({
                       <span>画像を読み込みました</span>
                     </span>
                     <button
-                      onClick={() => {
-                        if (applyMode === 'char') {
-                          setTraceSettings((s) => {
-                            const copy = { ...(s.charImages || {}) };
-                            delete copy[selectedUnicode];
-                            return { ...s, charImages: copy };
-                          });
-                        } else {
-                          setTraceSettings((s) => ({ ...s, imageSrc: undefined }));
-                        }
-                      }}
+                      onClick={handleDeleteImage}
                       className="text-rose-600 hover:underline cursor-pointer"
                     >
                       画像を削除
                     </button>
                   </div>
                 )}
+
+                <p className={`text-[11px] leading-snug ${themeClasses.textMuted}`}>
+                  下絵画像はプロジェクトに保存されません。リロードやバックアップ復元で消えます。
+                </p>
 
                 {/* Recommended Image Specification Guide */}
                 <ModalAlert tone="info" title="推奨画像仕様（フォント下絵・トレース用）" theme={theme}>
