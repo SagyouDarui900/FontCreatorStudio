@@ -56,6 +56,8 @@ export interface ProjectContextType {
   hasClipboard: boolean;
   setClipboardContours: React.Dispatch<React.SetStateAction<PathContour[] | null>>;
   handleQuickSaveCurrentGlyph: () => void;
+  /** Download the current glyph as a single-glyph JSON file (toolbar button). */
+  handleExportCurrentGlyphJson: () => void;
 
   // Glyph actions
   handleSimplifyCurrentGlyph: (level?: 'mild' | 'normal' | 'strong') => void;
@@ -417,6 +419,10 @@ export function ProjectProvider({
     [updateCurrentGlyphField]
   );
 
+  // Ctrl+S quick save: persist the project to the browser only
+  // (LocalStorage + IndexedDB, the same destinations as auto-save).
+  // It no longer downloads a single-glyph JSON file; that download is
+  // available separately via handleExportCurrentGlyphJson.
   const handleQuickSaveCurrentGlyph = useCallback(() => {
     void (async () => {
       // Immediate LocalStorage save: record whether it actually succeeded
@@ -433,32 +439,7 @@ export function ProjectProvider({
       // and take it into account as well.
       const indexedDbSaved = await saveProjectToIndexedDbWhenIdle(projectRef.current);
 
-      const g =
-        (effectiveActiveIvsKey
-          ? projectRef.current.ivsVariants?.[effectiveActiveIvsKey]?.glyph
-          : projectRef.current.glyphs?.[selectedUnicode]) || {
-          unicode: selectedUnicode,
-          char: selectedChar,
-          advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
-          contours: [],
-          strokes: [],
-          anchors: [],
-        };
-
-      const res = exportGlyphJsonFile(
-        g,
-        selectedUnicode,
-        selectedChar,
-        projectRef.current.metadata?.familyName || projectRef.current.name || '手書きフォント',
-        projectRef.current.metadata?.version || '1.0'
-      );
-
-      if (res.success) {
-        showToast(
-          `文字「${selectedChar}」(U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}) を即時保存し、『${res.filename}』をダウンロードしました`,
-          'success'
-        );
-      } else if (localSaved || indexedDbSaved) {
+      if (localSaved || indexedDbSaved) {
         showToast(`文字「${selectedChar}」の変更をブラウザに即時永続化しました`, 'success');
       } else {
         showToast(
@@ -467,7 +448,41 @@ export function ProjectProvider({
         );
       }
     })();
-  }, [selectedUnicode, selectedChar, effectiveActiveIvsKey, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
+  }, [selectedChar, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
+
+  // Single-glyph JSON download, kept as a separate operation (toolbar
+  // button) after Ctrl+S stopped downloading. It only writes the file;
+  // browser persistence is done by the quick save / auto-save.
+  const handleExportCurrentGlyphJson = useCallback(() => {
+    const g =
+      (effectiveActiveIvsKey
+        ? projectRef.current.ivsVariants?.[effectiveActiveIvsKey]?.glyph
+        : projectRef.current.glyphs?.[selectedUnicode]) || {
+        unicode: selectedUnicode,
+        char: selectedChar,
+        advanceWidth: projectRef.current.metadata?.unitsPerEm || 1000,
+        contours: [],
+        strokes: [],
+        anchors: [],
+      };
+
+    const res = exportGlyphJsonFile(
+      g,
+      selectedUnicode,
+      selectedChar,
+      projectRef.current.metadata?.familyName || projectRef.current.name || '手書きフォント',
+      projectRef.current.metadata?.version || '1.0'
+    );
+
+    if (res.success) {
+      showToast(
+        `文字「${selectedChar}」(U+${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}) のJSONファイル『${res.filename}』をダウンロードしました`,
+        'success'
+      );
+    } else {
+      showToast(`文字「${selectedChar}」のJSONファイルのダウンロードに失敗しました`, 'error');
+    }
+  }, [selectedUnicode, selectedChar, effectiveActiveIvsKey, showToast, projectRef]);
 
   const glyphActions = useGlyphActions({
     project,
@@ -541,6 +556,7 @@ export function ProjectProvider({
       hasClipboard: glyphActions.clipboard !== null,
       setClipboardContours: glyphActions.setClipboardContours,
       handleQuickSaveCurrentGlyph,
+      handleExportCurrentGlyphJson,
       handleSimplifyCurrentGlyph: glyphActions.handleSimplifyCurrentGlyph,
       handleAutoSpaceCurrentGlyph: glyphActions.handleAutoSpaceCurrentGlyph,
       handleClearGlyph: glyphActions.handleClearGlyph,
@@ -588,6 +604,7 @@ export function ProjectProvider({
       commitProjectHistory,
       discardLastHistoryEntry,
       handleQuickSaveCurrentGlyph,
+      handleExportCurrentGlyphJson,
       glyphActions,
     ]
   );

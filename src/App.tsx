@@ -165,6 +165,7 @@ function AppMain({
     clipboardContours,
     hasClipboard,
     handleQuickSaveCurrentGlyph,
+    handleExportCurrentGlyphJson,
     handleSimplifyCurrentGlyph,
     handleAutoSpaceCurrentGlyph,
     handleClearGlyph,
@@ -243,10 +244,27 @@ function AppMain({
   const traceMediaRef = useRef(traceMedia);
   traceMediaRef.current = traceMedia;
 
+  // The manually entered underdrawing display character is cleared when
+  // switching glyphs, but that clearing must not touch the project: writing
+  // it via setProject creates a new project object (and bumps updatedAt),
+  // which triggers a full IndexedDB + LocalStorage auto-save for only
+  // looking at another character. Keep the cleared text in local state
+  // instead, scoped to the current project instance so a stale override
+  // cannot leak into a newly loaded project.
+  const [traceTextOverride, setTraceTextOverride] = useState<{
+    scope: string;
+    text: string;
+  } | null>(null);
+  const traceScopeRef = useRef(traceScope);
+  traceScopeRef.current = traceScope;
+
   const traceSettings = useMemo<TraceSettings>(
     () => ({
       ...DEFAULT_TRACE_SETTINGS,
       ...(project.traceSettings || {}),
+      ...(traceTextOverride && traceTextOverride.scope === traceScope
+        ? { text: traceTextOverride.text }
+        : {}),
       ...(traceMedia.scope === traceScope
         ? {
             ...(traceMedia.imageSrc !== undefined ? { imageSrc: traceMedia.imageSrc } : {}),
@@ -254,7 +272,7 @@ function AppMain({
           }
         : {}),
     }),
-    [project.traceSettings, traceMedia, traceScope]
+    [project.traceSettings, traceMedia, traceScope, traceTextOverride]
   );
 
   const setTraceSettings: React.Dispatch<React.SetStateAction<TraceSettings>> = useCallback(
@@ -271,6 +289,13 @@ function AppMain({
           : {}),
       };
       const next = typeof action === 'function' ? action(currentSettings) : action;
+
+      // The caller set the display character explicitly (for example by
+      // typing in the trace settings modal), so drop the glyph-switch
+      // override and let the stored text take effect again.
+      if (next.text !== currentSettings.text) {
+        setTraceTextOverride(null);
+      }
 
       if (
         next.imageSrc !== currentMedia.imageSrc ||
@@ -302,17 +327,14 @@ function AppMain({
   );
 
   // Clear any manually entered display character when switching glyphs so the
-  // reference layer tracks the newly selected character.
+  // reference layer tracks the newly selected character. This only updates
+  // local state: it must not call setProject, otherwise the new project
+  // object triggers a full auto-save for only looking at another character.
+  // The effect is keyed on selectedUnicode only (via traceScopeRef) so
+  // loading another project does not clear its stored display character.
   useEffect(() => {
-    setProject((prev) => {
-      if (!prev.traceSettings?.text) return prev;
-      return {
-        ...prev,
-        traceSettings: { ...prev.traceSettings, text: '' },
-        updatedAt: Date.now(),
-      };
-    });
-  }, [selectedUnicode, setProject]);
+    setTraceTextOverride({ scope: traceScopeRef.current, text: '' });
+  }, [selectedUnicode]);
 
   // Grid & Guideline Settings (persisted to localStorage)
   const [gridSettings, setGridSettings] = useState<GridSettings>(loadPersistedGridSettings);
@@ -756,7 +778,7 @@ function AppMain({
             onOpenTraceModal={handleOpenTraceModal}
             onOpenPenPresetsModal={openPenPresetsModal}
             onOpenPixelStudio={handleOpenPixelStudio}
-            onQuickSaveGlyph={handleQuickSaveCurrentGlyph}
+            onQuickSaveGlyph={handleExportCurrentGlyphJson}
             onOpenExportModal={handleOpenExportModal}
             traceEnabled={traceSettings.enabled}
             theme={theme}

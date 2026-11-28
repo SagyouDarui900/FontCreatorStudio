@@ -81,7 +81,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['Ctrl / ⌘', '+', 'Z'], description: '元に戻す（ペン描画中は直前の 1 点を取り消し）', category: 'edit' },
   { keys: ['Ctrl / ⌘', '+', 'Shift', '+', 'Z'], description: 'やり直す', category: 'edit' },
   { keys: ['Ctrl / ⌘', '+', 'Y'], description: 'やり直す', category: 'edit' },
-  { keys: ['Ctrl / ⌘', '+', 'S'], description: '現在の作業を保存', category: 'edit' },
+  { keys: ['Ctrl / ⌘', '+', 'S'], description: '現在の作業をブラウザに保存（ファイルのダウンロードはしない）', category: 'edit' },
   { keys: ['Esc'], description: 'ペン描画の中止 / 選択解除 / モーダルを閉じる', category: 'edit' },
   { keys: ['?'], description: 'この説明書・ショートカットモーダルを開く', category: 'edit' },
 

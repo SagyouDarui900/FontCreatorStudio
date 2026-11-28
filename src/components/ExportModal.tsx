@@ -303,20 +303,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     };
   }, [isOpen, exportProject, compileOptions, cleanupPreviewFont]);
 
+  // Validate once per project change: typing preview text or moving the
+  // size slider re-renders the modal, but must not re-run the full-glyph
+  // validation on every render. The result is identical to calling
+  // validateFontProject directly; only the timing changes.
+  const baseValidation: FontValidationResult = useMemo(
+    () => validateFontProject(exportProject),
+    [exportProject]
+  );
+  const validation: FontValidationResult = useMemo(
+    () =>
+      excludedPixelGlyphs.length > 0
+        ? {
+            ...baseValidation,
+            warnings: [
+              ...baseValidation.warnings,
+              `破損したピクセルデータを除外しました（${excludedPixelGlyphs.join('、')}）。この文字は空グリフとして書き出されます。`,
+            ],
+          }
+        : baseValidation,
+    [baseValidation, excludedPixelGlyphs]
+  );
+
   if (!isOpen) return null;
 
   const glyphCount = Object.keys(exportProject.glyphs).length;
-  const baseValidation: FontValidationResult = validateFontProject(exportProject);
-  const validation: FontValidationResult =
-    excludedPixelGlyphs.length > 0
-      ? {
-          ...baseValidation,
-          warnings: [
-            ...baseValidation.warnings,
-            `破損したピクセルデータを除外しました（${excludedPixelGlyphs.join('、')}）。この文字は空グリフとして書き出されます。`,
-          ],
-        }
-      : baseValidation;
 
   const handleExport = async (action: 'download' | 'share') => {
     if (!validation.valid) {
