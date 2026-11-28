@@ -26,6 +26,7 @@ import { OpenTypeMetricsSection } from './fontinfo/OpenTypeMetricsSection';
 import { JsonBackupSection } from './fontinfo/JsonBackupSection';
 import { useIsTopModal } from './modals/ModalStackFrame';
 import { ModalFooter } from './modals/ModalFooter';
+import { ConfirmDialog } from './modals/ConfirmDialog';
 
 interface FontInfoModalProps {
   isOpen: boolean;
@@ -92,14 +93,18 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     []
   );
   const handleRequestClose = useCallback(() => {
-    if (
-      isFormDirty() &&
-      !window.confirm('保存されていない変更があります。閉じると変更は破棄されます。閉じますか？')
-    ) {
+    if (isFormDirty()) {
+      // 未保存の変更がある場合はカスタム確認ダイアログを開き、
+      // OK が押されたときにだけ閉じる。
+      setIsDiscardConfirmOpen(true);
       return;
     }
     onClose();
   }, [isFormDirty, onClose]);
+  // 未保存破棄の確認ダイアログが開いている間は、Escape や閉じるボタン
+  // で handleRequestClose を再び呼ばない。ダイアログ側が Escape を
+  // 受けてキャンセルする。
+  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
   React.useEffect(() => {
     const justOpened = isOpen && !prevIsOpenRef.current;
     prevIsOpenRef.current = isOpen;
@@ -124,6 +129,14 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     if (!isOpen || !isTopModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isBundledFontsModalOpen) return;
+      if (isDiscardConfirmOpen) {
+        // 確認ダイアログが開いている間はここでは閉じない。ダイアログ側の
+        // キャプチャ段階のハンドラが Escape を受けてキャンセルする。
+        // 念のため既定動作も止め、背後のモーダル枠の Escape 処理が
+        // 同じキーで動かないようにする。
+        e.preventDefault();
+        return;
+      }
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
       if (e.key === 'Escape') {
@@ -140,7 +153,7 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isTopModal, isFullscreen, isBundledFontsModalOpen, handleRequestClose]);
+  }, [isOpen, isTopModal, isFullscreen, isBundledFontsModalOpen, isDiscardConfirmOpen, handleRequestClose]);
 
   if (!isOpen) return null;
 
@@ -708,6 +721,18 @@ export const FontInfoModal: React.FC<FontInfoModalProps> = ({
         onClose={() => setIsBundledFontsModalOpen(false)}
         theme={theme}
       />
+
+      {isDiscardConfirmOpen && (
+        <ConfirmDialog
+          message="保存されていない変更があります。閉じると変更は破棄されます。閉じますか？"
+          theme={theme}
+          onConfirm={() => {
+            setIsDiscardConfirmOpen(false);
+            onClose();
+          }}
+          onCancel={() => setIsDiscardConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 };

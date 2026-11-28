@@ -13,6 +13,7 @@ import {
   FontStyleOption,
 } from '../utils/radicalExtractor';
 import { isLightTheme, getThemeClasses } from '../utils/theme';
+import { useModalContext } from '../contexts/ModalContext';
 import {
   loadCustomParts,
   saveCustomParts,
@@ -127,6 +128,13 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ModalContext のモーダルスタック。ドロワーの上に AppModalsHost の
+  // モーダルが開いている間は、Escape でドロワーを閉じない。
+  // ドロワー自体はスタックに入らないため、長さの確認で十分である。
+  const { modalStack } = useModalContext();
+  const modalStackRef = useRef(modalStack);
+  modalStackRef.current = modalStack;
+  const escapeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showNotice = useCallback((msg: string) => {
     setStatusNotice(msg);
@@ -149,15 +157,33 @@ export const RadicalsDrawer: React.FC<RadicalsDrawerProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!isOpen || isLicenseModalOpen || batchModalTarget) return;
+    if (!isOpen || isLicenseModalOpen || batchModalTarget || pendingDuplicateSave) return;
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key !== 'Escape') return;
+      // 既に他のハンドラがこのキーを処理済みの場合は何もしない。
+      if (e.defaultPrevented) return;
+      // ModalContext で管理されるモーダルがドロワーの上に開いている場合
+      // は、ドロワーを閉じない。
+      if (modalStackRef.current.length > 0) return;
+      // このハンドラより後に登録されたハンドラ（ドロワーの上に開いた
+      // モーダルやポップオーバー）は同じキー押下で後から動く。
+      // そのハンドラが preventDefault でキーを取得できるよう、閉じる
+      // 判断を次のタスクまで遅らせ、改めて確認してから閉じる。
+      escapeTimerRef.current = setTimeout(() => {
+        escapeTimerRef.current = null;
+        if (e.defaultPrevented) return;
         onClose();
-      }
+      }, 0);
     };
     window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, isLicenseModalOpen, batchModalTarget, onClose]);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      if (escapeTimerRef.current !== null) {
+        clearTimeout(escapeTimerRef.current);
+        escapeTimerRef.current = null;
+      }
+    };
+  }, [isOpen, isLicenseModalOpen, batchModalTarget, pendingDuplicateSave, onClose]);
 
   const lastSavedDrawerJsonRef = useRef<string>('');
   // 初回読み込みが終わるまで同期 effect による保存を行わないためのフラグ。

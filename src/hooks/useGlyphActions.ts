@@ -5,6 +5,7 @@ import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
 import { batchOptimizeProjectNodes } from '../utils/quality/nodeOptimizer';
 import { KANA_PAIRS } from '../data/unicodeTables';
+import { requestConfirm } from '../components/modals/ConfirmDialog';
 
 /** What a clipboard entry holds, and how it must be pasted. */
 export interface GlyphClipboard {
@@ -615,9 +616,13 @@ export function useGlyphActions({
     onShowToast(`輪郭 (${clipboard.contours.length}パス) を貼り付けました`, 'success');
   }, [currentGlyph, project.id, clipboard, selectedUnicode, selectedChar, pasteReplaceGlyph, pasteAppendContours, onShowToast]);
 
-  // Duplicate Normal Kana to Small Kana automatically
+  // Duplicate Normal Kana to Small Kana automatically.
+  // The overwrite check is async: when the target already has contours,
+  // a custom confirm dialog is shown and the generation waits for the
+  // answer. Without existing contours there is no await, so the call
+  // behaves as before.
   const handleDuplicateAsSmallKana = useCallback(
-    (sourceUnicode: number) => {
+    async (sourceUnicode: number) => {
       const sourceGlyph = project.glyphs[sourceUnicode];
       if (!sourceGlyph || !sourceGlyph.contours || sourceGlyph.contours.length === 0) {
         const fallbackChar = sourceGlyph?.char || String.fromCodePoint(sourceUnicode);
@@ -636,7 +641,10 @@ export function useGlyphActions({
       }
       const existingTarget = project.glyphs[targetUnicode];
       if (existingTarget?.contours && existingTarget.contours.length > 0) {
-        if (!window.confirm(`「${pair.smallChar}」には既に字形があります。上書きしますか？`)) {
+        const overwrite = await requestConfirm(
+          `「${pair.smallChar}」には既に字形があります。上書きしますか？`
+        );
+        if (!overwrite) {
           return;
         }
       }
@@ -691,13 +699,17 @@ export function useGlyphActions({
   );
 
   // Generate Dakuten / Handakuten from a source glyph.
-  // sourceChar is the right-clicked seion character when the generation is
-  // started from the glyph grid context menu. Its contours are used as the
-  // base, so generating from a non-selected glyph no longer takes the
-  // contours of the previously selected glyph. When sourceChar is omitted
-  // (for example from the canvas sub-toolbar), the current glyph is used.
+  // The overwrite check is async: when the target already has contours,
+  // a custom confirm dialog is shown and the generation waits for the
+  // answer. Without existing contours there is no await, so the call
+  // behaves as before.
   const handleGenerateDakutenTarget = useCallback(
-    (targetChar: string, isHandakuten?: boolean, sourceChar?: string) => {
+    async (targetChar: string, isHandakuten?: boolean, sourceChar?: string) => {
+      // sourceChar is the right-clicked seion character when the generation is
+      // started from the glyph grid context menu. Its contours are used as the
+      // base, so generating from a non-selected glyph no longer takes the
+      // contours of the previously selected glyph. When sourceChar is omitted
+      // (for example from the canvas sub-toolbar), the current glyph is used.
       const targetUnicode = targetChar.codePointAt(0);
       if (!targetUnicode) return;
       if (project.glyphs[targetUnicode]?.locked) {
@@ -706,7 +718,10 @@ export function useGlyphActions({
       }
       const existingTarget = project.glyphs[targetUnicode];
       if (existingTarget?.contours && existingTarget.contours.length > 0) {
-        if (!window.confirm(`「${targetChar}」には既に字形があります。上書きしますか？`)) {
+        const overwrite = await requestConfirm(
+          `「${targetChar}」には既に字形があります。上書きしますか？`
+        );
+        if (!overwrite) {
           return;
         }
       }

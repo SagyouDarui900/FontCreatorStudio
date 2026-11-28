@@ -955,7 +955,7 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     expect(path700).not.toBe(path900);
   });
 
-  it('single small-kana generation confirms overwrite and drops stale pixel data (H5/H6)', () => {
+  it('single small-kana generation confirms overwrite and drops stale pixel data (H5/H6)', async () => {
     const tsuCode = 'つ'.codePointAt(0)!;
     const smallCode = 'っ'.codePointAt(0)!;
     const base = createDefaultProject();
@@ -988,7 +988,15 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     });
     const commitHistory = vi.fn();
     const onShowToast = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const findDialogButton = (label: string) =>
+      Array.from(document.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === label
+      );
+    const flush = async () => {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    };
 
     const root = createRoot(container);
     act(() => {
@@ -1010,13 +1018,27 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     act(() => {
       makeSmallBtn!.click();
     });
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    await flush();
+    // The custom confirm dialog shows the same message window.confirm used.
+    expect(document.body.textContent).toContain(
+      '「っ」には既に字形があります。上書きしますか？'
+    );
     expect(setProject).not.toHaveBeenCalled();
 
-    confirmSpy.mockReturnValue(true);
+    act(() => {
+      findDialogButton('キャンセル')!.click();
+    });
+    await flush();
+    expect(setProject).not.toHaveBeenCalled();
+
     act(() => {
       makeSmallBtn!.click();
     });
+    await flush();
+    act(() => {
+      findDialogButton('OK')!.click();
+    });
+    await flush();
     expect(setProject).toHaveBeenCalledTimes(1);
     const target = project.glyphs[smallCode];
     expect(target?.contours.length).toBe(1);
@@ -1028,7 +1050,7 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     });
   });
 
-  it('single dakuten generation confirms overwrite and drops stale pixel data (H5/H6)', () => {
+  it('single dakuten generation confirms overwrite and drops stale pixel data (H5/H6)', async () => {
     const haCode = 'は'.codePointAt(0)!;
     const dakuCode = 'づ'.codePointAt(0)!;
     const base = createDefaultProject();
@@ -1061,7 +1083,15 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     });
     const commitHistory = vi.fn();
     const onShowToast = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const findDialogButton = (label: string) =>
+      Array.from(document.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === label
+      );
+    const flush = async () => {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    };
 
     const root = createRoot(container);
     act(() => {
@@ -1083,13 +1113,27 @@ describe('GlyphSynthesisModal & kana UI entry points', () => {
     act(() => {
       makeDakuBtn!.click();
     });
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    await flush();
+    // The custom confirm dialog shows the same message window.confirm used.
+    expect(document.body.textContent).toContain(
+      '「づ」には既に字形があります。上書きしますか？'
+    );
     expect(setProject).not.toHaveBeenCalled();
 
-    confirmSpy.mockReturnValue(true);
+    act(() => {
+      findDialogButton('キャンセル')!.click();
+    });
+    await flush();
+    expect(setProject).not.toHaveBeenCalled();
+
     act(() => {
       makeDakuBtn!.click();
     });
+    await flush();
+    act(() => {
+      findDialogButton('OK')!.click();
+    });
+    await flush();
     expect(setProject).toHaveBeenCalledTimes(1);
     const target = project.glyphs[dakuCode];
     expect(target?.contours.length).toBe(3);
