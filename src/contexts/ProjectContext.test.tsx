@@ -4,7 +4,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ProjectProvider, useProjectContext } from './ProjectContext';
-import { FontProject, GlyphData } from '../types';
+import { FontProject, GlyphData, PathContour } from '../types';
 
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -190,6 +190,119 @@ describe('quick save no longer downloads a glyph JSON (M2)', () => {
       expect(h.toasts[0]).toContain('ダウンロードに失敗しました');
     } finally {
       h.unmount();
+    }
+  });
+});
+
+describe('contours+lsb combined update uses one setProject and one history commit (low3)', () => {
+  const rectContours: PathContour[] = [
+    {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'c1-1', x: 120, y: 100, type: 'corner' },
+        { id: 'c1-2', x: 620, y: 100, type: 'corner' },
+        { id: 'c1-3', x: 620, y: 800, type: 'corner' },
+        { id: 'c1-4', x: 120, y: 800, type: 'corner' },
+      ],
+    },
+  ];
+
+  /** Same mount as above, but counts how many times setProject is called. */
+  function mountCounting() {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let setProjectCalls = 0;
+    let ctx!: ReturnType<typeof useProjectContext>;
+    function Consumer() {
+      ctx = useProjectContext();
+      return null;
+    }
+    function Wrapper() {
+      const [project, setProjectState] = React.useState<FontProject>(makeProject());
+      const projectRef = React.useRef(project);
+      projectRef.current = project;
+      const setProject: React.Dispatch<React.SetStateAction<FontProject>> = (updater) => {
+        setProjectCalls += 1;
+        setProjectState(updater);
+      };
+      return (
+        <ProjectProvider
+          project={project}
+          setProject={setProject}
+          projectRef={projectRef}
+          saveProjectToIndexedDbWhenIdle={async () => true}
+          showToast={() => {}}
+        >
+          <Consumer />
+        </ProjectProvider>
+      );
+    }
+    act(() => {
+      root.render(<Wrapper />);
+    });
+    return {
+      get ctx() {
+        return ctx;
+      },
+      get setProjectCalls() {
+        return setProjectCalls;
+      },
+      unmount() {
+        act(() => {
+          root.unmount();
+        });
+        container.remove();
+      },
+    };
+  }
+
+  it('updates contours and lsb together in one setProject with one history commit', () => {
+    const h = mountCounting();
+    try {
+      act(() => {
+        h.ctx.handleUpdateContoursAndLsb(rectContours, 120);
+      });
+
+      expect(h.setProjectCalls).toBe(1);
+      const glyph = h.ctx.project.glyphs[0x3042];
+      expect(glyph.contours).toEqual(rectContours);
+      expect(glyph.lsb).toBe(120);
+      // One history commit: the previous glyph state is on the undo stack once.
+      expect(h.ctx.undoStack).toHaveLength(1);
+      expect(h.ctx.undoStack[0].contours).toEqual([]);
+      expect(h.ctx.undoStack[0].lsb).toBe(50);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('reaches the same final glyph as the separate contours and lsb updates', () => {
+    const combined = mountCounting();
+    const separate = mountCounting();
+    try {
+      act(() => {
+        combined.ctx.handleUpdateContoursAndLsb(rectContours, 120, { skipHistory: true });
+      });
+      act(() => {
+        separate.ctx.handleUpdateContours(rectContours, { skipHistory: true });
+      });
+      act(() => {
+        separate.ctx.handleUpdateLsb(120, { skipHistory: true });
+      });
+
+      expect(combined.setProjectCalls).toBe(1);
+      expect(separate.setProjectCalls).toBe(2);
+      expect(separate.ctx.project.glyphs[0x3042]).toEqual(
+        combined.ctx.project.glyphs[0x3042]
+      );
+      // Both paths skipped history, so neither committed.
+      expect(combined.ctx.undoStack).toHaveLength(0);
+      expect(separate.ctx.undoStack).toHaveLength(0);
+    } finally {
+      combined.unmount();
+      separate.unmount();
     }
   });
 });

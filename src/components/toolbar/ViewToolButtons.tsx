@@ -188,7 +188,7 @@ export const ViewToolButtons: React.FC<ViewToolButtonsProps> = React.memo(({
             className={`w-9 h-9 sm:w-8 sm:h-8 min-w-[36px] sm:min-w-[32px] min-h-[36px] sm:min-h-[32px] rounded-lg flex items-center justify-center relative shrink-0 cursor-pointer ${
               themeClasses.activeToolHover
             }`}
-            title="現在の文字を保存 (即時永続化 & 単体JSONバックアップ書き出し)"
+            title="現在の文字をJSONファイルとしてダウンロード（ブラウザへの保存はしない）"
           >
             <Save className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
           </button>

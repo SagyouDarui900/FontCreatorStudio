@@ -36,6 +36,12 @@ export interface ProjectContextType {
   handleUpdateContours: (newContours: PathContour[], options?: { skipHistory?: boolean }) => void;
   handleUpdateAdvanceWidth: (val: number, options?: { skipHistory?: boolean }) => void;
   handleUpdateLsb: (val: number, options?: { skipHistory?: boolean }) => void;
+  /** Update contours and lsb together in one setProject (and one history commit). */
+  handleUpdateContoursAndLsb: (
+    newContours: PathContour[],
+    newLsb: number,
+    options?: { skipHistory?: boolean }
+  ) => void;
   handleToggleLockGlyph: () => void;
   isGlyphLocked: boolean;
   undoStack: GlyphData[];
@@ -419,6 +425,104 @@ export function ProjectProvider({
     [updateCurrentGlyphField]
   );
 
+  // Low3 remainder: update contours and lsb in a single setProject (and a
+  // single history commit) instead of two updateCurrentGlyphField calls.
+  // Callers that change both at once (MetricsPanel transforms + lsb sync)
+  // use this; contours-only or lsb-only updates keep the single-field path.
+  const handleUpdateContoursAndLsb = useCallback(
+    (newContours: PathContour[], newLsb: number, options?: { skipHistory?: boolean }) => {
+      if (checkIsLockedAndNotify()) return;
+      if (!options?.skipHistory) {
+        commitHistory();
+      }
+
+      if (effectiveActiveIvsKey) {
+        const currentVariant = projectRef.current.ivsVariants?.[effectiveActiveIvsKey];
+        if (!currentVariant) return;
+        const latest =
+          currentGlyphRef.current.name === currentVariant.glyph.name &&
+          currentGlyphRef.current.unicode === currentVariant.baseUnicode
+            ? currentGlyphRef.current
+            : currentVariant.glyph;
+        if (latest.contours !== newContours || latest.lsb !== newLsb) {
+          currentGlyphRef.current = {
+            ...latest,
+            contours: newContours,
+            lsb: newLsb,
+            modified: true,
+          };
+        }
+        setProject((prev) => {
+          const existingVariant = prev.ivsVariants?.[effectiveActiveIvsKey];
+          if (!existingVariant) return prev;
+          if (
+            existingVariant.glyph.contours === newContours &&
+            existingVariant.glyph.lsb === newLsb
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            ivsVariants: {
+              ...prev.ivsVariants,
+              [effectiveActiveIvsKey]: {
+                ...existingVariant,
+                glyph: {
+                  ...existingVariant.glyph,
+                  contours: newContours,
+                  lsb: newLsb,
+                  modified: true,
+                },
+                updatedAt: Date.now(),
+              },
+            },
+            updatedAt: Date.now(),
+          };
+        });
+        return;
+      }
+
+      const latest =
+        currentGlyphRef.current.unicode === selectedUnicode
+          ? currentGlyphRef.current
+          : projectRef.current.glyphs[selectedUnicode] || currentGlyphRef.current;
+      if (latest.contours !== newContours || latest.lsb !== newLsb) {
+        currentGlyphRef.current = {
+          ...latest,
+          contours: newContours,
+          lsb: newLsb,
+          modified: true,
+        };
+      }
+      setProject((prev) => {
+        const existing = prev.glyphs[selectedUnicode] || {
+          unicode: selectedUnicode,
+          char: selectedChar,
+          name: `uni${selectedUnicode.toString(16).toUpperCase().padStart(4, '0')}`,
+          advanceWidth: prev.metadata?.unitsPerEm || 1000,
+          lsb: 50,
+          contours: [],
+          modified: false,
+        };
+        if (existing.contours === newContours && existing.lsb === newLsb) return prev;
+        return {
+          ...prev,
+          glyphs: {
+            ...prev.glyphs,
+            [selectedUnicode]: {
+              ...existing,
+              contours: newContours,
+              lsb: newLsb,
+              modified: true,
+            },
+          },
+          updatedAt: Date.now(),
+        };
+      });
+    },
+    [effectiveActiveIvsKey, checkIsLockedAndNotify, projectRef, selectedUnicode, selectedChar, commitHistory, setProject]
+  );
+
   // Ctrl+S quick save: persist the project to the browser only
   // (LocalStorage + IndexedDB, the same destinations as auto-save).
   // It no longer downloads a single-glyph JSON file; that download is
@@ -537,6 +641,7 @@ export function ProjectProvider({
       handleUpdateContours,
       handleUpdateAdvanceWidth,
       handleUpdateLsb,
+      handleUpdateContoursAndLsb,
       handleToggleLockGlyph,
       isGlyphLocked,
       undoStack,
@@ -589,6 +694,7 @@ export function ProjectProvider({
       handleUpdateContours,
       handleUpdateAdvanceWidth,
       handleUpdateLsb,
+      handleUpdateContoursAndLsb,
       handleToggleLockGlyph,
       isGlyphLocked,
       undoStack,

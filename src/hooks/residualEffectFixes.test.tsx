@@ -324,7 +324,6 @@ describe('Residual useEffect fixes (R2 & R4)', () => {
 
     const setProject = vi.fn();
     const onClose = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     act(() => {
       root.render(
@@ -342,15 +341,21 @@ describe('Residual useEffect fixes (R2 & R4)', () => {
       container.querySelector<HTMLInputElement>('input[placeholder="例: MyCustomFont"]');
     const getCloseButton = () =>
       Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '閉じる');
+    const getDialogButton = (label: string) =>
+      Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === label);
+    // The custom ConfirmDialog shows the same message window.confirm used.
+    const DISCARD_MESSAGE =
+      '保存されていない変更があります。閉じると変更は破棄されます。閉じますか？';
 
-    // No edits yet: closing needs no confirmation.
+    // No edits yet: closing needs no confirmation dialog.
     act(() => {
       getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain(DISCARD_MESSAGE);
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    // Edit the family name, then cancel the close confirmation.
+    // Edit the family name, then ask to close: the dialog appears and
+    // cancelling keeps the modal open.
     act(() => {
       const input = getFamilyInput();
       if (input) {
@@ -364,14 +369,25 @@ describe('Residual useEffect fixes (R2 & R4)', () => {
     act(() => {
       getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain(DISCARD_MESSAGE);
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    // Accepting the confirmation discards the edits and closes.
-    confirmSpy.mockReturnValue(true);
+    act(() => {
+      getDialogButton('キャンセル')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(container.textContent).not.toContain(DISCARD_MESSAGE);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(getFamilyInput()?.value).toBe('EditedFont');
+
+    // Asking again and confirming discards the edits and closes.
     act(() => {
       getCloseButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
+    expect(container.textContent).toContain(DISCARD_MESSAGE);
+    act(() => {
+      getDialogButton('OK')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(container.textContent).not.toContain(DISCARD_MESSAGE);
     expect(onClose).toHaveBeenCalledTimes(2);
 
     act(() => {

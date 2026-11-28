@@ -35,6 +35,12 @@ export interface MetricsPanelProps {
   onChangeLsb: (val: number, options?: { skipHistory?: boolean }) => void;
   contours: PathContour[];
   onChangeContours: (contours: PathContour[], options?: { skipHistory?: boolean }) => void;
+  /** Combined contours+lsb update in one setProject call. Optional: when absent, the two separate callbacks are used. */
+  onChangeContoursAndLsb?: (
+    contours: PathContour[],
+    lsb: number,
+    options?: { skipHistory?: boolean }
+  ) => void;
   onCommitHistory: () => void;
   selectedChar: string;
   selectedUnicode: number;
@@ -65,6 +71,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   onChangeLsb,
   contours,
   onChangeContours,
+  onChangeContoursAndLsb,
   onCommitHistory,
   selectedChar,
   selectedUnicode,
@@ -135,12 +142,37 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
   }, [contours]);
   const hasContourNodes = totalNodes > 0;
 
-  const syncLsbFromContours = (nextContours: PathContour[]) => {
-    if (!nextContours.some((c) => c.nodes && c.nodes.length > 0)) return;
-    const nextBBox = getContoursBoundingBox(nextContours);
-    const nextLsb = Math.round(nextBBox.minX);
-    if (nextLsb !== lsb) {
+  // Update contours and lsb together. When the parent provides the combined
+  // handler, both fields change in one setProject call; otherwise fall back
+  // to the two separate callbacks (same final glyph state).
+  const updateContoursAndLsb = (
+    nextContours: PathContour[],
+    nextLsb: number,
+    options?: { skipHistory?: boolean }
+  ) => {
+    if (onChangeContoursAndLsb) {
+      onChangeContoursAndLsb(nextContours, nextLsb, options);
+    } else {
+      onChangeContours(nextContours, options);
       onChangeLsb(nextLsb, { skipHistory: true });
+    }
+  };
+
+  // Apply new contours and keep lsb in sync with the new bounding box.
+  // When the derived lsb is unchanged this is a contours-only update.
+  const applyContoursAndSyncLsb = (
+    nextContours: PathContour[],
+    options?: { skipHistory?: boolean }
+  ) => {
+    if (!nextContours.some((c) => c.nodes && c.nodes.length > 0)) {
+      onChangeContours(nextContours, options);
+      return;
+    }
+    const nextLsb = Math.round(getContoursBoundingBox(nextContours).minX);
+    if (nextLsb !== lsb) {
+      updateContoursAndLsb(nextContours, nextLsb, options);
+    } else {
+      onChangeContours(nextContours, options);
     }
   };
 
@@ -231,8 +263,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
           x: Math.round(p.x + deltaX),
           y: p.y,
         }));
-        onChangeContours(shifted, { skipHistory: true });
-        onChangeLsb(nextLsb, { skipHistory: true });
+        updateContoursAndLsb(shifted, nextLsb, { skipHistory: true });
       } else if (lsb !== nextLsb) {
         onCommitHistory();
         onChangeLsb(nextLsb, { skipHistory: true });
@@ -260,8 +291,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
         ? transformContours(contours, (p) => ({ x: Math.round(p.x + deltaX), y: p.y }))
         : contours;
 
-    onChangeContours(shifted, { skipHistory: true });
-    onChangeLsb(targetLsb, { skipHistory: true });
+    updateContoursAndLsb(shifted, targetLsb, { skipHistory: true });
     onShowToast?.(`文字を送り幅(${currentAdv}px)の中央に配置しました (LSB/RSB: ${targetLsb}px)`, 'success');
   };
 
@@ -303,8 +333,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const nextContours = flipMultipleContoursH(contours);
-    onChangeContours(nextContours, { skipHistory: true });
-    syncLsbFromContours(nextContours);
+    applyContoursAndSyncLsb(nextContours, { skipHistory: true });
   };
 
   const handleFlipV = () => {
@@ -312,8 +341,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const nextContours = flipMultipleContoursV(contours);
-    onChangeContours(nextContours, { skipHistory: true });
-    syncLsbFromContours(nextContours);
+    applyContoursAndSyncLsb(nextContours, { skipHistory: true });
   };
 
   const handleSlant = (degrees: number) => {
@@ -321,8 +349,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const nextContours = slantContours(contours, degrees);
-    onChangeContours(nextContours, { skipHistory: true });
-    syncLsbFromContours(nextContours);
+    applyContoursAndSyncLsb(nextContours, { skipHistory: true });
   };
 
   const handleScale = (factor: number) => {
@@ -330,8 +357,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const nextContours = scaleContours(contours, factor, factor);
-    onChangeContours(nextContours, { skipHistory: true });
-    syncLsbFromContours(nextContours);
+    applyContoursAndSyncLsb(nextContours, { skipHistory: true });
   };
 
   const handleAspectScale = (scaleX: number, scaleY: number) => {
@@ -339,8 +365,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const nextContours = scaleContours(contours, scaleX, scaleY);
-    onChangeContours(nextContours, { skipHistory: true });
-    syncLsbFromContours(nextContours);
+    applyContoursAndSyncLsb(nextContours, { skipHistory: true });
   };
 
   const handleSmoothAndFix = () => {
@@ -348,8 +373,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const cleaned = smoothAndFixTransformedContours(contours);
-    onChangeContours(cleaned, { skipHistory: true });
-    syncLsbFromContours(cleaned);
+    applyContoursAndSyncLsb(cleaned, { skipHistory: true });
     onShowToast?.('輪郭のガタツキと変形歪みを滑らかに補正しました', 'success');
   };
 
@@ -358,8 +382,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const centered = centerContoursInBox(contours, upm, Math.round(upm * 0.8), upm);
-    onChangeContours(centered, { skipHistory: true });
-    syncLsbFromContours(centered);
+    applyContoursAndSyncLsb(centered, { skipHistory: true });
   };
 
   const handleFitToEmBox = () => {
@@ -369,8 +392,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     const isKana = /[ぁ-んァ-ヶー]/.test(selectedChar);
     const targetRatio = isKana ? 0.78 : 0.85;
     const fitted = fitContoursToEmBox(contours, upm, upm, targetRatio);
-    onChangeContours(fitted, { skipHistory: true });
-    syncLsbFromContours(fitted);
+    applyContoursAndSyncLsb(fitted, { skipHistory: true });
     onShowToast?.(`文字の輪郭をキャンバス枠内（字面枠 ${Math.round(targetRatio * 100)}%基準）に最適化しました`, 'success');
   };
 
@@ -392,8 +414,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     }
     onCommitHistory();
     const transformed = contours.map((c) => (c.closed ? c : outlineOpenContour(c, strokeOutlineWidth)));
-    onChangeContours(transformed, { skipHistory: true });
-    syncLsbFromContours(transformed);
+    applyContoursAndSyncLsb(transformed, { skipHistory: true });
     onShowToast?.(`骨格線を太さ ${strokeOutlineWidth}px でアウトライン化しました`, 'success');
   };
 
@@ -402,8 +423,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
     if (contours.length === 0) return;
     onCommitHistory();
     const smallKana = createSmallKanaContours(contours, { weightDelta: 4, unitsPerEm: upm });
-    onChangeContours(smallKana, { skipHistory: true });
-    syncLsbFromContours(smallKana);
+    applyContoursAndSyncLsb(smallKana, { skipHistory: true });
     onShowToast?.('小文字サイズ・位置に変換しました', 'success');
   };
 
@@ -502,14 +522,12 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
               selectedNodeId={selectedNodeId || null}
               selectedHandleType={selectedHandleType || null}
               onChangeContours={(nextContours, options) => {
-                // NOTE (low3): contours and lsb still reach the parent through two
-                // separate callbacks here. A single setProject would need a combined
-                // contours+lsb updater in ProjectContext (updateCurrentGlyphField
-                // updates one field per call), which is outside this change. The
-                // history commit stays single: PrecisionInspector calls
-                // onCommitHistory once and both callbacks use skipHistory.
-                onChangeContours(nextContours, options);
-                syncLsbFromContours(nextContours);
+                // Contours and lsb reach the parent through the combined
+                // handler when available (one setProject); otherwise the two
+                // separate callbacks. The history commit stays single:
+                // PrecisionInspector calls onCommitHistory once and the
+                // update uses skipHistory.
+                applyContoursAndSyncLsb(nextContours, options);
               }}
               onCommitHistory={onCommitHistory}
               unitsPerEm={upm}

@@ -697,4 +697,108 @@ describe('MetricsPanel & PrecisionInspector fixes', () => {
     const k2048 = calculateOptimalSpacing(107, [makeRectContour('k', 100, 100, 900, 1400)], 'proportional-balanced', 2048);
     expect(k2048.lsb).toBe(Math.round(60 * 2.048));
   });
+
+  it('uses the combined contours+lsb handler for EM centering and LSB preset, with one history commit', () => {
+    const onChangeAdvanceWidth = vi.fn();
+    const onChangeLsb = vi.fn();
+    const onChangeContours = vi.fn();
+    const onChangeContoursAndLsb = vi.fn();
+    const onCommitHistory = vi.fn();
+
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <MetricsPanel
+          advanceWidth={1000}
+          lsb={50}
+          onChangeAdvanceWidth={onChangeAdvanceWidth}
+          onChangeLsb={onChangeLsb}
+          contours={[makeRectContour('c1', 50, 100, 550, 800)]}
+          onChangeContours={onChangeContours}
+          onChangeContoursAndLsb={onChangeContoursAndLsb}
+          onCommitHistory={onCommitHistory}
+          selectedChar="A"
+          selectedUnicode={65}
+          theme="light"
+        />
+      );
+    });
+
+    // EM centering moves minX from 50 to 250, so contours and lsb change together.
+    // (FlipH would not work here: it mirrors around the bbox center, so minX stays.)
+    const centerBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('EM枠の中央に配置')
+    )!;
+    act(() => {
+      centerBtn.click();
+    });
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContoursAndLsb).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).not.toHaveBeenCalled();
+    expect(onChangeLsb).not.toHaveBeenCalled();
+    const [centeredContours, centeredLsb, centeredOpts] = onChangeContoursAndLsb.mock.calls[0];
+    expect(centeredOpts).toEqual({ skipHistory: true });
+    // The combined lsb matches the centered contours' bounding box.
+    expect(centeredLsb).toBe(Math.round(getContoursBoundingBox(centeredContours).minX));
+    expect(centeredLsb).toBe(250);
+
+    // LSB preset 80px also shifts contours and lsb together.
+    onCommitHistory.mockClear();
+    onChangeContoursAndLsb.mockClear();
+    const preset80 = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '80px')!;
+    act(() => {
+      preset80.click();
+    });
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContoursAndLsb).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).not.toHaveBeenCalled();
+    expect(onChangeLsb).not.toHaveBeenCalled();
+    const [shiftedContours, shiftedLsb] = onChangeContoursAndLsb.mock.calls[0];
+    expect(getContoursBoundingBox(shiftedContours).minX).toBe(80);
+    expect(shiftedLsb).toBe(80);
+
+    act(() => root.unmount());
+  });
+
+  it('falls back to the contours-only callback when a transform leaves lsb unchanged', () => {
+    const onChangeLsb = vi.fn();
+    const onChangeContours = vi.fn();
+    const onChangeContoursAndLsb = vi.fn();
+    const onCommitHistory = vi.fn();
+
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <MetricsPanel
+          advanceWidth={1000}
+          lsb={50}
+          onChangeAdvanceWidth={vi.fn()}
+          onChangeLsb={onChangeLsb}
+          contours={[makeRectContour('c1', 50, 100, 550, 800)]}
+          onChangeContours={onChangeContours}
+          onChangeContoursAndLsb={onChangeContoursAndLsb}
+          onCommitHistory={onCommitHistory}
+          selectedChar="A"
+          selectedUnicode={65}
+          theme="light"
+        />
+      );
+    });
+
+    // FlipV does not change minX, so only the contours callback runs.
+    const flipVBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('上下反転')
+    )!;
+    act(() => {
+      flipVBtn.click();
+    });
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).toHaveBeenCalledTimes(1);
+    expect(onChangeContoursAndLsb).not.toHaveBeenCalled();
+    expect(onChangeLsb).not.toHaveBeenCalled();
+    const [flippedContours] = onChangeContours.mock.calls[0];
+    expect(getContoursBoundingBox(flippedContours).minX).toBe(50);
+
+    act(() => root.unmount());
+  });
 });

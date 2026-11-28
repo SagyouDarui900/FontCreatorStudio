@@ -151,6 +151,7 @@ function AppMain({
     handleUpdateContours,
     handleUpdateAdvanceWidth,
     handleUpdateLsb,
+    handleUpdateContoursAndLsb,
     handleToggleLockGlyph,
     isGlyphLocked,
     canUndo,
@@ -916,6 +917,7 @@ function AppMain({
               lsb={currentGlyph.lsb ?? 50}
               onChangeAdvanceWidth={handleUpdateAdvanceWidth}
               onChangeLsb={handleUpdateLsb}
+              onChangeContoursAndLsb={handleUpdateContoursAndLsb}
               contours={currentGlyph.contours || EMPTY_CONTOURS}
               onChangeContours={handleUpdateContours}
               onCommitHistory={commitHistory}
