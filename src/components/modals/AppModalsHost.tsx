@@ -396,6 +396,7 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
             project={project}
             setProject={setProject}
             selectedUnicode={selectedUnicode}
+            commitBatchHistory={commitBatchHistory}
             theme={theme}
             onShowToast={showToast}
           />
@@ -541,6 +542,16 @@ export const AppModalsHost: React.FC<AppModalsHostProps> = ({
               edgeRoughness: activePenPreset?.edgeRoughness,
               tipSharpness: activePenPreset?.tipSharpness,
               pressureGamma: activePenPreset?.pressureGamma,
+              minWidth: activePenPreset?.minWidth,
+              maxWidth: activePenPreset?.maxWidth,
+              taperCurve: activePenPreset?.taperCurve,
+              lineCap: activePenPreset?.lineCap,
+              lineJoin: activePenPreset?.lineJoin,
+              doubleLineGap: activePenPreset?.doubleLineGap,
+              dottedSpacing: activePenPreset?.dottedSpacing,
+              brushFlex: activePenPreset?.brushFlex,
+              inkPooling: activePenPreset?.inkPooling,
+              roughnessScale: activePenPreset?.roughnessScale,
             }}
             onApplyPreset={onApplyPenPreset}
             onChangePressureCurve={onChangePressureCurve}

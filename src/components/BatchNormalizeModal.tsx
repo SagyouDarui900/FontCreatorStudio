@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
-import { FontProject, GlyphData } from '../types';
+import { FontProject, GlyphData, PathContour } from '../types';
 import { ThemeMode, isLightTheme, getThemeClasses } from '../utils/theme';
 import { normalizeGlyph, getContoursBoundingBox, contoursToSvgPath, normalizeGlyphContoursWinding } from '../utils/path';
 import { resolveBaselineY } from '../utils/font/constants';
@@ -24,8 +24,26 @@ interface BatchNormalizeModalProps {
   project: FontProject;
   setProject: React.Dispatch<React.SetStateAction<FontProject>>;
   selectedUnicode: number;
+  commitBatchHistory?: (targetUnicodes: number[], targetIvsKeys?: string[]) => void;
   theme: ThemeMode;
   onShowToast?: (text: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+}
+
+function getPresetDimensions(preset: Exclude<SizePreset, 'custom'>, unitsPerEm: number) {
+  const ratio =
+    preset === 'large'
+      ? 0.89
+      : preset === 'kana'
+      ? 0.78
+      : preset === 'compact'
+      ? 0.74
+      : 0.82;
+  const size = Math.round(unitsPerEm * ratio);
+  return {
+    width: size,
+    height: size,
+    advanceWidth: unitsPerEm,
+  };
 }
 
 export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
@@ -34,23 +52,27 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   project,
   setProject,
   selectedUnicode,
+  commitBatchHistory,
   theme,
   onShowToast,
 }) => {
   const isLight = isLightTheme(theme);
   const themeClasses = getThemeClasses(theme);
+  const upm = project.metadata?.unitsPerEm || 1000;
+  const halfUpm = upm / 2;
   // Normalization baseline follows the project ascender so the aligned
   // position matches the exported glyph position (compile uses ascender).
-  const baselineY = resolveBaselineY(project.metadata?.ascender, project.metadata?.unitsPerEm);
+  const baselineY = resolveBaselineY(project.metadata?.ascender, upm);
 
+  const initialPreset = getPresetDimensions('standard', upm);
   const [scope, setScope] = useState<TargetScope>('all');
   const [sizePreset, setSizePreset] = useState<SizePreset>('standard');
-  const [targetWidth, setTargetWidth] = useState<number>(820);
-  const [targetHeight, setTargetHeight] = useState<number>(820);
+  const [targetWidth, setTargetWidth] = useState<number>(initialPreset.width);
+  const [targetHeight, setTargetHeight] = useState<number>(initialPreset.height);
   const [alignH, setAlignH] = useState<AlignHorizontal>('center');
   const [alignV, setAlignV] = useState<AlignVertical>('center');
   const [unifyAdvance, setUnifyAdvance] = useState<boolean>(true);
-  const [advanceWidth, setAdvanceWidth] = useState<number>(1000);
+  const [advanceWidth, setAdvanceWidth] = useState<number>(initialPreset.advanceWidth);
   const [optimizePoints, setOptimizePoints] = useState<boolean>(true);
   const [weightDelta, setWeightDelta] = useState<number>(0);
   const [normalizeWinding, setNormalizeWinding] = useState<boolean>(true);
@@ -61,12 +83,27 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
   // Fullscreen mode state
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
-  // Synchronize preview glyph when modal opens or selectedUnicode changes
+  const wasOpenRef = useRef<boolean>(false);
+  const lastSyncedUpmRef = useRef<number>(upm);
+
+  // Synchronize preview glyph and UPM-scaled preset dimensions when modal opens or UPM changes
   useEffect(() => {
-    if (isOpen) {
-      setPreviewUnicode(selectedUnicode);
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
     }
-  }, [isOpen, selectedUnicode]);
+    setPreviewUnicode(selectedUnicode);
+    if (!wasOpenRef.current || lastSyncedUpmRef.current !== upm) {
+      if (sizePreset !== 'custom') {
+        const dims = getPresetDimensions(sizePreset, upm);
+        setTargetWidth(dims.width);
+        setTargetHeight(dims.height);
+        setAdvanceWidth(dims.advanceWidth);
+      }
+      lastSyncedUpmRef.current = upm;
+    }
+    wasOpenRef.current = true;
+  }, [isOpen, selectedUnicode, upm, sizePreset]);
 
   const isTopModal = useIsTopModal();
 
@@ -94,37 +131,17 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isTopModal, isFullscreen, onClose]);
 
-  // Apply preset values
+  // Apply preset values scaled to project UPM
   const handlePresetChange = (preset: SizePreset) => {
     setSizePreset(preset);
-    if (preset === 'standard') {
-      setTargetWidth(820);
-      setTargetHeight(820);
+    if (preset !== 'custom') {
+      const dims = getPresetDimensions(preset, upm);
+      setTargetWidth(dims.width);
+      setTargetHeight(dims.height);
       setAlignH('center');
       setAlignV('center');
       setUnifyAdvance(true);
-      setAdvanceWidth(1000);
-    } else if (preset === 'large') {
-      setTargetWidth(890);
-      setTargetHeight(890);
-      setAlignH('center');
-      setAlignV('center');
-      setUnifyAdvance(true);
-      setAdvanceWidth(1000);
-    } else if (preset === 'kana') {
-      setTargetWidth(780);
-      setTargetHeight(780);
-      setAlignH('center');
-      setAlignV('center');
-      setUnifyAdvance(true);
-      setAdvanceWidth(1000);
-    } else if (preset === 'compact') {
-      setTargetWidth(740);
-      setTargetHeight(740);
-      setAlignH('center');
-      setAlignV('center');
-      setUnifyAdvance(true);
-      setAdvanceWidth(1000);
+      setAdvanceWidth(dims.advanceWidth);
     }
   };
 
@@ -154,6 +171,12 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     return list;
   }, [project.glyphs, scope, selectedUnicode]);
 
+  const unlockedTargetGlyphs = useMemo(
+    () => targetGlyphs.filter((g) => !g.locked),
+    [targetGlyphs]
+  );
+  const lockedTargetCount = targetGlyphs.length - unlockedTargetGlyphs.length;
+
   // Preview sample glyph
   const previewGlyph = useMemo(() => {
     if (project.glyphs[previewUnicode]?.contours?.length) {
@@ -175,8 +198,8 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
       targetHeight,
       alignHorizontal: alignH,
       alignVertical: alignV,
-      targetCenterX: 500,
-      targetCenterY: 500,
+      targetCenterX: halfUpm,
+      targetCenterY: halfUpm,
       targetBaselineY: baselineY,
       unifyAdvanceWidth: unifyAdvance,
       targetAdvanceWidth: advanceWidth,
@@ -187,6 +210,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
     return res.contours;
   }, [
     previewGlyph,
+    halfUpm,
     baselineY,
     targetWidth,
     targetHeight,
@@ -203,16 +227,20 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
 
   const handleApplyBatch = () => {
     if (targetGlyphs.length === 0) {
-      if (onShowToast) {
-        onShowToast('処理対象の文字がありません。先に文字を作成してください。', 'warning');
-      }
+      onShowToast?.('処理対象の文字がありません。先に文字を作成してください。', 'warning');
+      return;
+    }
+    if (unlockedTargetGlyphs.length === 0) {
+      onShowToast?.('選択中の対象文字はすべて編集ロックされています', 'warning');
       return;
     }
 
-    const updatedGlyphs = { ...project.glyphs };
-    let count = 0;
+    const normalizedByUnicode = new Map<
+      number,
+      { contours: PathContour[]; advanceWidth?: number; lsb?: number }
+    >();
 
-    for (const g of targetGlyphs) {
+    for (const g of unlockedTargetGlyphs) {
       if (!g.contours || g.contours.length === 0) continue;
 
       const normResult = normalizeGlyph(g.contours, {
@@ -221,8 +249,8 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         targetHeight,
         alignHorizontal: alignH,
         alignVertical: alignV,
-        targetCenterX: 500,
-        targetCenterY: 500,
+        targetCenterX: halfUpm,
+        targetCenterY: halfUpm,
         targetBaselineY: baselineY,
         unifyAdvanceWidth: unifyAdvance,
         targetAdvanceWidth: advanceWidth,
@@ -231,24 +259,45 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
         normalizeWinding,
       });
 
-      updatedGlyphs[g.unicode] = {
-        ...g,
+      normalizedByUnicode.set(g.unicode, {
         contours: normResult.contours,
-        advanceWidth: normResult.advanceWidth ?? g.advanceWidth,
-        lsb: normResult.lsb ?? g.lsb,
-        modified: true,
-      };
-      count++;
+        advanceWidth: normResult.advanceWidth,
+        lsb: normResult.lsb,
+      });
     }
 
-    setProject((prev) => ({
-      ...prev,
-      glyphs: updatedGlyphs,
-      updatedAt: Date.now(),
-    }));
+    const targetUnicodes = Array.from(normalizedByUnicode.keys());
+    if (targetUnicodes.length === 0) return;
 
-    if (onShowToast) {
-      onShowToast(`${count}文字のサイズ・太さ・品質を一括正規化しました`, 'success');
+    commitBatchHistory?.(targetUnicodes);
+
+    setProject((prev) => {
+      const updatedGlyphs = { ...prev.glyphs };
+      for (const [unicode, normResult] of normalizedByUnicode) {
+        const current = updatedGlyphs[unicode];
+        if (!current || current.locked || !current.contours || current.contours.length === 0) continue;
+        updatedGlyphs[unicode] = {
+          ...current,
+          contours: normResult.contours,
+          advanceWidth: normResult.advanceWidth ?? current.advanceWidth,
+          lsb: normResult.lsb ?? current.lsb,
+          modified: true,
+        };
+      }
+      return {
+        ...prev,
+        glyphs: updatedGlyphs,
+        updatedAt: Date.now(),
+      };
+    });
+
+    if (lockedTargetCount > 0) {
+      onShowToast?.(
+        `${targetUnicodes.length}文字のサイズ・太さ・品質を一括正規化しました（ロック中の${lockedTargetCount}文字をスキップ）`,
+        'info'
+      );
+    } else {
+      onShowToast?.(`${targetUnicodes.length}文字のサイズ・太さ・品質を一括正規化しました`, 'success');
     }
     onClose();
   };
@@ -272,16 +321,22 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
       bodyClassName="overscroll-contain"
       footer={
         <ModalFooter
-          primaryLabel={`対象 ${targetGlyphs.length} 文字に一括適用`}
+          primaryLabel={
+            lockedTargetCount > 0
+              ? `ロック除く ${unlockedTargetGlyphs.length} 文字に一括適用`
+              : `対象 ${unlockedTargetGlyphs.length} 文字に一括適用`
+          }
           primaryIcon={<Sparkles className="w-4 h-4 fill-current shrink-0" />}
           onPrimary={handleApplyBatch}
-          primaryDisabled={targetGlyphs.length === 0}
+          primaryDisabled={unlockedTargetGlyphs.length === 0}
           onCancel={onClose}
           theme={theme}
           themeClasses={themeClasses}
           leftInfo={
             <span className={`text-[11px] font-mono hidden sm:inline ${themeClasses.textMuted}`}>
-              選択中: {targetGlyphs.length}文字
+              {lockedTargetCount > 0
+                ? `選択中: ${unlockedTargetGlyphs.length}文字（ロック中 ${lockedTargetCount}文字除外）`
+                : `選択中: ${unlockedTargetGlyphs.length}文字`}
             </span>
           }
         />
@@ -316,6 +371,7 @@ export const BatchNormalizeModal: React.FC<BatchNormalizeModalProps> = ({
               <BatchOptionsSection
                 isLight={isLight}
                 themeClasses={themeClasses}
+                unitsPerEm={upm}
                 scope={scope}
                 setScope={setScope}
                 targetGlyphsCount={targetGlyphs.length}

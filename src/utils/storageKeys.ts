@@ -42,6 +42,9 @@ export const STORAGE_KEYS = {
   BRUSH_STYLE: {
     primary: 'fcs_brush_style',
   },
+  ACTIVE_PEN_PRESET_ID: {
+    primary: 'fcs_active_pen_preset_id',
+  },
   PALM_REJECTION_MODE: {
     primary: 'fcs_palm_rejection_mode',
     legacy: ['mojisaku_palm_rejection_mode'],

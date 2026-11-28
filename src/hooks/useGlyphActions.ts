@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FontProject, GlyphData, PathContour, PixelGlyphData, ToolMode } from '../types';
+import { FontProject, GlyphData, IvsGlyphVariant, PathContour, PixelGlyphData, ToolMode } from '../types';
 import { createSmallKanaContours, generateId, simplifyGlyphContours, contoursHaveFiniteCoordinates, getContoursBoundingBox } from '../utils/path';
 import { cloneContours, synthesizeDakutenContours } from '../utils/dakutenHelper';
 import { calculateOptimalSpacing, AutoSpacingPreset } from '../utils/metricsHelper';
@@ -47,6 +47,9 @@ interface UseGlyphActionsOptions {
   selectedChar: string;
   setSelectedUnicode: (unicode: number) => void;
   setSelectedChar: (char: string) => void;
+  onSelectGlyph?: (unicode: number, char?: string) => void;
+  activeIvsKey?: string | null;
+  activeIvsVariant?: IvsGlyphVariant | null;
   currentGlyph: GlyphData;
   currentGlyphRef: React.MutableRefObject<GlyphData>;
   commitHistory: (targetUnicode?: number) => void;
@@ -63,6 +66,9 @@ export function useGlyphActions({
   selectedChar,
   setSelectedUnicode,
   setSelectedChar,
+  onSelectGlyph,
+  activeIvsKey = null,
+  activeIvsVariant = null,
   currentGlyph,
   currentGlyphRef,
   commitHistory,
@@ -156,8 +162,9 @@ export function useGlyphActions({
         project.metadata.unitsPerEm
       );
 
-      const baseGlyph =
-        currentGlyphRef.current.unicode === selectedUnicode
+      const baseGlyph = activeIvsKey
+        ? activeIvsVariant?.glyph ?? currentGlyph
+        : currentGlyphRef.current.unicode === selectedUnicode
           ? currentGlyphRef.current
           : currentGlyph;
       currentGlyphRef.current = {
@@ -169,6 +176,28 @@ export function useGlyphActions({
       };
 
       setProject((prev) => {
+        if (activeIvsKey && prev.ivsVariants?.[activeIvsKey]) {
+          const existingVariant = prev.ivsVariants[activeIvsKey];
+          return {
+            ...prev,
+            ivsVariants: {
+              ...prev.ivsVariants,
+              [activeIvsKey]: {
+                ...existingVariant,
+                glyph: {
+                  ...existingVariant.glyph,
+                  advanceWidth: res.advanceWidth,
+                  lsb: res.lsb,
+                  contours: res.contours,
+                  modified: true,
+                },
+                updatedAt: Date.now(),
+              },
+            },
+            updatedAt: Date.now(),
+          };
+        }
+
         const existing = prev.glyphs[selectedUnicode] || {
           unicode: selectedUnicode,
           char: selectedChar,
@@ -207,7 +236,18 @@ export function useGlyphActions({
         'success'
       );
     },
-    [currentGlyph, currentGlyphRef, selectedUnicode, selectedChar, commitHistory, setProject, onShowToast, project.metadata.unitsPerEm]
+    [
+      activeIvsKey,
+      activeIvsVariant,
+      currentGlyph,
+      currentGlyphRef,
+      selectedUnicode,
+      selectedChar,
+      commitHistory,
+      setProject,
+      onShowToast,
+      project.metadata.unitsPerEm,
+    ]
   );
 
   // Clear Glyph
@@ -233,13 +273,27 @@ export function useGlyphActions({
       });
 
       const ch = targetGlyph.char || String.fromCodePoint(unicode);
-      if (unicode !== selectedUnicode) {
-        setSelectedUnicode(unicode);
-        setSelectedChar(ch);
+      if (unicode !== selectedUnicode || activeIvsKey) {
+        if (onSelectGlyph) {
+          onSelectGlyph(unicode, ch);
+        } else {
+          setSelectedUnicode(unicode);
+          setSelectedChar(ch);
+        }
       }
       onShowToast(`文字「${ch}」の字形を消去しました (Ctrl+Zで復元可能)`, 'info');
     },
-    [project.glyphs, selectedUnicode, setSelectedUnicode, setSelectedChar, commitHistory, setProject, onShowToast]
+    [
+      project.glyphs,
+      selectedUnicode,
+      activeIvsKey,
+      onSelectGlyph,
+      setSelectedUnicode,
+      setSelectedChar,
+      commitHistory,
+      setProject,
+      onShowToast,
+    ]
   );
 
   // Optimize a single glyph's paths: remove redundant nodes on straight
@@ -285,7 +339,10 @@ export function useGlyphActions({
   // has nothing to copy.
   const handleCopyGlyph = useCallback(
     (unicode: number) => {
-      const glyph = project.glyphs[unicode];
+      const isActiveIvsTarget = Boolean(
+        activeIvsKey && unicode === selectedUnicode && activeIvsVariant?.glyph
+      );
+      const glyph = isActiveIvsTarget ? activeIvsVariant!.glyph : project.glyphs[unicode];
       const contours = glyph?.contours || [];
       const hasFilledPixels = Boolean(glyph?.pixelData?.data?.some((d) => d !== 0));
       if (glyph && (contours.length > 0 || hasFilledPixels)) {
@@ -312,7 +369,7 @@ export function useGlyphActions({
         onShowToast('コピーする輪郭がありません', 'warning');
       }
     },
-    [project.glyphs, project.id, onShowToast]
+    [activeIvsKey, activeIvsVariant, selectedUnicode, project.glyphs, project.id, onShowToast]
   );
 
   // Replace the target glyph with the clipboard's whole-glyph copy:
@@ -321,10 +378,66 @@ export function useGlyphActions({
   // the project's unitsPerEm, not from fixed 1000/50.
   const pasteReplaceGlyph = useCallback(
     (unicode: number, entry: GlyphClipboard) => {
-      commitHistory(unicode);
+      const isTargetIvs = Boolean(
+        activeIvsKey && unicode === selectedUnicode && project.ivsVariants?.[activeIvsKey]
+      );
+      if (isTargetIvs) {
+        commitHistory();
+      } else {
+        commitHistory(unicode);
+      }
       const upm = project.metadata?.unitsPerEm || 1000;
       const defaultLsb = Math.round(50 * (upm / 1000));
       const freshContours = regenerateContourIds(entry.contours);
+      const nextPixelData = entry.pixelData ? JSON.parse(JSON.stringify(entry.pixelData)) : undefined;
+      const nextVectorBackup = entry.vectorContoursBackup
+        ? JSON.parse(JSON.stringify(entry.vectorContoursBackup))
+        : undefined;
+
+      if (isTargetIvs && activeIvsKey) {
+        const currentVariant = project.ivsVariants?.[activeIvsKey];
+        if (currentVariant) {
+          currentGlyphRef.current = {
+            ...currentVariant.glyph,
+            contours: freshContours,
+            advanceWidth: entry.advanceWidth ?? currentVariant.glyph.advanceWidth ?? upm,
+            lsb: entry.lsb ?? currentVariant.glyph.lsb ?? defaultLsb,
+            pixelData: nextPixelData,
+            vectorContoursBackup: nextVectorBackup,
+            notes: entry.notes,
+            modified: true,
+          };
+        }
+        setProject((prev) => {
+          const prevUpm = prev.metadata?.unitsPerEm || upm;
+          const prevDefaultLsb = Math.round(50 * (prevUpm / 1000));
+          const existingVariant = prev.ivsVariants?.[activeIvsKey];
+          if (!existingVariant) return prev;
+          return {
+            ...prev,
+            ivsVariants: {
+              ...prev.ivsVariants,
+              [activeIvsKey]: {
+                ...existingVariant,
+                glyph: {
+                  ...existingVariant.glyph,
+                  contours: freshContours,
+                  advanceWidth: entry.advanceWidth ?? existingVariant.glyph.advanceWidth ?? prevUpm,
+                  lsb: entry.lsb ?? existingVariant.glyph.lsb ?? prevDefaultLsb,
+                  pixelData: nextPixelData,
+                  vectorContoursBackup: nextVectorBackup,
+                  notes: entry.notes,
+                  modified: true,
+                },
+                updatedAt: Date.now(),
+              },
+            },
+            updatedAt: Date.now(),
+          };
+        });
+        return;
+      }
+
       setProject((prev) => {
         const prevUpm = prev.metadata?.unitsPerEm || upm;
         const existing = prev.glyphs[unicode] || {
@@ -343,10 +456,8 @@ export function useGlyphActions({
               contours: freshContours,
               advanceWidth: entry.advanceWidth ?? existing.advanceWidth ?? prevUpm,
               lsb: entry.lsb ?? existing.lsb ?? defaultLsb,
-              pixelData: entry.pixelData ? JSON.parse(JSON.stringify(entry.pixelData)) : undefined,
-              vectorContoursBackup: entry.vectorContoursBackup
-                ? JSON.parse(JSON.stringify(entry.vectorContoursBackup))
-                : undefined,
+              pixelData: nextPixelData,
+              vectorContoursBackup: nextVectorBackup,
               notes: entry.notes,
               modified: true,
             },
@@ -355,14 +466,21 @@ export function useGlyphActions({
         };
       });
     },
-    [commitHistory, project.metadata?.unitsPerEm, setProject]
+    [activeIvsKey, selectedUnicode, project.ivsVariants, project.metadata?.unitsPerEm, commitHistory, currentGlyphRef, setProject]
   );
 
   // Append the clipboard contours to the target glyph with fresh ids,
   // keeping the target glyph's existing contours and metrics.
   const pasteAppendContours = useCallback(
     (unicode: number, entry: GlyphClipboard) => {
-      commitHistory(unicode);
+      const isTargetIvs = Boolean(
+        activeIvsKey && unicode === selectedUnicode && project.ivsVariants?.[activeIvsKey]
+      );
+      if (isTargetIvs) {
+        commitHistory();
+      } else {
+        commitHistory(unicode);
+      }
       const freshContours = regenerateContourIds(entry.contours);
       if (unicode === selectedUnicode) {
         handleUpdateContours([...(currentGlyph.contours || []), ...freshContours], {
@@ -394,7 +512,7 @@ export function useGlyphActions({
         };
       });
     },
-    [commitHistory, selectedUnicode, currentGlyph, handleUpdateContours, setProject]
+    [activeIvsKey, selectedUnicode, project.ivsVariants, commitHistory, currentGlyph, handleUpdateContours, setProject]
   );
 
   // Paste into a glyph. The behaviour is fixed by how the clipboard was
@@ -402,7 +520,13 @@ export function useGlyphActions({
   // replaces the target glyph, a selected-contours copy appends to it.
   const handlePasteGlyph = useCallback(
     (unicode: number) => {
-      if (project.glyphs[unicode]?.locked) {
+      const isTargetIvs = Boolean(
+        activeIvsKey && unicode === selectedUnicode && project.ivsVariants?.[activeIvsKey]
+      );
+      const isTargetLocked = isTargetIvs
+        ? Boolean(project.ivsVariants?.[activeIvsKey!]?.glyph?.locked)
+        : Boolean(project.glyphs[unicode]?.locked);
+      if (isTargetLocked) {
         onShowToast('貼り付け先の文字は編集ロックされています', 'warning');
         return;
       }
@@ -420,10 +544,23 @@ export function useGlyphActions({
         return;
       }
       pasteReplaceGlyph(unicode, clipboard);
-      const targetChar = String.fromCodePoint(unicode);
+      const targetChar = isTargetIvs
+        ? project.ivsVariants?.[activeIvsKey!]?.glyph?.char || selectedChar
+        : String.fromCodePoint(unicode);
       onShowToast(`「${targetChar}」に字形を貼り付けました`, 'success');
     },
-    [project.glyphs, project.id, clipboard, pasteAppendContours, pasteReplaceGlyph, onShowToast]
+    [
+      activeIvsKey,
+      selectedUnicode,
+      selectedChar,
+      project.ivsVariants,
+      project.glyphs,
+      project.id,
+      clipboard,
+      pasteAppendContours,
+      pasteReplaceGlyph,
+      onShowToast,
+    ]
   );
 
   // Copy only the selected contours into the shared clipboard. This uses
@@ -542,11 +679,15 @@ export function useGlyphActions({
         };
       });
 
-      setSelectedUnicode(targetUnicode);
-      setSelectedChar(pair.smallChar);
+      if (onSelectGlyph) {
+        onSelectGlyph(targetUnicode, pair.smallChar);
+      } else {
+        setSelectedUnicode(targetUnicode);
+        setSelectedChar(pair.smallChar);
+      }
       onShowToast(`「${sourceChar}」から小文字「${pair.smallChar}」を自動生成しました`, 'success');
     },
-    [project.glyphs, project.metadata?.unitsPerEm, commitHistory, setProject, setSelectedUnicode, setSelectedChar, onShowToast]
+    [project.glyphs, project.metadata?.unitsPerEm, commitHistory, setProject, onSelectGlyph, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
   // Generate Dakuten / Handakuten from a source glyph.
@@ -618,14 +759,18 @@ export function useGlyphActions({
         };
       });
 
-      setSelectedUnicode(targetUnicode);
-      setSelectedChar(targetChar);
+      if (onSelectGlyph) {
+        onSelectGlyph(targetUnicode, targetChar);
+      } else {
+        setSelectedUnicode(targetUnicode);
+        setSelectedChar(targetChar);
+      }
       onShowToast(
         `「${baseChar}」から${isHandakuten ? '半濁音' : '濁音'}「${targetChar}」を自動生成しました！`,
         'success'
       );
     },
-    [project.glyphs, project.metadata?.unitsPerEm, currentGlyph, commitHistory, setProject, selectedChar, setSelectedUnicode, setSelectedChar, onShowToast]
+    [project.glyphs, project.metadata?.unitsPerEm, currentGlyph, commitHistory, setProject, selectedChar, onSelectGlyph, setSelectedUnicode, setSelectedChar, onShowToast]
   );
 
   // Copy strokes from another char
@@ -678,7 +823,7 @@ export function useGlyphActions({
         })),
       }));
       const insertedIds = uniqueRadicals.map((c) => c.id);
-      handleUpdateContours([...base, ...uniqueRadicals]);
+      handleUpdateContours([...base, ...uniqueRadicals], { skipHistory: true });
       setToolMode('select');
       setTimeout(() => {
         window.dispatchEvent(
@@ -715,6 +860,8 @@ export function useGlyphActions({
         if (unicode) commitHistory(unicode);
       });
       setProject((prev) => {
+        const currentUpm = prev.metadata?.unitsPerEm || 1000;
+        const defaultLsb = Math.round(50 * (currentUpm / 1000));
         const updatedGlyphs = { ...(prev.glyphs || {}) };
         unlockedChars.forEach((char) => {
           const unicode = char.codePointAt(0) || 0;
@@ -724,8 +871,8 @@ export function useGlyphActions({
             char,
             name: `uni${unicode.toString(16).toUpperCase().padStart(4, '0')}`,
             contours: [],
-            advanceWidth: 1000,
-            lsb: 50,
+            advanceWidth: currentUpm,
+            lsb: defaultLsb,
           };
 
           const clonedRadical = radicalContours.map((c) => ({

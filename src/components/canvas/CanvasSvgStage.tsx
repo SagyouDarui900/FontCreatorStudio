@@ -590,6 +590,7 @@ export const CanvasSvgStage: React.FC<CanvasSvgStageProps> = React.memo(({
         <SmartSnapGuidesLayer
           activeSnapGuides={activeSnapGuides}
           selectionColor={selectionColor}
+          unitsPerEm={upm}
         />
       </g>
     </svg>

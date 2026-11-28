@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Sliders, X, ChevronRight, Paintbrush } from 'lucide-react';
 import { BrushStyle, ToolMode, UserPenPreset, ThemeClasses } from '../../types';
 import { PEN_PRESETS } from '../../utils/path';
+import { PRESSURE_MODES, isCustomPenPreset } from './toolbarConstants';
 
 export interface MobileBrushMenuSheetProps {
   isOpen: boolean;
@@ -49,7 +50,9 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
 }) => {
   if (!isOpen || typeof document === 'undefined') return null;
 
-  const isCustomPen = Boolean(activePenPreset && customPresets.some((p) => p.id === activePenPreset.id));
+  const isCustomPen = Boolean(
+    isCustomPenPreset(activePenPreset) || !PEN_PRESETS.some((p) => p.id === brushStyle)
+  );
 
   return createPortal(
  <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end" ref={sheetRef}>
@@ -61,7 +64,9 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  className={`relative z-10 w-full rounded-t-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t shadow-2xl max-h-[82dvh] flex flex-col anim-slide-up ${themeClasses.cardBg}`}
  >
  <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800 mb-2 shrink-0">
- <span className="font-bold text-sm text-emerald-800 dark:text-emerald-300">手書きペンの種類 (全{PEN_PRESETS.length}種)</span>
+ <span className="font-bold text-sm text-emerald-800 dark:text-emerald-300">
+ 手書きペンの種類 (全{PEN_PRESETS.length + customPresets.length}種)
+ </span>
  <div className="flex items-center space-x-1">
  {onOpenPenPresetsModal && (
  <button
@@ -237,7 +242,44 @@ export const MobileBrushMenuSheet: React.FC<MobileBrushMenuSheetProps> = React.m
  })}
  </div>
 
- {/* Mobile Smoothing Intensity Control */}
+ {/* Mobile Pressure Sensitivity & Smoothing Controls */}
+ {onChangePressureSensitivity && (
+ <div className="pt-2.5 mt-2 border-t border-stone-200 dark:border-stone-800 shrink-0">
+ <div className="flex items-center justify-between text-xs mb-1.5 font-bold">
+ <span>筆圧感度 (Apple Pencil / ペン)</span>
+ <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+ {pressureSensitivity === 'high'
+ ? '高感度 (推奨)'
+ : pressureSensitivity === 'normal'
+ ? '標準'
+ : pressureSensitivity === 'low'
+ ? '弱め'
+ : 'OFF (均一)'}
+ </span>
+ </div>
+ <div className="grid grid-cols-4 gap-1.5">
+ {PRESSURE_MODES.map((mode) => (
+ <button
+ key={mode.id}
+ type="button"
+ onClick={() => onChangePressureSensitivity(mode.id)}
+ className={`py-1.5 px-1 rounded-lg text-center cursor-pointer border ${
+ (pressureSensitivity || 'normal') === mode.id
+ ? isLight
+ ? 'bg-emerald-700 text-white border-emerald-700'
+ : 'bg-emerald-500 text-stone-950 border-emerald-500'
+ : isLight
+ ? 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-200'
+ : 'bg-[#18231c] hover:bg-[#1f2d24] text-emerald-200/80 border-[#2c4033]'
+ }`}
+ >
+ <div className="text-[11px] font-bold leading-none">{mode.label}</div>
+ <div className="text-[9px] opacity-75 leading-none mt-0.5">{mode.desc}</div>
+ </button>
+ ))}
+ </div>
+ </div>
+ )}
  <div className="pt-2.5 mt-2 border-t border-stone-200 dark:border-stone-800 shrink-0">
  <div className="flex items-center justify-between text-xs mb-1 font-bold">
  <span>手ブレ補正強度 (Smoothing)</span>

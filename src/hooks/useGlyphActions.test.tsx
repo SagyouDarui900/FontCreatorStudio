@@ -57,7 +57,7 @@ function makeProject(id: string, glyphs: Record<number, GlyphData>): FontProject
   };
 }
 
-function mount(initial: FontProject) {
+function mount(initial: FontProject, setToolMode?: (mode: any) => void) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -80,6 +80,7 @@ function mount(initial: FontProject) {
         showToast={(msg) => {
           toasts.push(msg);
         }}
+        setToolMode={setToolMode}
       >
         <Consumer />
       </ProjectProvider>
@@ -356,3 +357,162 @@ describe('glyph path optimization (grid context menu)', () => {
     }
   });
 });
+
+describe('IVS variant actions and radical insertion (High fixes #2 & #3)', () => {
+  it('switches toolMode to select and commits only one undo entry when inserting a radical', () => {
+    const setToolModeSpy = vi.fn();
+    const base = makeGlyph(0x3042, 'あ', { contours: [makeContour('base-c', 50)] });
+    const h = mount(makeProject('proj-1', { [0x3042]: base }), setToolModeSpy);
+    try {
+      act(() => {
+        h.ctx.handleInsertRadical([makeContour('rad-c', 250)]);
+      });
+      expect(setToolModeSpy).toHaveBeenCalledWith('select');
+      expect(h.ctx.project.glyphs[0x3042].contours).toHaveLength(2);
+      expect(h.ctx.undoStack).toHaveLength(1);
+
+      act(() => {
+        h.ctx.handleUndo();
+      });
+      expect(h.ctx.project.glyphs[0x3042].contours).toHaveLength(1);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('auto-spaces and copies/pastes the active IVS variant without overwriting the base glyph', () => {
+    const baseA = makeGlyph(0x3042, 'あ', {
+      contours: [makeContour('base-a', 400)],
+      advanceWidth: 1000,
+      lsb: 50,
+    });
+    const baseI = makeGlyph(0x3044, 'い', {
+      contours: [makeContour('base-i', 200)],
+      advanceWidth: 850,
+      lsb: 40,
+    });
+    const ivsKey = 'U+3042_E0100';
+    const ivsGlyph = makeGlyph(0x3042, 'あ', {
+      name: 'uni3042_uE0100',
+      contours: [makeContour('ivs-a', 700)],
+      advanceWidth: 1000,
+      lsb: 700,
+    });
+    const proj = makeProject('proj-ivs', { [0x3042]: baseA, [0x3044]: baseI });
+    proj.ivsVariants = {
+      [ivsKey]: {
+        id: ivsKey,
+        baseUnicode: 0x3042,
+        selectorCode: 0xe0100,
+        glyph: ivsGlyph,
+        updatedAt: 1000,
+      },
+    };
+
+    const h = mount(proj);
+    try {
+      act(() => {
+        h.ctx.handleSelectIvsVariant(ivsKey);
+      });
+      expect(h.ctx.activeIvsKey).toBe(ivsKey);
+
+      act(() => {
+        h.ctx.handleAutoSpaceCurrentGlyph('japanese-fullwidth');
+      });
+      const spacedIvs = h.ctx.project.ivsVariants![ivsKey].glyph;
+      expect(spacedIvs.contours[0].nodes[0].x).toBe(450);
+      expect(h.ctx.project.glyphs[0x3042].contours[0].nodes[0].x).toBe(400);
+      expect(h.ctx.undoStack).toHaveLength(1);
+
+      act(() => {
+        h.ctx.handleUndo();
+      });
+      expect(h.ctx.project.ivsVariants![ivsKey].glyph.contours[0].nodes[0].x).toBe(700);
+
+      act(() => {
+        h.ctx.handleCopyGlyph(0x3042);
+      });
+      expect(h.ctx.clipboardContours?.[0].nodes[0].x).toBe(700);
+
+      act(() => {
+        h.ctx.handleSelectGlyph(0x3044, 'い');
+      });
+      act(() => {
+        h.ctx.handleCopyGlyph(0x3044);
+      });
+      act(() => {
+        h.ctx.handleSelectIvsVariant(ivsKey);
+      });
+      act(() => {
+        h.ctx.handlePasteGlyph(0x3042);
+      });
+      expect(h.ctx.project.ivsVariants![ivsKey].glyph.contours[0].nodes[0].x).toBe(200);
+      expect(h.ctx.project.glyphs[0x3042].contours[0].nodes[0].x).toBe(400);
+
+      act(() => {
+        h.ctx.handleUndo();
+      });
+      expect(h.ctx.project.ivsVariants![ivsKey].glyph.contours[0].nodes[0].x).toBe(700);
+    } finally {
+      h.unmount();
+    }
+  });
+
+  it('clears activeIvsKey when duplicating small kana, generating dakuten, or clearing another glyph', () => {
+    const ka = makeGlyph(0x304B, 'か', { contours: [makeContour('ka-c', 100)] });
+    const tsu = makeGlyph(0x3064, 'つ', { contours: [makeContour('tsu-c', 100)] });
+    const ha = makeGlyph(0x306F, 'は', { contours: [makeContour('ha-c', 100)] });
+    const ivsKey = 'U+306F_E0100';
+    const proj = makeProject('proj-ivs-switch', {
+      [0x304B]: ka,
+      [0x3064]: tsu,
+      [0x306F]: ha,
+    });
+    proj.ivsVariants = {
+      [ivsKey]: {
+        id: ivsKey,
+        baseUnicode: 0x306F,
+        selectorCode: 0xe0100,
+        glyph: makeGlyph(0x306F, 'は', { name: 'uni306F_uE0100', contours: [makeContour('ivs-ha', 150)] }),
+        updatedAt: 1000,
+      },
+    };
+
+    const h = mount(proj);
+    try {
+      act(() => {
+        h.ctx.handleSelectIvsVariant(ivsKey);
+      });
+      expect(h.ctx.activeIvsKey).toBe(ivsKey);
+
+      act(() => {
+        h.ctx.handleDuplicateAsSmallKana(0x3064);
+      });
+      expect(h.ctx.selectedUnicode).toBe(0x3063);
+      expect(h.ctx.activeIvsKey).toBeNull();
+
+      act(() => {
+        h.ctx.handleSelectIvsVariant(ivsKey);
+      });
+      expect(h.ctx.activeIvsKey).toBe(ivsKey);
+
+      act(() => {
+        h.ctx.handleGenerateDakutenTarget('が', false, 'か');
+      });
+      expect(h.ctx.selectedUnicode).toBe(0x304C);
+      expect(h.ctx.activeIvsKey).toBeNull();
+
+      act(() => {
+        h.ctx.handleSelectIvsVariant(ivsKey);
+      });
+      act(() => {
+        h.ctx.handleClearGlyph(0x304B);
+      });
+      expect(h.ctx.selectedUnicode).toBe(0x304B);
+      expect(h.ctx.activeIvsKey).toBeNull();
+    } finally {
+      h.unmount();
+    }
+  });
+});
+

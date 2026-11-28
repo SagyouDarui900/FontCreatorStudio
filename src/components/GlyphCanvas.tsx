@@ -363,6 +363,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleCreateGuidelineFromRuler,
   } = useRulerMeasure({
     contours,
+    contoursRef,
     snapMetrics,
     customGuidelines,
     setCustomGuidelines,
@@ -843,6 +844,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     [showCanvasToast]
   );
 
+  const handledNativePointerEventsRef = useRef<WeakSet<Event>>(new WeakSet());
+
   // ---------------- POINTER EVENT DISPATCHER ----------------
   const {
     handlePointerDown,
@@ -968,6 +971,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isGlyphLocked,
     isContextMenuOpen: contextMenuState !== null,
     onCloseContextMenu: handleCloseContextMenu,
+    handledNativePointerEventsRef,
   });
 
   // Canvas long-press context menu (touch equivalent of right-click).
@@ -1100,6 +1104,7 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleNodeDragCancel,
     handleTransformPointerUp,
     handleEraserPointerUp,
+    handleRulerPointerUp,
     // H9: the guide-eraser mode is reset when the tool or glyph changes.
     setIsGuideEraserActive,
     // L13: finalize the uncommitted pen path on tool switch instead of
@@ -1110,6 +1115,35 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
 
   const handleWindowPointerEndRef = useRef<(() => void) | undefined>(undefined);
   handleWindowPointerEndRef.current = handleLostPointerCapture;
+  const handleWindowPointerCancelRef = useRef<(() => void) | undefined>(undefined);
+  handleWindowPointerCancelRef.current = () => {
+    if (isTwoFingerGestureRef.current) return;
+    activeDrawingPointerIdRef.current = null;
+    handleNodeDragCancel();
+    cancelTransformSession();
+    resetBrushDrawing();
+    if (activeBrushPathRef.current) {
+      activeBrushPathRef.current.setAttribute('d', '');
+    }
+    if (drawingReticleRef.current) drawingReticleRef.current.style.display = 'none';
+    if (!handleEraserPointerCancel()) {
+      isErasingRef.current = false;
+      lastErasePosRef.current = null;
+      resetEraserVisuals();
+    }
+    if (eraserReticleRef.current) eraserReticleRef.current.style.display = 'none';
+    if (generalCrosshairRef.current) generalCrosshairRef.current.style.display = 'none';
+    resetShapeCreation();
+    setRulerMeasurement(null);
+    isPenDrawingRef.current = false;
+    setIsPanning(false);
+    resetTraceDragState();
+    setDraggingMetric(null);
+    setDraggingGuidelineId(null);
+    setMarqueeSelection(null);
+    setActiveSnapGuides((prev) => (prev.length === 0 ? prev : []));
+    setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
+  };
 
   // Native wheel & touch gesture registration hook
   useCanvasNativeGestures({
@@ -1140,6 +1174,8 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     isPenDrawingRef,
     lastPenActiveTimeRef,
     onWindowPointerEndRef: handleWindowPointerEndRef,
+    onWindowPointerCancelRef: handleWindowPointerCancelRef,
+    handledNativePointerEventsRef,
   });
 
   // Transform operations for active selection
@@ -1169,8 +1205,10 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
     handleDistributeSelected,
   } = useContourTransforms({
     contours,
+    contoursRef,
     selectedContourIds,
     onChangeContours,
+    onCommitHistory,
     showCanvasToast,
     setSelectedContourIds,
     setSelectedContourId,
@@ -1713,6 +1751,17 @@ export const GlyphCanvas: React.FC<GlyphCanvasProps> = React.memo(({
   if (prev.pressureCurve !== next.pressureCurve) return false;
   if (prev.isGlyphLocked !== next.isGlyphLocked) return false;
   if (prev.hasClipboard !== next.hasClipboard) return false;
+  if (prev.autoSmoothBrush !== next.autoSmoothBrush) return false;
+  if (prev.smoothStrength !== next.smoothStrength) return false;
+  if (prev.smoothPreserveCorners !== next.smoothPreserveCorners) return false;
+  if (prev.autoUnionBrush !== next.autoUnionBrush) return false;
+  if (prev.onChangeAutoSmoothBrush !== next.onChangeAutoSmoothBrush) return false;
+  if (prev.onChangeSmoothStrength !== next.onChangeSmoothStrength) return false;
+  if (prev.onChangeSmoothPreserveCorners !== next.onChangeSmoothPreserveCorners) return false;
+  if (prev.onChangeAutoUnionBrush !== next.onChangeAutoUnionBrush) return false;
+  if (prev.onRegisterResetCanvasPrefs !== next.onRegisterResetCanvasPrefs) return false;
+  if (prev.onDiscardLastHistory !== next.onDiscardLastHistory) return false;
+  if (prev.onCopyFromChar !== next.onCopyFromChar) return false;
   if (prev.onCopySelectedContours !== next.onCopySelectedContours) return false;
   if (prev.onPasteSelectedContours !== next.onPasteSelectedContours) return false;
   if (prev.onUndo !== next.onUndo) return false;

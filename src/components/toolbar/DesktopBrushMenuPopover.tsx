@@ -14,7 +14,7 @@ import {
 } from '../../types';
 import { ThemeClasses } from '../../utils/theme';
 import { PEN_PRESETS } from '../../utils/path';
-import { PEN_ICONS, PRESSURE_MODES } from './toolbarConstants';
+import { PEN_ICONS, PRESSURE_MODES, isCustomPenPreset } from './toolbarConstants';
 
 export interface DesktopBrushMenuPopoverProps {
   isOpen: boolean;
@@ -67,12 +67,7 @@ export const DesktopBrushMenuPopover: React.FC<DesktopBrushMenuPopoverProps> = R
   if (!isOpen || typeof document === 'undefined') return null;
 
   const isCustomPen = Boolean(
-    activePenPreset &&
-      (activePenPreset.id?.startsWith('preset-custom-') ||
-        activePenPreset.id?.startsWith('custom-') ||
-        activePenPreset.isCustom ||
-        activePenPreset.name?.includes('カスタム') ||
-        !PEN_PRESETS.some((p) => p.id === brushStyle))
+    isCustomPenPreset(activePenPreset) || !PEN_PRESETS.some((p) => p.id === brushStyle)
   );
 
   return createPortal(

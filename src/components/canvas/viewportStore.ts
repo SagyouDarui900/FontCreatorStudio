@@ -28,24 +28,34 @@ export interface LiveViewportState {
 export const INITIAL_LIVE_ZOOM = 0.55;
 export const INITIAL_LIVE_PAN: Point = { x: 0, y: 0 };
 let liveViewport: LiveViewportState | null = null;
+let liveRulerViewport: LiveViewportState | null = null;
 const viewportListeners = new Set<() => void>();
 const zoomListeners = new Set<() => void>();
+const rulerListeners = new Set<() => void>();
+
+const DEFAULT_FALLBACK_VIEWPORT: LiveViewportState = {
+  zoom: INITIAL_LIVE_ZOOM,
+  pan: { ...INITIAL_LIVE_PAN },
+};
 
 const ZOOM_NOTIFY_THRESHOLD = 0.002;
 let lastNotifiedZoom: number | null = null;
 
 export function setLiveViewport(zoom: number, pan: Point): void {
   const prevZoom = liveViewport?.zoom;
-  if (
+  const unchanged =
     liveViewport &&
     liveViewport.zoom === zoom &&
     liveViewport.pan.x === pan.x &&
-    liveViewport.pan.y === pan.y
-  ) {
+    liveViewport.pan.y === pan.y &&
+    liveRulerViewport === null;
+  if (unchanged) {
     return;
   }
   liveViewport = { zoom, pan: { x: pan.x, y: pan.y } };
+  liveRulerViewport = null;
   viewportListeners.forEach((listener) => listener());
+  rulerListeners.forEach((listener) => listener());
   if (prevZoom !== zoom) {
     if (
       lastNotifiedZoom === null ||
@@ -58,16 +68,35 @@ export function setLiveViewport(zoom: number, pan: Point): void {
   }
 }
 
+export function setLiveRulerViewport(zoom: number, pan: Point): void {
+  if (
+    liveRulerViewport &&
+    liveRulerViewport.zoom === zoom &&
+    liveRulerViewport.pan.x === pan.x &&
+    liveRulerViewport.pan.y === pan.y
+  ) {
+    return;
+  }
+  liveRulerViewport = { zoom, pan: { x: pan.x, y: pan.y } };
+  rulerListeners.forEach((listener) => listener());
+}
+
 export function clearLiveViewport(): void {
-  if (liveViewport === null) return;
+  if (liveViewport === null && liveRulerViewport === null) return;
   liveViewport = null;
+  liveRulerViewport = null;
   lastNotifiedZoom = null;
   viewportListeners.forEach((listener) => listener());
   zoomListeners.forEach((listener) => listener());
+  rulerListeners.forEach((listener) => listener());
 }
 
 export function getLiveViewport(): LiveViewportState | null {
   return liveViewport;
+}
+
+function getLiveRulerViewportSnapshot(): LiveViewportState {
+  return liveRulerViewport ?? liveViewport ?? DEFAULT_FALLBACK_VIEWPORT;
 }
 
 function getLiveZoomOnly(): number | null {
@@ -81,6 +110,13 @@ function subscribeViewport(listener: () => void): () => void {
   };
 }
 
+function subscribeRulerViewport(listener: () => void): () => void {
+  rulerListeners.add(listener);
+  return () => {
+    rulerListeners.delete(listener);
+  };
+}
+
 function subscribeZoom(listener: () => void): () => void {
   zoomListeners.add(listener);
   return () => {
@@ -91,6 +127,10 @@ function subscribeZoom(listener: () => void): () => void {
 export function useLiveViewport(): LiveViewportState {
   const storeValue = useSyncExternalStore(subscribeViewport, getLiveViewport);
   return storeValue ?? { zoom: INITIAL_LIVE_ZOOM, pan: { ...INITIAL_LIVE_PAN } };
+}
+
+export function useLiveRulerViewport(): LiveViewportState {
+  return useSyncExternalStore(subscribeRulerViewport, getLiveRulerViewportSnapshot);
 }
 
 export function useLiveViewportZoom(): number {

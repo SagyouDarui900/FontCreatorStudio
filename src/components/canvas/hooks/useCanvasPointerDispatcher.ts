@@ -20,7 +20,7 @@ import { usePointerGuidelineDrag } from './usePointerGuidelineDrag';
 import { computePinchTransform } from './viewportMath';
 import { setHoverCanvasPos, getHoverCanvasPos } from '../hoverStore';
 import { setPenMousePos } from '../penMouseStore';
-import { setLiveViewport } from '../viewportStore';
+import { setLiveViewport, setLiveRulerViewport } from '../viewportStore';
 
 /** Double-tap window for the touch Fit / 100% toggle. */
 export const DOUBLE_TAP_MAX_INTERVAL_MS = 300;
@@ -192,6 +192,7 @@ export interface UseCanvasPointerDispatcherOptions {
   // menu instead of starting a draw or selection action.
   isContextMenuOpen?: boolean;
   onCloseContextMenu?: () => void;
+  handledNativePointerEventsRef?: React.MutableRefObject<WeakSet<Event>>;
 }
 
 export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptions) {
@@ -205,7 +206,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     containerRef,
     canvasGroupRef,
     getContainerRectFast,
-    invalidateContainerRect,
     upm = 1000,
     clampPan,
     isSpacePressed,
@@ -291,7 +291,11 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isGlyphLocked = false,
     isContextMenuOpen = false,
     onCloseContextMenu,
+    handledNativePointerEventsRef,
   } = opts;
+
+  const fallbackHandledPointerEventsRef = useRef<WeakSet<Event>>(new WeakSet());
+  const resolvedHandledPointerEventsRef = handledNativePointerEventsRef ?? fallbackHandledPointerEventsRef;
 
   // Active pointer isolation to prevent concurrent pointer collisions
   const activeDrawingPointerIdRef = useRef<number | null>(null);
@@ -358,6 +362,15 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   isPanningRef.current = isPanning;
   const marqueeSelectionRef = useRef<{ start: Point; current: Point } | null>(marqueeSelection);
   marqueeSelectionRef.current = marqueeSelection;
+  const marqueeRafIdRef = useRef<number | null>(null);
+  const pendingMarqueeRef = useRef<{ start: Point; current: Point } | null>(null);
+  const cancelMarqueeRaf = useCallback(() => {
+    if (marqueeRafIdRef.current !== null) {
+      cancelAnimationFrame(marqueeRafIdRef.current);
+      marqueeRafIdRef.current = null;
+    }
+    pendingMarqueeRef.current = null;
+  }, []);
 
   // Multi-touch refs
   const touchPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -430,6 +443,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   // Reset any active pointer locks and in-progress sessions when toolMode changes
   useEffect(() => {
     penDragHandleSessionRef.current = null;
+    cancelMarqueeRaf();
     commitDirectPinchToDom();
     setSvgGesturing(false);
     twoFingerCachedContainerRectRef.current = null;
@@ -441,11 +455,12 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     pinchStartedRef.current = false;
     activeTwoFingerIdsRef.current = null;
     isPenDrawingRef.current = false;
-  }, [toolMode, setSvgGesturing, commitDirectPinchToDom]);
+  }, [toolMode, setSvgGesturing, commitDirectPinchToDom, cancelMarqueeRaf]);
 
   // Clean up any pending RAFs on unmount
   useEffect(() => {
     return () => {
+      cancelMarqueeRaf();
       commitDirectPinchToDom();
       if (pressureRafIdRef.current !== null) {
         cancelAnimationFrame(pressureRafIdRef.current);
@@ -457,7 +472,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       }
       setSvgGesturing(false);
     };
-  }, [setSvgGesturing, commitDirectPinchToDom]);
+  }, [setSvgGesturing, commitDirectPinchToDom, cancelMarqueeRaf]);
 
   const isDrawingTool = toolMode === 'brush' || toolMode === 'pen' || toolMode === 'eraser' || isShapeTool;
 
@@ -527,10 +542,6 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     }
     if (e.pointerType === 'touch' && (isPenDrawingRef.current || Date.now() - lastPenActiveTimeRef.current < 200)) {
       return;
-    }
-
-    if (touchPointersRef.current.size === 0) {
-      invalidateContainerRect?.();
     }
 
     // Spacebar or Middle Mouse or Hand tool = Pan canvas
@@ -669,6 +680,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       if (shapeStartPoint) {
         handleShapePointerUp(e);
       }
+      cancelMarqueeRaf();
       if (marqueeSelectionRef.current) {
         marqueeSelectionRef.current = null;
         setMarqueeSelection(null);
@@ -1078,7 +1090,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     isDrawingTool,
     isContextMenuOpen,
     onCloseContextMenu,
-    invalidateContainerRect,
+    cancelMarqueeRaf,
     getContainerRectFast,
     containerRef,
     canvasGroupRef,
@@ -1181,6 +1193,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
                   const pending = pendingPinchUpdateRef.current;
                   if (!pending) return;
                   pendingPinchUpdateRef.current = null;
+                  setLiveRulerViewport(pending.zoom, pending.pan);
                   const g = canvasGroupRef?.current;
                   if (g) {
                     setSvgGesturing(true);
@@ -1341,11 +1354,21 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
       return;
     }
 
-    // Marquee rectangular drag selection
+    // Marquee rectangular drag selection (rAF-batched)
     if (marqueeSelectionRef.current) {
       const nextMarquee = { ...marqueeSelectionRef.current, current: pos };
       marqueeSelectionRef.current = nextMarquee;
-      setMarqueeSelection(nextMarquee);
+      pendingMarqueeRef.current = nextMarquee;
+      if (marqueeRafIdRef.current === null) {
+        marqueeRafIdRef.current = requestAnimationFrame(() => {
+          marqueeRafIdRef.current = null;
+          const pending = pendingMarqueeRef.current;
+          pendingMarqueeRef.current = null;
+          if (pending) {
+            setMarqueeSelection(pending);
+          }
+        });
+      }
       return;
     }
 
@@ -1486,6 +1509,9 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
   ]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.nativeEvent) {
+      resolvedHandledPointerEventsRef.current.add(e.nativeEvent);
+    }
     setTouchLoupeState((prev: any) => (prev.visible ? { ...prev, visible: false } : prev));
     if (activeDrawingPointerIdRef.current === e.pointerId) {
       activeDrawingPointerIdRef.current = null;
@@ -1627,6 +1653,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     handleGuidelinePointerUp();
 
     // Resolve Marquee Selection on release
+    cancelMarqueeRaf();
     const currentMarquee = marqueeSelectionRef.current;
     if (currentMarquee) {
       const minX = Math.min(currentMarquee.start.x, currentMarquee.current.x);
@@ -1739,6 +1766,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
         }
         penDragHandleSessionRef.current = null;
       }
+      handleNodeDragEnd();
       setSelectedHandleType(null);
       setActiveSnapGuides([]);
       return;
@@ -1814,9 +1842,14 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     setSelectedHandleType,
     setActiveSnapGuides,
     penMode,
+    cancelMarqueeRaf,
   ]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.nativeEvent) {
+      resolvedHandledPointerEventsRef.current.add(e.nativeEvent);
+    }
+    cancelMarqueeRaf();
     try {
       if ((e.currentTarget as Element).hasPointerCapture?.(e.pointerId)) {
         (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
@@ -1939,6 +1972,7 @@ export function useCanvasPointerDispatcher(opts: UseCanvasPointerDispatcherOptio
     generalCrosshairRef,
     cancelTransformSession,
     setTransformSession,
+    cancelMarqueeRaf,
   ]);
 
   return {

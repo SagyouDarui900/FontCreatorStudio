@@ -63,7 +63,9 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   const lastQuotaWarningRef = useRef<number>(0);
   const lastAutoSaveErrorToastRef = useRef<number>(0);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingIndexedDbProjectRef = useRef<FontProject | null>(null);
+  const pendingIndexedDbProjectRef = useRef<{ project: FontProject; seq: number; waitingForRetry?: boolean } | null>(null);
+  const saveRequestSeqRef = useRef<number>(0);
+  const lastQueueSavedRef = useRef<boolean>(true);
   const autoSaveRetryCountRef = useRef<number>(0);
   const autoSaveRetryTimerRef = useRef<NodeJS.Timeout | null>(null);
   // Serialized IndexedDB save queue. Each call returns a promise that
@@ -72,23 +74,39 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
   const saveQueueRef = useRef<Promise<boolean>>(Promise.resolve(true));
   const saveProjectToIndexedDbWhenIdleRef = useRef<(nextProject: FontProject) => Promise<boolean>>(async () => false);
   // Last save completed while the page was hidden (8-12): used to skip a
-  // duplicate save in beforeunload when nothing changed since.
-  const lastHiddenSaveRef = useRef<{ updatedAt: number; localSaved: boolean; indexedDbSaved: boolean } | null>(null);
+  // duplicate save in beforeunload/pagehide when the same project object was already saved.
+  const lastHiddenSaveRef = useRef<{
+    project: FontProject;
+    updatedAt: number;
+    localSaved: boolean;
+    indexedDbSaved: boolean;
+  } | null>(null);
+  const lastUnloadSavedProjectRef = useRef<FontProject | null>(null);
 
   const saveProjectToIndexedDbWhenIdle = useCallback((nextProject: FontProject): Promise<boolean> => {
     if (!isHydratedRef.current) return Promise.resolve(false);
     if (restoreFailedRef.current) return Promise.resolve(false);
-    pendingIndexedDbProjectRef.current = nextProject;
+    const seq = ++saveRequestSeqRef.current;
+    pendingIndexedDbProjectRef.current = { project: nextProject, seq };
+    if (autoSaveRetryTimerRef.current) {
+      clearTimeout(autoSaveRetryTimerRef.current);
+      autoSaveRetryTimerRef.current = null;
+    }
     const run = saveQueueRef.current.then(async () => {
-      let lastSaved = false;
-      while (pendingIndexedDbProjectRef.current) {
-        const projectToSave = pendingIndexedDbProjectRef.current;
-        pendingIndexedDbProjectRef.current = null;
-        const saved = await saveProjectToIndexedDB(projectToSave);
-        lastSaved = saved;
-        if (!saved) {
-          // Keep the pending data for retry instead of dropping it.
-          pendingIndexedDbProjectRef.current = projectToSave;
+      const entry = pendingIndexedDbProjectRef.current;
+      if (!entry) {
+        return lastQueueSavedRef.current;
+      }
+      if (entry.waitingForRetry) {
+        return false;
+      }
+      pendingIndexedDbProjectRef.current = null;
+      const saved = await saveProjectToIndexedDB(entry.project);
+      lastQueueSavedRef.current = saved;
+      if (!saved) {
+        // Keep the failed snapshot for retry ONLY if no newer edit arrived while saving.
+        if (!pendingIndexedDbProjectRef.current) {
+          pendingIndexedDbProjectRef.current = { ...entry, waitingForRetry: true };
           autoSaveRetryCountRef.current += 1;
           if (autoSaveRetryCountRef.current <= MAX_INDEXEDDB_AUTO_SAVE_RETRIES) {
             if (!autoSaveRetryTimerRef.current) {
@@ -96,7 +114,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
                 autoSaveRetryTimerRef.current = null;
                 const pending = pendingIndexedDbProjectRef.current;
                 if (pending) {
-                  void saveProjectToIndexedDbWhenIdleRef.current(pending);
+                  void saveProjectToIndexedDbWhenIdleRef.current(pending.project);
                 }
               }, INDEXEDDB_AUTO_SAVE_RETRY_DELAY_MS);
             }
@@ -106,13 +124,16 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
             setAutoSaveError(message);
             onShowToastRef.current(message, 'error');
           }
-          break;
+        } else {
+          // A newer snapshot arrived while the stale write failed; reset failure count for it.
+          autoSaveRetryCountRef.current = 0;
         }
-        autoSaveRetryCountRef.current = 0;
-        setAutoSaveFailed(false);
-        setAutoSaveError(null);
+        return false;
       }
-      return lastSaved;
+      autoSaveRetryCountRef.current = 0;
+      setAutoSaveFailed(false);
+      setAutoSaveError(null);
+      return true;
     });
     // Keep the queue alive after a rejection so later saves still run.
     saveQueueRef.current = run.catch(() => false);
@@ -138,7 +159,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
     setAutoSaveFailed(false);
     setAutoSaveError(null);
     if (!isHydratedRef.current || restoreFailedRef.current) return;
-    const pending = pendingIndexedDbProjectRef.current ?? projectRef.current;
+    const pending = pendingIndexedDbProjectRef.current?.project ?? projectRef.current;
     void saveProjectToIndexedDbWhenIdle(pending);
   }, [saveProjectToIndexedDbWhenIdle]);
 
@@ -413,25 +434,29 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [isStorageLoading, project.updatedAt, saveProjectToIndexedDbWhenIdle]);
+  }, [isStorageLoading, project, saveProjectToIndexedDbWhenIdle]);
 
   // Persist the recovery copy before leaving (guarded against saving pre-hydration)
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const persistBeforeLeave = () => {
       if (!isHydratedRef.current || restoreFailedRef.current) return;
-      // Skip when the hidden-state save already stored this exact project
-      // successfully (8-12): saving again would only duplicate the work.
+      const currentProject = projectRef.current;
+      // Skip when this exact project object was already persisted by hidden-state or an earlier unload event
       const hiddenSave = lastHiddenSaveRef.current;
       if (
         hiddenSave &&
-        hiddenSave.updatedAt === projectRef.current.updatedAt &&
+        hiddenSave.project === currentProject &&
         hiddenSave.localSaved &&
         hiddenSave.indexedDbSaved
       ) {
         return;
       }
+      if (lastUnloadSavedProjectRef.current === currentProject) {
+        return;
+      }
+      lastUnloadSavedProjectRef.current = currentProject;
       try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentProject));
         setLastAutoSaveTimestamp(Date.now());
       } catch (error) {
         console.warn('Final localStorage project save failed:', error);
@@ -440,7 +465,7 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
       // IndexedDB writes are asynchronous and may not complete before unload;
       // the synchronous LocalStorage write above is the copy that is
       // guaranteed to be attempted here.
-      void saveProjectToIndexedDbWhenIdleRef.current(projectRef.current);
+      void saveProjectToIndexedDbWhenIdleRef.current(currentProject);
     };
 
     const handleVisibilityChange = () => {
@@ -451,21 +476,23 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
           clearTimeout(autoSaveRetryTimerRef.current);
           autoSaveRetryTimerRef.current = null;
         }
+        const snapshot = projectRef.current;
         // Save while the page is hidden, where a toast can still be shown
-        // (8-12). beforeunload cannot display a failure, so this is the
+        // (8-12). beforeunload/pagehide cannot display a failure, so this is the
         // place where a last-moment save failure is reported.
         void (async () => {
           let localSaved = false;
           try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projectRef.current));
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
             setLastAutoSaveTimestamp(Date.now());
             localSaved = true;
           } catch (error) {
             console.warn('Visibility-change project save failed:', error);
           }
-          const indexedDbSaved = await saveProjectToIndexedDbWhenIdle(projectRef.current);
+          const indexedDbSaved = await saveProjectToIndexedDbWhenIdle(snapshot);
           lastHiddenSaveRef.current = {
-            updatedAt: projectRef.current.updatedAt,
+            project: snapshot,
+            updatedAt: snapshot.updatedAt,
             localSaved,
             indexedDbSaved,
           };
@@ -486,10 +513,12 @@ export function useProjectStorage({ onShowToast }: UseProjectStorageOptions) {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', persistBeforeLeave);
+    window.addEventListener('pagehide', persistBeforeLeave);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('beforeunload', persistBeforeLeave);
+      window.removeEventListener('pagehide', persistBeforeLeave);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [saveProjectToIndexedDbWhenIdle]);

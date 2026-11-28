@@ -13,6 +13,7 @@ import { SliderRow } from '../modals/SliderRow';
 export interface BatchOptionsSectionProps {
   isLight: boolean;
   themeClasses?: ThemeClasses;
+  unitsPerEm?: number;
   scope?: TargetScope;
   setScope?: (scope: TargetScope) => void;
   targetGlyphsCount?: number;
@@ -43,6 +44,7 @@ export interface BatchOptionsSectionProps {
 export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.memo(({
   isLight,
   themeClasses: propThemeClasses,
+  unitsPerEm = 1000,
   scope = 'all',
   setScope,
   targetGlyphsCount = 0,
@@ -80,11 +82,15 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
     { id: 'current', label: '現在の文字', sub: `「${previewChar}」のみ` },
   ];
 
+  const minBoxSize = Math.max(100, Math.round(unitsPerEm * 0.5));
+  const maxBoxSize = Math.max(minBoxSize + 100, Math.round(unitsPerEm * 0.96));
+  const sizeStep = Math.max(10, Math.round(unitsPerEm / 100));
+
   const PRESET_ITEMS: { id: SizePreset; label: string; size: string; desc: string }[] = [
-    { id: 'standard', label: '標準', size: '820px', desc: '推奨バランス' },
-    { id: 'large', label: '大振り', size: '890px', desc: '見出し・漢字' },
-    { id: 'kana', label: 'かな', size: '780px', desc: '自然な字間' },
-    { id: 'compact', label: '小振り', size: '740px', desc: '長文・本文' },
+    { id: 'standard', label: '標準', size: `${Math.round(unitsPerEm * 0.82)}px`, desc: '推奨バランス' },
+    { id: 'large', label: '大振り', size: `${Math.round(unitsPerEm * 0.89)}px`, desc: '見出し・漢字' },
+    { id: 'kana', label: 'かな', size: `${Math.round(unitsPerEm * 0.78)}px`, desc: '自然な字間' },
+    { id: 'compact', label: '小振り', size: `${Math.round(unitsPerEm * 0.74)}px`, desc: '長文・本文' },
     { id: 'custom', label: 'カスタム', size: '自由設定', desc: 'スライダー指定' },
   ];
 
@@ -134,7 +140,7 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
         themeClasses={themeClasses}
         badge={
           <span className={`text-[11px] font-mono tabular-nums ${themeClasses.textMuted}`}>
-            UPM: 1000基準
+            UPM: {unitsPerEm}基準
           </span>
         }
       >
@@ -171,9 +177,9 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
               <SliderRow
                 label="目標幅 (Width)"
                 value={targetWidth}
-                min={500}
-                max={960}
-                step={10}
+                min={minBoxSize}
+                max={maxBoxSize}
+                step={sizeStep}
                 unit="px"
                 showNumberInput
                 onChange={(v) => {
@@ -188,9 +194,9 @@ export const BatchOptionsSection: React.FC<BatchOptionsSectionProps> = React.mem
               <SliderRow
                 label="目標高さ (Height)"
                 value={targetHeight}
-                min={500}
-                max={960}
-                step={10}
+                min={minBoxSize}
+                max={maxBoxSize}
+                step={sizeStep}
                 unit="px"
                 showNumberInput
                 onChange={(v) => {

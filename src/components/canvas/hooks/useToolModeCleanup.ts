@@ -44,6 +44,7 @@ export interface UseToolModeCleanupOptions {
   handleNodeDragCancel?: () => boolean | void;
   handleTransformPointerUp?: () => boolean;
   handleEraserPointerUp?: (e?: any) => boolean | void;
+  handleRulerPointerUp?: (e?: any) => boolean | void;
   // H9: reset the guide-eraser mode when the tool changes, so it cannot
   // survive into another tool and delete guides on click there.
   setIsGuideEraserActive?: (active: boolean) => void;
@@ -176,6 +177,8 @@ export function useToolModeCleanup(options: UseToolModeCleanupOptions) {
       opts.handleEraserPointerUp?.();
       opts.resetEraserVisuals();
     }
+    opts.handleRulerPointerUp?.();
+    opts.resetShapeCreation();
     opts.handleTransformPointerUp?.();
     opts.handleNodeDragEnd?.();
     opts.isPenDrawingRef.current = false;

@@ -424,46 +424,43 @@ export interface BezierNodeControlsLayerProps {
   isGlyphLocked?: boolean;
 }
 
-export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = React.memo(
-  ({
-    showNodes = true,
-    contours,
-    contourSvgMap,
-    toolMode,
-    eraserMode,
-    eraserSize,
-    selectedContourId,
-    selectedContourIds,
-    selectedNodeId,
-    selectedNodeIds,
-    nodeStyle,
-    gridSettings,
-    isLight,
-    startNodeOrHandleDrag,
-    handleToggleNodeType,
-    isGlyphLocked = false,
-  }) => {
-    const isEraserNodeActive = toolMode === 'eraser' && eraserMode === 'node';
-    const hoverCanvasPos = useSyncExternalStore(
-      isEraserNodeActive ? subscribeHoverCanvasPos : NOOP_UNSUB,
-      isEraserNodeActive ? getHoverCanvasPos : NULL_POS
-    );
-    // M6: keep node handles a constant screen size during pinch zoom.
-    const zoom = useLiveViewportZoom();
-    const safeZoom = zoom && zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
-    const invZoom = quantizeInverseZoom(safeZoom);
-    // Callbacks are passed to memoized node children through refs so their
-    // identity never breaks the memo; handlers read the latest callback.
-    const dragRef = useRef(startNodeOrHandleDrag);
-    dragRef.current = startNodeOrHandleDrag;
-    const toggleRef = useRef(handleToggleNodeType);
-    toggleRef.current = handleToggleNodeType;
-    if (!showNodes && !isEraserNodeActive) {
-      return null;
-    }
+const BezierNodeControlsInner: React.FC<
+  BezierNodeControlsLayerProps & { isEraserNodeActive: boolean }
+> = ({
+  contours,
+  contourSvgMap,
+  toolMode,
+  eraserMode,
+  eraserSize,
+  selectedContourId,
+  selectedContourIds,
+  selectedNodeId,
+  selectedNodeIds,
+  nodeStyle,
+  gridSettings,
+  isLight,
+  startNodeOrHandleDrag,
+  handleToggleNodeType,
+  isGlyphLocked = false,
+  isEraserNodeActive,
+}) => {
+  const hoverCanvasPos = useSyncExternalStore(
+    isEraserNodeActive ? subscribeHoverCanvasPos : NOOP_UNSUB,
+    isEraserNodeActive ? getHoverCanvasPos : NULL_POS
+  );
+  // M6: keep node handles a constant screen size during pinch zoom.
+  const zoom = useLiveViewportZoom();
+  const safeZoom = zoom && zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
+  const invZoom = quantizeInverseZoom(safeZoom);
+  // Callbacks are passed to memoized node children through refs so their
+  // identity never breaks the memo; handlers read the latest callback.
+  const dragRef = useRef(startNodeOrHandleDrag);
+  dragRef.current = startNodeOrHandleDrag;
+  const toggleRef = useRef(handleToggleNodeType);
+  toggleRef.current = handleToggleNodeType;
 
-    return (
-      <g className="bezier-controls select-none">
+  return (
+    <g className="bezier-controls select-none">
         {/* When in Anchor Point Eraser Mode, render high-contrast path trajectory guide lines connecting all nodes */}
         {toolMode === 'eraser' && eraserMode === 'node' && (
           <g className="eraser-path-trajectory-guides pointer-events-none">
@@ -544,5 +541,12 @@ export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = R
         })}
       </g>
     );
+};
+
+export const BezierNodeControlsLayer: React.FC<BezierNodeControlsLayerProps> = React.memo((props) => {
+  const isEraserNodeActive = props.toolMode === 'eraser' && props.eraserMode === 'node';
+  if (!props.showNodes && !isEraserNodeActive) {
+    return null;
   }
-);
+  return <BezierNodeControlsInner {...props} isEraserNodeActive={isEraserNodeActive} />;
+});

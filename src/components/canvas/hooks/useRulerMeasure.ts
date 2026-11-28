@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Point, PathContour, GridSettings, SnapGuideLine, CustomGuideline, SnapMetrics, RulerMeasurement } from '../../../types';
 import { snapSinglePoint } from '../../../utils/snap';
 import { generateId } from '../../../utils/path';
 
 interface UseRulerMeasureOptions {
   contours: PathContour[];
+  contoursRef?: React.MutableRefObject<PathContour[]>;
   snapMetrics: SnapMetrics;
   customGuidelines: CustomGuideline[];
   setCustomGuidelines: React.Dispatch<React.SetStateAction<CustomGuideline[]>>;
@@ -16,6 +17,7 @@ interface UseRulerMeasureOptions {
 
 export function useRulerMeasure({
   contours,
+  contoursRef,
   snapMetrics,
   customGuidelines,
   setCustomGuidelines,
@@ -26,17 +28,36 @@ export function useRulerMeasure({
 }: UseRulerMeasureOptions) {
   const [rulerMeasurement, setRulerMeasurement] = useState<RulerMeasurement | null>(null);
   const rulerMeasurementRef = useRef<RulerMeasurement | null>(null);
-  rulerMeasurementRef.current = rulerMeasurement;
+  useEffect(() => {
+    rulerMeasurementRef.current = rulerMeasurement;
+  }, [rulerMeasurement]);
+
+  const rulerMoveRafRef = useRef<number | null>(null);
+  const pendingSnapGuidesRef = useRef<SnapGuideLine[] | null>(null);
+  useEffect(() => {
+    return () => {
+      if (rulerMoveRafRef.current !== null) {
+        cancelAnimationFrame(rulerMoveRafRef.current);
+        rulerMoveRafRef.current = null;
+      }
+    };
+  }, []);
 
   const [brushStraightMode, setBrushStraightMode] = useState<boolean>(false);
 
   const handleRulerPointerDown = useCallback(
     (pos: Point, e: React.PointerEvent) => {
+      if (rulerMoveRafRef.current !== null) {
+        cancelAnimationFrame(rulerMoveRafRef.current);
+        rulerMoveRafRef.current = null;
+      }
+      pendingSnapGuidesRef.current = null;
+      const liveContours = contoursRef?.current || contours;
       let startPos = pos;
       if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
         const snapRes = snapSinglePoint(
           pos,
-          contours,
+          liveContours,
           snapMetrics,
           customGuidelines,
           Math.max(7, Math.round(12 / zoom)),
@@ -54,7 +75,7 @@ export function useRulerMeasure({
       setRulerMeasurement(nextMeasurement);
       return true;
     },
-    [contours, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
+    [contours, contoursRef, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
   );
 
   const handleRulerPointerMove = useCallback(
@@ -62,13 +83,15 @@ export function useRulerMeasure({
       const current = rulerMeasurementRef.current;
       if (!current || !current.active) return false;
 
+      const liveContours = contoursRef?.current || contours;
       let endX = pos.x;
       let endY = pos.y;
+      let nextGuides: SnapGuideLine[] = [];
 
       if (!e.altKey && (gridSettings.snapToGuides !== false || gridSettings.snapToGrid)) {
         const snapRes = snapSinglePoint(
           pos,
-          contours,
+          liveContours,
           snapMetrics,
           customGuidelines,
           Math.max(7, Math.round(12 / zoom)),
@@ -76,7 +99,7 @@ export function useRulerMeasure({
         );
         endX = snapRes.point.x;
         endY = snapRes.point.y;
-        setActiveSnapGuides(snapRes.activeGuides);
+        nextGuides = snapRes.activeGuides;
       }
 
       if (e.shiftKey) {
@@ -95,13 +118,30 @@ export function useRulerMeasure({
         end: { x: endX, y: endY },
       };
       rulerMeasurementRef.current = nextMeasurement;
-      setRulerMeasurement(nextMeasurement);
+      pendingSnapGuidesRef.current = nextGuides;
+      if (rulerMoveRafRef.current === null) {
+        rulerMoveRafRef.current = requestAnimationFrame(() => {
+          rulerMoveRafRef.current = null;
+          if (rulerMeasurementRef.current) {
+            setRulerMeasurement(rulerMeasurementRef.current);
+          }
+          if (pendingSnapGuidesRef.current !== null) {
+            setActiveSnapGuides(pendingSnapGuidesRef.current);
+            pendingSnapGuidesRef.current = null;
+          }
+        });
+      }
       return true;
     },
-    [contours, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
+    [contours, contoursRef, customGuidelines, gridSettings, setActiveSnapGuides, snapMetrics, zoom]
   );
 
   const handleRulerPointerUp = useCallback((_e?: React.PointerEvent) => {
+    if (rulerMoveRafRef.current !== null) {
+      cancelAnimationFrame(rulerMoveRafRef.current);
+      rulerMoveRafRef.current = null;
+    }
+    pendingSnapGuidesRef.current = null;
     const current = rulerMeasurementRef.current;
     if (!current || !current.active) return false;
 
@@ -112,6 +152,7 @@ export function useRulerMeasure({
     if (dist < 4) {
       rulerMeasurementRef.current = null;
       setRulerMeasurement(null);
+      setActiveSnapGuides([]);
       return true;
     }
 
@@ -121,11 +162,17 @@ export function useRulerMeasure({
     };
     rulerMeasurementRef.current = nextMeasurement;
     setRulerMeasurement(nextMeasurement);
+    setActiveSnapGuides([]);
     return true;
-  }, []);
+  }, [setActiveSnapGuides]);
 
   const handleCreateGuidelineFromRuler = useCallback(
     (guideType: 'h' | 'v' | 'diagonal' | 'auto' = 'auto') => {
+      if (rulerMoveRafRef.current !== null) {
+        cancelAnimationFrame(rulerMoveRafRef.current);
+        rulerMoveRafRef.current = null;
+      }
+      pendingSnapGuidesRef.current = null;
       const current = rulerMeasurementRef.current;
       if (!current) return;
       const { start, end } = current;

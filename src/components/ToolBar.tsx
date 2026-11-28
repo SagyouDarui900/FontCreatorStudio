@@ -16,6 +16,7 @@ import {
   SHAPE_TOOLS,
   VERTICAL_GUIDES,
   JAPANESE_GUIDES,
+  isCustomPenPreset,
 } from './toolbar/toolbarConstants';
 import { PrimaryToolButtons } from './toolbar/PrimaryToolButtons';
 import { ViewToolButtons } from './toolbar/ViewToolButtons';
@@ -269,12 +270,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
   const CurrentShapeIcon = currentShapeTool.icon;
 
   const isCustomPen = Boolean(
-    activePenPreset &&
-      (activePenPreset.id?.startsWith('preset-custom-') ||
-        activePenPreset.id?.startsWith('custom-') ||
-        activePenPreset.isCustom ||
-        activePenPreset.name?.includes('カスタム') ||
-        !PEN_PRESETS.some((p) => p.id === brushStyle))
+    isCustomPenPreset(activePenPreset) || !PEN_PRESETS.some((p) => p.id === brushStyle)
   );
 
   const currentPenPreset =
@@ -293,9 +289,7 @@ export const ToolBar: React.FC<ToolBarProps> = React.memo(({
     PEN_ICONS.brush;
 
   const customPresets = useMemo(() => {
-    return (userPresets || []).filter(
-      (p) => p.isCustom || p.id?.startsWith('preset-custom-') || p.id?.startsWith('custom-')
-    );
+    return (userPresets || []).filter((p) => isCustomPenPreset(p));
   }, [userPresets]);
 
   return (

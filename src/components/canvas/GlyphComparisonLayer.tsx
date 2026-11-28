@@ -13,14 +13,13 @@ interface GlyphComparisonLayerProps {
 
 export const GlyphComparisonLayer: React.FC<GlyphComparisonLayerProps> = React.memo(
   ({ overlaySettings, project, isLight, activeChar, activeUnicode, unitsPerEm = 1000 }) => {
-    if (!overlaySettings?.enabled || !project) return null;
-
     const upm = unitsPerEm || 1000;
     const half = upm / 2;
+    const isEnabled = Boolean(overlaySettings?.enabled && project);
 
     // Find reference glyph data
     const refGlyph: GlyphData | undefined = useMemo(() => {
-      if (!project?.glyphs) return undefined;
+      if (!isEnabled || !project?.glyphs || !overlaySettings) return undefined;
 
       if (overlaySettings.referenceUnicode != null) {
         return project.glyphs[overlaySettings.referenceUnicode];
@@ -35,23 +34,23 @@ export const GlyphComparisonLayer: React.FC<GlyphComparisonLayerProps> = React.m
       }
 
       return undefined;
-    }, [project, overlaySettings.referenceUnicode, overlaySettings.referenceChar]);
+    }, [isEnabled, project, overlaySettings?.referenceUnicode, overlaySettings?.referenceChar]);
 
     const renderGroups = useMemo(() => {
-      if (!refGlyph || !refGlyph.contours || refGlyph.contours.length === 0) {
+      if (!isEnabled || !refGlyph || !refGlyph.contours || refGlyph.contours.length === 0) {
         return [];
       }
       return groupContoursForRendering(refGlyph.contours);
-    }, [refGlyph]);
+    }, [isEnabled, refGlyph]);
 
     const pathData = useMemo(() => {
-      if (!refGlyph || !refGlyph.contours || refGlyph.contours.length === 0) {
+      if (!isEnabled || !refGlyph || !refGlyph.contours || refGlyph.contours.length === 0) {
         return undefined;
       }
       return contoursToSvgPath(refGlyph.contours);
-    }, [refGlyph]);
+    }, [isEnabled, refGlyph]);
 
-    if (!refGlyph || renderGroups.length === 0) return null;
+    if (!isEnabled || !overlaySettings || !refGlyph || renderGroups.length === 0) return null;
 
     const opacity = overlaySettings.opacity ?? 0.45;
     const color = overlaySettings.color || (isLight ? '#0284c7' : '#38bdf8');

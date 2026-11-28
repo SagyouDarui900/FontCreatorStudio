@@ -9,6 +9,7 @@ import {
   ShapeType,
   BezierNode,
 } from '../../types';
+import { STORAGE_KEYS, getStorageItem } from '../../utils/storageKeys';
 import {
   generateId,
   contoursToSvgPath,
@@ -160,20 +161,16 @@ export function useRadicalCanvas({
   const [penMousePos, setPenMousePos] = useState<Point | null>(null);
   const [penHudPos, setPenHudPos] = useState<{ x: number; y: number } | null>(null);
   const [penStrokeWidth, setPenStrokeWidth] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('glyph_pen_stroke_width');
-      if (saved) {
-        const val = parseInt(saved, 10);
-        if (val >= 2 && val <= 300) return val;
-      }
-    } catch {}
+    const saved = getStorageItem(STORAGE_KEYS.PEN_STROKE_WIDTH);
+    if (saved) {
+      const val = parseInt(saved, 10);
+      if (val >= 2 && val <= 300) return val;
+    }
     return 40;
   });
   const [penCapStyle, setPenCapStyle] = useState<'round' | 'butt' | 'square'>(() => {
-    try {
-      const saved = localStorage.getItem('glyph_pen_cap_style');
-      if (saved === 'round' || saved === 'butt' || saved === 'square') return saved;
-    } catch {}
+    const saved = getStorageItem(STORAGE_KEYS.PEN_CAP_STYLE);
+    if (saved === 'round' || saved === 'butt' || saved === 'square') return saved;
     return 'round';
   });
   const [showPenStrokeMenu, setShowPenStrokeMenu] = useState<boolean>(false);

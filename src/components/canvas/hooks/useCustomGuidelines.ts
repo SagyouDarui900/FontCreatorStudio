@@ -83,9 +83,9 @@ export function useCustomGuidelines({
         return;
       }
       e.stopPropagation();
-      setCustomGuidelines((prev) => prev.filter((g) => g.id !== guideId));
+      handleDeleteGuideline(guideId);
     },
-    [lockGuidelines, toolMode, isShapeTool]
+    [lockGuidelines, toolMode, isShapeTool, handleDeleteGuideline]
   );
 
   // Last pointer position of the active guideline drag, for the
@@ -129,9 +129,11 @@ export function useCustomGuidelines({
               p2: { x: p2.x + cdx, y: p2.y + cdy },
             };
           }
+          const min = -300;
+          const max = upm + 300;
           return {
             ...g,
-            position: g.type === 'v' ? Math.max(0, Math.min(upm, pos.x)) : Math.max(0, Math.min(upm, pos.y)),
+            position: g.type === 'v' ? Math.max(min, Math.min(max, pos.x)) : Math.max(min, Math.min(max, pos.y)),
           };
         })
       );

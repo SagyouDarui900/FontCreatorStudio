@@ -492,25 +492,19 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
   const handleNodeDragMove = useCallback(
     (e: React.PointerEvent, pos: Point): boolean => {
       if (isGlyphLocked) return false;
-      const isDraggingNode = Boolean(
-        nodeDragSessionRef.current ||
-        ((toolMode === 'select' || toolMode === 'node') && selectedContourId && selectedNodeId && selectedHandleType)
-      );
+      const activeSession = nodeDragSessionRef.current;
+      if (!activeSession) return false;
 
-      if (!isDraggingNode) return false;
-
-      // H6: without a drag session, a move must come from a pressed
-      // pointer. A bare hover (e.buttons === 0, e.g. after pointercancel
-      // cleared the session) must not move the selected node.
-      if (!nodeDragSessionRef.current && e.buttons === 0) return false;
+      // H6: without a pressed pointer, a move must not drag the node.
+      if (e.buttons === 0) return false;
       if (e.pointerType === 'mouse' && typeof e.buttons === 'number' && (e.buttons & 1) === 0) {
         return false;
       }
 
-      const activeContourId = nodeDragSessionRef.current?.contourId || selectedContourId!;
-      const activeNodeId = nodeDragSessionRef.current?.nodeId || selectedNodeId!;
-      const activeHandleType = nodeDragSessionRef.current?.handleType || selectedHandleType!;
-      const sessionNodeIds = nodeDragSessionRef.current?.selectedNodeIds;
+      const activeContourId = activeSession.contourId;
+      const activeNodeId = activeSession.nodeId;
+      const activeHandleType = activeSession.handleType;
+      const sessionNodeIds = activeSession.selectedNodeIds;
       const multiNodeIds =
         sessionNodeIds && sessionNodeIds.length > 0 && sessionNodeIds.includes(activeNodeId)
           ? sessionNodeIds
@@ -519,28 +513,6 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
           : [activeNodeId];
 
       const currentContours: PathContour[] = (contoursRef.current as PathContour[]) || contours;
-
-      // H6: a drag that reaches here without a session (selection kept
-      // after pointer capture loss, for example) gets a session, so a
-      // later cancel can restore the pre-drag contour instead of leaving
-      // moved contours behind.
-      if (!nodeDragSessionRef.current) {
-        const fallbackContour = currentContours.find((c) => c.id === activeContourId);
-        const fallbackNode = fallbackContour?.nodes.find((n) => n.id === activeNodeId);
-        if (fallbackContour && fallbackNode) {
-          nodeDragSessionRef.current = {
-            contourId: fallbackContour.id,
-            nodeId: fallbackNode.id,
-            selectedNodeIds: multiNodeIds,
-            handleType: activeHandleType,
-            startPos: pos,
-            initialNode: { ...fallbackNode },
-            initialContour: { ...fallbackContour },
-            initialContoursById: buildInitialContoursMap(currentContours, multiNodeIds, fallbackContour),
-            hasCommittedHistory: false,
-          };
-        }
-      }
       let snapPos = pos;
 
       if (e.pointerType === 'touch') {
@@ -575,7 +547,6 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
         setActiveSnapGuides([]);
       }
 
-      const activeSession = nodeDragSessionRef.current;
       // Compute total displacement from initialNode so multi-frame drags
       // never accumulate rounding drift across nodes or handles.
       let totalDx = 0;
@@ -725,11 +696,7 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
     },
     [
       isGlyphLocked,
-      toolMode,
-      selectedContourId,
-      selectedNodeId,
       selectedNodeIds,
-      selectedHandleType,
       gridSettings,
       contours,
       zoom,
@@ -744,7 +711,8 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
 
   // Finalize node/handle drag
   const handleNodeDragEnd = useCallback((): boolean => {
-    if (nodeDragSessionRef.current || ((toolMode === 'select' || toolMode === 'node') && selectedHandleType)) {
+    const hadSession = Boolean(nodeDragSessionRef.current || pendingContoursRef.current);
+    if (hadSession) {
       if (nodeDragRafRef.current != null) {
         cancelAnimationFrame(nodeDragRafRef.current);
         nodeDragRafRef.current = null;
@@ -759,13 +727,15 @@ export function useNodeEditing(options: UseNodeEditingOptions): UseNodeEditingRe
       }
       hasCommittedDragHistoryRef.current = false;
       nodeDragSessionRef.current = null;
-      setSelectedHandleType((prev) => (prev === null ? prev : null));
+      if (toolMode !== 'select' && toolMode !== 'node') {
+        setSelectedHandleType((prev) => (prev === null ? prev : null));
+      }
       setActiveSnapGuides?.((prev) => (prev.length === 0 ? prev : []));
       return true;
     }
     hasCommittedDragHistoryRef.current = false;
     return false;
-  }, [toolMode, selectedHandleType, onChangeContours, onCommitHistory, setActiveSnapGuides]);
+  }, [toolMode, onChangeContours, onCommitHistory, setActiveSnapGuides]);
 
   // Cancel an in-progress node/handle drag (pointercancel, Escape, glyph
   // switch): drop the pending RAF update, restore the contour captured

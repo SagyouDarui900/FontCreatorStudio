@@ -80,6 +80,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     const dist = Math.hypot(end.x - start.x, end.y - start.y);
     if (dist < 4) return;
 
+    const liveContours = contoursRef.current || contours;
     const strokeContour = createLineContour(
       start.x,
       start.y,
@@ -87,7 +88,7 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       end.y,
       brushWidth || 32
     );
-    const updated = [...contours, strokeContour];
+    const updated = [...liveContours, strokeContour];
     onCommitHistory?.();
     contoursRef.current = updated;
     onChangeContours(updated, { skipHistory: true });
@@ -111,7 +112,8 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       showCanvasToast('編集ロック中です', 'ヘッダーの鍵アイコンで解除できます');
       return;
     }
-    if (!contours || contours.length === 0) {
+    const liveContours = contoursRef.current || contours;
+    if (!liveContours || liveContours.length === 0) {
       showCanvasToast('キャンバスは既に空です');
       return;
     }
@@ -223,16 +225,18 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       return;
     }
     if (selectedContourIds.length === 0) return;
+    const liveContours = contoursRef.current || contours;
     onCommitHistory?.();
-    const updated = contours.map((c) => {
+    const updated = liveContours.map((c) => {
       if (selectedContourIds.includes(c.id)) {
         return convertContourToQuadratic(c, 1.0);
       }
       return c;
     });
+    contoursRef.current = updated;
     onChangeContours(updated, { skipHistory: true });
     showCanvasToast('2次ベジェ化 (TTEdit互換) 完了', '選択輪郭をTrueType規格の2次ベジェ曲線に変換しました');
-  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
+  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, contoursRef, onChangeContours, showCanvasToast]);
 
   const handleConvertToCubicSelected = useCallback(() => {
     if (isGlyphLocked) {
@@ -240,23 +244,26 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
       return;
     }
     if (selectedContourIds.length === 0) return;
+    const liveContours = contoursRef.current || contours;
     onCommitHistory?.();
-    const updated = contours.map((c) => {
+    const updated = liveContours.map((c) => {
       if (selectedContourIds.includes(c.id)) {
         return convertContourToCubic(c, 1.5);
       }
       return c;
     });
+    contoursRef.current = updated;
     onChangeContours(updated, { skipHistory: true });
     showCanvasToast('3次ベジェ化 (OTEdit互換) 完了', '選択輪郭をOpenType規格の3次ベジェ曲線に統合しました');
-  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, onChangeContours, showCanvasToast]);
+  }, [isGlyphLocked, selectedContourIds, onCommitHistory, contours, contoursRef, onChangeContours, showCanvasToast]);
 
   const handleRegisterSelectedAsCustomPart = useCallback(async () => {
     if (isGlyphLocked) {
       showCanvasToast('この文字は編集ロックされています', '解除してから登録してください');
       return;
     }
-    const selected = contours.filter((c) => selectedContourIds.includes(c.id));
+    const liveContours = contoursRef.current || contours;
+    const selected = liveContours.filter((c) => selectedContourIds.includes(c.id));
     if (selected.length === 0) return;
     let existing: CustomPart[] = [];
     try {
@@ -296,20 +303,21 @@ export function useCanvasContourActions(options: UseCanvasContourActionsOptions)
     } catch {
       showCanvasToast('登録に失敗しました', 'ストレージエラー');
     }
-  }, [contours, selectedContourIds, activeChar, isGlyphLocked, showCanvasToast]);
+  }, [contours, contoursRef, selectedContourIds, activeChar, isGlyphLocked, showCanvasToast]);
 
   const handleSelectAllNodes = useCallback(() => {
-    if (contours.length === 0) return;
+    const liveContours = contoursRef.current || contours;
+    if (liveContours.length === 0) return;
     const allNodeIds: string[] = [];
-    contours.forEach((c) => {
+    liveContours.forEach((c) => {
       c.nodes.forEach((n) => allNodeIds.push(n.id));
     });
-    setSelectedContourIds(contours.map((c) => c.id));
+    setSelectedContourIds(liveContours.map((c) => c.id));
     setSelectedNodeIds?.(allNodeIds);
     setSelectedHandleType(null);
     onSetToolMode?.('node');
     showCanvasToast('ノード全選択', `${allNodeIds.length}個のノードを選択しました`);
-  }, [contours, setSelectedContourIds, setSelectedNodeIds, setSelectedHandleType, onSetToolMode, showCanvasToast]);
+  }, [contours, contoursRef, setSelectedContourIds, setSelectedNodeIds, setSelectedHandleType, onSetToolMode, showCanvasToast]);
 
   return {
     handleDrawRulerAsStroke,

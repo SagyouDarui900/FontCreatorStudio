@@ -189,45 +189,27 @@ export function useCanvasLocalPrefs({
 
   // Bottom Floating Bar Compact/Expand State (desktop)
   const [isBottomBarCollapsed, setIsBottomBarCollapsed] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('mojisaku_bottom_bar_collapsed');
-      if (saved !== null) return saved === 'true';
-      return false;
-    } catch {
-      return false;
-    }
+    return getBooleanStorageItem(STORAGE_KEYS.BOTTOM_BAR_COLLAPSED, false);
   });
 
   const toggleBottomBarCollapse = useCallback(() => {
     setIsBottomBarCollapsed((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem('mojisaku_bottom_bar_collapsed', String(next));
-      } catch {
-        // Ignored
-      }
+      setBooleanStorageItem(STORAGE_KEYS.BOTTOM_BAR_COLLAPSED, next);
       return next;
     });
   }, []);
 
   // Palm Rejection Mode
   const [palmRejectionMode, setPalmRejectionMode] = useState<'auto' | 'strict_pen_only' | 'off'>(() => {
-    try {
-      const saved = localStorage.getItem('mojisaku_palm_rejection_mode');
-      if (saved === 'auto' || saved === 'strict_pen_only' || saved === 'off') return saved;
-    } catch {
-      // fallback
-    }
+    const saved = getStorageItem(STORAGE_KEYS.PALM_REJECTION_MODE);
+    if (saved === 'auto' || saved === 'strict_pen_only' || saved === 'off') return saved;
     return 'auto';
   });
 
   const handleSetPalmRejectionMode = useCallback((mode: 'auto' | 'strict_pen_only' | 'off') => {
     setPalmRejectionMode(mode);
-    try {
-      localStorage.setItem('mojisaku_palm_rejection_mode', mode);
-    } catch {
-      // Ignored
-    }
+    setStorageItem(STORAGE_KEYS.PALM_REJECTION_MODE, mode);
   }, []);
 
   // Mobile UI View Modes & Bottom Action Sheets

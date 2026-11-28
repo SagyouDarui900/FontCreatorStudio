@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { getHoverCanvasPos, subscribeHoverCanvasPos } from './hoverStore';
-import { useLiveViewport } from './viewportStore';
+import { useLiveRulerViewport } from './viewportStore';
 
 interface CanvasRulersLayerProps {
   showRulers: boolean;
@@ -63,7 +63,7 @@ export function buildRulerTickPaths(
  */
 export const CanvasRulersLayer: React.FC<CanvasRulersLayerProps> = React.memo(
   ({ showRulers, isLight, unitsPerEm = 1000, width, height }) => {
-    const { zoom, pan } = useLiveViewport();
+    const { zoom, pan } = useLiveRulerViewport();
     const upm = unitsPerEm || 1000;
     const safeZoom = zoom && zoom > 0 ? zoom : 1;
 

@@ -7,8 +7,10 @@ import {
   clearLiveViewport,
   getLiveViewport,
   setLiveViewport,
+  setLiveRulerViewport,
   useLiveViewport,
   useLiveViewportZoom,
+  useLiveRulerViewport,
   INITIAL_LIVE_ZOOM,
   INITIAL_LIVE_PAN,
 } from './viewportStore';
@@ -239,5 +241,73 @@ describe('quantizeInverseZoom', () => {
     expect(quantizeInverseZoom(0)).toBe(1);
     expect(quantizeInverseZoom(-2)).toBe(1);
     expect(quantizeInverseZoom(Number.NaN)).toBe(1);
+  });
+});
+
+describe('viewportStore ruler-only channel', () => {
+  it('updates useLiveRulerViewport during pinch without notifying useLiveViewportZoom or useLiveViewport', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let zoomRenders = 0;
+    let fullRenders = 0;
+    let rulerRenders = 0;
+    let seenRulerViewport = { zoom: 0, pan: { x: 0, y: 0 } };
+
+    const Probe = () => {
+      zoomRenders++;
+      useLiveViewportZoom();
+      return null;
+    };
+    const FullProbe = () => {
+      fullRenders++;
+      useLiveViewport();
+      return null;
+    };
+    const RulerProbe = () => {
+      rulerRenders++;
+      seenRulerViewport = useLiveRulerViewport();
+      return null;
+    };
+
+    act(() => {
+      root.render(
+        <svg>
+          <Probe />
+          <FullProbe />
+          <RulerProbe />
+        </svg>
+      );
+    });
+
+    act(() => {
+      setLiveViewport(1, { x: 10, y: 20 });
+    });
+
+    const zoomBeforePinch = zoomRenders;
+    const fullBeforePinch = fullRenders;
+    const rulerBeforePinch = rulerRenders;
+
+    act(() => {
+      setLiveRulerViewport(1.4, { x: 55, y: 65 });
+    });
+
+    expect(rulerRenders).toBe(rulerBeforePinch + 1);
+    expect(seenRulerViewport).toEqual({ zoom: 1.4, pan: { x: 55, y: 65 } });
+    expect(zoomRenders).toBe(zoomBeforePinch);
+    expect(fullRenders).toBe(fullBeforePinch);
+
+    // Committing via setLiveViewport clears ruler override and resyncs rulers
+    act(() => {
+      setLiveViewport(1.5, { x: 70, y: 80 });
+    });
+    expect(seenRulerViewport).toEqual({ zoom: 1.5, pan: { x: 70, y: 80 } });
+
+    act(() => {
+      root.unmount();
+    });
+    clearLiveViewport();
+    container.remove();
   });
 });

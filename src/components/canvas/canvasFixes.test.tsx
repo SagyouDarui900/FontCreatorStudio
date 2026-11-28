@@ -23,6 +23,10 @@ import { JapaneseGuidesLayer } from './JapaneseGuidesLayer';
 import { InteractiveContourHitLayer } from './InteractiveContourHitLayer';
 import { BezierNodeControlsLayer } from './BezierNodeControlsLayer';
 import { CanvasContextMenu } from './CanvasContextMenu';
+import { GlyphComparisonLayer } from './GlyphComparisonLayer';
+import { TraceReferenceLayer } from './TraceReferenceLayer';
+import { useContourTransforms } from './hooks/useContourTransforms';
+import { useCanvasNativeGestures } from './hooks/useCanvasNativeGestures';
 import {
   getLineSegmentIntersection,
   findContourIntersections,
@@ -1850,6 +1854,317 @@ describe('Selection, Transform, Node & ContextMenu remediation tests', () => {
       findBtn('中間頂点を追加')?.click();
     });
     expect(onAddNode).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('GlyphComparisonLayer toggles overlaySettings.enabled false -> true -> false without Hooks order mismatch', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const project = {
+      metadata: {
+        name: 'Test',
+        unitsPerEm: 1000,
+        ascender: 800,
+        descender: -200,
+        capHeight: 700,
+        xHeight: 500,
+      },
+      glyphs: {
+        65: {
+          unicode: 65,
+          char: 'A',
+          name: 'A',
+          advanceWidth: 1000,
+          lsb: 0,
+          contours: [
+            {
+              id: 'ref-c1',
+              closed: true,
+              nodes: [
+                { id: 'r1', x: 100, y: 100, type: 'corner' as const, handleIn: null, handleOut: null },
+                { id: 'r2', x: 200, y: 100, type: 'corner' as const, handleIn: null, handleOut: null },
+                { id: 'r3', x: 200, y: 200, type: 'corner' as const, handleIn: null, handleOut: null },
+              ],
+            },
+          ],
+        },
+      },
+    } as any;
+
+    const renderWithEnabled = (enabled: boolean) => {
+      act(() => {
+        root.render(
+          <svg>
+            <GlyphComparisonLayer
+              overlaySettings={{
+                enabled,
+                referenceChar: 'A',
+                referenceUnicode: 65,
+                opacity: 0.4,
+                offsetX: 0,
+                offsetY: 0,
+                scale: 1,
+                color: '#38bdf8',
+                renderMode: 'outline',
+                showMetrics: false,
+              }}
+              project={project}
+              isLight
+              unitsPerEm={1000}
+            />
+          </svg>
+        );
+      });
+    };
+
+    renderWithEnabled(false);
+    expect(container.querySelector('.glyph-comparison-layer')).toBeNull();
+
+    renderWithEnabled(true);
+    expect(container.querySelector('.glyph-comparison-layer')).not.toBeNull();
+
+    renderWithEnabled(false);
+    expect(container.querySelector('.glyph-comparison-layer')).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('TraceReferenceLayer applies SVG center-pivot translate-scale-translate transform for flipH and flipV', () => {
+    clearLiveViewport();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <svg>
+          <TraceReferenceLayer
+            traceSettings={{
+              enabled: true,
+              type: 'image',
+              imageSrc: 'data:image/png;base64,AAAA',
+              text: 'あ',
+              fontFamily: 'sans-serif',
+              fontSize: 800,
+              opacity: 0.35,
+              scale: 1,
+              offsetX: 0,
+              offsetY: 0,
+              rotation: 0,
+              flipH: true,
+              flipV: true,
+            }}
+            isLight
+            activeChar="あ"
+            toolMode="select"
+            unitsPerEm={1000}
+          />
+        </svg>
+      );
+    });
+
+    const flippedGroup = container.querySelector('.trace-reference-layer g[transform*="scale(-1, -1)"]');
+    expect(flippedGroup).not.toBeNull();
+    expect(flippedGroup?.getAttribute('transform')).toBe(
+      'rotate(0, 500, 500) translate(500, 500) scale(-1, -1) translate(-500, -500)'
+    );
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('useContourTransforms reads latest contoursRef, commits history once, and clears node selection on boolean merge', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    const rect1: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        { id: 'n1', x: 100, y: 100, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n2', x: 300, y: 100, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n3', x: 300, y: 300, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n4', x: 100, y: 300, type: 'corner', handleIn: null, handleOut: null },
+      ],
+    };
+    const rect2: PathContour = {
+      id: 'c2',
+      closed: true,
+      nodes: [
+        { id: 'n5', x: 200, y: 150, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n6', x: 400, y: 150, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n7', x: 400, y: 350, type: 'corner', handleIn: null, handleOut: null },
+        { id: 'n8', x: 200, y: 350, type: 'corner', handleIn: null, handleOut: null },
+      ],
+    };
+
+    const contoursRef = { current: [rect1, rect2] };
+    const onChangeContours = vi.fn();
+    const onCommitHistory = vi.fn();
+    const setSelectedContourIds = vi.fn();
+    const setSelectedContourId = vi.fn();
+    const setSelectedNodeId = vi.fn();
+    const setSelectedHandleType = vi.fn();
+    const strRef = { current: '' };
+    const arrRef = { current: [] as any[] };
+    const domRef = { current: null };
+
+    let api: ReturnType<typeof useContourTransforms>;
+    function Harness() {
+      api = useContourTransforms({
+        // Pass stale empty array via prop to prove contoursRef.current is used
+        contours: [],
+        contoursRef,
+        selectedContourIds: ['c1', 'c2'],
+        setSelectedContourIds,
+        setSelectedContourId,
+        setSelectedNodeId,
+        setSelectedHandleType,
+        onChangeContours,
+        onCommitHistory,
+        showCanvasToast: vi.fn(),
+        smoothStrength: 'standard',
+        smoothPreserveCorners: false,
+        penStrokeWidth: 28,
+        penCapStyle: 'round',
+        activeBrushPathRef: domRef,
+        activeBrushSvgDRef: strRef,
+        activeEraserPathRef: domRef,
+        activeEraserSvgDRef: strRef,
+        brushStrokePointsRef: arrRef,
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    act(() => {
+      api.handleMergeSelectedContours();
+    });
+
+    expect(onCommitHistory).toHaveBeenCalledTimes(1);
+    expect(onChangeContours).toHaveBeenCalledWith(expect.any(Array), { skipHistory: true });
+    expect(setSelectedNodeId).toHaveBeenCalledWith(null);
+    expect(setSelectedHandleType).toHaveBeenCalledWith(null);
+    expect(contoursRef.current).toBe(onChangeContours.mock.calls[0][0]);
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  it('useCanvasNativeGestures suppresses duplicate window pointerup when handledNativePointerEventsRef already marks the event', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const canvasHost = document.createElement('div');
+    container.appendChild(canvasHost);
+
+    const onWindowPointerEnd = vi.fn();
+    const onWindowPointerCancel = vi.fn();
+    const handledNativePointerEventsRef = { current: new WeakSet<Event>() };
+
+    function Harness() {
+      const containerRef = React.useRef<HTMLDivElement | null>(canvasHost);
+      const canvasGroupRef = React.useRef<SVGGElement | null>(null);
+      const isAnyModalOpenRef = React.useRef(false);
+      const toolModeRef = React.useRef<ToolMode>('brush');
+      const brushWidthRef = React.useRef(28);
+      const eraserSizeRef = React.useRef(20);
+      const onChangeBrushWidthRef = React.useRef(undefined);
+      const onChangeTraceSettingsRef = React.useRef(undefined);
+      const zoomRef = React.useRef(1);
+      const panRef = React.useRef({ x: 0, y: 0 });
+      const isErasingRef = React.useRef(false);
+      const touchPointersRef = React.useRef(new Map());
+      const pointerTypesRef = React.useRef(new Map());
+      const isTwoFingerGestureRef = React.useRef(false);
+      const twoFingerCooldownUntilRef = React.useRef(0);
+      const isPenDrawingRef = React.useRef(false);
+      const lastPenActiveTimeRef = React.useRef(0);
+      const onWindowPointerEndRef = React.useRef(onWindowPointerEnd);
+      const onWindowPointerCancelRef = React.useRef(onWindowPointerCancel);
+
+      useCanvasNativeGestures({
+        containerRef,
+        canvasGroupRef,
+        getContainerRectFast: () => ({ left: 0, top: 0, width: 500, height: 500 }),
+        upm: 1000,
+        isAnyModalOpenRef,
+        toolModeRef,
+        brushWidthRef,
+        eraserSizeRef,
+        onChangeBrushWidthRef,
+        onChangeTraceSettingsRef,
+        setEraserSize: vi.fn(),
+        setZoom: vi.fn(),
+        setPan: vi.fn(),
+        zoomRef,
+        panRef,
+        clampPan: (p) => p,
+        showCanvasToast: vi.fn(),
+        setTouchLoupeState: vi.fn(),
+        isErasingRef,
+        resetEraserVisuals: vi.fn(),
+        touchPointersRef,
+        pointerTypesRef,
+        isTwoFingerGestureRef,
+        twoFingerCooldownUntilRef,
+        isPenDrawingRef,
+        lastPenActiveTimeRef,
+        onWindowPointerEndRef,
+        onWindowPointerCancelRef,
+        handledNativePointerEventsRef,
+      });
+      return null;
+    }
+
+    act(() => {
+      root.render(<Harness />);
+    });
+
+    // Event already handled by SVG onPointerUp must not re-fire window end fallback
+    const handledEv = new Event('pointerup') as PointerEvent;
+    Object.defineProperty(handledEv, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(handledEv, 'pointerId', { value: 1 });
+    handledNativePointerEventsRef.current.add(handledEv);
+    act(() => {
+      window.dispatchEvent(handledEv);
+    });
+    expect(onWindowPointerEnd).not.toHaveBeenCalled();
+
+    // Unhandled window pointerup still fires fallback end
+    const unhandledUp = new Event('pointerup') as PointerEvent;
+    Object.defineProperty(unhandledUp, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(unhandledUp, 'pointerId', { value: 2 });
+    act(() => {
+      window.dispatchEvent(unhandledUp);
+    });
+    expect(onWindowPointerEnd).toHaveBeenCalledTimes(1);
+
+    // Unhandled window pointercancel routes to cancel callback instead of finalizing
+    const unhandledCancel = new Event('pointercancel') as PointerEvent;
+    Object.defineProperty(unhandledCancel, 'pointerType', { value: 'mouse' });
+    Object.defineProperty(unhandledCancel, 'pointerId', { value: 3 });
+    act(() => {
+      window.dispatchEvent(unhandledCancel);
+    });
+    expect(onWindowPointerCancel).toHaveBeenCalledTimes(1);
+    expect(onWindowPointerEnd).toHaveBeenCalledTimes(1);
 
     act(() => {
       root.unmount();

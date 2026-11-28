@@ -65,6 +65,16 @@ export interface PenPresetsModalProps {
     edgeRoughness?: number;
     tipSharpness?: number;
     pressureGamma?: number;
+    minWidth?: number;
+    maxWidth?: number;
+    taperCurve?: 'linear' | 'gentle' | 'steep';
+    lineCap?: 'round' | 'square' | 'butt';
+    lineJoin?: 'miter' | 'round' | 'bevel';
+    doubleLineGap?: number;
+    dottedSpacing?: number;
+    brushFlex?: number;
+    inkPooling?: number;
+    roughnessScale?: number;
   };
   onApplyPreset: (preset: UserPenPreset) => void;
   onChangePressureCurve?: (curve: PressureCurveConfig) => void;

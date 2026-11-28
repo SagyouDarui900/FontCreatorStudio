@@ -56,7 +56,7 @@ function cloneGlyphData(glyph: GlyphData, fallbackName: string, upm: number): Gl
     char: glyph.char,
     name: fallbackName,
     advanceWidth: glyph.advanceWidth ?? upm,
-    lsb: glyph.lsb ?? 50,
+    lsb: glyph.lsb ?? Math.round(50 * (upm / 1000)),
     contours: JSON.parse(JSON.stringify(glyph.contours || [])),
     ...(glyph.pixelData
       ? {
@@ -192,6 +192,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
   const [copyFromBaseOnCreate, setCopyFromBaseOnCreate] = useState<boolean>(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [confirmOverwriteKey, setConfirmOverwriteKey] = useState<string | null>(null);
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement | null>(null);
   const isTopModal = useIsTopModal();
@@ -200,6 +201,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
     if (isOpen) {
       setCustomBaseInput(selectedChar || '');
       setConfirmOverwriteKey(null);
+      setConfirmDeleteKey(null);
     }
   }, [isOpen, selectedChar]);
 
@@ -278,7 +280,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
             char: baseChar,
             name: variantName,
             advanceWidth: baseGlyph?.advanceWidth ?? upm,
-            lsb: baseGlyph?.lsb ?? 50,
+            lsb: baseGlyph?.lsb ?? Math.round(50 * (upm / 1000)),
             contours: [],
             modified: false,
           };
@@ -371,6 +373,11 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
 
   const handleDeleteVariant = (ivsKey: string) => {
     if (!setProject) return;
+    if (confirmDeleteKey !== ivsKey) {
+      setConfirmDeleteKey(ivsKey);
+      return;
+    }
+    setConfirmDeleteKey(null);
     if (activeIvsKey === ivsKey && onSelectIvsVariant) {
       onSelectIvsVariant(null);
     }
@@ -607,6 +614,7 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                     const isActive = activeIvsKey === variant.id;
                     const variantDrawn = hasGlyphArtwork(variant.glyph);
                     const isConfirmingOverwrite = confirmOverwriteKey === variant.id;
+                    const isConfirmingDelete = confirmDeleteKey === variant.id;
 
                     return (
                       <div
@@ -696,11 +704,15 @@ export const IvsVariantManagerModal: React.FC<IvsVariantManagerModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteVariant(variant.id)}
-                                className={`px-2 py-1 rounded-lg border text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors ${themeClasses.toolbarBg} ${themeClasses.border} text-red-500 hover:bg-red-500/10`}
+                                className={`px-2 py-1 rounded-lg border text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors ${
+                                  isConfirmingDelete
+                                    ? 'bg-red-600 border-red-500 text-white hover:bg-red-500'
+                                    : `${themeClasses.toolbarBg} ${themeClasses.border} text-red-500 hover:bg-red-500/10`
+                                }`}
                                 title="このIVS異体字を削除"
                               >
                                 <Trash2 className="w-3 h-3" />
-                                <span>削除</span>
+                                <span>{isConfirmingDelete ? 'もう一度押して削除' : '削除'}</span>
                               </button>
                             )}
                           </div>

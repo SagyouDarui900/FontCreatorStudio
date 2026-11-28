@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { PathContour, Point, BezierNode, ToolMode } from '../../../types';
 import { contoursToSvgPath, unionContours, hasContourIntersections, expandStrokeContours } from '../../../utils/path';
 import { setPenMousePos } from '../penMouseStore';
+import { STORAGE_KEYS, getStorageItem, setStorageItem } from '../../../utils/storageKeys';
 
 interface UsePenToolOptions {
   toolMode?: ToolMode;
@@ -35,21 +36,17 @@ export function usePenTool({
   isGlyphLocked = false,
 }: UsePenToolOptions) {
   const [penStrokeWidth, setPenStrokeWidth] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('glyph_pen_stroke_width');
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= 2 && parsed <= 300) return parsed;
-      }
-    } catch {}
+    const saved = getStorageItem(STORAGE_KEYS.PEN_STROKE_WIDTH);
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 2 && parsed <= 300) return parsed;
+    }
     return 36;
   });
 
   const [penCapStyle, setPenCapStyle] = useState<'round' | 'butt' | 'square'>(() => {
-    try {
-      const saved = localStorage.getItem('glyph_pen_cap_style');
-      if (saved === 'round' || saved === 'butt' || saved === 'square') return saved;
-    } catch {}
+    const saved = getStorageItem(STORAGE_KEYS.PEN_CAP_STYLE);
+    if (saved === 'round' || saved === 'butt' || saved === 'square') return saved;
     return 'round';
   });
 
@@ -58,24 +55,20 @@ export function usePenTool({
   const handleSetPenStrokeWidth = useCallback((width: number) => {
     const clamped = Math.max(2, Math.min(300, Math.round(width)));
     setPenStrokeWidth(clamped);
-    try {
-      localStorage.setItem('glyph_pen_stroke_width', String(clamped));
-    } catch {}
+    setStorageItem(STORAGE_KEYS.PEN_STROKE_WIDTH, String(clamped));
   }, []);
 
   const handleResetPenStrokeWidth = useCallback(() => {
     setPenStrokeWidth(36);
     try {
-      localStorage.removeItem('glyph_pen_stroke_width');
-      localStorage.removeItem('fcs_pen_stroke_width');
+      localStorage.removeItem(STORAGE_KEYS.PEN_STROKE_WIDTH.primary);
+      STORAGE_KEYS.PEN_STROKE_WIDTH.legacy?.forEach((k) => localStorage.removeItem(k));
     } catch {}
   }, []);
 
   const handleSetPenCapStyle = useCallback((style: 'round' | 'butt' | 'square') => {
     setPenCapStyle(style);
-    try {
-      localStorage.setItem('glyph_pen_cap_style', style);
-    } catch {}
+    setStorageItem(STORAGE_KEYS.PEN_CAP_STYLE, style);
   }, []);
 
   const [activePenContour, setActivePenContour] = useState<PathContour | null>(null);
@@ -244,27 +237,9 @@ export function usePenTool({
     ]
   );
 
-  // When switching away from the pen tool, discard the in-progress pen
-  // path instead of auto-committing it (A8). The user is told by a toast
-  // that the path was discarded. Use Esc (handleResetPenContour) or Enter
-  // (handleFinishPenContour) to cancel or commit explicitly before
-  // switching tools.
-  const prevToolModeRef = useRef<ToolMode | undefined>(toolMode);
-  useEffect(() => {
-    if (prevToolModeRef.current === 'pen' && toolMode && toolMode !== 'pen') {
-      if (activePenContour) {
-        const count = activePenContour.nodes.length;
-        setActivePenContour(null);
-        setSelectedNodeId(null);
-        setSelectedHandleType(null);
-        if (count > 0) {
-          showCanvasToast('作図中のパスを破棄しました', `${count} 点の未確定パスを消去`);
-        }
-        setPenMousePos(null);
-      }
-    }
-    prevToolModeRef.current = toolMode;
-  }, [toolMode, activePenContour, setSelectedHandleType, setSelectedNodeId, showCanvasToast]);
+  // Tool-switch finalization/cleanup of an active pen contour is handled in
+  // useToolModeCleanup so pen and brush share a single consistent lifecycle
+  // without conflicting toasts or competing effects.
 
   const handlePenHudPointerDown = useCallback(
     (e: React.PointerEvent) => {

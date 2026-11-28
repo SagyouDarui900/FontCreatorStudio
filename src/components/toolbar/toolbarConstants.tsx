@@ -30,7 +30,19 @@ import {
   BrushStyle,
   JapaneseGuidePattern,
   VerticalGuidePattern,
+  UserPenPreset,
 } from '../../types';
+
+export function isCustomPenPreset(preset?: Pick<UserPenPreset, 'id' | 'isCustom'> | null): boolean {
+  if (!preset) return false;
+  return Boolean(
+    preset.isCustom ||
+      preset.id?.startsWith('preset-custom-') ||
+      preset.id?.startsWith('custom-') ||
+      preset.id?.startsWith('preset-copy-') ||
+      preset.id?.startsWith('preset-imported-')
+  );
+}
 
 export const PEN_ICONS: Record<BrushStyle, React.FC<{ className?: string }>> = {
   signpen: Pen,

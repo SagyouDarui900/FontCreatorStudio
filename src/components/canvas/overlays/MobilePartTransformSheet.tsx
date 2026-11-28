@@ -403,11 +403,12 @@ export const MobilePartTransformSheet: React.FC<MobilePartTransformSheetProps> =
                 {handleRegisterSelectedAsCustomPart && (
                   <button
                     type="button"
+                    disabled={isGlyphLocked}
                     onClick={() => {
                       handleRegisterSelectedAsCustomPart();
                       onClose();
                     }}
-                    className="col-span-2 p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 font-bold"
+                    className={`col-span-2 p-2 rounded-lg border flex items-center justify-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800 font-bold ${disabledCls}`}
                   >
                     <BookmarkPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>部首パーツとして登録</span>

@@ -229,14 +229,13 @@ export const TraceReferenceLayer: React.FC<TraceReferenceLayerProps> = React.mem
                   }
                 : undefined;
 
+              const flipTransform =
+                traceSettings.flipH || traceSettings.flipV
+                  ? ` translate(${half}, ${half}) scale(${traceSettings.flipH ? -1 : 1}, ${traceSettings.flipV ? -1 : 1}) translate(${-half}, ${-half})`
+                  : '';
+
               return (
-                <g
-                  transform={`
-                    rotate(${traceSettings.rotation || 0}, ${half}, ${half})
-                    scale(${traceSettings.flipH ? -1 : 1}, ${traceSettings.flipV ? -1 : 1})
-                  `}
-                  style={{ transformOrigin: `${half}px ${half}px` }}
-                >
+                <g transform={`rotate(${traceSettings.rotation || 0}, ${half}, ${half})${flipTransform}`}>
                   {imageLoadFailed ? (
                     <g>
                       <rect

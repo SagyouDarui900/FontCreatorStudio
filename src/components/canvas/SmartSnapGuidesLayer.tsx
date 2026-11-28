@@ -5,13 +5,22 @@ import { useLiveViewportZoom } from './viewportStore';
 export interface SmartSnapGuidesLayerProps {
   activeSnapGuides: SnapGuideLine[];
   selectionColor: string;
+  unitsPerEm?: number;
 }
 
 export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.memo(
-  ({ activeSnapGuides, selectionColor }) => {
+  ({ activeSnapGuides, selectionColor, unitsPerEm = 1000 }) => {
     const liveZoom = useLiveViewportZoom();
     const zoom = liveZoom && liveZoom > 0 ? liveZoom : 1;
     if (!activeSnapGuides || activeSnapGuides.length === 0) return null;
+
+    const upm = unitsPerEm && unitsPerEm > 0 ? unitsPerEm : 1000;
+    const spanStart = -Math.round(upm * 0.3);
+    const spanEnd = Math.round(upm * 1.3);
+    const diagonalSpan = Math.max(2000, upm * 2);
+    const badgeMaxX = Math.max(30, upm - 150);
+    const badgeMaxY = Math.max(30, upm - 60);
+    const halfUpm = upm / 2;
 
     return (
       <g className="smart-snap-guidelines select-none pointer-events-none">
@@ -25,7 +34,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
             <g key={guide.id}>
               {guide.type === 'diagonal' ? (
                 (() => {
-                  const origin = guide.p1 || guide.snapPoint || { x: 500, y: 500 };
+                  const origin = guide.p1 || guide.snapPoint || { x: halfUpm, y: halfUpm };
                   let dx = 1;
                   let dy = 0;
                   if (
@@ -42,7 +51,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   const len = Math.hypot(dx, dy) || 1;
                   const ux = dx / len;
                   const uy = dy / len;
-                  const span = 2000;
+                  const span = diagonalSpan;
                   const x1 = origin.x - ux * span;
                   const y1 = origin.y - uy * span;
                   const x2 = origin.x + ux * span;
@@ -79,8 +88,8 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                       )}
                       <g
                         transform={`translate(${
-                          Math.max(30, Math.min(850, badgeAnchor.x + 10 / zoom))
-                        }, ${Math.max(30, Math.min(940, badgeAnchor.y - 16 / zoom))})`}
+                          Math.max(30, Math.min(badgeMaxX, badgeAnchor.x + 10 / zoom))
+                        }, ${Math.max(30, Math.min(badgeMaxY, badgeAnchor.y - 16 / zoom))})`}
                       >
                         <rect
                           x={-4 / zoom}
@@ -111,9 +120,9 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                 <>
                   {/* Outer Glow line */}
                   <line
-                    x1={-300}
+                    x1={spanStart}
                     y1={guide.position}
-                    x2={1300}
+                    x2={spanEnd}
                     y2={guide.position}
                     stroke={lineColor}
                     strokeWidth={strokeW * 3}
@@ -121,9 +130,9 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   />
                   {/* Main Crisp Snap Line */}
                   <line
-                    x1={-300}
+                    x1={spanStart}
                     y1={guide.position}
-                    x2={1300}
+                    x2={spanEnd}
                     y2={guide.position}
                     stroke={lineColor}
                     strokeWidth={strokeW}
@@ -142,7 +151,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   <g
                     transform={`translate(${
                       guide.snapPoint
-                        ? Math.max(30, Math.min(850, guide.snapPoint.x - (guide.targetName.length * 5) / zoom))
+                        ? Math.max(30, Math.min(badgeMaxX, guide.snapPoint.x - (guide.targetName.length * 5) / zoom))
                         : 40
                     }, ${guide.position - 16 / zoom})`}
                   >
@@ -174,9 +183,9 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   {/* Outer Glow line */}
                   <line
                     x1={guide.position}
-                    y1={-300}
+                    y1={spanStart}
                     x2={guide.position}
-                    y2={1300}
+                    y2={spanEnd}
                     stroke={lineColor}
                     strokeWidth={strokeW * 3}
                     strokeOpacity={0.35}
@@ -184,9 +193,9 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   {/* Main Crisp Snap Line */}
                   <line
                     x1={guide.position}
-                    y1={-300}
+                    y1={spanStart}
                     x2={guide.position}
-                    y2={1300}
+                    y2={spanEnd}
                     stroke={lineColor}
                     strokeWidth={strokeW}
                     strokeDasharray={isLsb ? undefined : `${6 / zoom} ${4 / zoom}`}
@@ -203,7 +212,7 @@ export const SmartSnapGuidesLayer: React.FC<SmartSnapGuidesLayerProps> = React.m
                   {/* HUD Label Badge */}
                   <g
                     transform={`translate(${guide.position + 10 / zoom}, ${
-                      guide.snapPoint ? Math.max(30, Math.min(940, guide.snapPoint.y - 10 / zoom)) : 60
+                      guide.snapPoint ? Math.max(30, Math.min(badgeMaxY, guide.snapPoint.y - 10 / zoom)) : 60
                     })`}
                   >
                     <rect

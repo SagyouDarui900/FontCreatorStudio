@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { TraceSettings } from '../../../types';
 import { TraceResizeHandle } from '../TraceReferenceLayer';
 import { getDefaultTraceScale } from '../traceCharMetrics';
@@ -39,6 +39,22 @@ export function useTraceTransform({
     initOffsetX: 0,
     initOffsetY: 0,
   });
+
+  const traceRafRef = useRef<number | null>(null);
+  const pendingTraceUpdateRef = useRef<
+    | { type: 'drag'; offsetX: number; offsetY: number }
+    | { type: 'resize'; scale: number }
+    | null
+  >(null);
+
+  useEffect(() => {
+    return () => {
+      if (traceRafRef.current !== null) {
+        cancelAnimationFrame(traceRafRef.current);
+        traceRafRef.current = null;
+      }
+    };
+  }, []);
 
   const traceResizeStartRef = useRef<{
     clientX: number;
@@ -139,36 +155,74 @@ export function useTraceTransform({
       if (isDraggingTrace && onChangeTraceSettings) {
         const deltaX = (e.clientX - traceDragStartRef.current.clientX) / zoom;
         const deltaY = (e.clientY - traceDragStartRef.current.clientY) / zoom;
-        onChangeTraceSettings((prev) => ({
-          ...prev,
+        pendingTraceUpdateRef.current = {
+          type: 'drag',
           offsetX: Math.round(traceDragStartRef.current.initOffsetX + deltaX),
           offsetY: Math.round(traceDragStartRef.current.initOffsetY + deltaY),
-        }));
-        return true;
-      }
-
-      if (isResizingTrace && onChangeTraceSettings) {
+        };
+      } else if (isResizingTrace && onChangeTraceSettings) {
         const { centerScreenX, centerScreenY, initDist, initScale } = traceResizeStartRef.current;
         const currentDist = Math.hypot(e.clientX - centerScreenX, e.clientY - centerScreenY);
         const ratio = currentDist / initDist;
         const rawScale = initScale * ratio;
         const nextScale = Math.round(clampTraceScale(rawScale) * 100) / 100;
-        onChangeTraceSettings((prev) => ({
-          ...prev,
+        pendingTraceUpdateRef.current = {
+          type: 'resize',
           scale: nextScale,
-        }));
-        return true;
+        };
+      } else {
+        return false;
       }
 
-      return false;
+      if (traceRafRef.current === null) {
+        traceRafRef.current = requestAnimationFrame(() => {
+          traceRafRef.current = null;
+          const pending = pendingTraceUpdateRef.current;
+          if (!pending || !onChangeTraceSettings) return;
+          pendingTraceUpdateRef.current = null;
+          if (pending.type === 'drag') {
+            onChangeTraceSettings((prev) => ({
+              ...prev,
+              offsetX: pending.offsetX,
+              offsetY: pending.offsetY,
+            }));
+          } else {
+            onChangeTraceSettings((prev) => ({
+              ...prev,
+              scale: pending.scale,
+            }));
+          }
+        });
+      }
+      return true;
     },
     [isDraggingTrace, isResizingTrace, onChangeTraceSettings, zoom]
   );
 
   const resetTraceDragState = useCallback(() => {
+    if (traceRafRef.current !== null) {
+      cancelAnimationFrame(traceRafRef.current);
+      traceRafRef.current = null;
+    }
+    if (pendingTraceUpdateRef.current && onChangeTraceSettings) {
+      const pending = pendingTraceUpdateRef.current;
+      pendingTraceUpdateRef.current = null;
+      if (pending.type === 'drag') {
+        onChangeTraceSettings((prev) => ({
+          ...prev,
+          offsetX: pending.offsetX,
+          offsetY: pending.offsetY,
+        }));
+      } else {
+        onChangeTraceSettings((prev) => ({
+          ...prev,
+          scale: pending.scale,
+        }));
+      }
+    }
     setIsDraggingTrace(false);
     setIsResizingTrace(false);
-  }, []);
+  }, [onChangeTraceSettings]);
 
   return {
     isDraggingTrace,

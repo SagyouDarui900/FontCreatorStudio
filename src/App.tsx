@@ -95,6 +95,7 @@ interface AppMainProps {
   toasts: ToastMessage[];
   showToast: (text: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   dismissToast: (id: string) => void;
+  setToolModeRef: React.MutableRefObject<(mode: ToolMode) => void>;
 }
 
 function AppMain({
@@ -105,6 +106,7 @@ function AppMain({
   toasts,
   showToast,
   dismissToast,
+  setToolModeRef,
 }: AppMainProps) {
   // Service Worker update notice: registerType 'prompt' では新しい
   // Service Worker は waiting 状態で止まり、自動で有効化も再読み込みも
@@ -208,9 +210,17 @@ function AppMain({
     handleChangePressureSensitivity,
     handleChangePressureCurve,
     handleChangeSmoothingIntensity,
+    handleChangeAutoSmoothBrush,
+    handleChangeSmoothStrength,
+    handleChangeSmoothPreserveCorners,
+    handleChangeAutoUnionBrush,
     handleAdjustBrushSize,
     handleApplyPenPreset,
   } = useToolState();
+
+  useEffect(() => {
+    setToolModeRef.current = setToolMode;
+  }, [setToolMode, setToolModeRef]);
 
   const [projectReplaceSeq, setProjectReplaceSeq] = useState(0);
   const projectReplaceSeqRef = useRef(projectReplaceSeq);
@@ -598,6 +608,21 @@ function AppMain({
     [isGlyphLocked, currentGlyph, commitHistory, handleUpdateContours, showToast]
   );
 
+  const handleDiscardLastHistory = useCallback(
+    (initialContours: PathContour[]) => {
+      discardLastHistoryEntry(initialContours);
+    },
+    [discardLastHistoryEntry]
+  );
+
+  const handleCopyFromChar = useCallback(
+    (char: string) => {
+      const code = char.codePointAt(0);
+      if (code) handleCopyGlyph(code);
+    },
+    [handleCopyGlyph]
+  );
+
   // Global Keyboard Shortcuts
   useAppShortcuts({
     isAnyModalOpen,
@@ -736,6 +761,8 @@ function AppMain({
             traceEnabled={traceSettings.enabled}
             theme={theme}
             activePenPreset={activePenPreset}
+            userPresets={penPresets}
+            onApplyPreset={handleApplyPenPreset}
           />
 
           <div className="flex-1 min-h-0 h-full w-full relative overflow-hidden">
@@ -777,16 +804,16 @@ function AppMain({
               onChangeBrushWidth={handleChangeBrushWidth}
               onAdjustBrushSize={handleAdjustBrushSize}
               autoSmoothBrush={autoSmoothBrush}
-              onChangeAutoSmoothBrush={setAutoSmoothBrush}
+              onChangeAutoSmoothBrush={handleChangeAutoSmoothBrush}
               smoothStrength={smoothStrength}
-              onChangeSmoothStrength={setSmoothStrength}
+              onChangeSmoothStrength={handleChangeSmoothStrength}
               smoothPreserveCorners={smoothPreserveCorners}
-              onChangeSmoothPreserveCorners={setSmoothPreserveCorners}
+              onChangeSmoothPreserveCorners={handleChangeSmoothPreserveCorners}
               autoUnionBrush={autoUnionBrush}
-              onChangeAutoUnionBrush={setAutoUnionBrush}
+              onChangeAutoUnionBrush={handleChangeAutoUnionBrush}
               onRegisterResetCanvasPrefs={handleRegisterResetCanvasPrefs}
               pressureSensitivity={pressureSensitivity}
-              onChangePressureSensitivity={setPressureSensitivity}
+              onChangePressureSensitivity={handleChangePressureSensitivity}
               pressureCurve={pressureCurve}
               smoothingIntensity={smoothingIntensity}
               onChangeSmoothingIntensity={handleChangeSmoothingIntensity}
@@ -805,13 +832,8 @@ function AppMain({
               onSelectNextUncompletedGlyph={handleSelectNextUncompletedGlyph}
               isGlyphLocked={isGlyphLocked}
               onCommitHistory={commitHistory}
-              onDiscardLastHistory={(initialContours) =>
-                discardLastHistoryEntry(initialContours)
-              }
-              onCopyFromChar={(char) => {
-                const code = char.codePointAt(0);
-                if (code) handleCopyGlyph(code);
-              }}
+              onDiscardLastHistory={handleDiscardLastHistory}
+              onCopyFromChar={handleCopyFromChar}
               onGenerateDakutenTarget={handleGenerateDakutenTarget}
               onDuplicateAsSmallKana={handleDuplicateAsSmallKana}
               onOpenGlyphSynthesisModal={handleOpenSynthesisModal}
@@ -1056,6 +1078,11 @@ function AppContent() {
     onShowToast: showToast,
   });
 
+  const setToolModeRef = useRef<(mode: ToolMode) => void>(() => {});
+  const proxySetToolMode = useCallback((mode: ToolMode) => {
+    setToolModeRef.current(mode);
+  }, []);
+
   if (isStorageLoading) {
     return (
       <div className={`w-screen h-screen flex flex-col items-center justify-center ${themeClasses.canvasOuterBg}`}>
@@ -1079,6 +1106,7 @@ function AppContent() {
       projectRef={projectRef}
       saveProjectToIndexedDbWhenIdle={saveProjectToIndexedDbWhenIdle}
       showToast={showToast}
+      setToolMode={proxySetToolMode}
     >
       <AppMain
         theme={theme}
@@ -1088,6 +1116,7 @@ function AppContent() {
         toasts={toasts}
         showToast={showToast}
         dismissToast={dismissToast}
+        setToolModeRef={setToolModeRef}
       />
       {(restoreFailed || autoSaveFailed) && (
         <div

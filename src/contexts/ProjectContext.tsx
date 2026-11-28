@@ -467,7 +467,7 @@ export function ProjectProvider({
         );
       }
     })();
-  }, [selectedUnicode, selectedChar, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
+  }, [selectedUnicode, selectedChar, effectiveActiveIvsKey, showToast, saveProjectToIndexedDbWhenIdle, projectRef]);
 
   const glyphActions = useGlyphActions({
     project,
@@ -476,6 +476,9 @@ export function ProjectProvider({
     selectedChar,
     setSelectedUnicode,
     setSelectedChar,
+    onSelectGlyph: handleSelectGlyph,
+    activeIvsKey: effectiveActiveIvsKey,
+    activeIvsVariant,
     currentGlyph,
     currentGlyphRef,
     commitHistory,

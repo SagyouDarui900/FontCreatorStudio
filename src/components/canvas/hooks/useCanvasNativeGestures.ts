@@ -32,6 +32,8 @@ export interface UseCanvasNativeGesturesProps {
   isPenDrawingRef: React.MutableRefObject<boolean>;
   lastPenActiveTimeRef: React.MutableRefObject<number>;
   onWindowPointerEndRef?: React.RefObject<(() => void) | undefined>;
+  onWindowPointerCancelRef?: React.RefObject<(() => void) | undefined>;
+  handledNativePointerEventsRef?: React.RefObject<WeakSet<Event>>;
 }
 
 export function useCanvasNativeGestures({
@@ -62,6 +64,8 @@ export function useCanvasNativeGestures({
   isPenDrawingRef,
   lastPenActiveTimeRef,
   onWindowPointerEndRef,
+  onWindowPointerCancelRef,
+  handledNativePointerEventsRef,
 }: UseCanvasNativeGesturesProps) {
   useEffect(() => {
     const el = containerRef.current;
@@ -258,6 +262,7 @@ export function useCanvasNativeGestures({
     // Window level safety release: if finger, mouse, or pen is lifted outside canvas window or interrupted
     const handleWindowPointerUpOrCancel = (e: PointerEvent) => {
       const wasTwoFinger = isTwoFingerGestureRef.current;
+      const alreadyHandledOnSvg = Boolean(handledNativePointerEventsRef?.current?.has(e));
       setTouchLoupeState((prev) => (prev.visible ? { ...prev, visible: false } : prev));
       if (e.type === 'pointercancel' && isErasingRef.current) {
         resetEraserVisuals();
@@ -287,8 +292,12 @@ export function useCanvasNativeGestures({
         isPenDrawingRef.current = false;
         lastPenActiveTimeRef.current = Date.now();
       }
-      if (!wasTwoFinger) {
-        onWindowPointerEndRef?.current?.();
+      if (!wasTwoFinger && !alreadyHandledOnSvg) {
+        if (e.type === 'pointercancel' && onWindowPointerCancelRef?.current) {
+          onWindowPointerCancelRef.current();
+        } else {
+          onWindowPointerEndRef?.current?.();
+        }
       }
       if (isErasingRef.current) {
         resetEraserVisuals();
@@ -339,5 +348,7 @@ export function useCanvasNativeGestures({
     isPenDrawingRef,
     lastPenActiveTimeRef,
     onWindowPointerEndRef,
+    onWindowPointerCancelRef,
+    handledNativePointerEventsRef,
   ]);
 }

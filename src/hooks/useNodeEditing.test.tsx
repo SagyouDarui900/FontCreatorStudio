@@ -324,4 +324,69 @@ describe('useNodeEditing (Round 3)', () => {
       cleanup();
     }
   });
+
+  it('preserves selectedHandleType after drag end in node mode so arrow nudge moves only the handle', async () => {
+    const smoothContour: PathContour = {
+      id: 'c1',
+      closed: true,
+      nodes: [
+        {
+          id: 'n1',
+          x: 100,
+          y: 100,
+          type: 'corner',
+          handleIn: { x: 80, y: 100 },
+          handleOut: { x: 120, y: 100 },
+        },
+        node('n2', 200, 100),
+        node('n3', 200, 200),
+      ],
+    };
+    const { store, cleanup } = renderNodeEditing([smoothContour]);
+    try {
+      const contour = store.contours![0];
+      act(() => {
+        store.current.startNodeOrHandleDrag(
+          fakePointerEvent({ clientX: 120, clientY: 100 }),
+          contour,
+          contour.nodes[0],
+          'handleOut'
+        );
+      });
+      act(() => {
+        store.current.handleNodeDragMove(
+          fakePointerEvent({ clientX: 140, clientY: 100, buttons: 1 }),
+          { x: 140, y: 100 }
+        );
+      });
+      await flushRaf();
+
+      act(() => {
+        store.current.handleNodeDragEnd();
+      });
+
+      expect(store.current.selectedHandleType).toBe('handleOut');
+
+      // Bare pointermove after drag end must NOT move the handle
+      let movedAfterUp: boolean;
+      act(() => {
+        movedAfterUp = store.current.handleNodeDragMove(
+          fakePointerEvent({ clientX: 300, clientY: 300, buttons: 0 }),
+          { x: 300, y: 300 }
+        );
+      });
+      expect(movedAfterUp!).toBe(false);
+      expect(store.contours![0].nodes[0].handleOut).toEqual({ x: 140, y: 100 });
+
+      // Arrow nudge after drag end moves handleOut, leaving anchor node untouched
+      act(() => {
+        store.current.handleNudgeSelectedNode(10, -5);
+      });
+      expect(store.contours![0].nodes[0].x).toBe(100);
+      expect(store.contours![0].nodes[0].y).toBe(100);
+      expect(store.contours![0].nodes[0].handleOut).toEqual({ x: 150, y: 95 });
+    } finally {
+      cleanup();
+    }
+  });
 });

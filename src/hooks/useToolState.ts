@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   ToolMode,
   BrushStyle,
@@ -48,20 +48,26 @@ export function useToolState() {
   const [toolMode, setToolMode] = useState<ToolMode>('brush');
   const [brushStyle, setBrushStyle] = useState<BrushStyle>(() => loadSavedBrushStyle());
   const [brushWidth, setBrushWidth] = useState<number>(() => {
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    return clampBrushWidth(saved.brush?.brushWidth ?? 38);
+    const defaultWidth =
+      DEFAULT_PEN_PRESETS.find((preset) => preset.brushStyle === initialStyle)?.brushWidth ?? 38;
+    return clampBrushWidth(saved[initialStyle]?.brushWidth ?? defaultWidth);
   });
   const [pressureSensitivity, setPressureSensitivity] = useState<'high' | 'normal' | 'low' | 'off'>(() => {
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    return saved.brush?.pressureSensitivity ?? 'high';
+    return saved[initialStyle]?.pressureSensitivity ?? 'high';
   });
   const [pressureCurve, setPressureCurve] = useState<PressureCurveConfig>(() => {
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    return saved.brush?.pressureCurve ?? DEFAULT_PRESSURE_CURVES.soft;
+    return saved[initialStyle]?.pressureCurve ?? DEFAULT_PRESSURE_CURVES.soft;
   });
   const [smoothingIntensity, setSmoothingIntensity] = useState<number>(() => {
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    return saved.brush?.smoothingIntensity ?? 50;
+    return saved[initialStyle]?.smoothingIntensity ?? 50;
   });
 
   // Advanced Writing Feeling Parameters
@@ -70,26 +76,34 @@ export function useToolState() {
   // the same values. They are persisted to localStorage so a preset or
   // style change is reflected in drawing after a restart.
   const [autoSmoothBrush, setAutoSmoothBrush] = useState<boolean>(() => {
-    const saved = loadStickyBrushConfigs();
     const stored = getStorageItem(STORAGE_KEYS.AUTO_SMOOTH_BRUSH);
     if (stored !== null) return stored === 'true';
-    return saved.brush?.autoSmoothBrush ?? true;
+    const initialStyle = loadSavedBrushStyle();
+    const saved = loadStickyBrushConfigs();
+    return saved[initialStyle]?.autoSmoothBrush ?? true;
   });
   const [smoothStrength, setSmoothStrength] = useState<'mild' | 'standard' | 'strong'>(() => {
+    if (getStorageItem(STORAGE_KEYS.SMOOTH_STRENGTH) !== null) {
+      return loadSavedSmoothStrength();
+    }
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    const stored = loadSavedSmoothStrength();
-    if (getStorageItem(STORAGE_KEYS.SMOOTH_STRENGTH) !== null) return stored;
-    return saved.brush?.smoothStrength ?? 'standard';
+    return saved[initialStyle]?.smoothStrength ?? 'standard';
   });
   const [smoothPreserveCorners, setSmoothPreserveCorners] = useState<boolean>(() => {
-    const saved = loadStickyBrushConfigs();
     const stored = getStorageItem(STORAGE_KEYS.SMOOTH_PRESERVE_CORNERS);
     if (stored !== null) return stored === 'true';
-    return saved.brush?.smoothPreserveCorners ?? true;
+    const initialStyle = loadSavedBrushStyle();
+    const saved = loadStickyBrushConfigs();
+    return saved[initialStyle]?.smoothPreserveCorners ?? true;
   });
   const [autoUnionBrush, setAutoUnionBrush] = useState<boolean>(() => {
+    const initialStyle = loadSavedBrushStyle();
     const saved = loadStickyBrushConfigs();
-    return getBooleanStorageItem(STORAGE_KEYS.AUTO_UNION_BRUSH, saved.brush?.autoUnionBrush ?? true);
+    return getBooleanStorageItem(
+      STORAGE_KEYS.AUTO_UNION_BRUSH,
+      saved[initialStyle]?.autoUnionBrush ?? true
+    );
   });
 
   // Persist brush style and smoothing settings to localStorage on change.
@@ -113,18 +127,44 @@ export function useToolState() {
   const [penPresets, setPenPresets] = useState<UserPenPreset[]>(() => loadUserPenPresets());
   const [activePenPreset, setActivePenPreset] = useState<UserPenPreset | undefined>(() => {
     const loaded = loadUserPenPresets();
-    return loaded[0] || DEFAULT_PEN_PRESETS[0];
+    const savedId = getStorageItem(STORAGE_KEYS.ACTIVE_PEN_PRESET_ID);
+    if (savedId !== null) {
+      if (!savedId) return undefined;
+      return loaded.find((preset) => preset.id === savedId);
+    }
+    const initialStyle = loadSavedBrushStyle();
+    return (
+      loaded.find((preset) => preset.brushStyle === initialStyle) ||
+      loaded[0] ||
+      DEFAULT_PEN_PRESETS[0]
+    );
   });
+
+  useEffect(() => {
+    setStorageItem(STORAGE_KEYS.ACTIVE_PEN_PRESET_ID, activePenPreset?.id ?? '');
+  }, [activePenPreset]);
+
+  const brushStyleRef = useRef<BrushStyle>(brushStyle);
+  const brushWidthRef = useRef<number>(brushWidth);
+  useEffect(() => {
+    brushStyleRef.current = brushStyle;
+  }, [brushStyle]);
+  useEffect(() => {
+    brushWidthRef.current = brushWidth;
+  }, [brushWidth]);
 
   // Sticky Brush Settings: Change style and automatically restore saved parameters
   const handleChangeBrushStyle = useCallback((newStyle: BrushStyle) => {
     setActivePenPreset(undefined);
+    brushStyleRef.current = newStyle;
     setBrushStyle(newStyle);
     const configs = loadStickyBrushConfigs();
     const targetConfig = configs[newStyle];
     if (targetConfig) {
       if (typeof targetConfig.brushWidth === 'number') {
-        setBrushWidth(targetConfig.brushWidth);
+        const clamped = clampBrushWidth(targetConfig.brushWidth);
+        brushWidthRef.current = clamped;
+        setBrushWidth(clamped);
       }
       if (targetConfig.pressureSensitivity) {
         setPressureSensitivity(targetConfig.pressureSensitivity);
@@ -152,38 +192,60 @@ export function useToolState() {
 
   const handleChangeBrushWidth = useCallback((newWidth: number) => {
     const clamped = clampBrushWidth(newWidth);
+    brushWidthRef.current = clamped;
     setBrushWidth(clamped);
-    saveStickyBrushConfig(brushStyle, { brushWidth: clamped });
-  }, [brushStyle]);
+    saveStickyBrushConfig(brushStyleRef.current, { brushWidth: clamped });
+  }, []);
 
   const handleChangePressureSensitivity = useCallback((newSensitivity: 'high' | 'normal' | 'low' | 'off') => {
     setPressureSensitivity(newSensitivity);
-    saveStickyBrushConfig(brushStyle, { pressureSensitivity: newSensitivity });
-  }, [brushStyle]);
+    saveStickyBrushConfig(brushStyleRef.current, { pressureSensitivity: newSensitivity });
+  }, []);
 
   const handleChangePressureCurve = useCallback((newCurve: PressureCurveConfig) => {
     setPressureCurve(newCurve);
-    saveStickyBrushConfig(brushStyle, { pressureCurve: newCurve });
-  }, [brushStyle]);
+    saveStickyBrushConfig(brushStyleRef.current, { pressureCurve: newCurve });
+  }, []);
 
   const handleChangeSmoothingIntensity = useCallback((newIntensity: number) => {
     const clamped = Math.max(0, Math.min(100, Math.round(newIntensity)));
     setSmoothingIntensity(clamped);
-    saveStickyBrushConfig(brushStyle, { smoothingIntensity: clamped });
-  }, [brushStyle]);
+    saveStickyBrushConfig(brushStyleRef.current, { smoothingIntensity: clamped });
+  }, []);
 
-  // Adjust brush size via [ / ] keys
+  const handleChangeAutoSmoothBrush = useCallback((enabled: boolean) => {
+    setAutoSmoothBrush(enabled);
+    saveStickyBrushConfig(brushStyleRef.current, { autoSmoothBrush: enabled });
+  }, []);
+
+  const handleChangeSmoothStrength = useCallback((strength: 'mild' | 'standard' | 'strong') => {
+    setSmoothStrength(strength);
+    saveStickyBrushConfig(brushStyleRef.current, { smoothStrength: strength });
+  }, []);
+
+  const handleChangeSmoothPreserveCorners = useCallback((enabled: boolean) => {
+    setSmoothPreserveCorners(enabled);
+    saveStickyBrushConfig(brushStyleRef.current, { smoothPreserveCorners: enabled });
+  }, []);
+
+  const handleChangeAutoUnionBrush = useCallback((enabled: boolean) => {
+    setAutoUnionBrush(enabled);
+    saveStickyBrushConfig(brushStyleRef.current, { autoUnionBrush: enabled });
+  }, []);
+
+  // Adjust brush size via [ / ] keys (kept side-effect free inside state setter)
   const handleAdjustBrushSize = useCallback((delta: number) => {
-    setBrushWidth((current: number) => {
-      const next = clampBrushWidth(current + delta);
-      saveStickyBrushConfig(brushStyle, { brushWidth: next });
-      return next;
-    });
-  }, [brushStyle]);
+    const next = clampBrushWidth(brushWidthRef.current + delta);
+    brushWidthRef.current = next;
+    setBrushWidth(next);
+    saveStickyBrushConfig(brushStyleRef.current, { brushWidth: next });
+  }, []);
 
   const handleApplyPenPreset = useCallback((preset: UserPenPreset) => {
     const clampedWidth = clampBrushWidth(preset.brushWidth);
     setActivePenPreset(preset);
+    brushStyleRef.current = preset.brushStyle;
+    brushWidthRef.current = clampedWidth;
     setBrushStyle(preset.brushStyle);
     setBrushWidth(clampedWidth);
     setPressureSensitivity(preset.pressureSensitivity);
@@ -239,6 +301,10 @@ export function useToolState() {
     handleChangePressureSensitivity,
     handleChangePressureCurve,
     handleChangeSmoothingIntensity,
+    handleChangeAutoSmoothBrush,
+    handleChangeSmoothStrength,
+    handleChangeSmoothPreserveCorners,
+    handleChangeAutoUnionBrush,
     handleAdjustBrushSize,
     handleApplyPenPreset,
   };
