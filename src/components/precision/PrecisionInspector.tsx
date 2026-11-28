@@ -58,6 +58,13 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
   const [offsetStrokeWidth, setOffsetStrokeWidth] = useState<number>(40);
   const [offsetCapStyle, setOffsetCapStyle] = useState<'round' | 'butt' | 'square'>('round');
 
+  // Locked state: sections stay dimmed (opacity-65) but controls are disabled
+  // individually instead of blocking pointer events on the whole section, so
+  // the reason for being unavailable remains visible via the title tooltip.
+  const lockReason = '編集ロック中です。ヘッダーの鍵アイコンで解除できます';
+  const lockedTitle = (action: string) =>
+    isGlyphLocked ? `${lockReason}（${action}はできません）` : action;
+
   // Selected contours
   const selectedContours = useMemo(
     () => contours.filter((c) => selectedContourIds.includes(c.id)),
@@ -366,7 +373,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       )}
       {/* 1. NODE INSPECTOR SECTION */}
       {activeNode && (
-        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
           <div className="flex items-center justify-between gap-1 mb-2">
             <span className="font-bold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 min-w-0">
               <Move className="w-3.5 h-3.5 shrink-0" />
@@ -384,10 +391,11 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             <button
               type="button"
               onClick={handleRoundNodeCoords}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer shrink-0 ${
+              disabled={isGlyphLocked}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono border cursor-pointer disabled:cursor-not-allowed shrink-0 ${
                 isLight ? 'bg-stone-100 hover:bg-stone-200 border-stone-300' : 'bg-stone-800 hover:bg-stone-700 border-stone-700'
               }`}
-              title="座標を整数値にスナップ"
+              title={lockedTitle('座標を整数値にスナップ')}
             >
               整数丸め
             </button>
@@ -400,6 +408,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 type="text"
                 inputMode="numeric"
                 aria-label="X 座標"
+                disabled={isGlyphLocked}
+                title={isGlyphLocked ? lockReason : undefined}
                 value={nodeXDraft}
                 onChange={(e) => setNodeXDraft(e.target.value)}
                 onBlur={() => commitNodeCoordDraft('x')}
@@ -422,6 +432,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 type="text"
                 inputMode="numeric"
                 aria-label="Y 座標"
+                disabled={isGlyphLocked}
+                title={isGlyphLocked ? lockReason : undefined}
                 value={nodeYDraft}
                 onChange={(e) => setNodeYDraft(e.target.value)}
                 onBlur={() => commitNodeCoordDraft('y')}
@@ -447,7 +459,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
               <button
                 type="button"
                 onClick={() => handleUpdateNodeProp('type', 'corner')}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer ${
+                disabled={isGlyphLocked}
+                title={lockedTitle('ハンドル連結を「角」に変更')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer disabled:cursor-not-allowed ${
                   activeNode.type === 'corner'
                     ? 'bg-emerald-600 text-white border-transparent'
                     : isLight
@@ -460,7 +474,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
               <button
                 type="button"
                 onClick={() => handleUpdateNodeProp('type', 'smooth')}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer ${
+                disabled={isGlyphLocked}
+                title={lockedTitle('ハンドル連結を「滑らか」に変更')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border cursor-pointer disabled:cursor-not-allowed ${
                   activeNode.type === 'smooth'
                     ? 'bg-emerald-600 text-white border-transparent'
                     : isLight
@@ -476,7 +492,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       )}
 
       {/* 2. ALIGNMENT & DISTRIBUTION SECTION */}
-      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
             <AlignCenter className="w-3.5 h-3.5 text-emerald-500" />
@@ -492,60 +508,66 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('left')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="左揃え"
+            title={lockedTitle('左揃え')}
           >
             <AlignLeft className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => handleAlign('centerH')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="水平方向中央揃え"
+            title={lockedTitle('水平方向中央揃え')}
           >
             <AlignCenter className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => handleAlign('right')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="右揃え"
+            title={lockedTitle('右揃え')}
           >
             <AlignRight className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => handleAlign('top')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="上揃え"
+            title={lockedTitle('上揃え')}
           >
             <AlignStartVertical className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => handleAlign('centerV')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="垂直方向中央揃え"
+            title={lockedTitle('垂直方向中央揃え')}
           >
             <AlignCenterVertical className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => handleAlign('bottom')}
-            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer transition-colors ${
+            disabled={isGlyphLocked}
+            className={`min-h-[36px] py-2 px-1.5 rounded flex items-center justify-center border cursor-pointer disabled:cursor-not-allowed transition-colors ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700' : 'bg-stone-800 hover:bg-stone-700 border-stone-700 text-stone-300'
             }`}
-            title="下揃え"
+            title={lockedTitle('下揃え')}
           >
             <AlignEndVertical className="w-4 h-4" />
           </button>
@@ -556,10 +578,11 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleAlign('emBoxCenterH')}
-            className={`px-2 py-1.5 rounded border text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer ${
+            disabled={isGlyphLocked}
+            className={`px-2 py-1.5 rounded border text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed ${
               isLight ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border-emerald-800'
             }`}
-            title="フォント仮想ボディ（全角枠）の中央に揃える"
+            title={lockedTitle('フォント仮想ボディ（全角枠）の中央に揃える')}
           >
             <Box className="w-3 h-3" />
             <span>全角枠中央揃え</span>
@@ -567,29 +590,46 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
           <button
             type="button"
             onClick={() => handleDistribute('horizontal')}
-            className={`px-2 py-1.5 rounded border text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer ${
+            disabled={isGlyphLocked}
+            className={`px-2 py-1.5 rounded border text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed ${
               isLight ? 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200' : 'bg-stone-800 hover:bg-stone-700 text-stone-300 border-stone-700'
             }`}
-            title="水平方向に均等配分 (3個以上)"
+            title={lockedTitle('水平方向に均等配分 (3個以上)')}
           >
             <Split className="w-3 h-3 rotate-90" />
             <span>水平均等分布</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDistribute('vertical')}
+            disabled={isGlyphLocked}
+            className={`px-2 py-1.5 rounded border text-[11px] font-medium flex items-center justify-center gap-1 cursor-pointer disabled:cursor-not-allowed ${
+              isLight ? 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200' : 'bg-stone-800 hover:bg-stone-700 text-stone-300 border-stone-700'
+            }`}
+            title={lockedTitle('垂直方向に均等配分 (3個以上)')}
+          >
+            <Split className="w-3 h-3" />
+            <span>垂直均等分布</span>
           </button>
         </div>
       </div>
 
       {/* 3. DIMENSIONS & NUMERIC RESIZE (When contour is selected) */}
       {selBBox && (
-        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+        <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
               <Hash className="w-3.5 h-3.5 text-indigo-500" />
               <span>幾何学サイズ指定</span>
             </span>
-            <label className="flex items-center gap-1 text-[10px] text-stone-500 cursor-pointer">
+            <label
+              className="flex items-center gap-1 text-[10px] text-stone-500 cursor-pointer"
+              title={isGlyphLocked ? lockReason : undefined}
+            >
               <input
                 type="checkbox"
                 checked={keepAspect}
+                disabled={isGlyphLocked}
                 onChange={(e) => setKeepAspect(e.target.checked)}
                 className="rounded text-emerald-600 focus:ring-0"
               />
@@ -604,6 +644,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 type="text"
                 inputMode="numeric"
                 aria-label="幅 (W)"
+                disabled={isGlyphLocked}
+                title={isGlyphLocked ? lockReason : undefined}
                 value={widthDraft}
                 onChange={(e) => setWidthDraft(e.target.value)}
                 onBlur={() => commitDimensionDraft('w')}
@@ -626,6 +668,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 type="text"
                 inputMode="numeric"
                 aria-label="高さ (H)"
+                disabled={isGlyphLocked}
+                title={isGlyphLocked ? lockReason : undefined}
                 value={heightDraft}
                 onChange={(e) => setHeightDraft(e.target.value)}
                 onBlur={() => commitDimensionDraft('h')}
@@ -647,7 +691,7 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
       )}
 
       {/* 4. PATH OFFSET / STROKE EXPANSION */}
-      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65 pointer-events-none' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
+      <div className={`p-3 rounded-lg border ${isGlyphLocked ? 'opacity-65' : ''} ${isLight ? 'bg-white border-stone-200 shadow-xs' : 'bg-stone-900/60 border-stone-800'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="font-bold flex items-center gap-1.5 text-stone-800 dark:text-stone-200">
             <Sliders className="w-3.5 h-3.5 text-amber-500" />
@@ -666,6 +710,8 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
             max={160}
             step={5}
             value={offsetStrokeWidth}
+            disabled={isGlyphLocked}
+            title={isGlyphLocked ? lockReason : undefined}
             onChange={(e) => setOffsetStrokeWidth(Number(e.target.value))}
             className="flex-1 min-w-0 accent-emerald-600 touch-pan-x"
           />
@@ -679,7 +725,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
               key={w}
               type="button"
               onClick={() => setOffsetStrokeWidth(w)}
-              className={`flex-1 min-w-0 py-1.5 rounded text-[10px] font-mono tabular-nums border cursor-pointer ${
+              disabled={isGlyphLocked}
+              title={lockedTitle(`線幅を ${w}px に設定`)}
+              className={`flex-1 min-w-0 py-1.5 rounded text-[10px] font-mono tabular-nums border cursor-pointer disabled:cursor-not-allowed ${
                 offsetStrokeWidth === w
                   ? 'bg-emerald-600 text-white border-transparent'
                   : isLight
@@ -705,7 +753,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
                 key={cap.id}
                 type="button"
                 onClick={() => setOffsetCapStyle(cap.id)}
-                className={`flex-1 min-w-0 py-1.5 px-1 rounded text-[10px] font-medium border cursor-pointer truncate ${
+                disabled={isGlyphLocked}
+                title={lockedTitle(`端点の形状を${cap.label}に変更`)}
+                className={`flex-1 min-w-0 py-1.5 px-1 rounded text-[10px] font-medium border cursor-pointer disabled:cursor-not-allowed truncate ${
                   offsetCapStyle === cap.id
                     ? 'bg-emerald-600 text-white border-transparent'
                     : isLight
@@ -722,7 +772,9 @@ export const PrecisionInspector: React.FC<PrecisionInspectorProps> = ({
         <button
           type="button"
           onClick={handleExpandOffset}
-          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+          disabled={isGlyphLocked}
+          title={lockedTitle('選択パスを均一線幅でアウトライン化')}
+          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-xs transition-colors"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>選択パスを均一線幅でアウトライン化</span>

@@ -502,6 +502,12 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = React.memo(({
               selectedNodeId={selectedNodeId || null}
               selectedHandleType={selectedHandleType || null}
               onChangeContours={(nextContours, options) => {
+                // NOTE (low3): contours and lsb still reach the parent through two
+                // separate callbacks here. A single setProject would need a combined
+                // contours+lsb updater in ProjectContext (updateCurrentGlyphField
+                // updates one field per call), which is outside this change. The
+                // history commit stays single: PrecisionInspector calls
+                // onCommitHistory once and both callbacks use skipHistory.
                 onChangeContours(nextContours, options);
                 syncLsbFromContours(nextContours);
               }}
